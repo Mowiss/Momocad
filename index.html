@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOMOtocad - Dessin de Plan Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1e1e1e; color: #fff; font-family: sans-serif; }
+        canvas { display: block; cursor: crosshair; }
+        .tool-btn { transition: all 0.2s; }
+        .tool-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #2563eb;
+        }
+        .logo-font {
+            font-family: "Arial Black", "Arial Bold", sans-serif;
+            font-weight: 900;
+        }
+        .tool-group {
+            border: 1px solid #374151;
+            padding: 4px;
+            border-radius: 8px;
+            background-color: #1f2937;
+        }
+        /* Style pour la scrollbar personnalisée du gestionnaire de calques */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Header / Ruban -->
+    <header class="bg-gray-800 p-3 border-b border-gray-700 shadow-md z-10 flex justify-between items-center">
+        <div class="flex items-center">
+            <h1 class="text-3xl logo-font pl-2 mr-4 tracking-tighter italic select-none">
+                <span class="text-gray-400">MOMO</span><span class="text-blue-500">cad</span>
+            </h1>
+            
+            <!-- Boutons Historique -->
+            <div class="tool-group flex items-center space-x-1 mr-4">
+                <button id="btn-undo" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-300" title="Annuler (Ctrl+Z)" onclick="undo()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                    </svg>
+                </button>
+                <button id="btn-redo" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-300" title="Rétablir (Ctrl+Y)" onclick="redo()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Gestionnaire de Calques -->
+            <div class="tool-group flex items-center space-x-2 px-2 mr-4">
+                <div class="flex items-center space-x-1" title="Calque actif">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                    <select id="active-layer-select" class="bg-gray-700 text-white border border-gray-600 rounded px-1 py-1 text-sm outline-none w-24 truncate" onchange="changeActiveLayer()">
+                        <!-- Rempli en JS -->
+                    </select>
+                </div>
+                <button class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-300" title="Gérer les calques" onclick="openLayerModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Paramètres de typologie -->
+            <div class="tool-group flex items-center space-x-3 px-3">
+                <div class="flex items-center space-x-1" title="Couleur">
+                    <label class="text-xs text-gray-400">Coul.</label>
+                    <input type="color" id="prop-color" value="#ffffff" class="w-8 h-8 bg-transparent border-0 cursor-pointer rounded" onchange="updateSelectedProperties()">
+                </div>
+                <div class="flex items-center space-x-1" title="Type de trait">
+                    <label class="text-xs text-gray-400">Type</label>
+                    <select id="prop-dash" class="bg-gray-700 text-white border border-gray-600 rounded px-1 py-1 text-sm outline-none font-mono" onchange="updateSelectedProperties()">
+                        <option value="solid">────────</option>
+                        <option value="dashed">─ ─ ─ ─</option>
+                        <option value="center">─ · ─ · ─</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-1" title="Épaisseur / Taille">
+                    <label class="text-xs text-gray-400">Taille</label>
+                    <input type="number" id="prop-width" value="2" min="1" max="100" class="w-12 bg-gray-700 text-white border border-gray-600 rounded px-1 py-1 text-sm outline-none text-center" onchange="updateSelectedProperties()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Fichiers -->
+        <div class="tool-group flex items-center space-x-1 pr-1">
+            <button id="btn-fullscreen" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Plein Écran" onclick="toggleFullScreen()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+            </button>
+
+            <button id="btn-save" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Sauvegarder en JSON" onclick="saveToJSON()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+            </button>
+
+            <button id="btn-load" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-400" title="Charger un JSON" onclick="document.getElementById('file-input').click()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </button>
+            <input type="file" id="file-input" class="hidden" accept=".json" onchange="loadFromJSON(event)">
+
+            <button id="btn-cartouche" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-400" title="Éditer le Cartouche" onclick="openCartoucheModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+            </button>
+
+            <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression (ESPACE pour pivoter)" onclick="setMode('print')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Barre latérale Outils -->
+        <aside class="w-16 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-4 space-y-4 shadow-md z-10 overflow-y-auto">
+            
+            <!-- Bloc Manipulation -->
+            <div class="tool-group flex flex-col space-y-2">
+                <button id="btn-select-box" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-pink-400" title="Sélection par rectangle" onclick="setMode('select-box')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    </svg>
+                </button>
+                <button id="btn-move" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-purple-400" title="Déplacer" onclick="setMode('move')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="5 9 2 12 5 15"></polyline>
+                        <polyline points="9 5 12 2 15 5"></polyline>
+                        <polyline points="15 19 12 22 9 19"></polyline>
+                        <polyline points="19 9 22 12 19 15"></polyline>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <line x1="12" y1="2" x2="12" y2="22"></line>
+                    </svg>
+                </button>
+                <button id="btn-rotate" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-indigo-400" title="Rotation (↻)" onclick="setMode('rotate')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                </button>
+                <div class="w-8 border-t border-gray-700 mx-auto"></div>
+                <!-- Presse-papier -->
+                <button id="btn-cut" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-red-400" title="Couper (Ctrl+X)" onclick="cutSelection()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle>
+                        <line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+                    </svg>
+                </button>
+                <button id="btn-copy" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-300" title="Copier (Ctrl+C)" onclick="copySelection()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+                <button id="btn-paste" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-300" title="Coller (Ctrl+V)" onclick="pasteSelection()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></svg>
+                </button>
+            </div>
+
+            <!-- NOUVEAU : Bloc Création (Outils de dessin réunis) -->
+            <div class="tool-group flex flex-col space-y-2">
+                <button id="btn-line" class="tool-btn active w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Ligne" onclick="setMode('line')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="5" x2="5" y2="19"></line>
+                    </svg>
+                </button>
+                
+                <button id="btn-circle" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-pink-300" title="Cercle" onclick="setMode('circle')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="8"></circle>
+                    </svg>
+                </button>
+                
+                <button id="btn-poly" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polygone" onclick="setMode('poly')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z"></path>
+                    </svg>
+                </button>
+
+                <button id="btn-hatch" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-300" title="Hachurer" onclick="setMode('hatch')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3l18 18M3 11l13 13M11 3l13 13M3 19l5 5M19 3l5 5"></path>
+                    </svg>
+                </button>
+
+                <button id="btn-text" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-200" title="Texte" onclick="setMode('text')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                        <line x1="9" y1="20" x2="15" y2="20"></line>
+                        <line x1="12" y1="4" x2="12" y2="20"></line>
+                    </svg>
+                </button>
+                
+                <button id="btn-dim" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-400" title="Cotation" onclick="setMode('dim')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <polyline points="5 8 2 12 5 16"></polyline>
+                        <polyline points="19 8 22 12 19 16"></polyline>
+                        <line x1="2" y1="8" x2="2" y2="16"></line>
+                        <line x1="22" y1="8" x2="22" y2="16"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="w-8 border-t border-gray-600 my-2"></div>
+
+            <button id="btn-scale" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-green-400" title="Échelle" onclick="openScaleModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="10" rx="1"></rect>
+                    <line x1="6" y1="7" x2="6" y2="12"></line>
+                    <line x1="10" y1="7" x2="10" y2="10"></line>
+                    <line x1="14" y1="7" x2="14" y2="12"></line>
+                    <line x1="18" y1="7" x2="18" y2="10"></line>
+                </svg>
+            </button>
+        </aside>
+
+        <main class="flex-1 relative" id="canvas-container">
+            <canvas id="cadCanvas"></canvas>
+            
+            <div id="text-input-modal" class="hidden absolute bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-64">
+                <input type="text" id="text-content" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500 mb-3" placeholder="Votre texte ici...">
+                <div class="flex justify-end space-x-2">
+                    <button class="px-2 py-1 text-xs rounded bg-gray-600 text-white" onclick="closeTextModal()">Annuler</button>
+                    <button class="px-2 py-1 text-xs rounded bg-blue-600 text-white" onclick="applyText()">Valider</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modale Échelle -->
+    <div id="scale-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-600 z-50 w-80">
+        <h3 class="text-lg font-bold text-white mb-4">Étalonnage de l'échelle</h3>
+        <p class="text-sm text-gray-300 mb-4">Équivalence d'un carré de grille :</p>
+        <div class="flex items-center justify-center space-x-3 mb-6">
+            <span class="text-white font-bold whitespace-nowrap">1 carré = </span>
+            <input type="number" id="modal-scale-value" class="w-20 bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 outline-none focus:border-blue-500" value="1">
+            <select id="modal-scale-unit" class="bg-gray-700 text-white border border-gray-600 rounded px-2 py-2 outline-none focus:border-blue-500">
+                <option value="m">m</option>
+                <option value="cm">cm</option>
+            </select>
+        </div>
+        <div class="flex justify-end space-x-3">
+            <button class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white transition" onclick="closeScaleModal()">Annuler</button>
+            <button class="px-4 py-2 rounded bg-green-600 hover:bg-green-500 text-white transition" onclick="applyScale()">Appliquer</button>
+        </div>
+    </div>
+
+    <!-- Modale Cartouche -->
+    <div id="cartouche-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-600 z-50 w-96">
+        <h3 class="text-lg font-bold text-white mb-4">Informations du Cartouche</h3>
+        <div class="flex flex-col space-y-3 mb-6">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Nom du plan</label>
+                <input type="text" id="cartouche-plan" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Nom du client</label>
+                <input type="text" id="cartouche-client" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Dessinateur</label>
+                <input type="text" id="cartouche-draftsman" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Logo de l'entreprise (Image légère)</label>
+                <input type="file" id="cartouche-logo" accept="image/png, image/jpeg" class="w-full text-sm text-gray-400 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-gray-700 file:text-white hover:file:bg-gray-600">
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3">
+            <button class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white transition" onclick="closeCartoucheModal()">Annuler</button>
+            <button class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white transition" onclick="applyCartouche()">Valider</button>
+        </div>
+    </div>
+
+    <!-- Modale Gestionnaire de Calques -->
+    <div id="layer-modal" class="hidden absolute top-16 left-64 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-80">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-white">Gestionnaire de Calques</h3>
+            <button class="text-gray-400 hover:text-white" onclick="closeLayerModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div id="layers-list" class="flex flex-col space-y-2 mb-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+            <!-- Rempli dynamiquement -->
+        </div>
+        <div class="flex items-center space-x-2 border-t border-gray-700 pt-3">
+            <input type="text" id="new-layer-name" class="flex-1 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500" placeholder="Nouveau calque...">
+            <button class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm" onclick="addLayer()">Ajouter</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('cadCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- ÉTATS ---
+        let camera = { x: 0, y: 0, zoom: 1 };
+        let isPanning = false, lastPanX = 0, lastPanY = 0;
+        let mode = 'line';
+        let isDrawing = false, startX = 0, startY = 0, currentX = 0, currentY = 0;
+        let currentX_screen = 0, currentY_screen = 0;
+        let typedInput = "";
+        let dimStep = 0, dimP1 = null, dimP2 = null;
+        let currentPolygon = [], currentSnap = null;
+        const SNAP_DIST = 15;
+        let selectedShapes = [], moveBasePoint = null, isMovingObjects = false;
+        let rotateCenter = null, rotateStartAngle = 0, isRotatingObjects = false;
+
+        // Variables pour le presse-papier
+        let clipboard = [];
+        let pasteOffset = 0;
+
+        const GRID_SIZE = 50; 
+        let unitsPerSquare = 1, currentUnit = 'm';
+        let shapes = [], dimensionTextsToDraw = [], pendingTextPos = null;
+        let printOrientation = 'landscape'; 
+        let cartoucheData = { logo: null, planName: '', clientName: '', draftsmanName: '' };
+        
+        const PRINT_SCALES = [1, 2, 5, 10, 25, 50, 100, 150, 200, 500];
+        let currentPrintScale = 50;
+
+        // --- GESTION DES CALQUES ---
+        let layers = [
+            { id: 'layer-0', name: '0 - Murs', visible: true },
+            { id: 'layer-1', name: '1 - Mobilier', visible: true },
+            { id: 'layer-2', name: '2 - Cotations', visible: true }
+        ];
+        let activeLayerId = 'layer-0';
+
+        function generateId() { return 'layer-' + Math.random().toString(36).substr(2, 9); }
+
+        function updateLayerUI() {
+            const select = document.getElementById('active-layer-select');
+            select.innerHTML = '';
+            layers.forEach(l => {
+                let opt = document.createElement('option');
+                opt.value = l.id;
+                opt.textContent = l.name;
+                if (l.id === activeLayerId) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            const list = document.getElementById('layers-list');
+            list.innerHTML = '';
+            layers.forEach(l => {
+                let div = document.createElement('div');
+                div.className = `flex items-center justify-between p-2 rounded border ${l.id === activeLayerId ? 'bg-gray-700 border-blue-500' : 'bg-gray-800 border-gray-600'}`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center space-x-3 flex-1 overflow-hidden">
+                        <button onclick="toggleLayerVis('${l.id}')" class="${l.visible ? 'text-blue-400' : 'text-gray-500 hover:text-gray-400'}" title="${l.visible ? 'Masquer' : 'Afficher'}">
+                            ${l.visible 
+                                ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>' 
+                                : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'}
+                        </button>
+                        <span class="text-sm text-gray-200 cursor-pointer truncate flex-1" onclick="setActiveLayer('${l.id}')">${l.name}</span>
+                    </div>
+                    <button onclick="deleteLayer('${l.id}')" class="text-gray-500 hover:text-red-400 ml-2" title="Supprimer le calque et son contenu">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function changeActiveLayer() {
+            activeLayerId = document.getElementById('active-layer-select').value;
+            let l = layers.find(layer => layer.id === activeLayerId);
+            if (l && !l.visible) { l.visible = true; } 
+            updateLayerUI();
+            draw();
+        }
+
+        function setActiveLayer(id) {
+            activeLayerId = id;
+            let l = layers.find(layer => layer.id === activeLayerId);
+            if (l && !l.visible) { l.visible = true; }
+            updateLayerUI();
+            draw();
+        }
+
+        function toggleLayerVis(id) {
+            let l = layers.find(layer => layer.id === id);
+            if (l) l.visible = !l.visible;
+            updateLayerUI();
+            draw();
+        }
+
+        function addLayer() {
+            const input = document.getElementById('new-layer-name');
+            const name = input.value.trim();
+            if (name) {
+                const newId = generateId();
+                layers.push({ id: newId, name: name, visible: true });
+                activeLayerId = newId;
+                input.value = '';
+                saveState();
+                updateLayerUI();
+            }
+        }
+
+        function deleteLayer(id) {
+            if (layers.length <= 1) { alert("Vous ne pouvez pas supprimer le dernier calque."); return; }
+            if (confirm("Supprimer ce calque et tout ce qui est dessiné dessus ?")) {
+                layers = layers.filter(l => l.id !== id);
+                shapes = shapes.filter(s => (s.layerId || 'layer-0') !== id);
+                selectedShapes = selectedShapes.filter(s => (s.layerId || 'layer-0') !== id);
+                if (activeLayerId === id) activeLayerId = layers[0].id;
+                saveState();
+                updateLayerUI();
+                draw();
+            }
+        }
+
+        function openLayerModal() { document.getElementById('layer-modal').classList.remove('hidden'); updateLayerUI(); }
+        function closeLayerModal() { document.getElementById('layer-modal').classList.add('hidden'); }
+
+        // --- HISTORIQUE ---
+        let shapesHistory = [];
+        let historyStep = -1;
+
+        function saveState() {
+            if (historyStep < shapesHistory.length - 1) {
+                shapesHistory = shapesHistory.slice(0, historyStep + 1);
+            }
+            shapesHistory.push({
+                shapes: JSON.parse(JSON.stringify(shapes)),
+                layers: JSON.parse(JSON.stringify(layers)),
+                activeLayerId: activeLayerId
+            });
+            historyStep++;
+        }
+
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                let state = shapesHistory[historyStep];
+                shapes = JSON.parse(JSON.stringify(state.shapes));
+                layers = JSON.parse(JSON.stringify(state.layers));
+                activeLayerId = state.activeLayerId;
+                selectedShapes = [];
+                updateLayerUI();
+                draw();
+            }
+        }
+
+        function redo() {
+            if (historyStep < shapesHistory.length - 1) {
+                historyStep++;
+                let state = shapesHistory[historyStep];
+                shapes = JSON.parse(JSON.stringify(state.shapes));
+                layers = JSON.parse(JSON.stringify(state.layers));
+                activeLayerId = state.activeLayerId;
+                selectedShapes = [];
+                updateLayerUI();
+                draw();
+            }
+        }
+
+        // --- PRESSE-PAPIER ---
+        function copySelection() {
+            if (selectedShapes.length > 0) {
+                clipboard = JSON.parse(JSON.stringify(selectedShapes));
+                pasteOffset = 20 / camera.zoom; 
+            }
+        }
+
+        function cutSelection() {
+            if (selectedShapes.length > 0) {
+                copySelection(); 
+                shapes = shapes.filter(s => !selectedShapes.includes(s)); 
+                selectedShapes = []; 
+                saveState();
+                draw();
+            }
+        }
+
+        function pasteSelection() {
+            if (clipboard.length > 0) {
+                let newShapes = JSON.parse(JSON.stringify(clipboard));
+                selectedShapes = []; 
+                
+                newShapes.forEach(s => {
+                    if (s.type === 'line') { s.x1 += pasteOffset; s.y1 += pasteOffset; s.x2 += pasteOffset; s.y2 += pasteOffset; }
+                    else if (s.type === 'circle' || s.type === 'text') { s.x += pasteOffset; s.y += pasteOffset; }
+                    else if (s.type === 'poly') { s.points.forEach(p => { p.x += pasteOffset; p.y += pasteOffset; }); }
+                    else if (s.type === 'dim') { s.x1 += pasteOffset; s.y1 += pasteOffset; s.x2 += pasteOffset; s.y2 += pasteOffset; s.ox += pasteOffset; s.oy += pasteOffset; }
+                    
+                    s.layerId = activeLayerId;
+                    shapes.push(s);
+                    selectedShapes.push(s); 
+                });
+                
+                pasteOffset += 20 / camera.zoom; 
+                saveState();
+                draw();
+            }
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => { console.log(`Erreur: ${err.message}`); });
+            } else { if (document.exitFullscreen) document.exitFullscreen(); }
+        }
+
+        // --- GESTION DU CANVAS ---
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- HELPERS GÉOMÉTRIQUES ---
+        function screenToWorld(sx, sy) { return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom }; }
+        function worldToScreen(wx, wy) { return { x: wx * camera.zoom + camera.x, y: wy * camera.zoom + camera.y }; }
+        function calculateRealDistance(pxDist) {
+            let real = (pxDist/GRID_SIZE)*unitsPerSquare;
+            return real < 1 && currentUnit === 'm' ? (real*100).toFixed(1) + " cm" : real.toFixed(2) + " " + currentUnit;
+        }
+
+        function getSnapPoints() {
+            let pts = [];
+            for (const s of shapes) {
+                let lId = s.layerId || 'layer-0';
+                let layer = layers.find(l => l.id === lId);
+                if (layer && !layer.visible) continue; 
+
+                if (s.type === 'line' || s.type === 'dim') pts.push({x: s.x1, y: s.y1}, {x: s.x2, y: s.y2}, {x: (s.x1+s.x2)/2, y: (s.y1+s.y2)/2});
+                else if (s.type === 'circle') pts.push({x: s.x, y: s.y}, {x: s.x + s.r, y: s.y}, {x: s.x - s.r, y: s.y}, {x: s.x, y: s.y + s.r}, {x: s.x, y: s.y - s.r});
+                else if (s.type === 'poly') s.points.forEach(p => pts.push({x: p.x, y: p.y}));
+                else if (s.type === 'text') pts.push({x: s.x, y: s.y});
+            }
+            return pts;
+        }
+
+        function findSnap(mx, my) {
+            let pts = getSnapPoints(), sd = SNAP_DIST/camera.zoom, bd = sd, bp = null;
+            for (let p of pts) { let d = Math.hypot(p.x - mx, p.y - my); if (d < bd) { bd = d; bp = p; } }
+            return bp;
+        }
+
+        function isPointInRect(px, py, rx, ry, rw, rh) {
+            let xMin = Math.min(rx, rx + rw), xMax = Math.max(rx, rx + rw), yMin = Math.min(ry, ry + rh), yMax = Math.max(ry, ry + rh);
+            return px >= xMin && px <= xMax && py >= yMin && py <= yMax;
+        }
+
+        function findShapeAt(wx, wy) {
+            let tol = 10/camera.zoom, p = { x: wx, y: wy };
+            for (let i = shapes.length-1; i >= 0; i--) {
+                let s = shapes[i];
+                let lId = s.layerId || 'layer-0';
+                let layer = layers.find(l => l.id === lId);
+                if (layer && !layer.visible) continue; 
+
+                if (s.type === 'line' || s.type === 'dim') { 
+                    const sqr = x => x*x; const dist2 = (v, w) => sqr(v.x-w.x)+sqr(v.y-w.y);
+                    let l2 = dist2({x:s.x1, y:s.y1}, {x:s.x2, y:s.y2});
+                    if (l2 === 0) continue;
+                    let t = Math.max(0, Math.min(1, ((p.x-s.x1)*(s.x2-s.x1)+(p.y-s.y1)*(s.y2-s.y1))/l2));
+                    if (Math.sqrt(dist2(p, {x: s.x1+t*(s.x2-s.x1), y: s.y1+t*(s.y2-s.y1)})) < tol) return s;
+                } else if (s.type === 'circle') { 
+                    let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol || (mode === 'hatch' && d < s.r)) return s; 
+                } else if (s.type === 'poly') {
+                    if (mode === 'hatch') {
+                        let inside = false;
+                        for (let j=0, k=s.points.length-1; j<s.points.length; k=j++) { if (((s.points[j].y > p.y) !== (s.points[k].y > p.y)) && (p.x < (s.points[k].x - s.points[j].x) * (p.y - s.points[j].y) / (s.points[k].y - s.points[j].y) + s.points[j].x)) inside = !inside; }
+                        if (inside) return s;
+                    }
+                    for(let j=0; j<s.points.length; j++){
+                        let p1 = s.points[j], p2 = s.points[(j+1)%s.points.length];
+                        const sqr = x => x*x; const dist2 = (v, w) => sqr(v.x-w.x)+sqr(v.y-w.y);
+                        let l2 = dist2(p1, p2); if (l2 === 0) continue;
+                        let t = Math.max(0, Math.min(1, ((p.x-p1.x)*(p2.x-p1.x)+(p.y-p1.y)*(p2.y-p1.y))/l2));
+                        if (Math.sqrt(dist2(p, {x: p1.x+t*(p2.x-p1.x), y: p1.y+t*(p2.y-p1.y)})) < tol) return s;
+                    }
+                } else if (s.type === 'text') {
+                    ctx.font = s.size + "px Arial"; let w = ctx.measureText(s.content).width;
+                    if (wx >= s.x && wx <= s.x + w && wy <= s.y && wy >= s.y - s.size) return s;
+                }
+            }
+            return null;
+        }
+
+        // --- GESTION DES OUTILS ---
+        function setMode(newMode) {
+            mode = newMode;
+            moveBasePoint = null; isMovingObjects = false; isDrawing = false; dimStep = 0;
+            rotateCenter = null; isRotatingObjects = false; 
+            typedInput = ""; 
+            closeTextModal(); closeLayerModal();
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            const btn = document.getElementById('btn-' + newMode);
+            if (btn) btn.classList.add('active');
+            canvas.style.cursor = (['move', 'rotate', 'select-box', 'hatch', 'text', 'print'].includes(mode)) ? 'default' : 'crosshair';
+            
+            if (newMode === 'print') {
+                const unitsInMeters = currentUnit === 'cm' ? unitsPerSquare / 100 : unitsPerSquare;
+                let currentS = (unitsInMeters * 12) / (camera.zoom * 0.297);
+                let closestIdx = 0; let minDiff = Infinity;
+                for (let i = 0; i < PRINT_SCALES.length; i++) {
+                    let diff = Math.abs(PRINT_SCALES[i] - currentS);
+                    if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+                }
+                currentPrintScale = PRINT_SCALES[closestIdx];
+                let targetZoom = (unitsInMeters * 12) / (currentPrintScale * 0.297);
+                
+                let cx = canvas.width / 2, cy = canvas.height / 2;
+                let wp = { x: (cx - camera.x) / camera.zoom, y: (cy - camera.y) / camera.zoom };
+                camera.zoom = targetZoom;
+                camera.x = cx - wp.x * camera.zoom;
+                camera.y = cy - wp.y * camera.zoom;
+            }
+            draw();
+        }
+
+        function updateSelectedProperties() {
+            if (selectedShapes.length > 0) {
+                selectedShapes.forEach(s => {
+                    s.color = document.getElementById('prop-color').value;
+                    if (s.type !== 'dim' && s.type !== 'text') s.dash = document.getElementById('prop-dash').value;
+                    if (s.type === 'text') s.size = parseInt(document.getElementById('prop-width').value) * 10; else s.width = parseInt(document.getElementById('prop-width').value);
+                    s.layerId = activeLayerId;
+                });
+                saveState();
+                draw();
+            }
+        }
+
+        // --- GESTION FICHIERS ---
+        function saveToJSON() {
+            const data = { version: "1.1", scale: { value: unitsPerSquare, unit: currentUnit }, layers: layers, activeLayerId: activeLayerId, shapes: shapes, cartouche: cartoucheData };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = "plan_momo_" + new Date().getTime() + ".json"; a.click();
+        }
+        function loadFromJSON(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.scale) { unitsPerSquare = data.scale.value; currentUnit = data.scale.unit; document.getElementById('modal-scale-value').value = unitsPerSquare; document.getElementById('modal-scale-unit').value = currentUnit; }
+                    if (data.cartouche) { cartoucheData = data.cartouche; }
+                    if (data.layers) { layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id; }
+                    shapes = data.shapes || []; selectedShapes = []; 
+                    shapesHistory = []; historyStep = -1; saveState();
+                    updateLayerUI(); draw();
+                } catch (err) { console.error(err); }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- IMPRESSION ---
+        function getPrintRect() {
+            const baseW = 600, baseH = 424;
+            return printOrientation === 'landscape' ? { w: baseW, h: baseH } : { w: baseH, h: baseW };
+        }
+
+        function performPrint(screenX, screenY) {
+            const rect = getPrintRect();
+            const sx = screenX - rect.w / 2; const sy = screenY - rect.h / 2;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = rect.w; tempCanvas.height = rect.h;
+            const tCtx = tempCanvas.getContext('2d');
+            tCtx.fillStyle = '#ffffff'; tCtx.fillRect(0, 0, rect.w, rect.h);
+            tCtx.save(); tCtx.translate(-sx, -sy); drawFullPlan(tCtx, false); tCtx.restore();
+            const margin = 10;
+            tCtx.strokeStyle = '#000000'; tCtx.lineWidth = 0.5; tCtx.strokeRect(margin, margin, rect.w - 2 * margin, rect.h - 2 * margin);
+            const cw = 160; const ch = 80;
+            const cx = rect.w - margin - cw; const cy = rect.h - margin - ch;
+            tCtx.fillStyle = '#ffffff'; tCtx.fillRect(cx, cy, cw, ch);
+            tCtx.strokeStyle = '#000000'; tCtx.lineWidth = 0.5; tCtx.strokeRect(cx, cy, cw, ch);
+            tCtx.beginPath(); tCtx.moveTo(cx + 50, cy); tCtx.lineTo(cx + 50, cy + ch); tCtx.moveTo(cx + 50, cy + 20); tCtx.lineTo(cx + cw, cy + 20); tCtx.moveTo(cx + 50, cy + 40); tCtx.lineTo(cx + cw, cy + 40); tCtx.moveTo(cx + 50, cy + 60); tCtx.lineTo(cx + cw, cy + 60); tCtx.stroke();
+            tCtx.fillStyle = '#000000'; tCtx.font = "bold 9px Arial"; tCtx.textAlign = "left"; tCtx.textBaseline = "middle";
+            tCtx.fillText("Plan : " + cartoucheData.planName, cx + 55, cy + 10); tCtx.fillText("Client : " + cartoucheData.clientName, cx + 55, cy + 30); tCtx.fillText("Dessin : " + cartoucheData.draftsmanName, cx + 55, cy + 50); tCtx.fillText("Échelle : 1:" + currentPrintScale, cx + 55, cy + 70); 
+            const finalizePrint = () => { const a = document.createElement('a'); a.href = tempCanvas.toDataURL("image/png"); a.download = "plan_momo_print.png"; a.click(); setMode('line'); };
+            if (cartoucheData.logo) { const img = new Image(); img.onload = () => { const imgAspect = img.width / img.height; let drawW = 40, drawH = 40 / imgAspect; if (drawH > 70) { drawH = 70; drawW = 70 * imgAspect; } const drawX = cx + 5 + (40 - drawW) / 2; const drawY = cy + 5 + (70 - drawH) / 2; tCtx.drawImage(img, drawX, drawY, drawW, drawH); finalizePrint(); }; img.src = cartoucheData.logo; } else { finalizePrint(); }
+        }
+
+        // --- GESTION CARTOUCHE UI ---
+        function openCartoucheModal() {
+            document.getElementById('cartouche-modal').classList.remove('hidden');
+            document.getElementById('cartouche-plan').value = cartoucheData.planName;
+            document.getElementById('cartouche-client').value = cartoucheData.clientName;
+            document.getElementById('cartouche-draftsman').value = cartoucheData.draftsmanName;
+        }
+        function closeCartoucheModal() { document.getElementById('cartouche-modal').classList.add('hidden'); }
+        function applyCartouche() {
+            cartoucheData.planName = document.getElementById('cartouche-plan').value;
+            cartoucheData.clientName = document.getElementById('cartouche-client').value;
+            cartoucheData.draftsmanName = document.getElementById('cartouche-draftsman').value;
+            const fileInput = document.getElementById('cartouche-logo');
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) { cartoucheData.logo = e.target.result; closeCartoucheModal(); };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else { closeCartoucheModal(); }
+        }
+
+        function applyRotationToShape(s, cx, cy, angleRad) {
+            const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
+            const rot = (x, y) => ({ x: (cos * (x - cx)) - (sin * (y - cy)) + cx, y: (sin * (x - cx)) + (cos * (y - cy)) + cy });
+            if (s.type === 'line') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; } else if (s.type === 'circle') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; } else if (s.type === 'poly') { s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); } else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; } else if (s.type === 'dim') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2), po = rot(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
+        }
+
+        function openTextModal(wx, wy, sx, sy) {
+            pendingTextPos = {wx, wy};
+            const modal = document.getElementById('text-input-modal');
+            modal.style.left = Math.min(sx + 10, window.innerWidth - 280) + 'px';
+            modal.style.top = Math.min(sy + 10, window.innerHeight - 150) + 'px';
+            modal.classList.remove('hidden');
+            document.getElementById('text-content').value = ""; document.getElementById('text-content').focus();
+        }
+        function closeTextModal() { document.getElementById('text-input-modal').classList.add('hidden'); pendingTextPos = null; }
+        function applyText() {
+            const content = document.getElementById('text-content').value;
+            if (content.trim() && pendingTextPos) { shapes.push({ type: 'text', layerId: activeLayerId, x: pendingTextPos.wx, y: pendingTextPos.wy, content: content, color: document.getElementById('prop-color').value, size: parseInt(document.getElementById('prop-width').value) * 10 }); saveState(); draw(); }
+            closeTextModal();
+        }
+
+        function drawDimension(targetCtx, p1, p2, pOff, sel = false) {
+            const color = sel ? '#ec4899' : '#f59e0b'; targetCtx.strokeStyle = color; targetCtx.lineWidth = (sel ? 3 : 1)/camera.zoom;
+            const dx = p2.x-p1.x, dy = p2.y-p1.y, dist = Math.hypot(dx, dy); if (dist < 0.01) return;
+            const ux = dx/dist, uy = dy/dist, nx = -uy, ny = ux, vOffX = pOff.x-p1.x, vOffY = pOff.y-p1.y, offsetDist = vOffX*nx + vOffY*ny;
+            const c1 = { x: p1.x + nx*offsetDist, y: p1.y + ny*offsetDist }, c2 = { x: p2.x + nx*offsetDist, y: p2.y + ny*offsetDist };
+            targetCtx.setLineDash([]); targetCtx.globalAlpha = 0.6; targetCtx.beginPath();
+            targetCtx.moveTo(p1.x + nx*(offsetDist*0.1), p1.y + ny*(offsetDist*0.1)); targetCtx.lineTo(c1.x + nx*(offsetDist>0?5:-5)/camera.zoom, c1.y + ny*(offsetDist>0?5:-5)/camera.zoom);
+            targetCtx.moveTo(p2.x + nx*(offsetDist*0.1), p2.y + ny*(offsetDist*0.1)); targetCtx.lineTo(c2.x + nx*(offsetDist>0?5:-5)/camera.zoom, c2.y + ny*(offsetDist>0?5:-5)/camera.zoom);
+            targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
+            const tick = 5/camera.zoom; const dt = (p) => { targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*tick, p.y-(uy+ny)*tick); targetCtx.lineTo(p.x+(ux+nx)*tick, p.y+(uy+ny)*tick); targetCtx.stroke(); };
+            dt(c1); dt(c2); dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
+        }
+
+        function drawFullPlan(targetCtx, isUIEnabled = true) {
+            const isPrinting = !isUIEnabled; dimensionTextsToDraw = [];
+            targetCtx.save(); targetCtx.translate(camera.x, camera.y); targetCtx.scale(camera.zoom, camera.zoom);
+            if (!isPrinting) {
+                let l = (-camera.x)/camera.zoom, r = (canvas.width-camera.x)/camera.zoom, t = (-camera.y)/camera.zoom, b = (canvas.height-camera.y)/camera.zoom;
+                let sx = Math.floor(l/GRID_SIZE)*GRID_SIZE, sy = Math.floor(t/GRID_SIZE)*GRID_SIZE;
+                targetCtx.lineWidth = 1/camera.zoom; targetCtx.strokeStyle = '#2c2c2c';
+                for (let x=sx; x<r; x+=GRID_SIZE) { targetCtx.beginPath(); targetCtx.moveTo(x, t); targetCtx.lineTo(x, b); targetCtx.stroke(); }
+                for (let y=sy; y<b; y+=GRID_SIZE) { targetCtx.beginPath(); targetCtx.moveTo(l, y); targetCtx.lineTo(r, y); targetCtx.stroke(); }
+                targetCtx.lineWidth = 1.5/camera.zoom; targetCtx.strokeStyle = '#3c3c3c';
+                for (let x=sx; x<r; x+=GRID_SIZE) { if (Math.round(x/GRID_SIZE)%10===0) { targetCtx.beginPath(); targetCtx.moveTo(x, t); targetCtx.lineTo(x, b); targetCtx.stroke(); } }
+                for (let y=sy; y<b; y+=GRID_SIZE) { if (Math.round(y/GRID_SIZE)%10===0) { targetCtx.beginPath(); targetCtx.moveTo(l, y); targetCtx.lineTo(r, y); targetCtx.stroke(); } }
+            }
+            for (let s of shapes) { 
+                let lId = s.layerId || 'layer-0'; let layer = layers.find(l => l.id === lId); if (layer && !layer.visible) continue;
+                let sel = selectedShapes.includes(s), dx = 0, dy = 0;
+                if (sel) {
+                    if (isMovingObjects && moveBasePoint) { dx = currentX - moveBasePoint.x; dy = currentY - moveBasePoint.y; } 
+                    else if (isRotatingObjects && rotateCenter) { s = JSON.parse(JSON.stringify(s)); let currentAngle = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x); let diffAngle = currentAngle - rotateStartAngle; if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diffAngle = parseFloat(typedInput) * Math.PI / 180; applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diffAngle); }
+                }
+                let baseColor = s.color || '#ffffff'; if (isPrinting && baseColor.toLowerCase() === '#ffffff') baseColor = '#000000';
+                if (s.hatch) { targetCtx.save(); targetCtx.beginPath(); if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); } else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); } targetCtx.globalAlpha = isPrinting ? 0.2 : 0.3; targetCtx.fillStyle = baseColor; targetCtx.fill(); targetCtx.restore(); }
+                targetCtx.beginPath(); targetCtx.strokeStyle = sel ? '#ec4899' : baseColor; targetCtx.lineWidth = (sel ? (s.width || 2)+3 : (s.width || 2))/camera.zoom;
+                if (s.type === 'line' || s.type === 'circle' || s.type === 'poly') { if (s.dash === 'dashed') targetCtx.setLineDash([8/camera.zoom, 8/camera.zoom]); else if (s.dash === 'center') targetCtx.setLineDash([16/camera.zoom, 6/camera.zoom, 2/camera.zoom, 6/camera.zoom]); else targetCtx.setLineDash([]); }
+                if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); }
+                else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); }
+                else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); }
+                else if (s.type === 'text') { targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle); targetCtx.fillStyle = sel ? '#ec4899' : baseColor; targetCtx.font = s.size + "px Arial"; targetCtx.fillText(s.content, 0, 0); targetCtx.restore(); }
+                else if (s.type === 'dim') drawDimension(targetCtx, {x:s.x1+dx, y:s.y1+dy}, {x:s.x2+dx, y:s.y2+dy}, {x:s.ox+dx, y:s.oy+dy}, sel);
+                targetCtx.setLineDash([]);
+            }
+            if (isDrawing && !isPanning && isUIEnabled) {
+                let currentDash = document.getElementById('prop-dash').value;
+                let applyPreviewDash = () => { if (currentDash === 'dashed') targetCtx.setLineDash([8/camera.zoom, 8/camera.zoom]); else if (currentDash === 'center') targetCtx.setLineDash([16/camera.zoom, 6/camera.zoom, 2/camera.zoom, 6/camera.zoom]); else targetCtx.setLineDash([]); };
+                let previewX = currentX, previewY = currentY, previewR = Math.hypot(currentX - startX, currentY - startY);
+                if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let reqPx = (parseFloat(typedInput) / unitsPerSquare) * GRID_SIZE; previewR = reqPx; if (mode === 'poly' && currentPolygon.length > 0) { let lastPt = currentPolygon[currentPolygon.length - 1]; let angle = Math.atan2(currentY - lastPt.y, currentX - lastPt.x); previewX = lastPt.x + Math.cos(angle) * reqPx; previewY = lastPt.y + Math.sin(angle) * reqPx; } else { let angle = Math.atan2(currentY - startY, currentX - startX); previewX = startX + Math.cos(angle) * reqPx; previewY = startY + Math.sin(angle) * reqPx; } }
+                if (mode === 'select-box') { targetCtx.strokeStyle = '#ec4899'; targetCtx.lineWidth = 1/camera.zoom; targetCtx.setLineDash([4/camera.zoom, 4/camera.zoom]); targetCtx.strokeRect(startX, startY, currentX-startX, currentY-startY); }
+                else if (mode === 'line') { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = parseInt(document.getElementById('prop-width').value)/camera.zoom; applyPreviewDash(); targetCtx.beginPath(); targetCtx.moveTo(startX, startY); targetCtx.lineTo(previewX, previewY); targetCtx.stroke(); }
+                else if (mode === 'circle') { targetCtx.strokeStyle = '#ec4899'; targetCtx.lineWidth = 2/camera.zoom; applyPreviewDash(); targetCtx.beginPath(); targetCtx.arc(startX, startY, previewR, 0, 2*Math.PI); targetCtx.stroke(); }
+                else if (mode === 'poly' && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = parseInt(document.getElementById('prop-width').value)/camera.zoom; applyPreviewDash(); targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let pt of currentPolygon.slice(1)) targetCtx.lineTo(pt.x, pt.y); targetCtx.lineTo(previewX, previewY); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; targetCtx.lineWidth = 2/camera.zoom; let startS = 5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x - startS, currentPolygon[0].y - startS, startS * 2, startS * 2); }
+                else if (mode === 'dim') { if (dimStep === 1) { targetCtx.strokeStyle = '#f59e0b'; targetCtx.setLineDash([5/camera.zoom, 5/camera.zoom]); targetCtx.beginPath(); targetCtx.moveTo(dimP1.x, dimP1.y); targetCtx.lineTo(currentX, currentY); targetCtx.stroke(); } else if (dimStep === 2) drawDimension(targetCtx, dimP1, dimP2, {x: currentX, y: currentY}); }
+            }
+            if (mode === 'move' && moveBasePoint && !isPanning && isUIEnabled) { targetCtx.strokeStyle = '#a855f7'; targetCtx.lineWidth = 1/camera.zoom; targetCtx.setLineDash([2/camera.zoom, 2/camera.zoom]); targetCtx.beginPath(); targetCtx.moveTo(moveBasePoint.x, moveBasePoint.y); targetCtx.lineTo(currentX, currentY); targetCtx.stroke(); }
+            if (currentSnap && isUIEnabled) { targetCtx.strokeStyle = '#eab308'; targetCtx.lineWidth = 2/camera.zoom; let s = 5/camera.zoom; targetCtx.strokeRect(currentSnap.x-s, currentSnap.y-s, s*2, s*2); }
+            targetCtx.restore();
+            for (let d of dimensionTextsToDraw) { let p = {x: d.worldX * camera.zoom + camera.x, y: d.worldY * camera.zoom + camera.y}; targetCtx.font = "14px Arial"; let m = targetCtx.measureText(d.text); targetCtx.fillStyle = isPrinting ? "#ffffff" : "#1e1e1e"; targetCtx.fillRect(p.x-m.width/2-4, p.y-12, m.width+8, 24); targetCtx.fillStyle = '#f59e0b'; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(d.text, p.x, p.y); }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); drawFullPlan(ctx, true);
+            if (mode === 'print') { const rect = getPrintRect(); ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, 0); ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.closePath(); ctx.rect(currentX_screen + rect.w/2, currentY_screen - rect.h/2, -rect.w, rect.h); ctx.fill("evenodd"); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(currentX_screen - rect.w/2, currentY_screen - rect.h/2, rect.w, rect.h); const margin = 10; ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 0.5; ctx.setLineDash([4, 4]); ctx.strokeRect(currentX_screen - rect.w/2 + margin, currentY_screen - rect.h/2 + margin, rect.w - 2*margin, rect.h - 2*margin); ctx.setLineDash([]); ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif"; ctx.fillText(`ZONE D'IMPRESSION (A4 ${printOrientation}) - ÉCHELLE 1:${currentPrintScale}`, currentX_screen, currentY_screen - rect.h/2 - 10); ctx.font = "12px sans-serif"; ctx.fillText("ESPACE pour pivoter | MOLETTE pour changer d'échelle | CLIC pour imprimer", currentX_screen, currentY_screen + rect.h/2 + 20); }
+            if (mode === 'rotate' && rotateCenter && !isPanning) { let currentAngle = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x); let diffAngle = currentAngle - rotateStartAngle; let displayAngle = (diffAngle * 180 / Math.PI).toFixed(1); if (typedInput.length > 0) displayAngle = typedInput; let full = "A= " + displayAngle + "°"; ctx.beginPath(); let centerScreen = worldToScreen(rotateCenter.x, rotateCenter.y); let mouseScreen = worldToScreen(currentX, currentY); ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.moveTo(centerScreen.x, centerScreen.y); ctx.lineTo(mouseScreen.x, mouseScreen.y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(centerScreen.x, centerScreen.y, 5, 0, Math.PI*2); ctx.fill(); let p = mouseScreen; ctx.font = "bold 12px Arial"; let m = ctx.measureText(full); ctx.fillStyle = "rgba(30, 30, 30, 0.9)"; ctx.fillRect(p.x+15, p.y+15, m.width+10, 22); ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, p.x+20, p.y+26); }
+            if (isDrawing && !isPanning && (mode === 'line' || mode === 'circle' || mode === 'poly')) { let refX = mode === 'poly' && currentPolygon.length > 0 ? currentPolygon[currentPolygon.length - 1].x : startX; let refY = mode === 'poly' && currentPolygon.length > 0 ? currentPolygon[currentPolygon.length - 1].y : startY; let dist = Math.hypot(currentX - refX, currentY - refY); let full = ""; if (typedInput.length > 0) full = (mode === 'circle' ? "R=" : "L=") + typedInput + "_ " + currentUnit; else full = (mode === 'circle' ? "R=" : "L=") + calculateRealDistance(dist); if ((currentSnap && dist > 0.1 && typedInput.length === 0) || (typedInput.length > 0 && (mode === 'line' || mode === 'poly'))) { let ad = (Math.atan2(refY-currentY, currentX-refX)*180/Math.PI); if (ad < 0) ad += 360; full += " | ∠ " + ad.toFixed(1) + "°"; } let p = worldToScreen(currentX, currentY); ctx.font = "bold 12px Arial"; let m = ctx.measureText(full); ctx.fillStyle = "rgba(30, 30, 30, 0.9)"; ctx.fillRect(p.x+15, p.y+15, m.width+10, 22); ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, p.x+20, p.y+26); }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top;
+            if (e.button === 1) { e.preventDefault(); isPanning = true; lastPanX = sx; lastPanY = sy; canvas.style.cursor = 'grabbing'; return; }
+            if (mode === 'print') { performPrint(sx, sy); return; }
+            let wp = screenToWorld(sx, sy);
+            if (mode === 'select-box') { if (!isDrawing) { startX = wp.x; startY = wp.y; isDrawing = true; if (!e.shiftKey) selectedShapes = []; } return; }
+            if (mode === 'hatch') { let s = findShapeAt(wp.x, wp.y); if (s && (s.type === 'circle' || s.type === 'poly')) { s.hatch = !s.hatch; saveState(); draw(); } return; }
+            if (mode === 'move') { if (selectedShapes.length === 0) return; if (!moveBasePoint) { let sn = findSnap(wp.x, wp.y); moveBasePoint = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; isMovingObjects = true; } else { let sn = findSnap(wp.x, wp.y), dest = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}, dx = dest.x-moveBasePoint.x, dy = dest.y-moveBasePoint.y; selectedShapes.forEach(s => { if (s.type === 'line' || s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; } if (s.type === 'dim') { s.ox += dx; s.oy += dy; } else if (s.type === 'circle' || s.type === 'text') { s.x += dx; s.y += dy; } else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); } }); isMovingObjects = false; moveBasePoint = null; saveState(); draw(); } return; }
+            if (mode === 'rotate') { if (selectedShapes.length === 0) return; let sn = findSnap(wp.x, wp.y); let pt = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; if (!rotateCenter) { rotateCenter = pt; rotateStartAngle = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x); isRotatingObjects = true; typedInput = ""; } else { let currentAngle = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x); let diffAngle = currentAngle - rotateStartAngle; if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diffAngle = parseFloat(typedInput) * Math.PI / 180; selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diffAngle)); isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw(); } return; }
+            if (mode === 'dim') { let sn = findSnap(wp.x, wp.y), pt = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; } else if (dimStep === 1) { dimP2 = pt; dimStep = 2; } else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: activeLayerId, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); } return; }
+            if (mode === 'text') { openTextModal(wp.x, wp.y, sx, sy); return; }
+            if (mode === 'poly') { let sn = findSnap(wp.x, wp.y), px = sn ? sn.x : wp.x, py = sn ? sn.y : wp.y; if (!isDrawing) { currentPolygon = [{x: px, y: py}]; isDrawing = true; typedInput = ""; } else { let f = currentPolygon[0], lastPt = currentPolygon[currentPolygon.length - 1], finalX = px, finalY = py; if (e.shiftKey) { if (Math.abs(px-lastPt.x) > Math.abs(py-lastPt.y)) finalY = lastPt.y; else finalX = lastPt.x; } if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let reqPx = (parseFloat(typedInput) / unitsPerSquare) * GRID_SIZE; let angle = Math.atan2(finalY - lastPt.y, finalX - lastPt.x); finalX = lastPt.x + Math.cos(angle) * reqPx; finalY = lastPt.y + Math.sin(angle) * reqPx; } if (Math.hypot(finalX-f.x, finalY-f.y) < (SNAP_DIST/camera.zoom) && currentPolygon.length > 2 && typedInput.length === 0) { shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseInt(document.getElementById('prop-width').value), hatch: false }); isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); } else { currentPolygon.push({x: finalX, y: finalY}); typedInput = ""; } } draw(); return; }
+            if (!isDrawing) { let sn = findSnap(wp.x, wp.y); startX = sn ? sn.x : wp.x; startY = sn ? sn.y : wp.y; isDrawing = true; typedInput = ""; } else { let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y; let finalX = currentX, finalY = currentY, finalR = Math.hypot(currentX-startX, currentY-startY); if (e.shiftKey && mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) finalY = startY; else finalX = startX; } if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let reqPx = (parseFloat(typedInput) / unitsPerSquare) * GRID_SIZE; finalR = reqPx; let angle = Math.atan2(finalY - startY, finalX - startX); finalX = startX + Math.cos(angle) * reqPx; finalY = startY + Math.sin(angle) * reqPx; } if (Math.abs(finalX-startX) > 0.1 || Math.abs(finalY-startY) > 0.1 || finalR > 0.1) { if (mode === 'line') shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: finalX, y2: finalY, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseInt(document.getElementById('prop-width').value) }); else if (mode === 'circle') shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: finalR, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseInt(document.getElementById('prop-width').value), hatch: false }); } isDrawing = false; typedInput = ""; saveState(); draw(); }
+        });
+
+        canvas.addEventListener('mousemove', (e) => { const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top; currentX_screen = sx; currentY_screen = sy; if (isPanning) { camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); lastPanX = sx; lastPanY = sy; draw(); return; } let wp = screenToWorld(sx, sy); currentX = wp.x; currentY = wp.y; if (mode === 'select-box' && isDrawing) { draw(); return; } currentSnap = findSnap(wp.x, wp.y); if (isDrawing && e.shiftKey) { if (mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) currentY = startY; else currentX = startX; } else if (mode === 'poly' && currentPolygon.length > 0) { let lastPt = currentPolygon[currentPolygon.length - 1]; if (Math.abs(currentX-lastPt.x) > Math.abs(currentY-lastPt.y)) currentY = lastPt.y; else currentX = lastPt.x; } } draw(); });
+        canvas.addEventListener('mouseup', (e) => { if (e.button === 1) { isPanning = false; canvas.style.cursor = (['move', 'select-box', 'hatch', 'text', 'print'].includes(mode)) ? 'default' : 'crosshair'; } if (mode === 'select-box' && isDrawing) { shapes.forEach(s => { let lId = s.layerId || 'layer-0'; let layer = layers.find(l => l.id === lId); if (layer && !layer.visible) return; let b = false; if (s.type === 'line' || s.type === 'dim') b = isPointInRect(s.x1, s.y1, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x2, s.y2, startX, startY, currentX-startX, currentY-startY); else if (s.type === 'circle' || s.type === 'text') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY); else if (s.type === 'poly') b = s.points.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY)); if (b && !selectedShapes.includes(s)) selectedShapes.push(s); }); isDrawing = false; draw(); } });
+
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT') { if (e.key === 'Enter') { if (document.activeElement.id === 'text-content') applyText(); if (document.activeElement.id === 'new-layer-name') addLayer(); } if (e.key === 'Escape') { closeTextModal(); closeCartoucheModal(); closeScaleModal(); closeLayerModal(); } return; }
+            if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
+            if (e.ctrlKey && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
+            if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copySelection(); return; }
+            if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) { e.preventDefault(); pasteSelection(); return; }
+            if (e.ctrlKey && (e.key === 'x' || e.key === 'X')) { e.preventDefault(); cutSelection(); return; }
+            if (isDrawing || mode === 'rotate') { if (/^[0-9.,\-]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; } else if (e.key === 'Backspace') { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; } else if (e.key === 'Enter' && typedInput.length > 0) { e.preventDefault(); let val = parseFloat(typedInput); if (!isNaN(val)) { if (mode === 'rotate' && rotateCenter) { let angleRad = val * Math.PI / 180; selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, angleRad)); isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw(); return; } if (val > 0) { let pxDist = (val / unitsPerSquare) * GRID_SIZE; if (mode === 'circle') { shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: pxDist, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseInt(document.getElementById('prop-width').value), hatch: false }); isDrawing = false; } else if (mode === 'line') { let angle = Math.atan2(currentY - startY, currentX - startX); let endX = startX + Math.cos(angle) * pxDist; let endY = startY + Math.sin(angle) * pxDist; shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: endX, y2: endY, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseInt(document.getElementById('prop-width').value) }); isDrawing = false; } else if (mode === 'poly') { let lastPt = currentPolygon[currentPolygon.length - 1]; let angle = Math.atan2(currentY - lastPt.y, currentX - lastPt.x); let endX = lastPt.x + Math.cos(angle) * pxDist; let endY = lastPt.y + Math.sin(angle) * pxDist; currentPolygon.push({x: endX, y: endY}); } } typedInput = ""; if (mode !== 'poly') saveState(); draw(); } return; } }
+            if (e.key === ' ') { if (mode === 'print') { e.preventDefault(); printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape'; draw(); } }
+            if (e.key === 'Escape') { isDrawing = false; currentPolygon = []; isMovingObjects = false; moveBasePoint = null; dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null; closeTextModal(); closeCartoucheModal(); closeScaleModal(); closeLayerModal(); typedInput = ""; if (mode === 'print') setMode('line'); draw(); }
+            else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapes.length > 0) { shapes = shapes.filter(s => !selectedShapes.includes(s)); selectedShapes = []; saveState(); draw(); }
+        });
+
+        canvas.addEventListener('dblclick', (e) => { if (mode === 'poly' && isDrawing && currentPolygon.length > 2) { let lastPt = currentPolygon[currentPolygon.length - 1]; let prevPt = currentPolygon[currentPolygon.length - 2]; if (Math.hypot(lastPt.x - prevPt.x, lastPt.y - prevPt.y) < 1) { currentPolygon.pop(); } shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseInt(document.getElementById('prop-width').value), hatch: false }); isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); draw(); } });
+        canvas.addEventListener('wheel', (e) => { e.preventDefault(); const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top; let wp = screenToWorld(sx, sy); if (mode === 'print') { const unitsInMeters = currentUnit === 'cm' ? unitsPerSquare / 100 : unitsPerSquare; let currentS = (unitsInMeters * 12) / (camera.zoom * 0.297); let closestIdx = 0; let minDiff = Infinity; for (let i = 0; i < PRINT_SCALES.length; i++) { let diff = Math.abs(PRINT_SCALES[i] - currentS); if (diff < minDiff) { minDiff = diff; closestIdx = i; } } if (e.deltaY < 0) { closestIdx = Math.max(0, closestIdx - 1); } else { closestIdx = Math.min(PRINT_SCALES.length - 1, closestIdx + 1); } currentPrintScale = PRINT_SCALES[closestIdx]; camera.zoom = (unitsInMeters * 12) / (currentPrintScale * 0.297); } else { let zf = 1.1; if (e.deltaY < 0) camera.zoom *= zf; else camera.zoom /= zf; camera.zoom = Math.max(0.01, Math.min(camera.zoom, 50)); } camera.x = sx - wp.x * camera.zoom; camera.y = sy - wp.y * camera.zoom; draw(); });
+        function openScaleModal() { document.getElementById('scale-modal').classList.remove('hidden'); }
+        function closeScaleModal() { document.getElementById('scale-modal').classList.add('hidden'); }
+        function applyScale() { let val = parseFloat(document.getElementById('modal-scale-value').value); if (val > 0) { unitsPerSquare = val; currentUnit = document.getElementById('modal-scale-unit').value; } closeScaleModal(); draw(); }
+        window.onload = () => { updateLayerUI(); resizeCanvas(); saveState(); };
+    </script>
+</body>
+</html>
