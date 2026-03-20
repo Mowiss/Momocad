@@ -31,7 +31,6 @@
 </head>
 <body class="flex flex-col h-screen relative">
 
-    <!-- Écran de chargement pour l'export haute résolution -->
     <div id="print-loader" class="hidden absolute inset-0 bg-gray-900 bg-opacity-80 z-[100] flex flex-col items-center justify-center backdrop-blur-sm">
         <svg class="animate-spin h-12 w-12 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -49,12 +48,8 @@
             </h1>
             
             <div class="tool-group flex items-center space-x-1 mr-4">
-                <button id="btn-undo" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Annuler (Ctrl+Z)" onclick="undo()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
-                </button>
-                <button id="btn-redo" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Rétablir (Ctrl+Y)" onclick="redo()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg>
-                </button>
+                <button id="btn-undo" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Annuler (Ctrl+Z)" onclick="undo()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg></button>
+                <button id="btn-redo" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Rétablir (Ctrl+Y)" onclick="redo()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg></button>
             </div>
 
             <div class="tool-group flex items-center space-x-2 px-2 mr-4">
@@ -62,13 +57,9 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
                     <select id="active-layer-select" class="bg-gray-700 text-white border border-gray-600 rounded px-1 py-1 text-sm outline-none w-24 truncate" onchange="changeActiveLayer()"></select>
                 </div>
-                <button class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Gérer les calques" onclick="openLayerModal()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                </button>
+                <button class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Gérer les calques" onclick="openLayerModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
                 <div class="w-px h-5 bg-gray-600 mx-1"></div>
-                <button id="btn-snap-settings" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-500" title="Paramètres d'accrochage" onclick="openSnapModal()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7"></path><circle cx="12" cy="12" r="1" fill="currentColor"></circle></svg>
-                </button>
+                <button id="btn-snap-settings" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-500" title="Paramètres d'accrochage" onclick="openSnapModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7"></path><circle cx="12" cy="12" r="1" fill="currentColor"></circle></svg></button>
             </div>
 
             <div class="tool-group flex items-center space-x-3 px-3">
@@ -90,22 +81,14 @@
         </div>
 
         <div class="tool-group flex items-center space-x-1 pr-1">
-            <button id="btn-fullscreen" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Plein Écran" onclick="toggleFullScreen()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
-            </button>
-            <button id="btn-save" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Sauvegarder en JSON" onclick="saveToJSON()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-            </button>
-            <button id="btn-load" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-400" title="Charger un JSON" onclick="document.getElementById('file-input').click()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            </button>
+            <button id="btn-fullscreen" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Plein Écran" onclick="toggleFullScreen()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></button>
+            <button id="btn-save" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Sauvegarder en JSON" onclick="saveToJSON()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
+            <button id="btn-load" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-400" title="Charger un JSON" onclick="document.getElementById('file-input').click()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></button>
             <input type="file" id="file-input" class="hidden" accept=".json" onchange="loadFromJSON(event)">
-            <button id="btn-cartouche" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-400" title="Éditer le Cartouche" onclick="openCartoucheModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-            </button>
-            <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression (ESPACE pour pivoter)" onclick="setMode('print')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-            </button>
+            <button id="btn-cartouche" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-400" title="Éditer le Cartouche" onclick="openCartoucheModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></button>
+            <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
+            <div class="w-px h-5 bg-gray-600 mx-1"></div>
+            <button id="btn-help" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-300" title="Aide & Raccourcis" onclick="openHelpModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>
         </div>
     </header>
 
@@ -147,8 +130,7 @@
                     <button class="px-2 py-1 text-xs rounded bg-blue-600 text-white" onclick="applyText()">Valider</button>
                 </div>
             </div>
-            
-            <!-- NOUVEAU : Popup de propriétés géométriques -->
+
             <div id="properties-popup" class="hidden absolute bottom-6 right-6 bg-gray-800/95 border border-gray-600 text-gray-200 p-4 rounded-lg shadow-2xl text-xs z-40 pointer-events-none min-w-[180px] backdrop-blur-sm">
                 <h4 class="font-bold text-white mb-2 border-b border-gray-600 pb-1" id="prop-popup-title">Propriétés</h4>
                 <div id="prop-popup-content" class="flex flex-col space-y-1.5 text-[13px]"></div>
@@ -187,6 +169,45 @@
             <label class="flex items-center space-x-3 cursor-pointer group"><input type="checkbox" id="snap-inter" checked class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-500" onchange="toggleSnapSetting('intersection')"><span class="text-sm text-gray-200 group-hover:text-white">Croisements / Intersections</span></label>
         </div>
     </div>
+    <div id="help-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-600 z-50 w-[500px] max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <div class="flex justify-between items-center mb-4 border-b border-gray-600 pb-2">
+            <h3 class="text-lg font-bold text-white flex items-center">
+                <svg class="w-5 h-5 mr-2 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Guide & Raccourcis
+            </h3>
+            <button class="text-gray-400 hover:text-white" onclick="closeHelpModal()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        </div>
+        <div class="space-y-5 text-sm text-gray-300">
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖱️ Souris & Navigation</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Clic Molette (Maintenu) :</b> Se déplacer sur le plan (Panoramique).</li>
+                    <li><b class="text-white">Molette (Roulette) :</b> Zoomer / Dézoomer.</li>
+                    <li><b class="text-white">Maj (Shift) + Tracé :</b> Forcer un trait parfaitement horizontal ou vertical.</li>
+                    <li><b class="text-white">Clic + Maj (Shift) :</b> Ajouter/Retirer un élément de la sélection (Outil Sélection).</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">⌨️ Raccourcis Clavier</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Saisie chiffrée + Entrée :</b> Indiquer la longueur d'une ligne, le rayon d'un cercle, ou un angle en cours de tracé.</li>
+                    <li><b class="text-white">Échap (Esc) :</b> Annuler l'outil en cours, le tracé, ou vider la sélection.</li>
+                    <li><b class="text-white">Suppr / Retour arrière :</b> Supprimer les objets sélectionnés.</li>
+                    <li><b class="text-white">Ctrl + Z / Ctrl + Y :</b> Annuler ou Rétablir une action.</li>
+                    <li><b class="text-white">Ctrl + C / Ctrl + V / Ctrl + X :</b> Copier, Coller ou Couper la sélection.</li>
+                    <li><b class="text-white">Espace :</b> Pivoter l'orientation (Portrait/Paysage) lors de l'impression.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🛠️ Outils Spéciaux</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer pour la couper jusqu'à son intersection.</li>
+                    <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne pour la prolonger jusqu'à la forme la plus proche.</li>
+                    <li><b class="text-white">Arc :</b> 1er clic (Centre), 2ème clic (Début et Rayon), bougez pour l'angle, 3ème clic (Fin).</li>
+                    <li><b class="text-white">Coller :</b> En mode "Sélection", faites Ctrl+V. Un fantôme de votre sélection s'attachera à votre souris, cliquez pour déposer.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <script>
         const canvas = document.getElementById('cadCanvas');
@@ -206,7 +227,10 @@
         const SNAP_DIST = 15;
         let selectedShapes = [], moveBasePoint = null, isMovingObjects = false;
         let rotateCenter = null, rotateStartAngle = 0, isRotatingObjects = false;
-        let clipboard = [], pasteOffset = 0;
+        
+        let clipboard = [];
+        let clipboardBasePoint = null; 
+        let pasteOffset = 0; 
         const GRID_SIZE = 50; 
         
         let unitsPerSquare = 10, currentUnit = 'mm';
@@ -220,8 +244,6 @@
         let layers = [{ id: 'layer-0', name: '0 - Murs', visible: true }, { id: 'layer-1', name: '1 - Mobilier', visible: true }, { id: 'layer-2', name: '2 - Cotations', visible: true }];
         let activeLayerId = 'layer-0';
         let snapSettings = { endpoint: true, midpoint: true, center: true, intersection: true };
-
-        // --- CACHE POUR OPTIMISATION ---
         let cachedSnapPoints = null;
         function invalidateCache() { cachedSnapPoints = null; }
 
@@ -233,9 +255,11 @@
         function closeScaleModal() { document.getElementById('scale-modal').classList.add('hidden'); }
         function closeCartoucheModal() { document.getElementById('cartouche-modal').classList.add('hidden'); }
         function closeSnapModal() { document.getElementById('snap-modal').classList.add('hidden'); }
+        function closeHelpModal() { document.getElementById('help-modal').classList.add('hidden'); }
         function openLayerModal() { closeSnapModal(); document.getElementById('layer-modal').classList.remove('hidden'); updateLayerUI(); }
         function openScaleModal() { document.getElementById('scale-modal').classList.remove('hidden'); }
         function openSnapModal() { closeLayerModal(); document.getElementById('snap-modal').classList.remove('hidden'); }
+        function openHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); }
         function openCartoucheModal() { document.getElementById('cartouche-modal').classList.remove('hidden'); document.getElementById('cartouche-plan').value = cartoucheData.planName || ""; document.getElementById('cartouche-client').value = cartoucheData.clientName || ""; document.getElementById('cartouche-draftsman').value = cartoucheData.draftsmanName || ""; }
         function toggleSnapSetting(type) { snapSettings[type] = document.getElementById('snap-' + (type === 'endpoint' ? 'end' : type === 'midpoint' ? 'mid' : type === 'intersection' ? 'inter' : type)).checked; invalidateCache(); draw(); }
 
@@ -262,10 +286,8 @@
 
         // --- MATH INTERSECTIONS ET ARCS ---
         function isAngleBetween(target, start, end) {
-            const PI2 = Math.PI * 2;
-            let t = (target % PI2 + PI2) % PI2, s = (start % PI2 + PI2) % PI2, e = (end % PI2 + PI2) % PI2;
-            if (s < e) return t >= s && t <= e;
-            return t >= s || t <= e;
+            const PI2 = Math.PI * 2; let t = (target % PI2 + PI2) % PI2, s = (start % PI2 + PI2) % PI2, e = (end % PI2 + PI2) % PI2;
+            if (s < e) return t >= s && t <= e; return t >= s || t <= e;
         }
 
         function getIntersectionLines(x1, y1, x2, y2, x3, y3, x4, y4) {
@@ -278,16 +300,11 @@
             let dx = x2 - x1, dy = y2 - y1, fx = x1 - cx, fy = y1 - cy;
             let a = dx * dx + dy * dy, b = 2 * (fx * dx + fy * dy), c = (fx * fx + fy * fy) - r * r;
             let disc = b * b - 4 * a * c; let res = [];
-            if (disc >= 0) {
-                disc = Math.sqrt(disc); let t1 = (-b - disc) / (2 * a), t2 = (-b + disc) / (2 * a);
-                if (t1 >= 0 && t1 <= 1) res.push({ x: x1 + t1 * dx, y: y1 + t1 * dy });
-                if (t2 >= 0 && t2 <= 1) res.push({ x: x1 + t2 * dx, y: y1 + t2 * dy });
-            } return res;
+            if (disc >= 0) { disc = Math.sqrt(disc); let t1 = (-b - disc) / (2 * a), t2 = (-b + disc) / (2 * a); if (t1 >= 0 && t1 <= 1) res.push({ x: x1 + t1 * dx, y: y1 + t1 * dy }); if (t2 >= 0 && t2 <= 1) res.push({ x: x1 + t2 * dx, y: y1 + t2 * dy }); } return res;
         }
 
         function getIntersectionCircles(c1x, c1y, r1, c2x, c2y, r2) {
-            let dx = c2x - c1x, dy = c2y - c1y, d = Math.hypot(dx, dy);
-            if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0) return [];
+            let dx = c2x - c1x, dy = c2y - c1y, d = Math.hypot(dx, dy); if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0) return [];
             let a = (r1 * r1 - r2 * r2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, r1 * r1 - a * a));
             let x2 = c1x + a * (dx / d), y2 = c1y + a * (dy / d);
             return [{ x: x2 + h * (dy / d), y: y2 - h * (dx / d) }, { x: x2 - h * (dy / d), y: y2 + h * (dx / d) }];
@@ -302,18 +319,9 @@
         function getInterPoints(s1, s2) {
             let pts = [], segs1 = getSegments(s1), segs2 = getSegments(s2);
             if (segs1.length > 0 && segs2.length > 0) { segs1.forEach(a => segs2.forEach(b => { let p = getIntersectionLines(a.x1, a.y1, a.x2, a.y2, b.x1, b.y1, b.x2, b.y2); if (p) pts.push(p); })); } 
-            else if (segs1.length > 0 && (s2.type === 'circle' || s2.type === 'arc')) {
-                segs1.forEach(a => { let res = getIntersectionLineCircle(a.x1, a.y1, a.x2, a.y2, s2.x, s2.y, s2.r); if (s2.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s2.y, p.x - s2.x), s2.startAngle, s2.endAngle)); pts.push(...res); });
-            } 
-            else if (segs2.length > 0 && (s1.type === 'circle' || s1.type === 'arc')) {
-                segs2.forEach(a => { let res = getIntersectionLineCircle(a.x1, a.y1, a.x2, a.y2, s1.x, s1.y, s1.r); if (s1.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s1.y, p.x - s1.x), s1.startAngle, s1.endAngle)); pts.push(...res); });
-            } 
-            else if ((s1.type === 'circle' || s1.type === 'arc') && (s2.type === 'circle' || s2.type === 'arc')) {
-                let res = getIntersectionCircles(s1.x, s1.y, s1.r, s2.x, s2.y, s2.r);
-                if (s1.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s1.y, p.x - s1.x), s1.startAngle, s1.endAngle));
-                if (s2.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s2.y, p.x - s2.x), s2.startAngle, s2.endAngle));
-                pts.push(...res);
-            }
+            else if (segs1.length > 0 && (s2.type === 'circle' || s2.type === 'arc')) { segs1.forEach(a => { let res = getIntersectionLineCircle(a.x1, a.y1, a.x2, a.y2, s2.x, s2.y, s2.r); if (s2.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s2.y, p.x - s2.x), s2.startAngle, s2.endAngle)); pts.push(...res); }); } 
+            else if (segs2.length > 0 && (s1.type === 'circle' || s1.type === 'arc')) { segs2.forEach(a => { let res = getIntersectionLineCircle(a.x1, a.y1, a.x2, a.y2, s1.x, s1.y, s1.r); if (s1.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s1.y, p.x - s1.x), s1.startAngle, s1.endAngle)); pts.push(...res); }); } 
+            else if ((s1.type === 'circle' || s1.type === 'arc') && (s2.type === 'circle' || s2.type === 'arc')) { let res = getIntersectionCircles(s1.x, s1.y, s1.r, s2.x, s2.y, s2.r); if (s1.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s1.y, p.x - s1.x), s1.startAngle, s1.endAngle)); if (s2.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s2.y, p.x - s2.x), s2.startAngle, s2.endAngle)); pts.push(...res); }
             return pts;
         }
 
@@ -326,24 +334,12 @@
         function applyRotationToShape(s, cx, cy, angleRad) {
             const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
             const rot = (x, y) => ({ x: (cos * (x - cx)) - (sin * (y - cy)) + cx, y: (sin * (x - cx)) + (cos * (y - cy)) + cy });
-
-            if (s.type === 'line') {
-                let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2);
-                s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y;
-            } else if (s.type === 'circle') {
-                let p = rot(s.x, s.y); s.x = p.x; s.y = p.y;
-            } else if (s.type === 'arc') {
-                let p = rot(s.x, s.y); s.x = p.x; s.y = p.y;
-                s.startAngle += angleRad; s.endAngle += angleRad;
-            } else if (s.type === 'poly') {
-                s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; });
-            } else if (s.type === 'text') {
-                let p = rot(s.x, s.y); s.x = p.x; s.y = p.y;
-                s.angle = (s.angle || 0) + angleRad;
-            } else if (s.type === 'dim') {
-                let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2), po = rot(s.ox, s.oy);
-                s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y;
-            }
+            if (s.type === 'line') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; } 
+            else if (s.type === 'circle') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; } 
+            else if (s.type === 'arc') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.startAngle += angleRad; s.endAngle += angleRad; } 
+            else if (s.type === 'poly') { s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); } 
+            else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; } 
+            else if (s.type === 'dim') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2), po = rot(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
         }
 
         function drawDimension(tx, p1, p2, po, sel = false) {
@@ -367,6 +363,19 @@
             if (currentUnit === 'm' && real < 1) return (real*100).toFixed(1) + " cm";
             if (currentUnit === 'mm') return Math.round(real) + " mm";
             return real.toFixed(2) + " " + currentUnit; 
+        }
+
+        function getShapesBoundingBox(shapeArray) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            if (!shapeArray || shapeArray.length === 0) return null;
+            shapeArray.forEach(s => {
+                if (s.type === 'line' || s.type === 'dim') { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); } 
+                else if (s.type === 'circle' || s.type === 'arc') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); } 
+                else if (s.type === 'poly') { s.points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); } 
+                else if (s.type === 'text') { minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x + 100); minY = Math.min(minY, s.y - s.size); maxY = Math.max(maxY, s.y); }
+            });
+            if (minX === Infinity) return null;
+            return { minX, minY, maxX, maxY, centerX: (minX+maxX)/2, centerY: (minY+maxY)/2 };
         }
 
         function getSnapPoints() {
@@ -534,9 +543,9 @@
         function setMode(newMode) {
             mode = newMode; moveBasePoint = null; isMovingObjects = false; isDrawing = false; dimStep = 0; rotateCenter = null; isRotatingObjects = false; typedInput = ""; 
             arcStep = 0; arcCenter = null; arcP1 = null; 
-            closeTextModal(); closeLayerModal(); closeScaleModal(); closeCartoucheModal(); closeSnapModal();
+            closeTextModal(); closeLayerModal(); closeScaleModal(); closeCartoucheModal(); closeSnapModal(); closeHelpModal();
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active')); const btn = document.getElementById('btn-' + newMode); if (btn) btn.classList.add('active');
-            canvas.style.cursor = (['move', 'rotate', 'select-box', 'text', 'print', 'trim', 'extend'].includes(mode)) ? 'default' : 'crosshair';
+            canvas.style.cursor = (['move', 'rotate', 'select-box', 'text', 'print', 'trim', 'extend', 'paste'].includes(mode)) ? 'default' : 'crosshair';
             if (newMode === 'print') { 
                 const um = currentUnit === 'mm' ? unitsPerSquare/1000 : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare); 
                 let s = (um*12)/(camera.zoom*0.297); let ci = 0, md = Infinity; 
@@ -578,7 +587,6 @@
                 if (cartoucheData.logo) { const img = new Image(); img.onload = () => { let drawW = 40 * exportScale, drawH = (40 * exportScale) / (img.width / img.height); if (drawH > 70 * exportScale) { drawH = 70 * exportScale; drawW = (70 * exportScale) * (img.width / img.height); } tX.drawImage(img, cx + 5 * exportScale + (40 * exportScale - drawW) / 2, cy + 5 * exportScale + (70 * exportScale - drawH) / 2, drawW, drawH); done(); }; img.src = cartoucheData.logo; } else done();
             }, 50);
         }
-        function applyScale() { let val = parseFloat(document.getElementById('modal-scale-value').value); if (val > 0) { unitsPerSquare = val; currentUnit = document.getElementById('modal-scale-unit').value; } closeScaleModal(); draw(); }
 
         // --- HISTORIQUE & ETAT ---
         let shapesHistory = []; let historyStep = -1;
@@ -586,11 +594,62 @@
         function undo() { invalidateCache(); if (historyStep > 0) { historyStep--; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
         function redo() { invalidateCache(); if (historyStep < shapesHistory.length - 1) { historyStep++; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
 
-        function copySelection() { if (selectedShapes.length > 0) { clipboard = JSON.parse(JSON.stringify(selectedShapes)); pasteOffset = 20 / camera.zoom; } }
+        // --- NOUVEAU PRESSE-PAPIER (COLLAGE FANTÔME) ---
+        function copySelection() { 
+            if (selectedShapes.length > 0) { 
+                clipboard = JSON.parse(JSON.stringify(selectedShapes)); 
+                let bbox = getShapesBoundingBox(clipboard);
+                clipboardBasePoint = bbox ? {x: bbox.centerX, y: bbox.centerY} : {x: 0, y: 0};
+            } 
+        }
         function cutSelection() { if (selectedShapes.length > 0) { copySelection(); shapes = shapes.filter(s => !selectedShapes.includes(s)); selectedShapes = []; saveState(); draw(); } }
-        function pasteSelection() { if (clipboard.length > 0) { let newShapes = JSON.parse(JSON.stringify(clipboard)); selectedShapes = []; newShapes.forEach(s => { if (s.type === 'line') { s.x1 += pasteOffset; s.y1 += pasteOffset; s.x2 += pasteOffset; s.y2 += pasteOffset; } else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += pasteOffset; s.y += pasteOffset; } else if (s.type === 'poly') { s.points.forEach(p => { p.x += pasteOffset; p.y += pasteOffset; }); } else if (s.type === 'dim') { s.x1 += pasteOffset; s.y1 += pasteOffset; s.x2 += pasteOffset; s.y2 += pasteOffset; s.ox += pasteOffset; s.oy += pasteOffset; } s.layerId = activeLayerId; shapes.push(s); selectedShapes.push(s); }); pasteOffset += 20 / camera.zoom; saveState(); draw(); } }
+        function pasteSelection() { if (clipboard.length > 0) { setMode('paste'); } }
 
         function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+
+        // --- MOTEUR DE DESSIN MODULAIRE ---
+        function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy) {
+            let col = s.color || '#ffffff'; if (isPrinting && col.toLowerCase() === '#ffffff') col = '#000000';
+            if (s.hatch) { 
+                targetCtx.save(); targetCtx.beginPath(); 
+                if (s.type === 'circle') targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); 
+                else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); } 
+                targetCtx.globalAlpha = isPrinting ? 0.2 : 0.3; targetCtx.fillStyle = col; targetCtx.fill(); targetCtx.restore(); 
+            }
+            let w = (s.width !== undefined ? s.width : 1) * 2; 
+            targetCtx.beginPath(); targetCtx.strokeStyle = sel ? '#ec4899' : col; targetCtx.lineWidth = (sel ? w+3 : w)/camera.zoom;
+            if (s.dash === 'dashed') targetCtx.setLineDash([8/camera.zoom, 8/camera.zoom]); 
+            else if (s.dash === 'center') targetCtx.setLineDash([16/camera.zoom, 6/camera.zoom, 2/camera.zoom, 6/camera.zoom]); 
+            else targetCtx.setLineDash([]);
+            
+            if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); }
+            else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); }
+            else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle); targetCtx.stroke(); }
+            else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); }
+            else if (s.type === 'text') { 
+                targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle); 
+                targetCtx.fillStyle = sel ? '#ec4899' : col; targetCtx.font = s.size + "px Arial"; targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic"; targetCtx.fillText(s.content, 0, 0); targetCtx.restore(); 
+            }
+            else if (s.type === 'dim') {
+                let p1={x:s.x1+dx, y:s.y1+dy}, p2={x:s.x2+dx, y:s.y2+dy}, po={x:s.ox+dx, y:s.oy+dy};
+                let dx2 = p2.x-p1.x, dy2 = p2.y-p1.y, dist = Math.hypot(dx2, dy2); 
+                if (dist > 0.01) {
+                    let ux = dx2/dist, uy = dy2/dist, nx = -uy, ny = ux, vOffX = po.x-p1.x, vOffY = po.y-p1.y, off = vOffX*nx + vOffY*ny;
+                    let c1 = {x:p1.x+nx*off, y:p1.y+ny*off}, c2 = {x:p2.x+nx*off, y:p2.y+ny*off};
+                    targetCtx.setLineDash([]); targetCtx.globalAlpha = 0.6; targetCtx.beginPath();
+                    targetCtx.moveTo(p1.x+nx*(off*0.1), p1.y+ny*(off*0.1)); targetCtx.lineTo(c1.x+nx*(off>0?5:-5)/camera.zoom, c1.y+ny*(off>0?5:-5)/camera.zoom);
+                    targetCtx.moveTo(p2.x+nx*(off*0.1), p2.y+ny*(off*0.1)); targetCtx.lineTo(c2.x+nx*(off>0?5:-5)/camera.zoom, c2.y+ny*(off>0?5:-5)/camera.zoom);
+                    targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
+                    let t=5/camera.zoom; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
+                    dt(c1); dt(c2); 
+                    
+                    if (isPrinting || mode !== 'paste') {
+                        dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
+                    }
+                }
+            }
+            targetCtx.setLineDash([]);
+        }
 
         function drawFullPlan(targetCtx, isUIEnabled = true) {
             const isPrinting = !isUIEnabled; dimensionTextsToDraw = [];
@@ -609,30 +668,7 @@
                 let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
                 let sel = !isPrinting && selectedShapes.includes(s), dx = 0, dy = 0;
                 if (sel) { if (isMovingObjects && moveBasePoint) { dx = currentX - moveBasePoint.x; dy = currentY - moveBasePoint.y; } else if (isRotatingObjects && rotateCenter) { s = JSON.parse(JSON.stringify(s)); let curA = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x), diff = curA - rotateStartAngle; if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diff = parseFloat(typedInput) * Math.PI / 180; applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diff); } }
-                let col = s.color || '#ffffff'; if (isPrinting && col.toLowerCase() === '#ffffff') col = '#000000';
-                
-                let w = (s.width !== undefined ? s.width : 1) * 2; targetCtx.beginPath(); targetCtx.strokeStyle = sel ? '#ec4899' : col; targetCtx.lineWidth = (sel ? w+3 : w)/camera.zoom;
-                if (s.dash === 'dashed') targetCtx.setLineDash([8/camera.zoom, 8/camera.zoom]); else if (s.dash === 'center') targetCtx.setLineDash([16/camera.zoom, 6/camera.zoom, 2/camera.zoom, 6/camera.zoom]); else targetCtx.setLineDash([]);
-                if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); }
-                else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); }
-                else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle); targetCtx.stroke(); }
-                else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); }
-                else if (s.type === 'text') { targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle); targetCtx.fillStyle = sel ? '#ec4899' : col; targetCtx.font = s.size + "px Arial"; targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic"; targetCtx.fillText(s.content, 0, 0); targetCtx.restore(); }
-                else if (s.type === 'dim') {
-                    let p1={x:s.x1+dx, y:s.y1+dy}, p2={x:s.x2+dx, y:s.y2+dy}, po={x:s.ox+dx, y:s.oy+dy};
-                    let dx2 = p2.x-p1.x, dy2 = p2.y-p1.y, dist = Math.hypot(dx2, dy2); 
-                    if (dist > 0.01) {
-                        let ux = dx2/dist, uy = dy2/dist, nx = -uy, ny = ux, vOffX = po.x-p1.x, vOffY = po.y-p1.y, off = vOffX*nx + vOffY*ny;
-                        let c1 = {x:p1.x+nx*off, y:p1.y+ny*off}, c2 = {x:p2.x+nx*off, y:p2.y+ny*off};
-                        targetCtx.setLineDash([]); targetCtx.globalAlpha = 0.6; targetCtx.beginPath();
-                        targetCtx.moveTo(p1.x+nx*(off*0.1), p1.y+ny*(off*0.1)); targetCtx.lineTo(c1.x+nx*(off>0?5:-5)/camera.zoom, c1.y+ny*(off>0?5:-5)/camera.zoom);
-                        targetCtx.moveTo(p2.x+nx*(off*0.1), p2.y+ny*(off*0.1)); targetCtx.lineTo(c2.x+nx*(off>0?5:-5)/camera.zoom, c2.y+ny*(off>0?5:-5)/camera.zoom);
-                        targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
-                        let t=5/camera.zoom; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
-                        dt(c1); dt(c2); dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
-                    }
-                }
-                targetCtx.setLineDash([]);
+                drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy);
             }
             if (isDrawing && !isPanning && isUIEnabled) {
                 let dash = document.getElementById('prop-dash').value;
@@ -660,13 +696,23 @@
                 else if (mode === 'dim' && dimStep === 2) drawDimension(targetCtx, dimP1, dimP2, {x: currentX, y: currentY});
                 else if (mode === 'select-box') { targetCtx.strokeStyle = '#ec4899'; targetCtx.lineWidth = 1/camera.zoom; targetCtx.setLineDash([4/camera.zoom, 4/camera.zoom]); targetCtx.strokeRect(startX, startY, currentX-startX, currentY-startY); }
             }
+            
+            // FANTÔME DE COLLAGE
+            if (mode === 'paste' && clipboard.length > 0 && clipboardBasePoint && !isPanning && isUIEnabled) {
+                let dx = currentX - clipboardBasePoint.x;
+                let dy = currentY - clipboardBasePoint.y;
+                targetCtx.globalAlpha = 0.5;
+                for (let s of clipboard) { drawSingleShape(targetCtx, s, false, false, dx, dy); }
+                targetCtx.globalAlpha = 1.0;
+            }
+
             if (currentSnap && isUIEnabled) { targetCtx.strokeStyle = '#eab308'; targetCtx.lineWidth = 2/camera.zoom; let t=5/camera.zoom; targetCtx.strokeRect(currentSnap.x-t, currentSnap.y-t, t*2, t*2); }
             targetCtx.restore();
+
             for (let d of dimensionTextsToDraw) { 
                 targetCtx.font = "14px Arial"; let m = targetCtx.measureText(d.text); 
                 if (isPrinting) {
-                    let transformX = (d.worldX * camera.zoom + camera.x); 
-                    let transformY = (d.worldY * camera.zoom + camera.y);
+                    let transformX = (d.worldX * camera.zoom + camera.x); let transformY = (d.worldY * camera.zoom + camera.y);
                     targetCtx.fillStyle = "#ffffff"; targetCtx.fillRect(transformX-m.width/2-4, transformY-12, m.width+8, 24); 
                     targetCtx.fillStyle = '#f59e0b'; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(d.text, transformX, transformY);
                 } else {
@@ -682,6 +728,8 @@
             if (mode === 'print') { const rect = getPrintRect(); ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, 0); ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.closePath(); ctx.rect(currentX_screen + rect.w/2, currentY_screen - rect.h/2, -rect.w, rect.h); ctx.fill("evenodd"); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(currentX_screen - rect.w/2, currentY_screen - rect.h/2, rect.w, rect.h); const m = 10; ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 0.5; ctx.setLineDash([4, 4]); ctx.strokeRect(currentX_screen - rect.w/2 + m, currentY_screen - rect.h/2 + m, rect.w - 2*m, rect.h - 2*m); ctx.setLineDash([]); ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif"; ctx.fillText(`ZONE D'IMPRESSION (A4 ${printOrientation}) - ÉCHELLE 1:${currentPrintScale}`, currentX_screen, currentY_screen - rect.h/2 - 10); ctx.font = "12px sans-serif"; ctx.fillText("ESPACE pour pivoter | MOLETTE pour changer d'échelle | CLIC pour imprimer", currentX_screen, currentY_screen + rect.h/2 + 20); }
             if (mode === 'trim') { ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; ctx.font = "12px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MODE AJUSTER : Cliquez sur le morceau à supprimer", canvas.width/2, canvas.height - 20); }
             if (mode === 'extend') { ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; ctx.font = "12px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MODE PROLONGER : Cliquez près de l'extrémité de la ligne à étendre", canvas.width/2, canvas.height - 20); }
+            if (mode === 'paste') { ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; ctx.font = "12px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MODE COLLER : Cliquez pour déposer la sélection avec précision", canvas.width/2, canvas.height - 20); }
+            
             if (mode === 'rotate' && rotateCenter && !isPanning) { let curA = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x), diff = curA - rotateStartAngle; if (typedInput.length > 0) diff = (parseFloat(typedInput)*Math.PI/180); let full = "A= " + (diff*180/Math.PI).toFixed(1) + "°"; ctx.beginPath(); let cs = worldToScreen(rotateCenter.x, rotateCenter.y), ms = worldToScreen(currentX, currentY); ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.moveTo(cs.x, cs.y); ctx.lineTo(ms.x, ms.y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(cs.x, cs.y, 5, 0, Math.PI*2); ctx.fill(); ctx.font = "bold 12px Arial"; let m = ctx.measureText(full); ctx.fillStyle = "rgba(30, 30, 30, 0.9)"; ctx.fillRect(ms.x+15, ms.y+15, m.width+10, 22); ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, ms.x+20, ms.y+26); }
             if (isDrawing && !isPanning && (mode === 'line' || mode === 'circle' || mode === 'poly' || mode === 'arc')) { 
                 let full = "";
@@ -694,19 +742,8 @@
                     if (typedInput.length > 0) full = (mode === 'circle' ? "R=" : "L=") + typedInput + "_ " + currentUnit; 
                     else full = (mode === 'circle' ? "R=" : "L=") + calculateRealDistance(dist); 
                 }
-                if (full !== "") { 
-                    let p = worldToScreen(currentX, currentY); 
-                    ctx.font = "bold 12px Arial"; 
-                    let m = ctx.measureText(full); 
-                    ctx.fillStyle = "rgba(30, 30, 30, 0.9)"; 
-                    ctx.fillRect(p.x+15, p.y+15, m.width+10, 22); 
-                    ctx.fillStyle = '#ffffff'; 
-                    ctx.textAlign = "left"; 
-                    ctx.textBaseline = "middle"; 
-                    ctx.fillText(full, p.x+20, p.y+26); 
-                }
+                if (full !== "") { let p = worldToScreen(currentX, currentY); ctx.font = "bold 12px Arial"; let m = ctx.measureText(full); ctx.fillStyle = "rgba(30, 30, 30, 0.9)"; ctx.fillRect(p.x+15, p.y+15, m.width+10, 22); ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, p.x+20, p.y+26); }
             }
-            
             updatePropertiesPopup();
         }
 
@@ -715,79 +752,27 @@
             const content = document.getElementById('prop-popup-content');
             const title = document.getElementById('prop-popup-title');
 
-            if (selectedShapes.length === 0) {
-                popup.classList.add('hidden');
-                return;
-            }
-
+            if (selectedShapes.length === 0) { popup.classList.add('hidden'); return; }
             popup.classList.remove('hidden');
             title.textContent = selectedShapes.length === 1 ? 'Propriétés de l\'objet' : `Sélection multiple (${selectedShapes.length})`;
 
-            let totalLength = 0;
-            let totalArea = 0;
-            let radius = 0;
-
-            const distFactor = unitsPerSquare / GRID_SIZE;
-            const areaFactor = distFactor * distFactor;
+            let totalLength = 0, totalArea = 0, radius = 0;
+            const distFactor = unitsPerSquare / GRID_SIZE, areaFactor = distFactor * distFactor;
 
             selectedShapes.forEach(s => {
-                if (s.type === 'line' || s.type === 'dim') {
-                    totalLength += Math.hypot(s.x2 - s.x1, s.y2 - s.y1) * distFactor;
-                } else if (s.type === 'circle') {
-                    let r = s.r * distFactor;
-                    radius = r;
-                    totalLength += 2 * Math.PI * r; 
-                    totalArea += Math.PI * r * r;
-                } else if (s.type === 'arc') {
-                    let r = s.r * distFactor;
-                    radius = r;
-                    let dAngle = s.endAngle - s.startAngle;
-                    if (dAngle < 0) dAngle += 2 * Math.PI;
-                    totalLength += r * dAngle;
-                } else if (s.type === 'poly') {
-                    let pLen = 0;
-                    for (let i = 0; i < s.points.length - 1; i++) {
-                        pLen += Math.hypot(s.points[i+1].x - s.points[i].x, s.points[i+1].y - s.points[i].y);
-                    }
-                    totalLength += pLen * distFactor;
-                    
-                    if (s.points.length > 2) {
-                        let area = 0;
-                        for (let i = 0; i < s.points.length; i++) {
-                            let j = (i + 1) % s.points.length;
-                            area += s.points[i].x * s.points[j].y;
-                            area -= s.points[j].x * s.points[i].y;
-                        }
-                        totalArea += Math.abs(area / 2) * areaFactor;
-                    }
-                }
+                if (s.type === 'line' || s.type === 'dim') { totalLength += Math.hypot(s.x2 - s.x1, s.y2 - s.y1) * distFactor; } 
+                else if (s.type === 'circle') { let r = s.r * distFactor; radius = r; totalLength += 2 * Math.PI * r; totalArea += Math.PI * r * r; } 
+                else if (s.type === 'arc') { let r = s.r * distFactor; radius = r; let dAngle = s.endAngle - s.startAngle; if (dAngle < 0) dAngle += 2 * Math.PI; totalLength += r * dAngle; } 
+                else if (s.type === 'poly') { let pLen = 0; for (let i = 0; i < s.points.length - 1; i++) { pLen += Math.hypot(s.points[i+1].x - s.points[i].x, s.points[i+1].y - s.points[i].y); } totalLength += pLen * distFactor; if (s.points.length > 2) { let area = 0; for (let i = 0; i < s.points.length; i++) { let j = (i + 1) % s.points.length; area += s.points[i].x * s.points[j].y; area -= s.points[j].x * s.points[i].y; } totalArea += Math.abs(area / 2) * areaFactor; } }
             });
 
             let html = '';
-            const fmt = (val) => {
-                if (currentUnit === 'm' && val < 1) return (val * 100).toFixed(1) + ' cm';
-                if (currentUnit === 'mm') return Math.round(val) + ' mm';
-                return val.toFixed(2) + ' ' + currentUnit;
-            }
-            const fmtArea = (val) => {
-                if (currentUnit === 'mm') return (val / 1000000).toFixed(3) + ' m²'; 
-                if (currentUnit === 'cm') return (val / 10000).toFixed(3) + ' m²';
-                return val.toFixed(2) + ' m²';
-            }
+            const fmt = (val) => { if (currentUnit === 'm' && val < 1) return (val * 100).toFixed(1) + ' cm'; if (currentUnit === 'mm') return Math.round(val) + ' mm'; return val.toFixed(2) + ' ' + currentUnit; }
+            const fmtArea = (val) => { if (currentUnit === 'mm') return (val / 1000000).toFixed(3) + ' m²'; if (currentUnit === 'cm') return (val / 10000).toFixed(3) + ' m²'; return val.toFixed(2) + ' m²'; }
 
-            if (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'arc')) {
-                html += `<div class="flex justify-between items-center"><span>Rayon:</span> <span class="font-mono text-cyan-300 ml-4 font-bold">${fmt(radius)}</span></div>`;
-            }
-            if (totalLength > 0) {
-                let lbl = (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'poly')) ? 'Périmètre:' : 'Longueur:';
-                if (selectedShapes.length > 1) lbl = 'Long. totale:';
-                html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-blue-300 ml-4 font-bold">${fmt(totalLength)}</span></div>`;
-            }
-            if (totalArea > 0) {
-                let lbl = selectedShapes.length > 1 ? 'Aire totale:' : 'Aire:';
-                html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-green-400 ml-4 font-bold">${fmtArea(totalArea)}</span></div>`;
-            }
-
+            if (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'arc')) html += `<div class="flex justify-between items-center"><span>Rayon:</span> <span class="font-mono text-cyan-300 ml-4 font-bold">${fmt(radius)}</span></div>`;
+            if (totalLength > 0) { let lbl = (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'poly')) ? 'Périmètre:' : 'Longueur:'; if (selectedShapes.length > 1) lbl = 'Long. totale:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-blue-300 ml-4 font-bold">${fmt(totalLength)}</span></div>`; }
+            if (totalArea > 0) { let lbl = selectedShapes.length > 1 ? 'Aire totale:' : 'Aire:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-green-400 ml-4 font-bold">${fmtArea(totalArea)}</span></div>`; }
             if (html === '') html = '<div class="text-gray-500 italic">Aucune géométrie calculable</div>';
             content.innerHTML = html;
         }
@@ -797,25 +782,30 @@
             if (e.button === 1) { e.preventDefault(); isPanning = true; lastPanX = sx; lastPanY = sy; canvas.style.cursor = 'grabbing'; return; }
             if (mode === 'print') { performPrint(sx, sy); return; }
             let wp = screenToWorld(sx, sy);
+            
+            // Logique de collage (Paste)
+            if (mode === 'paste') {
+                if (clipboard.length > 0 && clipboardBasePoint) {
+                    let sn = findSnap(wp.x, wp.y); let px = sn ? sn.x : wp.x; let py = sn ? sn.y : wp.y;
+                    let dx = px - clipboardBasePoint.x; let dy = py - clipboardBasePoint.y;
+                    let newShapes = JSON.parse(JSON.stringify(clipboard));
+                    selectedShapes = [];
+                    newShapes.forEach(s => { 
+                        if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; } 
+                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += dx; s.y += dy; } 
+                        else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); } 
+                        else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; } 
+                        s.layerId = activeLayerId; shapes.push(s); selectedShapes.push(s); 
+                    }); 
+                    saveState(); setMode('select-box'); 
+                }
+                return;
+            }
+
             if (mode === 'trim') { trimShapeAt(wp.x, wp.y); draw(); return; }
             if (mode === 'extend') { extendShapeAt(wp.x, wp.y); draw(); return; }
             if (mode === 'select-box') { if (!isDrawing) { startX = wp.x; startY = wp.y; isDrawing = true; } return; }
-            if (mode === 'move') { 
-                if (selectedShapes.length === 0) return; 
-                if (!moveBasePoint) { 
-                    let sn = findSnap(wp.x, wp.y); moveBasePoint = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; isMovingObjects = true; 
-                } else { 
-                    let sn = findSnap(wp.x, wp.y), dest = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}, dx = dest.x-moveBasePoint.x, dy = dest.y-moveBasePoint.y; 
-                    selectedShapes.forEach(s => { 
-                        if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; } 
-                        else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; } 
-                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += dx; s.y += dy; } 
-                        else if (s.type === 'poly') s.points.forEach(p => { p.x += dx; p.y += dy; }); 
-                    }); 
-                    isMovingObjects = false; moveBasePoint = null; saveState(); draw(); 
-                } 
-                return; 
-            }
+            if (mode === 'move') { if (selectedShapes.length === 0) return; if (!moveBasePoint) { let sn = findSnap(wp.x, wp.y); moveBasePoint = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; isMovingObjects = true; } else { let sn = findSnap(wp.x, wp.y), dest = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}, dx = dest.x-moveBasePoint.x, dy = dest.y-moveBasePoint.y; selectedShapes.forEach(s => { if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; } else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; } else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += dx; s.y += dy; } else if (s.type === 'poly') s.points.forEach(p => { p.x += dx; p.y += dy; }); }); isMovingObjects = false; moveBasePoint = null; saveState(); draw(); } return; }
             if (mode === 'rotate') { if (selectedShapes.length === 0) return; let sn = findSnap(wp.x, wp.y); let pt = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; if (!rotateCenter) { rotateCenter = pt; rotateStartAngle = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x); isRotatingObjects = true; typedInput = ""; } else { let curA = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x), diff = curA - rotateStartAngle; if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diff = parseFloat(typedInput) * Math.PI / 180; selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diff)); isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw(); } return; }
             if (mode === 'dim') { let sn = findSnap(wp.x, wp.y), pt = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; } else if (dimStep === 1) { dimP2 = pt; dimStep = 2; } else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: activeLayerId, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); } return; }
             if (mode === 'text') { openTextModal(wp.x, wp.y, sx, sy); return; }
@@ -834,11 +824,24 @@
                     arcStep = 0; isDrawing = false; typedInput = ""; saveState(); draw(); 
                 } return;
             }
-            if (mode === 'poly') { let sn = findSnap(wp.x, wp.y), px = sn ? sn.x : wp.x, py = sn ? sn.y : wp.y; if (!isDrawing) { currentPolygon = [{x: px, y: py}]; isDrawing = true; typedInput = ""; } else { let f = currentPolygon[0], lp = currentPolygon[currentPolygon.length-1], fx = px, fy = py; if (Math.hypot(fx-f.x, fy-f.y) < (SNAP_DIST/camera.zoom) && currentPolygon.length > 2 && typedInput.length === 0) { shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); } else { currentPolygon.push({x: fx, y: fy}); typedInput = ""; } } draw(); return; }
-            if (!isDrawing) { let sn = findSnap(wp.x, wp.y); startX = sn ? sn.x : wp.x; startY = sn ? sn.y : wp.y; isDrawing = true; typedInput = ""; } else { let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y; let fx = currentX, fy = currentY, fr = Math.hypot(currentX-startX, currentY-startY); if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; let a = Math.atan2(fy-startY, fx-startX); fx = startX+Math.cos(a)*d; fy = startY+Math.sin(a)*d; fr = d; } if (Math.abs(fx-startX) > 0.1 || Math.abs(fy-startY) > 0.1 || fr > 0.1) { if (mode === 'line') shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: fx, y2: fy, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 }); else if (mode === 'circle') shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: fr, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); } isDrawing = false; typedInput = ""; saveState(); draw(); }
+            if (mode === 'poly') { let sn = findSnap(wp.x, wp.y), px = sn ? sn.x : wp.x, py = sn ? sn.y : wp.y; if (!isDrawing) { currentPolygon = [{x: px, y: py}]; isDrawing = true; typedInput = ""; } else { let f = currentPolygon[0], lp = currentPolygon[currentPolygon.length-1], fx = px, fy = py; if (e.shiftKey) { if (Math.abs(px-lp.x) > Math.abs(py-lp.y)) fy = lp.y; else fx = lp.x; } if (Math.hypot(fx-f.x, fy-f.y) < (SNAP_DIST/camera.zoom) && currentPolygon.length > 2 && typedInput.length === 0) { shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); } else { currentPolygon.push({x: fx, y: fy}); typedInput = ""; } } draw(); return; }
+            if (!isDrawing) { let sn = findSnap(wp.x, wp.y); startX = sn ? sn.x : wp.x; startY = sn ? sn.y : wp.y; isDrawing = true; typedInput = ""; } else { let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y; let fx = currentX, fy = currentY, fr = Math.hypot(currentX-startX, currentY-startY); if (e.shiftKey && mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) fy = startY; else fx = startX; } if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; let a = Math.atan2(fy-startY, fx-startX); fx = startX+Math.cos(a)*d; fy = startY+Math.sin(a)*d; fr = d; } if (Math.abs(fx-startX) > 0.1 || Math.abs(fy-startY) > 0.1 || fr > 0.1) { if (mode === 'line') shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: fx, y2: fy, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 }); else if (mode === 'circle') shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: fr, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); } isDrawing = false; typedInput = ""; saveState(); draw(); }
         });
 
-        canvas.addEventListener('mousemove', (e) => { const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top; currentX_screen = sx; currentY_screen = sy; if (isPanning) { camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); lastPanX = sx; lastPanY = sy; draw(); return; } let wp = screenToWorld(sx, sy); currentX = wp.x; currentY = wp.y; currentSnap = findSnap(wp.x, wp.y); draw(); });
+        canvas.addEventListener('mousemove', (e) => { 
+            const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top; currentX_screen = sx; currentY_screen = sy; 
+            if (isPanning) { camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); lastPanX = sx; lastPanY = sy; draw(); return; } 
+            let wp = screenToWorld(sx, sy); 
+            currentSnap = findSnap(wp.x, wp.y); 
+            currentX = currentSnap ? currentSnap.x : wp.x; 
+            currentY = currentSnap ? currentSnap.y : wp.y; 
+            if (isDrawing && e.shiftKey) {
+                if (mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) currentY = startY; else currentX = startX; }
+                else if (mode === 'poly' && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1]; if (Math.abs(currentX-lp.x) > Math.abs(currentY-lp.y)) currentY = lp.y; else currentX = lp.x; }
+            }
+            draw(); 
+        });
+
         canvas.addEventListener('mouseup', (e) => { 
             if (e.button === 1) isPanning = false; 
             if (mode === 'select-box' && isDrawing) { 
@@ -868,7 +871,11 @@
         });
 
         document.addEventListener('keydown', (e) => {
-            if (document.activeElement.tagName === 'INPUT') return;
+            if (document.activeElement.tagName === 'INPUT') {
+                if (e.key === 'Enter') { if (document.activeElement.id === 'text-content') applyText(); if (document.activeElement.id === 'new-layer-name') addLayer(); } 
+                if (e.key === 'Escape') { closeTextModal(); closeCartoucheModal(); closeScaleModal(); closeLayerModal(); closeSnapModal(); closeHelpModal(); } 
+                return;
+            }
             if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
             if (e.ctrlKey && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
             if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copySelection(); return; }
@@ -901,7 +908,7 @@
                 } 
             }
             if (e.key === ' ') { if (mode === 'print') { e.preventDefault(); printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape'; draw(); } }
-            if (e.key === 'Escape') { isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null; dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null; closeTextModal(); closeCartoucheModal(); closeScaleModal(); closeLayerModal(); closeSnapModal(); typedInput = ""; if (mode === 'print') setMode('line'); draw(); }
+            if (e.key === 'Escape') { isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null; dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null; closeTextModal(); closeCartoucheModal(); closeScaleModal(); closeLayerModal(); closeSnapModal(); closeHelpModal(); typedInput = ""; if (mode === 'print') setMode('line'); draw(); }
             else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapes.length > 0) { shapes = shapes.filter(s => !selectedShapes.includes(s)); selectedShapes = []; saveState(); draw(); }
         });
 
