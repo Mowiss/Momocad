@@ -5,25 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOMOtocad - Dessin de Plan Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #1e1e1e; color: #fff; font-family: sans-serif; }
         canvas { display: block; cursor: crosshair; }
         .tool-btn { transition: all 0.2s; }
-        .tool-btn.active {
-            background-color: #3b82f6;
-            color: white;
-            border-color: #2563eb;
-        }
-        .logo-font {
-            font-family: "Arial Black", "Arial Bold", sans-serif;
-            font-weight: 900;
-        }
-        .tool-group {
-            border: 1px solid #374151;
-            padding: 4px;
-            border-radius: 8px;
-            background-color: #1f2937;
-        }
+        .tool-btn.active { background-color: #3b82f6; color: white; border-color: #2563eb; }
+        .logo-font { font-family: "Arial Black", "Arial Bold", sans-serif; font-weight: 900; }
+        .tool-group { border: 1px solid #374151; padding: 4px; border-radius: 8px; background-color: #1f2937; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
@@ -36,8 +26,8 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <h2 class="text-xl font-bold text-white">Génération Haute Résolution (300 DPI)</h2>
-        <p class="text-sm text-gray-300 mt-2">Calcul des vecteurs en cours, veuillez patienter...</p>
+        <h2 class="text-xl font-bold text-white">Génération PDF Haute Résolution</h2>
+        <p class="text-sm text-gray-300 mt-2">Rendu vectoriel en cours, veuillez patienter...</p>
     </div>
 
     <!-- Header / Ruban -->
@@ -86,7 +76,7 @@
             <button id="btn-load" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-400" title="Charger un JSON" onclick="document.getElementById('file-input').click()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></button>
             <input type="file" id="file-input" class="hidden" accept=".json" onchange="loadFromJSON(event)">
             <button id="btn-cartouche" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-400" title="Éditer le Cartouche" onclick="openCartoucheModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></button>
-            <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
+            <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression PDF (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
             <div class="w-px h-5 bg-gray-600 mx-1"></div>
             <button id="btn-help" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-300" title="Aide & Raccourcis" onclick="openHelpModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>
         </div>
@@ -111,7 +101,16 @@
                 <button id="btn-arc" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Arc (Centre, Début, Fin)" onclick="setMode('arc')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 18 0"></path></svg></button>
                 <button id="btn-poly" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polygone" onclick="setMode('poly')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z"></path></svg></button>
                 <button id="btn-text" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-200" title="Texte" onclick="setMode('text')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg></button>
-                <button id="btn-dim" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-400" title="Cotation" onclick="setMode('dim')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="12" x2="22" y2="12"></line><polyline points="5 8 2 12 5 16"></polyline><polyline points="19 8 22 12 19 16"></polyline><line x1="2" y1="8" x2="2" y2="16"></line><line x1="22" y1="8" x2="22" y2="16"></line></svg></button>
+                <button id="btn-dim" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-400" title="Cotation linéaire" onclick="setMode('dim')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="12" x2="22" y2="12"></line><polyline points="5 8 2 12 5 16"></polyline><polyline points="19 8 22 12 19 16"></polyline><line x1="2" y1="8" x2="2" y2="16"></line><line x1="22" y1="8" x2="22" y2="16"></line></svg></button>
+                <!-- Nouveau bouton : Cotation angulaire -->
+                <button id="btn-dim-angle" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-300" title="Cotation angulaire" onclick="setMode('dim-angle')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 20 L4 4"></path>
+                        <path d="M4 20 L20 20"></path>
+                        <path d="M4 8 Q12 8 16 20" fill="none"></path>
+                        <text x="10" y="16" font-size="6" fill="currentColor" stroke="none">°</text>
+                    </svg>
+                </button>
             </div>
         </aside>
 
@@ -197,9 +196,11 @@
             <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🛠️ Outils Spéciaux</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer pour la couper jusqu'à l'intersection.</li>
-                    <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne pour l'étendre.</li>
-                    <li><b class="text-white">Décaler (Offset) :</b> Tapez la distance désirée, puis cliquez près de la ligne/cercle/arc à dupliquer du côté voulu.</li>
+                    <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li>
+                    <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li>
+                    <li><b class="text-white">Décaler (Offset) :</b> Tapez la distance désirée, puis cliquez sur l'objet.</li>
+                    <li><b class="text-white">Cotation angulaire :</b> Clic 1 = sélectionner D1, Clic 2 = sélectionner D2, Clic 3 = poser l'arc de cote. Sélection de la cote en cliquant sur la valeur °.</li>
+                    <li><b class="text-white">Impression PDF :</b> ESPACE pour pivoter, MOLETTE pour l'échelle, CLIC pour générer le PDF.</li>
                 </ul>
             </div>
         </div>
@@ -220,21 +221,58 @@
         let currentPolygon = [], currentSnap = null;
         let arcStep = 0, arcCenter = null, arcP1 = null, arcRadius = 0, arcStartAngle = 0;
 
+        // Outil cotation angulaire — état
+        let dimAngleStep = 0;   // 0=attente D1, 1=attente D2, 2=pose arc
+        let dimAngleLine1 = null, dimAngleLine2 = null;
+        let dimAngleIntersect = null; // intersection calculée des deux droites (prolongées)
+
+        // Choisit le point sur la droite (prolongée) à distance arcR depuis origin,
+        // dans le demi-espace le plus proche du clic
+        function _closestPointOnLine(line, origin, arcR, clickPt) {
+            const dx = line.x2 - line.x1, dy = line.y2 - line.y1;
+            const len = Math.hypot(dx, dy);
+            if (len === 0) return { x: origin.x + arcR, y: origin.y };
+            const ux = dx / len, uy = dy / len;
+            // Deux directions possibles depuis l'intersection
+            const cA = { x: origin.x + ux * arcR, y: origin.y + uy * arcR };
+            const cB = { x: origin.x - ux * arcR, y: origin.y - uy * arcR };
+            const dA = Math.hypot(cA.x - clickPt.x, cA.y - clickPt.y);
+            const dB = Math.hypot(cB.x - clickPt.x, cB.y - clickPt.y);
+            return dA < dB ? cA : cB;
+        }
+
+        // Calcule l'intersection de deux droites prolongées à l'infini
+        function getLineIntersectionInfinite(l1, l2) {
+            const dx1 = l1.x2 - l1.x1, dy1 = l1.y2 - l1.y1;
+            const dx2 = l2.x2 - l2.x1, dy2 = l2.y2 - l2.y1;
+            const det = dx1 * dy2 - dy1 * dx2;
+            if (Math.abs(det) < 1e-10) return null; // parallèles
+            const t = ((l2.x1 - l1.x1) * dy2 - (l2.y1 - l1.y1) * dx2) / det;
+            return { x: l1.x1 + t * dx1, y: l1.y1 + t * dy1 };
+        }
+
         let showGrid = true;
-        const SNAP_DIST = 15;
+
+        // =====================================================================
+        // SNAP — correctifs
+        // La distance de snap est désormais toujours comparée en pixels écran,
+        // et la conversion monde→écran est faite une seule fois dans findSnap.
+        // Les points en doublon sont dédupliqués dans getSnapPoints.
+        // =====================================================================
+        const SNAP_DIST_PX = 14; // pixels écran, constant quelle que soit le zoom
         let selectedShapes = [], moveBasePoint = null, isMovingObjects = false;
         let rotateCenter = null, rotateStartAngle = 0, isRotatingObjects = false;
         
         let clipboard = [];
-        let clipboardBasePoint = null; 
-        let pasteOffset = 0; 
-        let offsetTarget = null, offsetPreviewShape = null; 
-        const GRID_SIZE = 50; 
+        let clipboardBasePoint = null;
+        let pasteOffset = 0;
+        let offsetTarget = null, offsetPreviewShape = null;
+        const GRID_SIZE = 50;
         
         let unitsPerSquare = 10, currentUnit = 'mm';
         
         let shapes = [], dimensionTextsToDraw = [], pendingTextPos = null;
-        let printOrientation = 'landscape'; 
+        let printOrientation = 'landscape';
         let cartoucheData = { logo: null, planName: '', clientName: '', draftsmanName: '' };
         const PRINT_SCALES = [1, 2, 5, 10, 25, 50, 100, 150, 200, 500];
         let currentPrintScale = 50;
@@ -257,6 +295,7 @@
         function openSnapModal() { closeLayerModal(); document.getElementById('snap-modal').classList.remove('hidden'); }
         function openHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); }
         function openCartoucheModal() { document.getElementById('cartouche-modal').classList.remove('hidden'); document.getElementById('cartouche-plan').value = cartoucheData.planName || ""; document.getElementById('cartouche-client').value = cartoucheData.clientName || ""; document.getElementById('cartouche-draftsman').value = cartoucheData.draftsmanName || ""; }
+        function applyCartouche() { cartoucheData.planName = document.getElementById('cartouche-plan').value; cartoucheData.clientName = document.getElementById('cartouche-client').value; cartoucheData.draftsmanName = document.getElementById('cartouche-draftsman').value; const logoInput = document.getElementById('cartouche-logo'); if (logoInput.files && logoInput.files[0]) { const reader = new FileReader(); reader.onload = (e) => { cartoucheData.logo = e.target.result; }; reader.readAsDataURL(logoInput.files[0]); } closeCartoucheModal(); }
         function toggleSnapSetting(type) { snapSettings[type] = document.getElementById('snap-' + (type === 'endpoint' ? 'end' : type === 'midpoint' ? 'mid' : type === 'intersection' ? 'inter' : type)).checked; invalidateCache(); draw(); }
         function toggleGrid() { showGrid = !showGrid; const btn = document.getElementById('btn-toggle-grid'); if(showGrid) { btn.classList.add('text-blue-400'); btn.classList.remove('text-gray-500'); } else { btn.classList.add('text-gray-500'); btn.classList.remove('text-blue-400'); } draw(); }
 
@@ -315,9 +354,9 @@
 
         function getInterPoints(s1, s2) {
             let pts = [], segs1 = getSegments(s1), segs2 = getSegments(s2);
-            if (segs1.length > 0 && segs2.length > 0) { segs1.forEach(a => segs2.forEach(b => { let p = getIntersectionLines(a.x1, a.y1, a.x2, a.y2, b.x1, b.y1, b.x2, b.y2); if (p) pts.push(p); })); } 
-            else if (segs1.length > 0 && (s2.type === 'circle' || s2.type === 'arc')) { segs1.forEach(a => { let res = getIntersectionLineCircle(a.x1, a.y1, a.x2, a.y2, s2.x, s2.y, s2.r); if (s2.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s2.y, p.x - s2.x), s2.startAngle, s2.endAngle)); pts.push(...res); }); } 
-            else if (segs2.length > 0 && (s1.type === 'circle' || s1.type === 'arc')) { segs2.forEach(a => { let res = getIntersectionLineCircle(a.x1, a.y1, a.x2, a.y2, s1.x, s1.y, s1.r); if (s1.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s1.y, p.x - s1.x), s1.startAngle, s1.endAngle)); pts.push(...res); }); } 
+            if (segs1.length > 0 && segs2.length > 0) { segs1.forEach(a => segs2.forEach(b => { let p = getIntersectionLines(a.x1, a.y1, a.x2, a.y2, b.x1, b.y1, b.x2, b.y2); if (p) pts.push(p); })); }
+            else if (segs1.length > 0 && (s2.type === 'circle' || s2.type === 'arc')) { segs1.forEach(a => { let res = getIntersectionLineCircle(a.x1, a.y1, a.x2, a.y2, s2.x, s2.y, s2.r); if (s2.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s2.y, p.x - s2.x), s2.startAngle, s2.endAngle)); pts.push(...res); }); }
+            else if (segs2.length > 0 && (s1.type === 'circle' || s1.type === 'arc')) { segs2.forEach(a => { let res = getIntersectionLineCircle(a.x1, a.y1, a.x2, a.y2, s1.x, s1.y, s1.r); if (s1.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s1.y, p.x - s1.x), s1.startAngle, s1.endAngle)); pts.push(...res); }); }
             else if ((s1.type === 'circle' || s1.type === 'arc') && (s2.type === 'circle' || s2.type === 'arc')) { let res = getIntersectionCircles(s1.x, s1.y, s1.r, s2.x, s2.y, s2.r); if (s1.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s1.y, p.x - s1.x), s1.startAngle, s1.endAngle)); if (s2.type === 'arc') res = res.filter(p => isAngleBetween(Math.atan2(p.y - s2.y, p.x - s2.x), s2.startAngle, s2.endAngle)); pts.push(...res); }
             return pts;
         }
@@ -331,78 +370,102 @@
         function applyRotationToShape(s, cx, cy, angleRad) {
             const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
             const rot = (x, y) => ({ x: (cos * (x - cx)) - (sin * (y - cy)) + cx, y: (sin * (x - cx)) + (cos * (y - cy)) + cy });
-            if (s.type === 'line') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; } 
-            else if (s.type === 'circle') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; } 
-            else if (s.type === 'arc') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.startAngle += angleRad; s.endAngle += angleRad; } 
-            else if (s.type === 'poly') { s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); } 
-            else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; } 
+            if (s.type === 'line') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
+            else if (s.type === 'circle') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; }
+            else if (s.type === 'arc') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.startAngle += angleRad; s.endAngle += angleRad; }
+            else if (s.type === 'poly') { s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
+            else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; }
             else if (s.type === 'dim') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2), po = rot(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
-        }
-
-        function drawDimension(tx, p1, p2, po, sel = false) {
-            let dx = p2.x-p1.x, dy = p2.y-p1.y, dist = Math.hypot(dx, dy); if (dist < 0.01) return;
-            tx.strokeStyle = sel ? '#ec4899' : '#f59e0b'; tx.lineWidth = (sel?3:1)/camera.zoom;
-            let ux = dx/dist, uy = dy/dist, nx = -uy, ny = ux, vOffX = po.x-p1.x, vOffY = po.y-p1.y, off = vOffX*nx + vOffY*ny;
-            let c1 = {x:p1.x+nx*off, y:p1.y+ny*off}, c2 = {x:p2.x+nx*off, y:p2.y+ny*off};
-            tx.setLineDash([]); tx.globalAlpha = 0.6; tx.beginPath();
-            tx.moveTo(p1.x+nx*(off*0.1), p1.y+ny*(off*0.1)); tx.lineTo(c1.x+nx*(off>0?5:-5)/camera.zoom, c1.y+ny*(off>0?5:-5)/camera.zoom);
-            tx.moveTo(p2.x+nx*(off*0.1), p2.y+ny*(off*0.1)); tx.lineTo(c2.x+nx*(off>0?5:-5)/camera.zoom, c2.y+ny*(off>0?5:-5)/camera.zoom);
-            tx.stroke(); tx.globalAlpha = 1.0; tx.beginPath(); tx.moveTo(c1.x, c1.y); tx.lineTo(c2.x, c2.y); tx.stroke();
-            let t=5/camera.zoom; const dt=(p)=>{ tx.beginPath(); tx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); tx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); tx.stroke(); };
-            dt(c1); dt(c2); dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
+            else if (s.type === 'dim-angle') { let pv = rot(s.vertex.x, s.vertex.y), pp1 = rot(s.p1.x, s.p1.y), pp2 = rot(s.p2.x, s.p2.y); s.vertex = pv; s.p1 = pp1; s.p2 = pp2; }
         }
 
         // --- CORE GEOMETRY & SNAP ---
         function screenToWorld(sx, sy) { return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom }; }
         function worldToScreen(wx, wy) { return { x: wx * camera.zoom + camera.x, y: wy * camera.zoom + camera.y }; }
-        function calculateRealDistance(pxDist) { 
-            let real = (pxDist/GRID_SIZE)*unitsPerSquare; 
+        function calculateRealDistance(pxDist) {
+            let real = (pxDist/GRID_SIZE)*unitsPerSquare;
             if (currentUnit === 'm' && real < 1) return (real*100).toFixed(1) + " cm";
             if (currentUnit === 'mm') return Math.round(real) + " mm";
-            return real.toFixed(2) + " " + currentUnit; 
+            return real.toFixed(2) + " " + currentUnit;
         }
 
         function getShapesBoundingBox(shapeArray) {
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             if (!shapeArray || shapeArray.length === 0) return null;
             shapeArray.forEach(s => {
-                if (s.type === 'line' || s.type === 'dim') { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); } 
-                else if (s.type === 'circle' || s.type === 'arc') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); } 
-                else if (s.type === 'poly') { s.points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); } 
+                if (s.type === 'line' || s.type === 'dim') { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); }
+                else if (s.type === 'circle' || s.type === 'arc') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); }
+                else if (s.type === 'poly') { s.points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
                 else if (s.type === 'text') { minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x + 100); minY = Math.min(minY, s.y - s.size); maxY = Math.max(maxY, s.y); }
             });
             if (minX === Infinity) return null;
             return { minX, minY, maxX, maxY, centerX: (minX+maxX)/2, centerY: (minY+maxY)/2 };
         }
 
+        // =====================================================================
+        // SNAP CORRIGÉ :
+        // 1. Déduplique les points proches (< 0.5px monde) à la construction
+        // 2. findSnap compare les distances en pixels écran (invariant au zoom)
+        // =====================================================================
         function getSnapPoints() {
             if (cachedSnapPoints) return cachedSnapPoints;
             let pts = [];
             for (const s of shapes) {
                 let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
-                if (snapSettings.endpoint) { 
-                    if (s.type === 'line' || s.type === 'dim') pts.push({x: s.x1, y: s.y1}, {x: s.x2, y: s.y2}); 
-                    else if (s.type === 'poly') s.points.forEach(p => pts.push({x: p.x, y: p.y})); 
-                    else if (s.type === 'text') pts.push({x: s.x, y: s.y}); 
-                    else if (s.type === 'arc') { pts.push({x: s.x + Math.cos(s.startAngle)*s.r, y: s.y + Math.sin(s.startAngle)*s.r}); pts.push({x: s.x + Math.cos(s.endAngle)*s.r, y: s.y + Math.sin(s.endAngle)*s.r}); } 
-                    else if (s.type === 'circle') { pts.push({x: s.x + s.r, y: s.y}, {x: s.x - s.r, y: s.y}, {x: s.x, y: s.y + s.r}, {x: s.x, y: s.y - s.r}); }
+                if (snapSettings.endpoint) {
+                    if (s.type === 'line' || s.type === 'dim') pts.push({x: s.x1, y: s.y1}, {x: s.x2, y: s.y2});
+                    else if (s.type === 'poly') s.points.forEach(p => pts.push({x: p.x, y: p.y}));
+                    else if (s.type === 'text') pts.push({x: s.x, y: s.y});
+                    else if (s.type === 'arc') {
+                        pts.push({x: s.x + Math.cos(s.startAngle)*s.r, y: s.y + Math.sin(s.startAngle)*s.r});
+                        pts.push({x: s.x + Math.cos(s.endAngle)*s.r, y: s.y + Math.sin(s.endAngle)*s.r});
+                    }
+                    else if (s.type === 'circle') {
+                        pts.push({x: s.x + s.r, y: s.y}, {x: s.x - s.r, y: s.y}, {x: s.x, y: s.y + s.r}, {x: s.x, y: s.y - s.r});
+                    }
+                    else if (s.type === 'dim-angle') {
+                        pts.push({x: s.vertex.x, y: s.vertex.y}, {x: s.p1.x, y: s.p1.y}, {x: s.p2.x, y: s.p2.y});
+                    }
                 }
-                if (snapSettings.midpoint) { 
-                    if (s.type === 'line' || s.type === 'dim') pts.push({x: (s.x1+s.x2)/2, y: (s.y1+s.y2)/2}); 
-                    else if (s.type === 'poly') { for (let i=0; i<s.points.length; i++) { let p1=s.points[i], p2=s.points[(i+1)%s.points.length]; pts.push({x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2}); } } 
-                    else if (s.type === 'arc') { let mid = s.startAngle < s.endAngle ? (s.startAngle + s.endAngle)/2 : (s.startAngle + s.endAngle + 2*Math.PI)/2; pts.push({x: s.x + Math.cos(mid)*s.r, y: s.y + Math.sin(mid)*s.r}); } 
+                if (snapSettings.midpoint) {
+                    if (s.type === 'line' || s.type === 'dim') pts.push({x: (s.x1+s.x2)/2, y: (s.y1+s.y2)/2});
+                    else if (s.type === 'poly') { for (let i=0; i<s.points.length; i++) { let p1=s.points[i], p2=s.points[(i+1)%s.points.length]; pts.push({x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2}); } }
+                    else if (s.type === 'arc') { let mid = s.startAngle < s.endAngle ? (s.startAngle + s.endAngle)/2 : (s.startAngle + s.endAngle + 2*Math.PI)/2; pts.push({x: s.x + Math.cos(mid)*s.r, y: s.y + Math.sin(mid)*s.r}); }
                 }
                 if (snapSettings.center && (s.type === 'circle' || s.type === 'arc')) pts.push({x: s.x, y: s.y});
             }
             if (snapSettings.intersection) pts.push(...getAllIntersections());
-            cachedSnapPoints = pts;
-            return pts;
+
+            // Déduplication : on supprime les points trop proches (tolérance 0.5 unité monde)
+            const TOL = 0.5;
+            const deduped = [];
+            for (const p of pts) {
+                if (!deduped.some(q => Math.abs(q.x - p.x) < TOL && Math.abs(q.y - p.y) < TOL)) {
+                    deduped.push(p);
+                }
+            }
+
+            cachedSnapPoints = deduped;
+            return cachedSnapPoints;
         }
 
-        function findSnap(mx, my) {
-            let pts = getSnapPoints(), sd = SNAP_DIST/camera.zoom, bd = sd, bp = null;
-            for (let p of pts) { let d = Math.hypot(p.x - mx, p.y - my); if (d < bd) { bd = d; bp = p; } }
-            return bp;
+        // Comparaison en pixels écran — le carré snap ne "saute" plus au zoom
+        function findSnap(wx, wy) {
+            const pts = getSnapPoints();
+            const snapRadiusPx = SNAP_DIST_PX;
+            let best = null, bestDistPx = snapRadiusPx;
+
+            for (const p of pts) {
+                // Convertir le point monde → écran pour comparer en pixels
+                const sx = p.x * camera.zoom + camera.x;
+                const sy = p.y * camera.zoom + camera.y;
+                // Convertir la position curseur monde → écran
+                const cx = wx * camera.zoom + camera.x;
+                const cy = wy * camera.zoom + camera.y;
+                const distPx = Math.hypot(sx - cx, sy - cy);
+                if (distPx < bestDistPx) { bestDistPx = distPx; best = p; }
+            }
+            return best;
         }
 
         function isPointInRect(px, py, rx, ry, rw, rh) {
@@ -427,6 +490,15 @@
                 else if (s.type === 'arc') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) { let a = Math.atan2(p.y-s.y, p.x-s.x); if (isAngleBetween(a, s.startAngle, s.endAngle)) return s; } }
                 else if (s.type === 'poly') { for(let j=0; j<s.points.length; j++){ let p1 = s.points[j], p2 = s.points[(j+1)%s.points.length]; let l2 = Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-p1.x)*(p2.x-p1.x)+(p.y-p1.y)*(p2.y-p1.y))/l2)); if (Math.hypot(p.x-(p1.x+t*(p2.x-p1.x)), p.y-(p1.y+t*(p2.y-p1.y))) < tol) return s; } }
                 else if (s.type === 'text') { ctx.font = s.size + "px Arial"; let w = ctx.measureText(s.content).width; if (wx >= s.x && wx <= s.x + w && wy <= s.y && wy >= s.y - s.size) return s; }
+                else if (s.type === 'dim-angle') {
+                    // Sélection sur le texte ° (label) ou sur l'arc de cotation
+                    if (s._labelX !== undefined) {
+                        const lblTol = 20 / camera.zoom;
+                        if (Math.hypot(p.x - s._labelX, p.y - s._labelY) < lblTol) return s;
+                    }
+                    // Fallback : clic près du sommet
+                    if (Math.hypot(p.x - s.vertex.x, p.y - s.vertex.y) < tol * 5) return s;
+                }
             } return null;
         }
 
@@ -442,17 +514,15 @@
                 let dx = target.x2 - target.x1, dy = target.y2 - target.y1;
                 let lineLen2 = dx*dx + dy*dy;
                 points.sort((a,b) => { let d1 = (a.x - target.x1)*dx + (a.y - target.y1)*dy, d2 = (b.x - target.x1)*dx + (b.y - target.y1)*dy; return d1 - d2; });
-                
                 let mDist = (mx - target.x1)*dx + (my - target.y1)*dy;
                 let tol = (10 / camera.zoom) * Math.sqrt(lineLen2);
-                
                 for (let i=0; i < points.length - 1; i++) {
                     let d1 = (points[i].x - target.x1)*dx + (points[i].y - target.y1)*dy;
                     let d2 = (points[i+1].x - target.x1)*dx + (points[i+1].y - target.y1)*dy;
                     if (mDist >= d1 - tol && mDist <= d2 + tol) {
                         shapes = shapes.filter(s => s !== target);
                         for (let j=0; j < points.length - 1; j++) {
-                            if (i === j) continue; 
+                            if (i === j) continue;
                             if (Math.hypot(points[j].x - points[j+1].x, points[j].y - points[j+1].y) > 0.1) shapes.push({ ...target, x1: points[j].x, y1: points[j].y, x2: points[j+1].x, y2: points[j+1].y });
                         } saveState(); return;
                     }
@@ -460,7 +530,7 @@
             } else if (target.type === 'poly') {
                 let segs = [];
                 for (let i=0; i < target.points.length; i++) { let p1 = target.points[i], p2 = target.points[(i+1)%target.points.length]; segs.push({ type: 'line', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, color: target.color, dash: target.dash, width: target.width, layerId: target.layerId }); }
-                shapes = shapes.filter(s => s !== target); shapes.push(...segs); trimShapeAt(mx, my); 
+                shapes = shapes.filter(s => s !== target); shapes.push(...segs); trimShapeAt(mx, my);
             } else if (target.type === 'arc') {
                 let angles = [target.startAngle, target.endAngle];
                 intersections.forEach(p => { let a = Math.atan2(p.y - target.y, p.x - target.x); if (isAngleBetween(a, target.startAngle, target.endAngle)) angles.push(a); });
@@ -478,7 +548,7 @@
                     }
                 }
             } else if (target.type === 'circle') {
-                if (intersections.length < 2) return; 
+                if (intersections.length < 2) return;
                 let angles = [];
                 intersections.forEach(p => { let a = Math.atan2(p.y - target.y, p.x - target.x); if (a < 0) a += 2 * Math.PI; angles.push(a); });
                 angles.sort((a, b) => a - b);
@@ -503,149 +573,341 @@
 
         function extendShapeAt(mx, my) {
             let target = findShapeAt(mx, my);
-            if (!target || target.type !== 'line') return; 
-
+            if (!target || target.type !== 'line') return;
             let dist1 = Math.hypot(mx - target.x1, my - target.y1);
             let dist2 = Math.hypot(mx - target.x2, my - target.y2);
             let isExtendingP2 = dist2 < dist1;
-
             let pBase = isExtendingP2 ? {x: target.x1, y: target.y1} : {x: target.x2, y: target.y2};
             let pEnd  = isExtendingP2 ? {x: target.x2, y: target.y2} : {x: target.x1, y: target.y1};
-
-            let dx = pEnd.x - pBase.x;
-            let dy = pEnd.y - pBase.y;
-            let len = Math.hypot(dx, dy);
+            let dx = pEnd.x - pBase.x, dy = pEnd.y - pBase.y, len = Math.hypot(dx, dy);
             if (len === 0) return;
-            let vx = dx / len;
-            let vy = dy / len;
-
+            let vx = dx / len, vy = dy / len;
             let rayLine = { type: 'line', x1: pEnd.x, y1: pEnd.y, x2: pEnd.x + vx * 100000, y2: pEnd.y + vy * 100000 };
-
             let otherVis = shapes.filter(s => s !== target && layers.find(l => l.id === (s.layerId || 'layer-0'))?.visible);
-            let intersections = [];
-            otherVis.forEach(s => { intersections.push(...getInterPoints(rayLine, s)); });
-
+            let intersections = []; otherVis.forEach(s => { intersections.push(...getInterPoints(rayLine, s)); });
             if (intersections.length === 0) return;
-
-            let closest = null;
-            let minDist = Infinity;
-
+            let closest = null, minDist = Infinity;
             intersections.forEach(p => {
                 let dist = Math.hypot(p.x - pEnd.x, p.y - pEnd.y);
                 let dot = (p.x - pEnd.x)*vx + (p.y - pEnd.y)*vy;
-                if (dot > 0.1 && dist < minDist) { 
-                    minDist = dist;
-                    closest = p;
-                }
+                if (dot > 0.1 && dist < minDist) { minDist = dist; closest = p; }
             });
-
             if (closest) {
-                if (isExtendingP2) { target.x2 = closest.x; target.y2 = closest.y; } 
+                if (isExtendingP2) { target.x2 = closest.x; target.y2 = closest.y; }
                 else { target.x1 = closest.x; target.y1 = closest.y; }
                 saveState();
             }
         }
 
+        // --- COTATION ANGULAIRE ---
+        // Dessine un arc de cotation entre deux bras depuis un sommet, avec l'angle en texte
+        function drawAngleDim(targetCtx, s, sel, isPrinting, lineScale) {
+            if (lineScale === undefined) lineScale = camera.zoom;
+            const { vertex, p1, p2 } = s;
+            const a1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x);
+            const a2 = Math.atan2(p2.y - vertex.y, p2.x - vertex.x);
+
+            // Calcul de l'angle entre les deux bras (toujours positif, ≤ 180°)
+            let angleDiff = a2 - a1;
+            while (angleDiff < 0) angleDiff += 2 * Math.PI;
+            if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+            const angleDeg = (angleDiff * 180 / Math.PI).toFixed(1);
+
+            // Rayon de l'arc de cotation = 1/3 de la distance au point le plus court
+            const r1 = Math.hypot(p1.x - vertex.x, p1.y - vertex.y);
+            const r2 = Math.hypot(p2.x - vertex.x, p2.y - vertex.y);
+            const arcR = Math.min(r1, r2) * 0.5;
+
+            const col = isPrinting ? '#000000' : (s.color || '#f59e0b');
+            targetCtx.strokeStyle = sel ? '#ec4899' : col;
+            targetCtx.lineWidth = (sel ? 3 : 1.5) / lineScale;
+            targetCtx.setLineDash([]);
+
+            // Bras de cotation (lignes depuis le sommet)
+            targetCtx.globalAlpha = 0.6;
+            targetCtx.beginPath();
+            targetCtx.moveTo(vertex.x, vertex.y);
+            targetCtx.lineTo(p1.x, p1.y);
+            targetCtx.moveTo(vertex.x, vertex.y);
+            targetCtx.lineTo(p2.x, p2.y);
+            targetCtx.stroke();
+            targetCtx.globalAlpha = 1.0;
+
+            // Arc de cotation
+            let startA = a1, endA = a2;
+            let span = endA - startA;
+            while (span < 0) span += 2 * Math.PI;
+            if (span > Math.PI) { let tmp = startA; startA = endA; endA = tmp; }
+
+            targetCtx.beginPath();
+            targetCtx.arc(vertex.x, vertex.y, arcR, startA, endA);
+            targetCtx.stroke();
+
+            // Flèches aux extrémités de l'arc
+            const arrowSize = 6 / lineScale;
+            [startA, endA].forEach((a, idx) => {
+                const tangA = idx === 0 ? a - Math.PI / 2 : a + Math.PI / 2;
+                const ax = vertex.x + Math.cos(a) * arcR;
+                const ay = vertex.y + Math.sin(a) * arcR;
+                targetCtx.beginPath();
+                targetCtx.moveTo(ax, ay);
+                targetCtx.lineTo(ax + Math.cos(tangA + 0.4) * arrowSize, ay + Math.sin(tangA + 0.4) * arrowSize);
+                targetCtx.lineTo(ax + Math.cos(tangA - 0.4) * arrowSize, ay + Math.sin(tangA - 0.4) * arrowSize);
+                targetCtx.closePath();
+                targetCtx.fillStyle = sel ? '#ec4899' : col;
+                targetCtx.fill();
+            });
+
+            // Texte de l'angle au milieu de l'arc — stocke aussi le worldX/Y pour findShapeAt
+            const midA = (startA + endA) / 2;
+            const textX = vertex.x + Math.cos(midA) * (arcR + 15 / lineScale);
+            const textY = vertex.y + Math.sin(midA) * (arcR + 15 / lineScale);
+            // On stocke les coordonnées du label dans la shape pour la sélection
+            s._labelX = textX; s._labelY = textY; s._angleDeg = angleDeg;
+            dimensionTextsToDraw.push({ text: angleDeg + '°', worldX: textX, worldY: textY });
+        }
+
         // --- GESTION DES OUTILS ET MODES ---
         function setMode(newMode) {
-            mode = newMode; moveBasePoint = null; isMovingObjects = false; isDrawing = false; dimStep = 0; rotateCenter = null; isRotatingObjects = false; typedInput = ""; 
-            arcStep = 0; arcCenter = null; arcP1 = null; offsetTarget = null; offsetPreviewShape = null;
+            mode = newMode;
+            moveBasePoint = null; isMovingObjects = false; isDrawing = false;
+            dimStep = 0; rotateCenter = null; isRotatingObjects = false; typedInput = "";
+            arcStep = 0; arcCenter = null; arcP1 = null;
+            offsetTarget = null; offsetPreviewShape = null;
+            dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
             closeTextModal(); closeLayerModal(); closeCartoucheModal(); closeSnapModal(); closeHelpModal();
-            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active')); const btn = document.getElementById('btn-' + newMode); if (btn) btn.classList.add('active');
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            const btn = document.getElementById('btn-' + newMode); if (btn) btn.classList.add('active');
             canvas.style.cursor = (['move', 'rotate', 'select-box', 'text', 'print', 'trim', 'extend', 'paste', 'offset'].includes(mode)) ? 'default' : 'crosshair';
-            if (newMode === 'print') { 
-                const um = currentUnit === 'mm' ? unitsPerSquare/1000 : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare); 
-                let s = (um*12)/(camera.zoom*0.297); let ci = 0, md = Infinity; 
-                for (let i=0; i<PRINT_SCALES.length; i++) { let d = Math.abs(PRINT_SCALES[i]-s); if (d < md) { md = d; ci = i; } } 
-                currentPrintScale = PRINT_SCALES[ci]; camera.zoom = (um*12)/(currentPrintScale*0.297); 
-                let cx = canvas.width/2, cy = canvas.height/2; let wp = {x:(cx-camera.x)/camera.zoom, y:(cy-camera.y)/camera.zoom}; 
-                camera.x = cx - wp.x*camera.zoom; camera.y = cy - wp.y*camera.zoom; 
+            if (newMode === 'print') {
+                const um = currentUnit === 'mm' ? unitsPerSquare/1000 : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare);
+                let s = (um*12)/(camera.zoom*0.297); let ci = 0, md = Infinity;
+                for (let i=0; i<PRINT_SCALES.length; i++) { let d = Math.abs(PRINT_SCALES[i]-s); if (d < md) { md = d; ci = i; } }
+                currentPrintScale = PRINT_SCALES[ci]; camera.zoom = (um*12)/(currentPrintScale*0.297);
+                let cx = canvas.width/2, cy = canvas.height/2; let wp = {x:(cx-camera.x)/camera.zoom, y:(cy-camera.y)/camera.zoom};
+                camera.x = cx - wp.x*camera.zoom; camera.y = cy - wp.y*camera.zoom;
             }
             draw();
         }
 
-        function updateSelectedProperties() { if (selectedShapes.length > 0) { selectedShapes.forEach(s => { s.color = document.getElementById('prop-color').value; if (s.type !== 'dim' && s.type !== 'text') s.dash = document.getElementById('prop-dash').value; if (s.type === 'text') s.size = (parseFloat(document.getElementById('prop-width').value) || 1) * 20; else s.width = parseFloat(document.getElementById('prop-width').value) || 1; s.layerId = activeLayerId; }); saveState(); draw(); } }
-        function saveToJSON() { const data = { version: "1.1", scale: { value: unitsPerSquare, unit: currentUnit }, layers: layers, activeLayerId: activeLayerId, snapSettings: snapSettings, shapes: shapes, cartouche: cartoucheData }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = "plan_momo_" + new Date().getTime() + ".json"; a.click(); }
-        function loadFromJSON(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const data = JSON.parse(e.target.result); if (data.scale) { unitsPerSquare = data.scale.value; currentUnit = data.scale.unit; } if (data.cartouche) cartoucheData = data.cartouche; if (data.layers) { layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id; } if (data.snapSettings) { snapSettings = data.snapSettings; document.getElementById('snap-end').checked = snapSettings.endpoint; document.getElementById('snap-mid').checked = snapSettings.midpoint; document.getElementById('snap-center').checked = snapSettings.center; document.getElementById('snap-inter').checked = snapSettings.intersection; } shapes = data.shapes || []; selectedShapes = []; shapesHistory = []; historyStep = -1; saveState(); updateLayerUI(); draw(); } catch (err) { console.error(err); } }; reader.readAsText(file); }
+        function updateSelectedProperties() {
+            if (selectedShapes.length > 0) {
+                selectedShapes.forEach(s => {
+                    s.color = document.getElementById('prop-color').value;
+                    if (s.type !== 'dim' && s.type !== 'text' && s.type !== 'dim-angle') s.dash = document.getElementById('prop-dash').value;
+                    if (s.type === 'text') s.size = (parseFloat(document.getElementById('prop-width').value) || 1) * 20;
+                    else s.width = parseFloat(document.getElementById('prop-width').value) || 1;
+                    s.layerId = activeLayerId;
+                });
+                saveState(); draw();
+            }
+        }
+
+        function saveToJSON() {
+            const data = { version: "1.2", scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes, cartouche: cartoucheData };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
+            a.download = "plan_momo_" + new Date().getTime() + ".json"; a.click();
+        }
+
+        function loadFromJSON(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.scale) { unitsPerSquare = data.scale.value; currentUnit = data.scale.unit; }
+                    if (data.cartouche) cartoucheData = data.cartouche;
+                    if (data.layers) { layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id; }
+                    if (data.snapSettings) { snapSettings = data.snapSettings; document.getElementById('snap-end').checked = snapSettings.endpoint; document.getElementById('snap-mid').checked = snapSettings.midpoint; document.getElementById('snap-center').checked = snapSettings.center; document.getElementById('snap-inter').checked = snapSettings.intersection; }
+                    shapes = data.shapes || []; selectedShapes = []; shapesHistory = []; historyStep = -1; saveState(); updateLayerUI(); draw();
+                } catch (err) { console.error(err); }
+            };
+            reader.readAsText(file);
+        }
+
         function getPrintRect() { const baseW = 600, baseH = 424; return printOrientation === 'landscape' ? { w: baseW, h: baseH } : { w: baseH, h: baseW }; }
+
+        // =====================================================================
+        // IMPRESSION PDF via jsPDF
+        // =====================================================================
         function performPrint(sx_screen, sy_screen) {
             document.getElementById('print-loader').classList.remove('hidden');
             setTimeout(() => {
-                const rect = getPrintRect(); 
-                const dpi = 300; const mmToPx = dpi / 25.4;
-                const targetW = (printOrientation === 'landscape' ? 297 : 210) * mmToPx;
-                const targetH = (printOrientation === 'landscape' ? 210 : 297) * mmToPx;
-                const exportScale = targetW / rect.w;
-                const sx = sx_screen - rect.w / 2; const sy = sy_screen - rect.h / 2;
-                const tC = document.createElement('canvas'); tC.width = targetW; tC.height = targetH; const tX = tC.getContext('2d');
-                tX.fillStyle = '#ffffff'; tX.fillRect(0, 0, targetW, targetH);
-                tX.save(); tX.scale(exportScale, exportScale); tX.translate(-sx, -sy); drawFullPlan(tX, false); tX.restore();
-                
-                const m = 10 * exportScale;
-                tX.strokeStyle = '#000000'; tX.lineWidth = 0.5 * exportScale; tX.strokeRect(m, m, targetW - 2 * m, targetH - 2 * m);
-                const cw = 160 * exportScale, ch = 80 * exportScale, cx = targetW - m - cw, cy = targetH - m - ch;
-                tX.fillStyle = '#ffffff'; tX.fillRect(cx, cy, cw, ch);
-                tX.strokeStyle = '#000000'; tX.lineWidth = 0.25 * exportScale; tX.strokeRect(cx, cy, cw, ch);
-                tX.beginPath(); tX.moveTo(cx + 50 * exportScale, cy); tX.lineTo(cx + 50 * exportScale, cy + ch); tX.moveTo(cx + 50 * exportScale, cy + 20 * exportScale); tX.lineTo(cx + cw, cy + 20 * exportScale); tX.moveTo(cx + 50 * exportScale, cy + 40 * exportScale); tX.lineTo(cx + cw, cy + 40 * exportScale); tX.moveTo(cx + 50 * exportScale, cy + 60 * exportScale); tX.lineTo(cx + cw, cy + 60 * exportScale); tX.stroke();
-                tX.fillStyle = '#000000'; tX.font = "bold " + (9 * exportScale) + "px Arial"; tX.textAlign = "left"; tX.textBaseline = "middle";
-                tX.fillText("Plan : " + (cartoucheData.planName || ""), cx + 55 * exportScale, cy + 10 * exportScale); tX.fillText("Client : " + (cartoucheData.clientName || ""), cx + 55 * exportScale, cy + 30 * exportScale); tX.fillText("Dessin : " + (cartoucheData.draftsmanName || ""), cx + 55 * exportScale, cy + 50 * exportScale); tX.fillText("Échelle : 1:" + currentPrintScale, cx + 55 * exportScale, cy + 70 * exportScale);
-                
-                const done = () => { const a = document.createElement('a'); a.href = tC.toDataURL("image/jpeg", 1.0); a.download = "plan_momo_print_" + new Date().getTime() + ".jpg"; a.click(); setMode('select-box'); document.getElementById('print-loader').classList.add('hidden'); draw(); };
-                if (cartoucheData.logo) { const img = new Image(); img.onload = () => { let drawW = 40 * exportScale, drawH = (40 * exportScale) / (img.width / img.height); if (drawH > 70 * exportScale) { drawH = 70 * exportScale; drawW = (70 * exportScale) * (img.width / img.height); } tX.drawImage(img, cx + 5 * exportScale + (40 * exportScale - drawW) / 2, cy + 5 * exportScale + (70 * exportScale - drawH) / 2, drawW, drawH); done(); }; img.src = cartoucheData.logo; } else done();
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const isLandscape = printOrientation === 'landscape';
+                    const doc = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+
+                    const pageW = isLandscape ? 297 : 210;
+                    const pageH = isLandscape ? 210 : 297;
+                    const margin = 10;
+                    const drawW = pageW - 2 * margin;
+                    const drawH = pageH - 2 * margin;
+
+                    // Cartouche dimensions en mm
+                    const cW = 80, cH = 40;
+                    const cX = pageW - margin - cW, cY = pageH - margin - cH;
+                    const planDrawH = drawH - cH - 2; // zone plan au-dessus du cartouche
+
+                    // ------ Fond blanc + bordure ------
+                    doc.setFillColor(255, 255, 255);
+                    doc.rect(0, 0, pageW, pageH, 'F');
+                    doc.setDrawColor(0); doc.setLineWidth(0.5);
+                    doc.rect(margin, margin, drawW, drawH);
+
+                    // ------ Rendu du plan sur canvas offscreen → image ------
+                    const rect = getPrintRect();
+                    const offw = rect.w * 2, offh = rect.h * 2;
+                    const offCanvasScale = 2; // sursampling ×2 pour la qualité
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.width = offw; offCanvas.height = offh;
+                    const offCtx = offCanvas.getContext('2d');
+                    offCtx.fillStyle = '#ffffff'; offCtx.fillRect(0, 0, offw, offh);
+
+                    const sx = sx_screen - rect.w / 2, sy = sy_screen - rect.h / 2;
+                    offCtx.save();
+                    offCtx.scale(offCanvasScale, offCanvasScale);
+                    offCtx.translate(-sx, -sy);
+                    // lineScale = camera.zoom × offCanvasScale : les traits gardent leur épaisseur réelle
+                    _drawFullPlanOnCtx(offCtx, true, camera.zoom * offCanvasScale);
+                    offCtx.restore();
+
+                    // Calcul zone image dans le PDF (au-dessus du cartouche)
+                    const imgMm_x = margin;
+                    const imgMm_y = margin;
+                    const imgMm_w = drawW - cW - 2;
+                    const imgMm_h = drawH;
+
+                    // Inclure l'image raster du plan
+                    const planImg = offCanvas.toDataURL('image/jpeg', 0.92);
+                    doc.addImage(planImg, 'JPEG', imgMm_x, imgMm_y, imgMm_w, imgMm_h);
+
+                    // ------ Cartouche vectoriel ------
+                    doc.setLineWidth(0.3);
+                    doc.setDrawColor(0);
+                    doc.setFillColor(255, 255, 255);
+                    doc.rect(cX, cY, cW, cH, 'FD');
+
+                    // Séparateur vertical logo / texte
+                    const logoW = 22;
+                    doc.line(cX + logoW, cY, cX + logoW, cY + cH);
+
+                    // Lignes horizontales
+                    const rowH = cH / 4;
+                    for (let i = 1; i <= 3; i++) {
+                        doc.line(cX + logoW, cY + rowH * i, cX + cW, cY + rowH * i);
+                    }
+
+                    // Textes cartouche
+                    doc.setFontSize(7);
+                    doc.setTextColor(0);
+                    const rows = [
+                        'Plan : '       + (cartoucheData.planName     || ''),
+                        'Client : '     + (cartoucheData.clientName   || ''),
+                        'Dessin : '     + (cartoucheData.draftsmanName|| ''),
+                        'Échelle : 1:' + currentPrintScale,
+                    ];
+                    rows.forEach((txt, idx) => {
+                        doc.text(txt, cX + logoW + 2, cY + rowH * idx + rowH * 0.6, { maxWidth: cW - logoW - 2 });
+                    });
+
+                    // Logo si présent
+                    if (cartoucheData.logo) {
+                        try {
+                            doc.addImage(cartoucheData.logo, cX + 1, cY + 1, logoW - 2, cH - 2, undefined, 'FAST');
+                        } catch(e) { /* logo invalide, on ignore */ }
+                    } else {
+                        doc.setFontSize(5); doc.setTextColor(120);
+                        doc.text('LOGO', cX + logoW / 2, cY + cH / 2, { align: 'center' });
+                    }
+
+                    // Date en bas du cartouche
+                    doc.setFontSize(5); doc.setTextColor(80);
+                    doc.text(new Date().toLocaleDateString('fr-FR'), cX + cW - 1, cY + cH - 1, { align: 'right' });
+
+                    // Titre échelle en haut de la page
+                    doc.setFontSize(8); doc.setTextColor(60);
+                    doc.text(`A4 ${printOrientation} — 1:${currentPrintScale}`, margin + 2, margin + 6);
+
+                    // Téléchargement
+                    const filename = 'plan_momo_' + new Date().getTime() + '.pdf';
+                    doc.save(filename);
+
+                } catch(err) {
+                    console.error('Erreur PDF :', err);
+                    alert('Erreur lors de la génération du PDF. Vérifiez la console.');
+                } finally {
+                    setMode('select-box');
+                    document.getElementById('print-loader').classList.add('hidden');
+                    draw();
+                }
             }, 50);
         }
 
-        // --- HISTORIQUE & ETAT ---
+        // Fonction de rendu plan sur un contexte arbitraire (utilisée par performPrint)
+        // printLineScale : facteur de mise à l'échelle des épaisseurs pour le rendu PDF
+        function _drawFullPlanOnCtx(targetCtx, isPrinting, printLineScale) {
+            const ls = printLineScale !== undefined ? printLineScale : camera.zoom;
+            dimensionTextsToDraw = [];
+            targetCtx.save();
+            targetCtx.translate(camera.x, camera.y);
+            targetCtx.scale(camera.zoom, camera.zoom);
+            for (let s of shapes) {
+                let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
+                drawSingleShape(targetCtx, s, isPrinting, false, 0, 0, ls);
+            }
+            targetCtx.restore();
+            // textes de cotation
+            for (let d of dimensionTextsToDraw) {
+                let p = worldToScreen(d.worldX, d.worldY);
+                targetCtx.font = "bold 14px Arial";
+                let m = targetCtx.measureText(d.text);
+                targetCtx.fillStyle = "#ffffff"; targetCtx.fillRect(p.x - m.width/2 - 3, p.y - 10, m.width + 6, 20);
+                targetCtx.fillStyle = '#1a1a00'; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(d.text, p.x, p.y);
+            }
+        }
+
+        // --- HISTORIQUE & ÉTAT ---
         let shapesHistory = []; let historyStep = -1;
-        function saveState() { invalidateCache(); if (historyStep < shapesHistory.length - 1) shapesHistory = shapesHistory.slice(0, historyStep + 1); shapesHistory.push({ shapes: JSON.parse(JSON.stringify(shapes)), layers: JSON.parse(JSON.stringify(layers)), activeLayerId: activeLayerId }); historyStep++; }
+        function saveState() { invalidateCache(); if (historyStep < shapesHistory.length - 1) shapesHistory = shapesHistory.slice(0, historyStep + 1); shapesHistory.push({ shapes: JSON.parse(JSON.stringify(shapes)), layers: JSON.parse(JSON.stringify(layers)), activeLayerId }); historyStep++; }
         function undo() { invalidateCache(); if (historyStep > 0) { historyStep--; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
         function redo() { invalidateCache(); if (historyStep < shapesHistory.length - 1) { historyStep++; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
 
-        function copySelection() { 
-            if (selectedShapes.length > 0) { 
-                clipboard = JSON.parse(JSON.stringify(selectedShapes)); 
-                let bbox = getShapesBoundingBox(clipboard);
-                clipboardBasePoint = bbox ? {x: bbox.centerX, y: bbox.centerY} : {x: 0, y: 0};
-            } 
-        }
+        function copySelection() { if (selectedShapes.length > 0) { clipboard = JSON.parse(JSON.stringify(selectedShapes)); let bbox = getShapesBoundingBox(clipboard); clipboardBasePoint = bbox ? {x: bbox.centerX, y: bbox.centerY} : {x: 0, y: 0}; } }
         function cutSelection() { if (selectedShapes.length > 0) { copySelection(); shapes = shapes.filter(s => !selectedShapes.includes(s)); selectedShapes = []; saveState(); draw(); } }
         function pasteSelection() { if (clipboard.length > 0) { setMode('paste'); } }
-
         function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
 
-        // --- MOTEUR DE DESSIN MODULAIRE ---
-        function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy) {
+        // --- MOTEUR DE DESSIN ---
+        // lineScale = facteur de division des épaisseurs (= camera.zoom à l'écran, = zoom d'impression pour le PDF)
+        function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy, lineScale) {
+            if (lineScale === undefined) lineScale = camera.zoom;
             let col = s.color || '#ffffff'; if (isPrinting && col.toLowerCase() === '#ffffff') col = '#000000';
-            let w = (s.width !== undefined ? s.width : 1) * 2; 
-            targetCtx.beginPath(); targetCtx.strokeStyle = sel ? '#ec4899' : col; targetCtx.lineWidth = (sel ? w+3 : w)/camera.zoom;
-            if (s.dash === 'dashed') targetCtx.setLineDash([8/camera.zoom, 8/camera.zoom]); 
-            else if (s.dash === 'center') targetCtx.setLineDash([16/camera.zoom, 6/camera.zoom, 2/camera.zoom, 6/camera.zoom]); 
+            let w = (s.width !== undefined ? s.width : 1) * 2;
+            if (s.type === 'dim-angle') { drawAngleDim(targetCtx, { ...s, vertex: {x:s.vertex.x+dx, y:s.vertex.y+dy}, p1: {x:s.p1.x+dx, y:s.p1.y+dy}, p2: {x:s.p2.x+dx, y:s.p2.y+dy} }, sel, isPrinting, lineScale); return; }
+            targetCtx.beginPath(); targetCtx.strokeStyle = sel ? '#ec4899' : col; targetCtx.lineWidth = (sel ? w+3 : w)/lineScale;
+            if (s.dash === 'dashed') targetCtx.setLineDash([8/lineScale, 8/lineScale]);
+            else if (s.dash === 'center') targetCtx.setLineDash([16/lineScale, 6/lineScale, 2/lineScale, 6/lineScale]);
             else targetCtx.setLineDash([]);
-            
             if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); }
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); }
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle); targetCtx.stroke(); }
             else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); }
-            else if (s.type === 'text') { 
-                targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle); 
-                targetCtx.fillStyle = sel ? '#ec4899' : col; targetCtx.font = s.size + "px Arial"; targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic"; targetCtx.fillText(s.content, 0, 0); targetCtx.restore(); 
-            }
+            else if (s.type === 'text') { targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle); targetCtx.fillStyle = sel ? '#ec4899' : col; targetCtx.font = s.size + "px Arial"; targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic"; targetCtx.fillText(s.content, 0, 0); targetCtx.restore(); }
             else if (s.type === 'dim') {
                 let p1={x:s.x1+dx, y:s.y1+dy}, p2={x:s.x2+dx, y:s.y2+dy}, po={x:s.ox+dx, y:s.oy+dy};
-                let dx2 = p2.x-p1.x, dy2 = p2.y-p1.y, dist = Math.hypot(dx2, dy2); 
+                let dx2 = p2.x-p1.x, dy2 = p2.y-p1.y, dist = Math.hypot(dx2, dy2);
                 if (dist > 0.01) {
                     let ux = dx2/dist, uy = dy2/dist, nx = -uy, ny = ux, vOffX = po.x-p1.x, vOffY = po.y-p1.y, off = vOffX*nx + vOffY*ny;
                     let c1 = {x:p1.x+nx*off, y:p1.y+ny*off}, c2 = {x:p2.x+nx*off, y:p2.y+ny*off};
                     targetCtx.setLineDash([]); targetCtx.globalAlpha = 0.6; targetCtx.beginPath();
-                    targetCtx.moveTo(p1.x+nx*(off*0.1), p1.y+ny*(off*0.1)); targetCtx.lineTo(c1.x+nx*(off>0?5:-5)/camera.zoom, c1.y+ny*(off>0?5:-5)/camera.zoom);
-                    targetCtx.moveTo(p2.x+nx*(off*0.1), p2.y+ny*(off*0.1)); targetCtx.lineTo(c2.x+nx*(off>0?5:-5)/camera.zoom, c2.y+ny*(off>0?5:-5)/camera.zoom);
+                    targetCtx.moveTo(p1.x+nx*(off*0.1), p1.y+ny*(off*0.1)); targetCtx.lineTo(c1.x+nx*(off>0?5:-5)/lineScale, c1.y+ny*(off>0?5:-5)/lineScale);
+                    targetCtx.moveTo(p2.x+nx*(off*0.1), p2.y+ny*(off*0.1)); targetCtx.lineTo(c2.x+nx*(off>0?5:-5)/lineScale, c2.y+ny*(off>0?5:-5)/lineScale);
                     targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
-                    let t=5/camera.zoom; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
-                    dt(c1); dt(c2); 
-                    
-                    if (isPrinting || mode !== 'paste') {
-                        dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
-                    }
+                    let t=5/lineScale; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
+                    dt(c1); dt(c2);
+                    dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
                 }
             }
             targetCtx.setLineDash([]);
@@ -664,359 +926,437 @@
                 for (let x=sx; x<r; x+=GRID_SIZE) { if (Math.round(x/GRID_SIZE)%10===0) { targetCtx.beginPath(); targetCtx.moveTo(x, t); targetCtx.lineTo(x, b); targetCtx.stroke(); } }
                 for (let y=sy; y<b; y+=GRID_SIZE) { if (Math.round(y/GRID_SIZE)%10===0) { targetCtx.beginPath(); targetCtx.moveTo(l, y); targetCtx.lineTo(r, y); targetCtx.stroke(); } }
             }
-            for (let s of shapes) { 
+
+            for (let s of shapes) {
                 let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
-                let sel = !isPrinting && selectedShapes.includes(s), dx = 0, dy = 0;
-                if (sel) { if (isMovingObjects && moveBasePoint) { dx = currentX - moveBasePoint.x; dy = currentY - moveBasePoint.y; } else if (isRotatingObjects && rotateCenter) { s = JSON.parse(JSON.stringify(s)); let curA = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x), diff = curA - rotateStartAngle; if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diff = parseFloat(typedInput) * Math.PI / 180; applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diff); } }
-                drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy);
+                let sel = !isPrinting && selectedShapes.includes(s), ddx = 0, ddy = 0;
+                if (sel) {
+                    if (isMovingObjects && moveBasePoint) { ddx = currentX - moveBasePoint.x; ddy = currentY - moveBasePoint.y; }
+                    else if (isRotatingObjects && rotateCenter) { s = JSON.parse(JSON.stringify(s)); let curA = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x), diff = curA - rotateStartAngle; if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diff = parseFloat(typedInput) * Math.PI / 180; applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diff); }
+                }
+                drawSingleShape(targetCtx, s, isPrinting, sel, ddx, ddy);
             }
+
+            // Prévisualisations en cours de tracé
             if (isDrawing && !isPanning && isUIEnabled) {
                 let dash = document.getElementById('prop-dash').value;
                 if (dash === 'dashed') targetCtx.setLineDash([8/camera.zoom, 8/camera.zoom]); else if (dash === 'center') targetCtx.setLineDash([16/camera.zoom, 6/camera.zoom, 2/camera.zoom, 6/camera.zoom]); else targetCtx.setLineDash([]);
                 let px = currentX, py = currentY, pr = Math.hypot(currentX-startX, currentY-startY);
                 if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; pr = d; if (mode === 'poly' && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); px = lp.x+Math.cos(a)*d; py = lp.y+Math.sin(a)*d; } else if (mode !== 'arc') { let a = Math.atan2(currentY-startY, currentX-startX); px = startX+Math.cos(a)*d; py = startY+Math.sin(a)*d; } }
-                
                 let previewW = (parseFloat(document.getElementById('prop-width').value) || 1) * 2;
                 if (mode === 'line') { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(startX, startY); targetCtx.lineTo(px, py); targetCtx.stroke(); }
                 else if (mode === 'circle') { targetCtx.strokeStyle = '#ec4899'; targetCtx.lineWidth = 2/camera.zoom; targetCtx.beginPath(); targetCtx.arc(startX, startY, pr, 0, 2*Math.PI); targetCtx.stroke(); }
                 else if (mode === 'arc') {
                     targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
-                    if (arcStep === 1) {
-                        targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(px, py); targetCtx.stroke();
-                        targetCtx.globalAlpha = 0.3; targetCtx.beginPath(); targetCtx.arc(arcCenter.x, arcCenter.y, Math.hypot(px-arcCenter.x, py-arcCenter.y), 0, Math.PI*2); targetCtx.stroke(); targetCtx.globalAlpha = 1.0;
-                    } else if (arcStep === 2) {
-                        let curA = Math.atan2(py - arcCenter.y, px - arcCenter.x);
-                        if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) curA = arcStartAngle + parseFloat(typedInput)*Math.PI/180;
-                        targetCtx.beginPath(); targetCtx.arc(arcCenter.x, arcCenter.y, arcRadius, arcStartAngle, curA); targetCtx.stroke();
-                        targetCtx.globalAlpha = 0.5; targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(arcP1.x, arcP1.y); targetCtx.stroke(); targetCtx.globalAlpha = 1.0;
-                    }
+                    if (arcStep === 1) { targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.globalAlpha = 0.3; targetCtx.beginPath(); targetCtx.arc(arcCenter.x, arcCenter.y, Math.hypot(px-arcCenter.x, py-arcCenter.y), 0, Math.PI*2); targetCtx.stroke(); targetCtx.globalAlpha = 1.0; }
+                    else if (arcStep === 2) { let curA = Math.atan2(py - arcCenter.y, px - arcCenter.x); if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) curA = arcStartAngle + parseFloat(typedInput)*Math.PI/180; targetCtx.beginPath(); targetCtx.arc(arcCenter.x, arcCenter.y, arcRadius, arcStartAngle, curA); targetCtx.stroke(); targetCtx.globalAlpha = 0.5; targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(arcP1.x, arcP1.y); targetCtx.stroke(); targetCtx.globalAlpha = 1.0; }
                 }
                 else if (mode === 'poly' && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let p of currentPolygon.slice(1)) targetCtx.lineTo(p.x, p.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; let t=5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x-t, currentPolygon[0].y-t, t*2, t*2); }
                 else if (mode === 'dim' && dimStep === 1) { targetCtx.strokeStyle = '#f59e0b'; targetCtx.setLineDash([5/camera.zoom, 5/camera.zoom]); targetCtx.beginPath(); targetCtx.moveTo(dimP1.x, dimP1.y); targetCtx.lineTo(currentX, currentY); targetCtx.stroke(); }
-                else if (mode === 'dim' && dimStep === 2) drawDimension(targetCtx, dimP1, dimP2, {x: currentX, y: currentY});
+                else if (mode === 'dim' && dimStep === 2) {
+                    let dx2 = dimP2.x-dimP1.x, dy2 = dimP2.y-dimP1.y, dist = Math.hypot(dx2, dy2);
+                    if (dist > 0.01) {
+                        let ux = dx2/dist, uy = dy2/dist, nx = -uy, ny = ux, vOffX = currentX-dimP1.x, vOffY = currentY-dimP1.y, off = vOffX*nx + vOffY*ny;
+                        let c1 = {x:dimP1.x+nx*off, y:dimP1.y+ny*off}, c2 = {x:dimP2.x+nx*off, y:dimP2.y+ny*off};
+                        targetCtx.strokeStyle = '#f59e0b'; targetCtx.lineWidth = 1/camera.zoom; targetCtx.setLineDash([]);
+                        targetCtx.globalAlpha = 0.6; targetCtx.beginPath();
+                        targetCtx.moveTo(dimP1.x+nx*(off*0.1), dimP1.y+ny*(off*0.1)); targetCtx.lineTo(c1.x+nx*(off>0?5:-5)/camera.zoom, c1.y+ny*(off>0?5:-5)/camera.zoom);
+                        targetCtx.moveTo(dimP2.x+nx*(off*0.1), dimP2.y+ny*(off*0.1)); targetCtx.lineTo(c2.x+nx*(off>0?5:-5)/camera.zoom, c2.y+ny*(off>0?5:-5)/camera.zoom);
+                        targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
+                        let t=5/camera.zoom; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
+                        dt(c1); dt(c2); dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
+                    }
+                }
                 else if (mode === 'select-box') { targetCtx.strokeStyle = '#ec4899'; targetCtx.lineWidth = 1/camera.zoom; targetCtx.setLineDash([4/camera.zoom, 4/camera.zoom]); targetCtx.strokeRect(startX, startY, currentX-startX, currentY-startY); }
             }
-            
+
+            // Prévisualisation cotation angulaire
+            if (mode === 'dim-angle' && isUIEnabled) {
+                // Surligner D1 si sélectionnée
+                if (dimAngleLine1) {
+                    targetCtx.strokeStyle = '#f97316'; targetCtx.lineWidth = 3/camera.zoom; targetCtx.setLineDash([]);
+                    targetCtx.beginPath(); targetCtx.moveTo(dimAngleLine1.x1, dimAngleLine1.y1); targetCtx.lineTo(dimAngleLine1.x2, dimAngleLine1.y2); targetCtx.stroke();
+                }
+                // Surligner D2 + preview arc
+                if (dimAngleLine2 && dimAngleIntersect) {
+                    targetCtx.strokeStyle = '#fb923c'; targetCtx.lineWidth = 3/camera.zoom; targetCtx.setLineDash([]);
+                    targetCtx.beginPath(); targetCtx.moveTo(dimAngleLine2.x1, dimAngleLine2.y1); targetCtx.lineTo(dimAngleLine2.x2, dimAngleLine2.y2); targetCtx.stroke();
+                    // Croix sur le point d'intersection
+                    const ix = dimAngleIntersect.x, iy = dimAngleIntersect.y, cs = 6/camera.zoom;
+                    targetCtx.strokeStyle = '#eab308'; targetCtx.lineWidth = 1.5/camera.zoom;
+                    targetCtx.beginPath(); targetCtx.moveTo(ix-cs, iy-cs); targetCtx.lineTo(ix+cs, iy+cs); targetCtx.moveTo(ix+cs, iy-cs); targetCtx.lineTo(ix-cs, iy+cs); targetCtx.stroke();
+                    // Arc de preview sous le curseur
+                    const arcR = Math.hypot(currentX - ix, currentY - iy);
+                    if (arcR > 5/camera.zoom) {
+                        const ptOnL1 = _closestPointOnLine(dimAngleLine1, dimAngleIntersect, arcR, {x:currentX,y:currentY});
+                        const ptOnL2 = _closestPointOnLine(dimAngleLine2, dimAngleIntersect, arcR, {x:currentX,y:currentY});
+                        const a1 = Math.atan2(ptOnL1.y - iy, ptOnL1.x - ix);
+                        const a2 = Math.atan2(ptOnL2.y - iy, ptOnL2.x - ix);
+                        let sa = a1, ea = a2, span = ea - sa;
+                        while (span < 0) span += 2*Math.PI;
+                        if (span > Math.PI) { sa = a2; ea = a1; span = 2*Math.PI - span; }
+                        targetCtx.strokeStyle = '#f97316'; targetCtx.lineWidth = 1.5/camera.zoom; targetCtx.setLineDash([4/camera.zoom, 4/camera.zoom]);
+                        targetCtx.beginPath(); targetCtx.arc(ix, iy, arcR, sa, ea); targetCtx.stroke();
+                        const angleDeg = (span * 180 / Math.PI).toFixed(1);
+                        const midA = (sa + ea) / 2;
+                        dimensionTextsToDraw.push({ text: angleDeg + '°', worldX: ix + Math.cos(midA)*(arcR + 15/camera.zoom), worldY: iy + Math.sin(midA)*(arcR + 15/camera.zoom) });
+                    }
+                }
+                targetCtx.setLineDash([]);
+            }
+
             if (mode === 'paste' && clipboard.length > 0 && clipboardBasePoint && !isPanning && isUIEnabled) {
-                let dx = currentX - clipboardBasePoint.x;
-                let dy = currentY - clipboardBasePoint.y;
+                let ddx = currentX - clipboardBasePoint.x, ddy = currentY - clipboardBasePoint.y;
                 targetCtx.globalAlpha = 0.5;
-                for (let s of clipboard) { drawSingleShape(targetCtx, s, false, false, dx, dy); }
+                for (let s of clipboard) { drawSingleShape(targetCtx, s, false, false, ddx, ddy); }
                 targetCtx.globalAlpha = 1.0;
             }
 
             if (mode === 'offset' && !isPanning && isUIEnabled) {
                 if (offsetTarget) { drawSingleShape(targetCtx, offsetTarget, false, true, 0, 0); }
-                if (offsetPreviewShape) {
-                    targetCtx.globalAlpha = 0.5;
-                    drawSingleShape(targetCtx, offsetPreviewShape, false, false, 0, 0);
-                    targetCtx.globalAlpha = 1.0;
-                }
+                if (offsetPreviewShape) { targetCtx.globalAlpha = 0.5; drawSingleShape(targetCtx, offsetPreviewShape, false, false, 0, 0); targetCtx.globalAlpha = 1.0; }
             }
 
-            if (currentSnap && isUIEnabled) { targetCtx.strokeStyle = '#eab308'; targetCtx.lineWidth = 2/camera.zoom; let t=5/camera.zoom; targetCtx.strokeRect(currentSnap.x-t, currentSnap.y-t, t*2, t*2); }
+            if (currentSnap && isUIEnabled) {
+                targetCtx.strokeStyle = '#eab308'; targetCtx.lineWidth = 2/camera.zoom;
+                let t = 5/camera.zoom;
+                targetCtx.strokeRect(currentSnap.x - t, currentSnap.y - t, t*2, t*2);
+            }
             targetCtx.restore();
 
-            for (let d of dimensionTextsToDraw) { 
-                targetCtx.font = "14px Arial"; let m = targetCtx.measureText(d.text); 
-                if (isPrinting) {
-                    let transformX = (d.worldX * camera.zoom + camera.x); let transformY = (d.worldY * camera.zoom + camera.y);
-                    targetCtx.fillStyle = "#ffffff"; targetCtx.fillRect(transformX-m.width/2-4, transformY-12, m.width+8, 24); 
-                    targetCtx.fillStyle = '#f59e0b'; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(d.text, transformX, transformY);
-                } else {
-                    let p = worldToScreen(d.worldX, d.worldY);
-                    targetCtx.fillStyle = "#1e1e1e"; targetCtx.fillRect(p.x-m.width/2-4, p.y-12, m.width+8, 24); 
-                    targetCtx.fillStyle = '#f59e0b'; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(d.text, p.x, p.y); 
-                }
+            // Textes de cotation (post-transform)
+            for (let d of dimensionTextsToDraw) {
+                let p = worldToScreen(d.worldX, d.worldY);
+                targetCtx.font = "bold 13px Arial";
+                let m = targetCtx.measureText(d.text);
+                targetCtx.fillStyle = isPrinting ? "rgba(255,255,255,0.9)" : "#1e1e1e";
+                targetCtx.fillRect(p.x - m.width/2 - 4, p.y - 11, m.width + 8, 22);
+                targetCtx.fillStyle = '#f59e0b';
+                targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle";
+                targetCtx.fillText(d.text, p.x, p.y);
             }
         }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); drawFullPlan(ctx, true);
-            if (mode === 'print') { const rect = getPrintRect(); ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, 0); ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.closePath(); ctx.rect(currentX_screen + rect.w/2, currentY_screen - rect.h/2, -rect.w, rect.h); ctx.fill("evenodd"); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(currentX_screen - rect.w/2, currentY_screen - rect.h/2, rect.w, rect.h); const m = 10; ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 0.5; ctx.setLineDash([4, 4]); ctx.strokeRect(currentX_screen - rect.w/2 + m, currentY_screen - rect.h/2 + m, rect.w - 2*m, rect.h - 2*m); ctx.setLineDash([]); ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif"; ctx.fillText(`A4 ${printOrientation} - 1:${currentPrintScale}`, currentX_screen, currentY_screen - rect.h/2 - 10); }
-            
-            if (mode === 'rotate' && rotateCenter && !isPanning) { let curA = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x), diff = curA - rotateStartAngle; if (typedInput.length > 0) diff = (parseFloat(typedInput)*Math.PI/180); let full = "A= " + (diff*180/Math.PI).toFixed(1) + "°"; ctx.beginPath(); let cs = worldToScreen(rotateCenter.x, rotateCenter.y), ms = worldToScreen(currentX, currentY); ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.moveTo(cs.x, cs.y); ctx.lineTo(ms.x, ms.y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(cs.x, cs.y, 5, 0, Math.PI*2); ctx.fill(); ctx.font = "bold 12px Arial"; let m = ctx.measureText(full); ctx.fillStyle = "rgba(30, 30, 30, 0.9)"; ctx.fillRect(ms.x+15, ms.y+15, m.width+10, 22); ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, ms.x+20, ms.y+26); }
-            if (isDrawing && !isPanning && (mode === 'line' || mode === 'circle' || mode === 'poly' || mode === 'arc')) { 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawFullPlan(ctx, true);
+
+            if (mode === 'print') {
+                const rect = getPrintRect();
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, 0); ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.closePath();
+                ctx.rect(currentX_screen + rect.w/2, currentY_screen - rect.h/2, -rect.w, rect.h);
+                ctx.fill("evenodd");
+                ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+                ctx.strokeRect(currentX_screen - rect.w/2, currentY_screen - rect.h/2, rect.w, rect.h);
+                const m = 10; ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 0.5; ctx.setLineDash([4, 4]);
+                ctx.strokeRect(currentX_screen - rect.w/2 + m, currentY_screen - rect.h/2 + m, rect.w - 2*m, rect.h - 2*m);
+                ctx.setLineDash([]);
+                ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
+                ctx.fillText(`A4 ${printOrientation} — 1:${currentPrintScale} → PDF`, currentX_screen, currentY_screen - rect.h/2 - 10);
+            }
+
+            if (mode === 'rotate' && rotateCenter && !isPanning) {
+                let curA = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x), diff = curA - rotateStartAngle;
+                if (typedInput.length > 0) diff = (parseFloat(typedInput)*Math.PI/180);
+                let full = "A= " + (diff*180/Math.PI).toFixed(1) + "°";
+                let cs = worldToScreen(rotateCenter.x, rotateCenter.y), ms = worldToScreen(currentX, currentY);
+                ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(cs.x, cs.y); ctx.lineTo(ms.x, ms.y); ctx.stroke(); ctx.setLineDash([]);
+                ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(cs.x, cs.y, 5, 0, Math.PI*2); ctx.fill();
+                ctx.font = "bold 12px Arial"; let meas = ctx.measureText(full);
+                ctx.fillStyle = "rgba(30,30,30,0.9)"; ctx.fillRect(ms.x+15, ms.y+15, meas.width+10, 22);
+                ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, ms.x+20, ms.y+26);
+            }
+
+            if (isDrawing && !isPanning && (mode === 'line' || mode === 'circle' || mode === 'poly' || mode === 'arc')) {
                 let full = "";
                 if (mode === 'arc') {
-                    if (arcStep === 1) { let dist = Math.hypot(currentX - arcCenter.x, currentY - arcCenter.y); full = "R= " + (typedInput.length > 0 ? typedInput + "_ " + currentUnit : calculateRealDistance(dist)); } 
+                    if (arcStep === 1) { let dist = Math.hypot(currentX - arcCenter.x, currentY - arcCenter.y); full = "R= " + (typedInput.length > 0 ? typedInput + "_ " + currentUnit : calculateRealDistance(dist)); }
                     else if (arcStep === 2) { let curA = Math.atan2(currentY - arcCenter.y, currentX - arcCenter.x); let diffA = curA - arcStartAngle; diffA = (diffA * 180 / Math.PI); if (typedInput.length > 0) diffA = parseFloat(typedInput); full = "A= " + diffA.toFixed(1) + "°"; }
                 } else {
-                    let lp = mode === 'poly' && currentPolygon.length > 0 ? currentPolygon[currentPolygon.length-1] : {x:startX, y:startY}; 
-                    let dist = Math.hypot(currentX-lp.x, currentY-lp.y); 
-                    if (typedInput.length > 0) full = (mode === 'circle' ? "R=" : "L=") + typedInput + "_ " + currentUnit; 
-                    else full = (mode === 'circle' ? "R=" : "L=") + calculateRealDistance(dist); 
+                    let lp = mode === 'poly' && currentPolygon.length > 0 ? currentPolygon[currentPolygon.length-1] : {x:startX, y:startY};
+                    let dist = Math.hypot(currentX-lp.x, currentY-lp.y);
+                    if (typedInput.length > 0) full = (mode === 'circle' ? "R=" : "L=") + typedInput + "_ " + currentUnit;
+                    else full = (mode === 'circle' ? "R=" : "L=") + calculateRealDistance(dist);
                 }
-                if (full !== "") { let p = worldToScreen(currentX, currentY); ctx.font = "bold 12px Arial"; let m = ctx.measureText(full); ctx.fillStyle = "rgba(30, 30, 30, 0.9)"; ctx.fillRect(p.x+15, p.y+15, m.width+10, 22); ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, p.x+20, p.y+26); }
+                if (full !== "") { let p = worldToScreen(currentX, currentY); ctx.font = "bold 12px Arial"; let meas = ctx.measureText(full); ctx.fillStyle = "rgba(30,30,30,0.9)"; ctx.fillRect(p.x+15, p.y+15, meas.width+10, 22); ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, p.x+20, p.y+26); }
             }
+
             updatePropertiesPopup();
             updateCommandMessage();
         }
 
         function updateCommandMessage() {
             let msg = "Prêt.";
-            if (mode === 'select-box') {
-                msg = selectedShapes.length > 0 ? `${selectedShapes.length} objet(s) sélectionné(s).` : "SÉLECTION : Cliquez sur un objet ou dessinez une zone.";
-            } else if (mode === 'line') {
-                msg = isDrawing ? "LIGNE : Spécifiez le point suivant (Saisissez une distance + Entrée)." : "LIGNE : Spécifiez le premier point.";
-            } else if (mode === 'circle') {
-                msg = isDrawing ? "CERCLE : Spécifiez le rayon (Saisissez une valeur + Entrée)." : "CERCLE : Spécifiez le centre du cercle.";
-            } else if (mode === 'arc') {
-                if (arcStep === 0) msg = "ARC : Spécifiez le centre de l'arc.";
-                else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ.";
-                else if (arcStep === 2) msg = "ARC : Spécifiez l'angle de fin (Saisissez un angle + Entrée).";
-            } else if (mode === 'poly') {
-                msg = isDrawing ? "POLYGONE : Spécifiez le point suivant (Double-clic pour fermer)." : "POLYGONE : Spécifiez le point de départ.";
-            } else if (mode === 'dim') {
-                if (dimStep === 0) msg = "COTATION : Spécifiez le premier point d'attache.";
-                else if (dimStep === 1) msg = "COTATION : Spécifiez le second point d'attache.";
-                else if (dimStep === 2) msg = "COTATION : Spécifiez la position de la ligne de cote.";
-            } else if (mode === 'move') {
-                if (selectedShapes.length === 0) msg = "DÉPLACER : Cliquez sur un objet pour le saisir.";
-                else if (!moveBasePoint) msg = "DÉPLACER : Spécifiez le point de base.";
-                else msg = "DÉPLACER : Spécifiez le second point.";
-            } else if (mode === 'rotate') {
-                if (selectedShapes.length === 0) msg = "ROTATION : Cliquez sur un objet pour le pivoter.";
-                else if (!rotateCenter) msg = "ROTATION : Spécifiez le point de base (centre de rotation).";
-                else msg = "ROTATION : Spécifiez l'angle de rotation (Saisissez un angle + Entrée).";
-            } else if (mode === 'trim') {
-                msg = "AJUSTER : Cliquez sur la portion de ligne à supprimer.";
-            } else if (mode === 'extend') {
-                msg = "PROLONGER : Cliquez près de l'extrémité de la ligne à étendre.";
-            } else if (mode === 'offset') {
-                if (typedInput.length === 0 || isNaN(parseFloat(typedInput))) {
-                    msg = "DÉCALER : Spécifiez la distance de décalage (Saisissez une valeur + Entrée).";
-                } else if (!offsetTarget) {
-                    msg = `DÉCALER (Dist: ${typedInput} ${currentUnit}) : Sélectionnez l'objet à décaler.`;
-                } else {
-                    msg = `DÉCALER (Dist: ${typedInput} ${currentUnit}) : Cliquez d'un côté de l'objet pour valider.`;
-                }
-            } else if (mode === 'paste') {
-                msg = "COLLER : Spécifiez le point d'insertion.";
-            } else if (mode === 'text') {
-                msg = "TEXTE : Spécifiez le point d'insertion du texte.";
-            } else if (mode === 'print') {
-                msg = "IMPRESSION : ESPACE (Pivoter) | MOLETTE (Échelle) | CLIC (Imprimer).";
-            }
-
+            if (mode === 'select-box') msg = selectedShapes.length > 0 ? `${selectedShapes.length} objet(s) sélectionné(s).` : "SÉLECTION : Cliquez sur un objet ou dessinez une zone.";
+            else if (mode === 'line') msg = isDrawing ? "LIGNE : Spécifiez le point suivant (distance + Entrée)." : "LIGNE : Spécifiez le premier point.";
+            else if (mode === 'circle') msg = isDrawing ? "CERCLE : Spécifiez le rayon (valeur + Entrée)." : "CERCLE : Spécifiez le centre.";
+            else if (mode === 'arc') { if (arcStep === 0) msg = "ARC : Spécifiez le centre."; else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ."; else msg = "ARC : Spécifiez l'angle de fin (valeur + Entrée)."; }
+            else if (mode === 'poly') msg = isDrawing ? "POLYGONE : Spécifiez le point suivant (double-clic pour fermer)." : "POLYGONE : Spécifiez le point de départ.";
+            else if (mode === 'dim') { if (dimStep === 0) msg = "COTATION : 1er point d'attache."; else if (dimStep === 1) msg = "COTATION : 2ème point d'attache."; else msg = "COTATION : Position de la ligne de cote."; }
+            else if (mode === 'dim-angle') { if (dimAngleStep === 0) msg = "ANGLE : Cliquez sur la 1ère droite (D1)."; else if (dimAngleStep === 1) msg = "ANGLE : Cliquez sur la 2ème droite (D2)."; else msg = "ANGLE : Cliquez pour poser l'arc de cotation."; }
+            else if (mode === 'move') { if (selectedShapes.length === 0) msg = "DÉPLACER : Cliquez sur un objet."; else if (!moveBasePoint) msg = "DÉPLACER : Point de base."; else msg = "DÉPLACER : Point de destination."; }
+            else if (mode === 'rotate') { if (selectedShapes.length === 0) msg = "ROTATION : Cliquez sur un objet."; else if (!rotateCenter) msg = "ROTATION : Point de base (centre de rotation)."; else msg = "ROTATION : Angle de rotation (valeur + Entrée)."; }
+            else if (mode === 'trim') msg = "AJUSTER : Cliquez sur la portion à supprimer.";
+            else if (mode === 'extend') msg = "PROLONGER : Cliquez près de l'extrémité à étendre.";
+            else if (mode === 'offset') { if (!typedInput || isNaN(parseFloat(typedInput))) msg = "DÉCALER : Distance de décalage (valeur + Entrée)."; else if (!offsetTarget) msg = `DÉCALER (${typedInput} ${currentUnit}) : Sélectionnez l'objet.`; else msg = `DÉCALER (${typedInput} ${currentUnit}) : Cliquez du côté voulu.`; }
+            else if (mode === 'paste') msg = "COLLER : Spécifiez le point d'insertion.";
+            else if (mode === 'text') msg = "TEXTE : Spécifiez le point d'insertion.";
+            else if (mode === 'print') msg = "PDF : ESPACE (pivoter) | MOLETTE (échelle) | CLIC (générer PDF).";
             const el = document.getElementById('command-text');
             if (el) el.textContent = msg;
         }
 
         function updatePropertiesPopup() {
-            const popup = document.getElementById('properties-popup');
-            const content = document.getElementById('prop-popup-content');
-            const title = document.getElementById('prop-popup-title');
-
+            const popup = document.getElementById('properties-popup'), content = document.getElementById('prop-popup-content'), title = document.getElementById('prop-popup-title');
             if (selectedShapes.length === 0) { popup.classList.add('hidden'); return; }
             popup.classList.remove('hidden');
             title.textContent = selectedShapes.length === 1 ? 'Propriétés de l\'objet' : `Sélection multiple (${selectedShapes.length})`;
-
             let totalLength = 0, totalArea = 0, radius = 0;
             const distFactor = unitsPerSquare / GRID_SIZE, areaFactor = distFactor * distFactor;
-
             selectedShapes.forEach(s => {
-                if (s.type === 'line' || s.type === 'dim') { totalLength += Math.hypot(s.x2 - s.x1, s.y2 - s.y1) * distFactor; } 
-                else if (s.type === 'circle') { let r = s.r * distFactor; radius = r; totalLength += 2 * Math.PI * r; totalArea += Math.PI * r * r; } 
-                else if (s.type === 'arc') { let r = s.r * distFactor; radius = r; let dAngle = s.endAngle - s.startAngle; if (dAngle < 0) dAngle += 2 * Math.PI; totalLength += r * dAngle; } 
+                if (s.type === 'line' || s.type === 'dim') { totalLength += Math.hypot(s.x2 - s.x1, s.y2 - s.y1) * distFactor; }
+                else if (s.type === 'circle') { let r = s.r * distFactor; radius = r; totalLength += 2 * Math.PI * r; totalArea += Math.PI * r * r; }
+                else if (s.type === 'arc') { let r = s.r * distFactor; radius = r; let dAngle = s.endAngle - s.startAngle; if (dAngle < 0) dAngle += 2 * Math.PI; totalLength += r * dAngle; }
                 else if (s.type === 'poly') { let pLen = 0; for (let i = 0; i < s.points.length - 1; i++) { pLen += Math.hypot(s.points[i+1].x - s.points[i].x, s.points[i+1].y - s.points[i].y); } totalLength += pLen * distFactor; if (s.points.length > 2) { let area = 0; for (let i = 0; i < s.points.length; i++) { let j = (i + 1) % s.points.length; area += s.points[i].x * s.points[j].y; area -= s.points[j].x * s.points[i].y; } totalArea += Math.abs(area / 2) * areaFactor; } }
             });
-
             let html = '';
             const fmt = (val) => { if (currentUnit === 'm' && val < 1) return (val * 100).toFixed(1) + ' cm'; if (currentUnit === 'mm') return Math.round(val) + ' mm'; return val.toFixed(2) + ' ' + currentUnit; }
             const fmtArea = (val) => { if (currentUnit === 'mm') return (val / 1000000).toFixed(3) + ' m²'; if (currentUnit === 'cm') return (val / 10000).toFixed(3) + ' m²'; return val.toFixed(2) + ' m²'; }
-
             if (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'arc')) html += `<div class="flex justify-between items-center"><span>Rayon:</span> <span class="font-mono text-cyan-300 ml-4 font-bold">${fmt(radius)}</span></div>`;
+            if (selectedShapes.length === 1 && selectedShapes[0].type === 'dim-angle') {
+                const s = selectedShapes[0];
+                const a1 = Math.atan2(s.p1.y - s.vertex.y, s.p1.x - s.vertex.x);
+                const a2 = Math.atan2(s.p2.y - s.vertex.y, s.p2.x - s.vertex.x);
+                let diff = Math.abs(a2 - a1); if (diff > Math.PI) diff = 2*Math.PI - diff;
+                html += `<div class="flex justify-between items-center"><span>Angle:</span> <span class="font-mono text-orange-300 ml-4 font-bold">${(diff*180/Math.PI).toFixed(2)}°</span></div>`;
+            }
             if (totalLength > 0) { let lbl = (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'poly')) ? 'Périmètre:' : 'Longueur:'; if (selectedShapes.length > 1) lbl = 'Long. totale:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-blue-300 ml-4 font-bold">${fmt(totalLength)}</span></div>`; }
             if (totalArea > 0) { let lbl = selectedShapes.length > 1 ? 'Aire totale:' : 'Aire:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-green-400 ml-4 font-bold">${fmtArea(totalArea)}</span></div>`; }
             if (html === '') html = '<div class="text-gray-500 italic">Aucune géométrie calculable</div>';
             content.innerHTML = html;
         }
 
+        // =====================================================================
+        // EVENTS
+        // =====================================================================
         canvas.addEventListener('mousedown', (e) => {
             const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top;
             if (e.button === 1) { e.preventDefault(); isPanning = true; lastPanX = sx; lastPanY = sy; canvas.style.cursor = 'grabbing'; return; }
             if (mode === 'print') { performPrint(sx, sy); return; }
             let wp = screenToWorld(sx, sy);
-            
+
+            // --- Cotation angulaire : D1 → D2 → pose arc ---
+            if (mode === 'dim-angle') {
+                if (dimAngleStep === 0) {
+                    let target = findShapeAt(wp.x, wp.y);
+                    if (target && target.type === 'line') { dimAngleLine1 = target; dimAngleStep = 1; draw(); }
+                } else if (dimAngleStep === 1) {
+                    let target = findShapeAt(wp.x, wp.y);
+                    if (target && target.type === 'line' && target !== dimAngleLine1) {
+                        dimAngleLine2 = target;
+                        dimAngleIntersect = getLineIntersectionInfinite(dimAngleLine1, dimAngleLine2);
+                        if (!dimAngleIntersect) { dimAngleLine2 = null; return; }
+                        dimAngleStep = 2; draw();
+                    }
+                } else if (dimAngleStep === 2) {
+                    const arcR = Math.hypot(wp.x - dimAngleIntersect.x, wp.y - dimAngleIntersect.y);
+                    if (arcR < 2) return;
+                    const ptOnL1 = _closestPointOnLine(dimAngleLine1, dimAngleIntersect, arcR, wp);
+                    const ptOnL2 = _closestPointOnLine(dimAngleLine2, dimAngleIntersect, arcR, wp);
+                    shapes.push({ type: 'dim-angle', layerId: activeLayerId, vertex: { ...dimAngleIntersect }, p1: ptOnL1, p2: ptOnL2, color: '#f97316' });
+                    dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
+                    invalidateCache(); saveState();
+                }
+                draw(); return;
+            }
+
             if (mode === 'paste') {
                 if (clipboard.length > 0 && clipboardBasePoint) {
-                    let sn = findSnap(wp.x, wp.y); let px = sn ? sn.x : wp.x; let py = sn ? sn.y : wp.y;
-                    let dx = px - clipboardBasePoint.x; let dy = py - clipboardBasePoint.y;
+                    let sn = findSnap(wp.x, wp.y); let px2 = sn ? sn.x : wp.x; let py2 = sn ? sn.y : wp.y;
+                    let dx = px2 - clipboardBasePoint.x; let dy = py2 - clipboardBasePoint.y;
                     let newShapes = JSON.parse(JSON.stringify(clipboard));
                     selectedShapes = [];
-                    newShapes.forEach(s => { 
-                        if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; } 
-                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += dx; s.y += dy; } 
-                        else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); } 
-                        else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; } 
-                        s.layerId = activeLayerId; shapes.push(s); selectedShapes.push(s); 
-                    }); 
-                    saveState(); setMode('select-box'); 
+                    newShapes.forEach(s => {
+                        if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; }
+                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += dx; s.y += dy; }
+                        else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); }
+                        else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; }
+                        else if (s.type === 'dim-angle') { s.vertex.x += dx; s.vertex.y += dy; s.p1.x += dx; s.p1.y += dy; s.p2.x += dx; s.p2.y += dy; }
+                        s.layerId = activeLayerId; shapes.push(s); selectedShapes.push(s);
+                    });
+                    saveState(); setMode('select-box');
                 }
                 return;
             }
 
             if (mode === 'offset') {
                 let val = parseFloat(typedInput);
-                if (isNaN(val) || val <= 0) return; 
-
+                if (isNaN(val) || val <= 0) return;
                 if (!offsetTarget) {
                     let target = findShapeAt(wp.x, wp.y);
-                    if (target && (target.type === 'line' || target.type === 'circle' || target.type === 'arc')) {
-                        offsetTarget = target;
-                        draw();
-                    }
+                    if (target && (target.type === 'line' || target.type === 'circle' || target.type === 'arc')) { offsetTarget = target; draw(); }
                 } else if (offsetPreviewShape) {
-                    shapes.push(offsetPreviewShape);
-                    saveState();
-                    offsetTarget = null;
-                    offsetPreviewShape = null;
-                    draw();
+                    shapes.push(offsetPreviewShape); saveState(); offsetTarget = null; offsetPreviewShape = null; draw();
                 }
                 return;
             }
 
             if (mode === 'trim') { trimShapeAt(wp.x, wp.y); draw(); return; }
             if (mode === 'extend') { extendShapeAt(wp.x, wp.y); draw(); return; }
+
             if (mode === 'select-box') { if (!isDrawing) { startX = wp.x; startY = wp.y; isDrawing = true; } return; }
-            if (mode === 'move') { 
-                if (selectedShapes.length === 0) {
-                    let target = findShapeAt(wp.x, wp.y);
-                    if (target) { selectedShapes = [target]; draw(); } 
-                    else return;
+
+            if (mode === 'move') {
+                if (selectedShapes.length === 0) { let target = findShapeAt(wp.x, wp.y); if (target) { selectedShapes = [target]; draw(); } else return; }
+                if (!moveBasePoint) { let sn = findSnap(wp.x, wp.y); moveBasePoint = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y}; isMovingObjects = true; }
+                else {
+                    let sn = findSnap(wp.x, wp.y), dest = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y}, ddx = dest.x-moveBasePoint.x, ddy = dest.y-moveBasePoint.y;
+                    selectedShapes.forEach(s => {
+                        if (s.type === 'line') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; }
+                        else if (s.type === 'dim') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; s.ox += ddx; s.oy += ddy; }
+                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += ddx; s.y += ddy; }
+                        else if (s.type === 'poly') s.points.forEach(p => { p.x += ddx; p.y += ddy; });
+                        else if (s.type === 'dim-angle') { s.vertex.x += ddx; s.vertex.y += ddy; s.p1.x += ddx; s.p1.y += ddy; s.p2.x += ddx; s.p2.y += ddy; }
+                    });
+                    isMovingObjects = false; moveBasePoint = null; saveState(); draw();
                 }
-                if (!moveBasePoint) { 
-                    let sn = findSnap(wp.x, wp.y); moveBasePoint = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; isMovingObjects = true; 
-                } else { 
-                    let sn = findSnap(wp.x, wp.y), dest = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}, dx = dest.x-moveBasePoint.x, dy = dest.y-moveBasePoint.y; 
-                    selectedShapes.forEach(s => { 
-                        if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; } 
-                        else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; } 
-                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += dx; s.y += dy; } 
-                        else if (s.type === 'poly') s.points.forEach(p => { p.x += dx; p.y += dy; }); 
-                    }); 
-                    isMovingObjects = false; moveBasePoint = null; saveState(); draw(); 
-                } 
-                return; 
+                return;
             }
-            if (mode === 'rotate') { 
-                if (selectedShapes.length === 0) {
-                    let target = findShapeAt(wp.x, wp.y);
-                    if (target) { selectedShapes = [target]; draw(); } 
-                    else return;
+
+            if (mode === 'rotate') {
+                if (selectedShapes.length === 0) { let target = findShapeAt(wp.x, wp.y); if (target) { selectedShapes = [target]; draw(); } else return; }
+                let sn = findSnap(wp.x, wp.y); let pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
+                if (!rotateCenter) { rotateCenter = pt; rotateStartAngle = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x); isRotatingObjects = true; typedInput = ""; }
+                else {
+                    let curA = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x), diff = curA - rotateStartAngle;
+                    if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diff = parseFloat(typedInput) * Math.PI / 180;
+                    selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diff));
+                    isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw();
                 }
-                let sn = findSnap(wp.x, wp.y); let pt = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; 
-                if (!rotateCenter) { 
-                    rotateCenter = pt; rotateStartAngle = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x); isRotatingObjects = true; typedInput = ""; 
-                } else { 
-                    let curA = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x), diff = curA - rotateStartAngle; 
-                    if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diff = parseFloat(typedInput) * Math.PI / 180; 
-                    selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diff)); 
-                    isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw(); 
-                } 
-                return; 
+                return;
             }
-            if (mode === 'dim') { let sn = findSnap(wp.x, wp.y), pt = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y}; if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; } else if (dimStep === 1) { dimP2 = pt; dimStep = 2; } else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: activeLayerId, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); } return; }
+
+            if (mode === 'dim') {
+                let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
+                if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; }
+                else if (dimStep === 1) { dimP2 = pt; dimStep = 2; }
+                else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: activeLayerId, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); }
+                return;
+            }
+
             if (mode === 'text') { openTextModal(wp.x, wp.y, sx, sy); return; }
+
             if (mode === 'arc') {
-                let sn = findSnap(wp.x, wp.y), pt = sn ? {x: sn.x, y: sn.y} : {x: wp.x, y: wp.y};
+                let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
                 if (arcStep === 0) { arcCenter = pt; arcStep = 1; isDrawing = true; typedInput = ""; }
-                else if (arcStep === 1) { 
-                    arcP1 = pt; arcRadius = Math.hypot(arcP1.x - arcCenter.x, arcP1.y - arcCenter.y); 
+                else if (arcStep === 1) {
+                    arcP1 = pt; arcRadius = Math.hypot(arcP1.x - arcCenter.x, arcP1.y - arcCenter.y);
                     if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) arcRadius = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE;
-                    arcStartAngle = Math.atan2(arcP1.y - arcCenter.y, arcP1.x - arcCenter.x); arcStep = 2; typedInput = ""; 
+                    arcStartAngle = Math.atan2(arcP1.y - arcCenter.y, arcP1.x - arcCenter.x); arcStep = 2; typedInput = "";
                 }
-                else if (arcStep === 2) { 
+                else if (arcStep === 2) {
                     let endAngle = Math.atan2(pt.y - arcCenter.y, pt.x - arcCenter.x);
                     if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) endAngle = arcStartAngle + parseFloat(typedInput)*Math.PI/180;
                     if (arcRadius > 0.1) shapes.push({ type: 'arc', layerId: activeLayerId, x: arcCenter.x, y: arcCenter.y, r: arcRadius, startAngle: arcStartAngle, endAngle: endAngle, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 });
-                    arcStep = 0; isDrawing = false; typedInput = ""; saveState(); draw(); 
-                } return;
+                    arcStep = 0; isDrawing = false; typedInput = ""; saveState(); draw();
+                }
+                return;
             }
-            if (mode === 'poly') { let sn = findSnap(wp.x, wp.y), px = sn ? sn.x : wp.x, py = sn ? sn.y : wp.y; if (!isDrawing) { currentPolygon = [{x: px, y: py}]; isDrawing = true; typedInput = ""; } else { let f = currentPolygon[0], lp = currentPolygon[currentPolygon.length-1], fx = px, fy = py; if (e.shiftKey) { if (Math.abs(px-lp.x) > Math.abs(py-lp.y)) fy = lp.y; else fx = lp.x; } if (Math.hypot(fx-f.x, fy-f.y) < (SNAP_DIST/camera.zoom) && currentPolygon.length > 2 && typedInput.length === 0) { shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); } else { currentPolygon.push({x: fx, y: fy}); typedInput = ""; } } draw(); return; }
-            if (!isDrawing) { let sn = findSnap(wp.x, wp.y); startX = sn ? sn.x : wp.x; startY = sn ? sn.y : wp.y; isDrawing = true; typedInput = ""; } else { let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y; let fx = currentX, fy = currentY, fr = Math.hypot(currentX-startX, currentY-startY); if (e.shiftKey && mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) fy = startY; else fx = startX; } if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; let a = Math.atan2(fy-startY, fx-startX); fx = startX+Math.cos(a)*d; fy = startY+Math.sin(a)*d; fr = d; } if (Math.abs(fx-startX) > 0.1 || Math.abs(fy-startY) > 0.1 || fr > 0.1) { if (mode === 'line') shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: fx, y2: fy, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 }); else if (mode === 'circle') shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: fr, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); } isDrawing = false; typedInput = ""; saveState(); draw(); }
+
+            if (mode === 'poly') {
+                let sn = findSnap(wp.x, wp.y), px2 = sn ? sn.x : wp.x, py2 = sn ? sn.y : wp.y;
+                if (!isDrawing) { currentPolygon = [{x:px2, y:py2}]; isDrawing = true; typedInput = ""; }
+                else {
+                    let f = currentPolygon[0], lp = currentPolygon[currentPolygon.length-1], fx = px2, fy = py2;
+                    if (e.shiftKey) { if (Math.abs(px2-lp.x) > Math.abs(py2-lp.y)) fy = lp.y; else fx = lp.x; }
+                    if (Math.hypot(fx-f.x, fy-f.y) < (SNAP_DIST_PX/camera.zoom) && currentPolygon.length > 2 && typedInput.length === 0) {
+                        shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
+                        isDrawing = false; currentPolygon = []; typedInput = ""; saveState();
+                    } else { currentPolygon.push({x: fx, y: fy}); typedInput = ""; }
+                }
+                draw(); return;
+            }
+
+            // Ligne / Cercle (mode générique)
+            if (!isDrawing) {
+                let sn = findSnap(wp.x, wp.y); startX = sn ? sn.x : wp.x; startY = sn ? sn.y : wp.y; isDrawing = true; typedInput = "";
+            } else {
+                let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y;
+                let fx = currentX, fy = currentY, fr = Math.hypot(currentX-startX, currentY-startY);
+                if (e.shiftKey && mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) fy = startY; else fx = startX; }
+                if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; let a = Math.atan2(fy-startY, fx-startX); fx = startX+Math.cos(a)*d; fy = startY+Math.sin(a)*d; fr = d; }
+                if (Math.abs(fx-startX) > 0.1 || Math.abs(fy-startY) > 0.1 || fr > 0.1) {
+                    if (mode === 'line') shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: fx, y2: fy, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 });
+                    else if (mode === 'circle') shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: fr, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
+                }
+                isDrawing = false; typedInput = ""; saveState(); draw();
+            }
         });
 
-        canvas.addEventListener('mousemove', (e) => { 
-            const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top; currentX_screen = sx; currentY_screen = sy; 
-            if (isPanning) { camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); lastPanX = sx; lastPanY = sy; draw(); return; } 
-            let wp = screenToWorld(sx, sy); 
-            currentSnap = findSnap(wp.x, wp.y); 
-            currentX = currentSnap ? currentSnap.x : wp.x; 
-            currentY = currentSnap ? currentSnap.y : wp.y; 
+        canvas.addEventListener('mousemove', (e) => {
+            const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top;
+            currentX_screen = sx; currentY_screen = sy;
+            if (isPanning) { camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); lastPanX = sx; lastPanY = sy; draw(); return; }
+            let wp = screenToWorld(sx, sy);
+            currentSnap = findSnap(wp.x, wp.y);
+            currentX = currentSnap ? currentSnap.x : wp.x;
+            currentY = currentSnap ? currentSnap.y : wp.y;
             if (isDrawing && e.shiftKey) {
                 if (mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) currentY = startY; else currentX = startX; }
                 else if (mode === 'poly' && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1]; if (Math.abs(currentX-lp.x) > Math.abs(currentY-lp.y)) currentY = lp.y; else currentX = lp.x; }
             }
-            
+
             if (mode === 'offset' && offsetTarget && typedInput.length > 0) {
                 let val = parseFloat(typedInput);
                 if (!isNaN(val) && val > 0) {
                     let D = (val / unitsPerSquare) * GRID_SIZE;
-                    let newShape = JSON.parse(JSON.stringify(offsetTarget));
-                    newShape.layerId = activeLayerId;
-
+                    let newShape = JSON.parse(JSON.stringify(offsetTarget)); newShape.layerId = activeLayerId;
                     if (offsetTarget.type === 'line') {
-                        let dx = offsetTarget.x2 - offsetTarget.x1, dy = offsetTarget.y2 - offsetTarget.y1;
-                        let len = Math.hypot(dx, dy);
+                        let ddx = offsetTarget.x2 - offsetTarget.x1, ddy = offsetTarget.y2 - offsetTarget.y1, len = Math.hypot(ddx, ddy);
                         if (len > 0) {
-                            let nx = -dy / len, ny = dx / len;
-                            let dot = (currentX - offsetTarget.x1) * nx + (currentY - offsetTarget.y1) * ny;
-                            let sign = dot >= 0 ? 1 : -1;
-                            newShape.x1 += nx * sign * D;
-                            newShape.y1 += ny * sign * D;
-                            newShape.x2 += nx * sign * D;
-                            newShape.y2 += ny * sign * D;
+                            let nx = -ddy / len, ny = ddx / len, dot = (currentX - offsetTarget.x1) * nx + (currentY - offsetTarget.y1) * ny, sign = dot >= 0 ? 1 : -1;
+                            newShape.x1 += nx * sign * D; newShape.y1 += ny * sign * D; newShape.x2 += nx * sign * D; newShape.y2 += ny * sign * D;
                             offsetPreviewShape = newShape;
                         }
                     } else if (offsetTarget.type === 'circle' || offsetTarget.type === 'arc') {
-                        let distToCenter = Math.hypot(currentX - offsetTarget.x, currentY - offsetTarget.y);
-                        let sign = distToCenter >= offsetTarget.r ? 1 : -1;
-                        newShape.r += sign * D;
-                        if (newShape.r > 0) offsetPreviewShape = newShape;
-                        else offsetPreviewShape = null;
+                        let distToCenter = Math.hypot(currentX - offsetTarget.x, currentY - offsetTarget.y), sign = distToCenter >= offsetTarget.r ? 1 : -1;
+                        newShape.r += sign * D; if (newShape.r > 0) offsetPreviewShape = newShape; else offsetPreviewShape = null;
                     }
                 }
-            } else {
-                offsetPreviewShape = null;
-            }
-            
-            draw(); 
+            } else { offsetPreviewShape = null; }
+
+            draw();
         });
 
-        canvas.addEventListener('mouseup', (e) => { 
-            if (e.button === 1) isPanning = false; 
-            if (mode === 'select-box' && isDrawing) { 
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 1) { isPanning = false; canvas.style.cursor = mode === 'select-box' ? 'default' : 'crosshair'; }
+            if (mode === 'select-box' && isDrawing) {
                 let dist = Math.hypot(currentX - startX, currentY - startY);
                 if (dist < 5 / camera.zoom) {
                     let clickedShape = findShapeAt(startX, startY);
-                    if (clickedShape) {
-                        if (!e.shiftKey) selectedShapes = [clickedShape];
-                        else if (selectedShapes.includes(clickedShape)) selectedShapes = selectedShapes.filter(s => s !== clickedShape);
-                        else selectedShapes.push(clickedShape);
-                    } else if (!e.shiftKey) {
-                        selectedShapes = [];
-                    }
+                    if (clickedShape) { if (!e.shiftKey) selectedShapes = [clickedShape]; else if (selectedShapes.includes(clickedShape)) selectedShapes = selectedShapes.filter(s => s !== clickedShape); else selectedShapes.push(clickedShape); }
+                    else if (!e.shiftKey) { selectedShapes = []; }
                 } else {
                     if (!e.shiftKey) selectedShapes = [];
-                    shapes.forEach(s => { 
-                        let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (!layer?.visible) return; 
-                        let b = false; 
-                        if (s.type === 'line' || s.type === 'dim') b = isPointInRect(s.x1, s.y1, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x2, s.y2, startX, startY, currentX-startX, currentY-startY); 
-                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY); 
-                        else if (s.type === 'poly') b = s.points.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY)); 
-                        if (b && !selectedShapes.includes(s)) selectedShapes.push(s); 
-                    }); 
+                    shapes.forEach(s => {
+                        let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (!layer?.visible) return;
+                        let b = false;
+                        if (s.type === 'line' || s.type === 'dim') b = isPointInRect(s.x1, s.y1, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x2, s.y2, startX, startY, currentX-startX, currentY-startY);
+                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY);
+                        else if (s.type === 'poly') b = s.points.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
+                        else if (s.type === 'dim-angle') b = isPointInRect(s.vertex.x, s.vertex.y, startX, startY, currentX-startX, currentY-startY);
+                        if (b && !selectedShapes.includes(s)) selectedShapes.push(s);
+                    });
                 }
-                isDrawing = false; draw(); 
-            } 
+                isDrawing = false; draw();
+            }
         });
 
         document.addEventListener('keydown', (e) => {
             if (document.activeElement.tagName === 'INPUT') {
-                if (e.key === 'Enter') { if (document.activeElement.id === 'text-content') applyText(); if (document.activeElement.id === 'new-layer-name') addLayer(); } 
-                if (e.key === 'Escape') { closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal(); } 
+                if (e.key === 'Enter') { if (document.activeElement.id === 'text-content') applyText(); if (document.activeElement.id === 'new-layer-name') addLayer(); }
+                if (e.key === 'Escape') { closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal(); }
                 return;
             }
             if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
@@ -1024,50 +1364,63 @@
             if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copySelection(); return; }
             if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) { e.preventDefault(); pasteSelection(); return; }
             if (e.ctrlKey && (e.key === 'x' || e.key === 'X')) { e.preventDefault(); cutSelection(); return; }
-            if (isDrawing || mode === 'rotate' || mode === 'offset') { 
-                if (/^[0-9.,\-]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; } 
-                else if (e.key === 'Backspace') { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; } 
-                else if (e.key === 'Enter' && typedInput.length > 0) { 
-                    e.preventDefault(); let val = parseFloat(typedInput); 
-                    if (!isNaN(val)) { 
-                        if (mode === 'rotate' && rotateCenter) { let rad = val * Math.PI / 180; selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, rad)); isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw(); return; } 
+            if (isDrawing || mode === 'rotate' || mode === 'offset') {
+                if (/^[0-9.,\-]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; }
+                else if (e.key === 'Backspace') { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; }
+                else if (e.key === 'Enter' && typedInput.length > 0) {
+                    e.preventDefault(); let val = parseFloat(typedInput);
+                    if (!isNaN(val)) {
+                        if (mode === 'rotate' && rotateCenter) { let rad = val * Math.PI / 180; selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, rad)); isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw(); return; }
                         if (mode === 'arc') {
-                            if (arcStep === 1 && val > 0) {
-                                let d = (val/unitsPerSquare)*GRID_SIZE; arcRadius = d; let a = Math.atan2(currentY-arcCenter.y, currentX-arcCenter.x);
-                                arcP1 = {x: arcCenter.x + Math.cos(a)*d, y: arcCenter.y + Math.sin(a)*d}; arcStartAngle = a; arcStep = 2; typedInput = ""; draw(); return;
-                            } else if (arcStep === 2) {
-                                let endAngle = arcStartAngle + val*Math.PI/180; shapes.push({ type: 'arc', layerId: activeLayerId, x: arcCenter.x, y: arcCenter.y, r: arcRadius, startAngle: arcStartAngle, endAngle: endAngle, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 });
-                                arcStep = 0; isDrawing = false; typedInput = ""; saveState(); draw(); return;
-                            }
+                            if (arcStep === 1 && val > 0) { let d = (val/unitsPerSquare)*GRID_SIZE; arcRadius = d; let a = Math.atan2(currentY-arcCenter.y, currentX-arcCenter.x); arcP1 = {x: arcCenter.x + Math.cos(a)*d, y: arcCenter.y + Math.sin(a)*d}; arcStartAngle = a; arcStep = 2; typedInput = ""; draw(); return; }
+                            else if (arcStep === 2) { let endAngle = arcStartAngle + val*Math.PI/180; shapes.push({ type: 'arc', layerId: activeLayerId, x: arcCenter.x, y: arcCenter.y, r: arcRadius, startAngle: arcStartAngle, endAngle: endAngle, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 }); arcStep = 0; isDrawing = false; typedInput = ""; saveState(); draw(); return; }
                         }
-                        if (val > 0 && mode !== 'offset') { 
-                            let d = (val/unitsPerSquare)*GRID_SIZE; 
-                            if (mode === 'circle') { shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: d, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); isDrawing = false; } 
-                            else if (mode === 'line') { let a = Math.atan2(currentY-startY, currentX-startX); shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: startX+Math.cos(a)*d, y2: startY+Math.sin(a)*d, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 }); isDrawing = false; } 
-                            else if (mode === 'poly') { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); currentPolygon.push({x: lp.x+Math.cos(a)*d, y: lp.y+Math.sin(a)*d}); } 
-                        } 
+                        if (val > 0 && mode !== 'offset') {
+                            let d = (val/unitsPerSquare)*GRID_SIZE;
+                            if (mode === 'circle') { shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: d, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); isDrawing = false; }
+                            else if (mode === 'line') { let a = Math.atan2(currentY-startY, currentX-startX); shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: startX+Math.cos(a)*d, y2: startY+Math.sin(a)*d, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 }); isDrawing = false; }
+                            else if (mode === 'poly') { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); currentPolygon.push({x: lp.x+Math.cos(a)*d, y: lp.y+Math.sin(a)*d}); }
+                        }
                         if (mode !== 'offset') { typedInput = ""; if (mode !== 'poly') saveState(); draw(); }
-                    } return; 
-                } 
+                    }
+                    return;
+                }
             }
             if (e.key === ' ') { if (mode === 'print') { e.preventDefault(); printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape'; draw(); } }
-            if (e.key === 'Escape') { isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null; dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null; closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal(); typedInput = ""; offsetTarget = null; offsetPreviewShape = null; setMode('select-box'); draw(); }
-            else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapes.length > 0 && document.activeElement.tagName !== 'INPUT' && typedInput.length === 0) { shapes = shapes.filter(s => !selectedShapes.includes(s)); selectedShapes = []; saveState(); draw(); }
+            if (e.key === 'Escape') {
+                isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null;
+                dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null;
+                dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
+                closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal();
+                typedInput = ""; offsetTarget = null; offsetPreviewShape = null;
+                setMode('select-box'); draw();
+            }
+            else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapes.length > 0 && document.activeElement.tagName !== 'INPUT' && typedInput.length === 0) {
+                shapes = shapes.filter(s => !selectedShapes.includes(s)); selectedShapes = []; saveState(); draw();
+            }
         });
 
-        canvas.addEventListener('dblclick', (e) => { if (mode === 'poly' && isDrawing && currentPolygon.length > 2) { shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); draw(); } });
-        canvas.addEventListener('wheel', (e) => { 
-            e.preventDefault(); const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top, wp = screenToWorld(sx, sy); 
-            if (mode === 'print') { 
-                const um = currentUnit === 'mm' ? unitsPerSquare/1000 : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare); 
-                let s = (um*12)/(camera.zoom*0.297), ci = 0, md = Infinity; 
-                for (let i=0; i<PRINT_SCALES.length; i++) { let d = Math.abs(PRINT_SCALES[i]-s); if (d < md) { md = d; ci = i; } } 
-                if (e.deltaY < 0) ci = Math.max(0, ci-1); else ci = Math.min(PRINT_SCALES.length-1, ci+1); 
-                currentPrintScale = PRINT_SCALES[ci]; camera.zoom = (um*12)/(currentPrintScale*0.297); 
-            } else { 
-                let zf = 1.1; if (e.deltaY < 0) camera.zoom *= zf; else camera.zoom /= zf; camera.zoom = Math.max(0.01, Math.min(camera.zoom, 50)); 
-            } 
-            camera.x = sx - wp.x * camera.zoom; camera.y = sy - wp.y * camera.zoom; draw(); 
+        canvas.addEventListener('dblclick', (e) => {
+            if (mode === 'poly' && isDrawing && currentPolygon.length > 2) {
+                shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
+                isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); draw();
+            }
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top, wp = screenToWorld(sx, sy);
+            if (mode === 'print') {
+                const um = currentUnit === 'mm' ? unitsPerSquare/1000 : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare);
+                let s = (um*12)/(camera.zoom*0.297), ci = 0, md = Infinity;
+                for (let i=0; i<PRINT_SCALES.length; i++) { let d = Math.abs(PRINT_SCALES[i]-s); if (d < md) { md = d; ci = i; } }
+                if (e.deltaY < 0) ci = Math.max(0, ci-1); else ci = Math.min(PRINT_SCALES.length-1, ci+1);
+                currentPrintScale = PRINT_SCALES[ci]; camera.zoom = (um*12)/(currentPrintScale*0.297);
+            } else {
+                let zf = 1.1; if (e.deltaY < 0) camera.zoom *= zf; else camera.zoom /= zf;
+                camera.zoom = Math.max(0.01, Math.min(camera.zoom, 50));
+            }
+            camera.x = sx - wp.x * camera.zoom; camera.y = sy - wp.y * camera.zoom; draw();
         });
 
         window.onload = () => { updateLayerUI(); resizeCanvas(); saveState(); };
