@@ -134,9 +134,14 @@
                     <span class="text-blue-400 font-mono font-bold text-sm mr-3">Commande:</span>
                     <span id="command-text" class="text-gray-300 font-mono text-sm tracking-wide">Prêt</span>
                 </div>
-                <button id="btn-toggle-grid" class="flex items-center justify-center text-blue-400 hover:text-white transition-colors focus:outline-none" title="Afficher/Masquer la grille de fond" onclick="toggleGrid()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
-                </button>
+                <div class="flex items-center space-x-3">
+                    <button id="btn-toggle-ortho" class="flex items-center justify-center text-gray-500 hover:text-white transition-colors focus:outline-none" title="Mode Ortho : trace uniquement horizontal/vertical (F8)" onclick="toggleOrtho()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 L5 19 L19 19"></path><path d="M5 12 L12 12 L12 19" stroke-dasharray="2 2"></path></svg>
+                    </button>
+                    <button id="btn-toggle-grid" class="flex items-center justify-center text-blue-400 hover:text-white transition-colors focus:outline-none" title="Afficher/Masquer la grille de fond" onclick="toggleGrid()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                    </button>
+                </div>
             </div>
         </main>
     </div>
@@ -215,6 +220,8 @@
         let isPanning = false, lastPanX = 0, lastPanY = 0;
         let mode = 'select-box';
         let isDrawing = false, startX = 0, startY = 0, currentX = 0, currentY = 0;
+        let rawMouseX = 0, rawMouseY = 0; // position pointeur non contrainte (guide ortho)
+        let shiftHeld = false; // état de la touche Shift (pour le guide d'alignement)
         let currentX_screen = 0, currentY_screen = 0;
         let typedInput = "";
         let dimStep = 0, dimP1 = null, dimP2 = null;
@@ -252,6 +259,7 @@
         }
 
         let showGrid = true;
+        let orthoMode = false; // mode orthogonal : ne dessine que H/V
 
         // =====================================================================
         // SNAP — correctifs
@@ -274,10 +282,28 @@
         let shapes = [], dimensionTextsToDraw = [], pendingTextPos = null;
         let printOrientation = 'landscape';
         let cartoucheData = { logo: null, planName: '', clientName: '', draftsmanName: '' };
-        const PRINT_SCALES = [1, 2, 5, 10, 25, 50, 100, 150, 200, 500];
-        let currentPrintScale = 50;
+        // Échelles d'impression, du plus AGRANDISSANT au plus RÉDUISANT.
+        // factor = facteur d'agrandissement réel (zoom relatif au 1:1).
+        //   2:1 -> ×2 (pièces minuscules) ... 1:500 -> ×0.002 (grands ouvrages)
+        const PRINT_SCALES = [
+            { label: '5:1',   factor: 5    },
+            { label: '2:1',   factor: 2    },
+            { label: '1:1',   factor: 1    },
+            { label: '1:2',   factor: 1/2  },
+            { label: '1:5',   factor: 1/5  },
+            { label: '1:10',  factor: 1/10 },
+            { label: '1:25',  factor: 1/25 },
+            { label: '1:50',  factor: 1/50 },
+            { label: '1:100', factor: 1/100},
+            { label: '1:150', factor: 1/150},
+            { label: '1:200', factor: 1/200},
+            { label: '1:500', factor: 1/500},
+        ];
+        let printScaleIndex = PRINT_SCALES.findIndex(s => s.label === '1:1');
+        let currentPrintScale = PRINT_SCALES[printScaleIndex].label; // libellé affiché (ex. '2:1')
 
-        let layers = [{ id: 'layer-0', name: '0 - Murs', visible: true }, { id: 'layer-1', name: '1 - Mobilier', visible: true }, { id: 'layer-2', name: '2 - Cotations', visible: true }];
+        let layers = [{ id: 'layer-0', name: '0 - Murs', visible: true, color: null }, { id: 'layer-1', name: '1 - Mobilier', visible: true, color: null }, { id: 'layer-2', name: '2 - Cotations', visible: true, color: '#ff0000' }];
+        const DIM_LAYER_ID = 'layer-2'; // calque cotation (rouge à l'impression)
         let activeLayerId = 'layer-0';
         let snapSettings = { endpoint: true, midpoint: true, center: true, intersection: true };
         let cachedSnapPoints = null;
@@ -298,6 +324,14 @@
         function applyCartouche() { cartoucheData.planName = document.getElementById('cartouche-plan').value; cartoucheData.clientName = document.getElementById('cartouche-client').value; cartoucheData.draftsmanName = document.getElementById('cartouche-draftsman').value; const logoInput = document.getElementById('cartouche-logo'); if (logoInput.files && logoInput.files[0]) { const reader = new FileReader(); reader.onload = (e) => { cartoucheData.logo = e.target.result; }; reader.readAsDataURL(logoInput.files[0]); } closeCartoucheModal(); }
         function toggleSnapSetting(type) { snapSettings[type] = document.getElementById('snap-' + (type === 'endpoint' ? 'end' : type === 'midpoint' ? 'mid' : type === 'intersection' ? 'inter' : type)).checked; invalidateCache(); draw(); }
         function toggleGrid() { showGrid = !showGrid; const btn = document.getElementById('btn-toggle-grid'); if(showGrid) { btn.classList.add('text-blue-400'); btn.classList.remove('text-gray-500'); } else { btn.classList.add('text-gray-500'); btn.classList.remove('text-blue-400'); } draw(); }
+        function toggleOrtho() {
+            orthoMode = !orthoMode;
+            const btn = document.getElementById('btn-toggle-ortho');
+            if (orthoMode) { btn.classList.add('text-blue-400'); btn.classList.remove('text-gray-500'); }
+            else { btn.classList.add('text-gray-500'); btn.classList.remove('text-blue-400'); }
+            updateCommandMessage();
+            draw();
+        }
 
         // --- GESTION DES CALQUES ---
         function generateId() { return 'layer-' + Math.random().toString(36).substr(2, 9); }
@@ -618,7 +652,7 @@
             const r2 = Math.hypot(p2.x - vertex.x, p2.y - vertex.y);
             const arcR = Math.min(r1, r2) * 0.5;
 
-            const col = isPrinting ? '#000000' : (s.color || '#f59e0b');
+            const col = effectiveColor(s, isPrinting);
             targetCtx.strokeStyle = sel ? '#ec4899' : col;
             targetCtx.lineWidth = (sel ? 3 : 1.5) / lineScale;
             targetCtx.setLineDash([]);
@@ -664,10 +698,18 @@
             const textY = vertex.y + Math.sin(midA) * (arcR + 15 / lineScale);
             // On stocke les coordonnées du label dans la shape pour la sélection
             s._labelX = textX; s._labelY = textY; s._angleDeg = angleDeg;
-            dimensionTextsToDraw.push({ text: angleDeg + '°', worldX: textX, worldY: textY });
+            dimensionTextsToDraw.push({ text: angleDeg + '°', worldX: textX, worldY: textY, color: col });
         }
 
         // --- GESTION DES OUTILS ET MODES ---
+        // Zoom caméra correspondant à une échelle d'impression 1:1.
+        // (mêmes constantes que l'ancienne formule : 12 carrés de référence, 0.297 = facteur A4)
+        function printBaseZoom() {
+            const um = currentUnit === 'mm' ? unitsPerSquare/1000
+                     : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare);
+            return (um * 12) / (1 * 0.297);
+        }
+
         function setMode(newMode) {
             mode = newMode;
             moveBasePoint = null; isMovingObjects = false; isDrawing = false;
@@ -680,10 +722,18 @@
             const btn = document.getElementById('btn-' + newMode); if (btn) btn.classList.add('active');
             canvas.style.cursor = (['move', 'rotate', 'select-box', 'text', 'print', 'trim', 'extend', 'paste', 'offset'].includes(mode)) ? 'default' : 'crosshair';
             if (newMode === 'print') {
-                const um = currentUnit === 'mm' ? unitsPerSquare/1000 : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare);
-                let s = (um*12)/(camera.zoom*0.297); let ci = 0, md = Infinity;
-                for (let i=0; i<PRINT_SCALES.length; i++) { let d = Math.abs(PRINT_SCALES[i]-s); if (d < md) { md = d; ci = i; } }
-                currentPrintScale = PRINT_SCALES[ci]; camera.zoom = (um*12)/(currentPrintScale*0.297);
+                // Facteur d'agrandissement courant déduit du zoom caméra, puis snap
+                // sur l'échelle la plus proche dans PRINT_SCALES.
+                const base = printBaseZoom();              // zoom correspondant au 1:1
+                const curFactor = camera.zoom / base;
+                let ci = 0, md = Infinity;
+                for (let i=0; i<PRINT_SCALES.length; i++) {
+                    let d = Math.abs(PRINT_SCALES[i].factor - curFactor);
+                    if (d < md) { md = d; ci = i; }
+                }
+                printScaleIndex = ci;
+                currentPrintScale = PRINT_SCALES[ci].label;
+                camera.zoom = base * PRINT_SCALES[ci].factor;
                 let cx = canvas.width/2, cy = canvas.height/2; let wp = {x:(cx-camera.x)/camera.zoom, y:(cy-camera.y)/camera.zoom};
                 camera.x = cx - wp.x*camera.zoom; camera.y = cy - wp.y*camera.zoom;
             }
@@ -718,7 +768,12 @@
                     const data = JSON.parse(e.target.result);
                     if (data.scale) { unitsPerSquare = data.scale.value; currentUnit = data.scale.unit; }
                     if (data.cartouche) cartoucheData = data.cartouche;
-                    if (data.layers) { layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id; }
+                    if (data.layers) {
+                        layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id;
+                        // Garantir que le calque cotation reste rouge même sur d'anciens fichiers
+                        const dimLayer = layers.find(l => l.id === DIM_LAYER_ID);
+                        if (dimLayer && !dimLayer.color) dimLayer.color = '#ff0000';
+                    }
                     if (data.snapSettings) { snapSettings = data.snapSettings; document.getElementById('snap-end').checked = snapSettings.endpoint; document.getElementById('snap-mid').checked = snapSettings.midpoint; document.getElementById('snap-center').checked = snapSettings.center; document.getElementById('snap-inter').checked = snapSettings.intersection; }
                     shapes = data.shapes || []; selectedShapes = []; shapesHistory = []; historyStep = -1; saveState(); updateLayerUI(); draw();
                 } catch (err) { console.error(err); }
@@ -726,7 +781,17 @@
             reader.readAsText(file);
         }
 
-        function getPrintRect() { const baseW = 600, baseH = 424; return printOrientation === 'landscape' ? { w: baseW, h: baseH } : { w: baseH, h: baseW }; }
+        function getPrintRect() {
+            // Ratio de la zone image = surface intérieure du cadre (page - marges).
+            // Le cartouche se superpose ensuite, il n'ampute donc pas le ratio.
+            const margin = 5;
+            const isLandscape = printOrientation === 'landscape';
+            const pageW = isLandscape ? 297 : 210, pageH = isLandscape ? 210 : 297;
+            const drawW = pageW - 2 * margin, drawH = pageH - 2 * margin;
+            const ratio = drawW / drawH;
+            const baseW = 700;
+            return { w: baseW, h: baseW / ratio };
+        }
 
         // =====================================================================
         // IMPRESSION PDF via jsPDF
@@ -741,61 +806,95 @@
 
                     const pageW = isLandscape ? 297 : 210;
                     const pageH = isLandscape ? 210 : 297;
-                    const margin = 10;
+                    const margin = 5;
                     const drawW = pageW - 2 * margin;
                     const drawH = pageH - 2 * margin;
 
                     // Cartouche dimensions en mm
                     const cW = 80, cH = 40;
                     const cX = pageW - margin - cW, cY = pageH - margin - cH;
-                    const planDrawH = drawH - cH - 2; // zone plan au-dessus du cartouche
-
-                    // ------ Fond blanc + bordure ------
+                    // ------ Fond blanc (la page entière) ------
                     doc.setFillColor(255, 255, 255);
                     doc.rect(0, 0, pageW, pageH, 'F');
-                    doc.setDrawColor(0); doc.setLineWidth(0.5);
-                    doc.rect(margin, margin, drawW, drawH);
 
-                    // ------ Rendu du plan sur canvas offscreen → image ------
+                    // ------ Canvas offscreen ------
+                    // Zone image = TOUTE la surface intérieure du cadre.
+                    // Le cartouche est ensuite dessiné PAR-DESSUS dans le coin bas-droite.
+                    const imgMm_x = margin;
+                    const imgMm_y = margin;
+                    const imgMm_w = drawW;
+                    const imgMm_h = drawH;
+
+                    // getPrintRect() retourne déjà le bon ratio (zone image PDF) :
+                    // la prévisualisation écran et la sortie PDF sont donc identiques.
                     const rect = getPrintRect();
-                    const offw = rect.w * 2, offh = rect.h * 2;
-                    const offCanvasScale = 2; // sursampling ×2 pour la qualité
+                    const SS = 3;                             // suréchantillonnage qualité
+                    const offw = Math.round(rect.w * SS);
+                    const offh = Math.round(rect.h * SS);
                     const offCanvas = document.createElement('canvas');
                     offCanvas.width = offw; offCanvas.height = offh;
                     const offCtx = offCanvas.getContext('2d');
                     offCtx.fillStyle = '#ffffff'; offCtx.fillRect(0, 0, offw, offh);
 
-                    const sx = sx_screen - rect.w / 2, sy = sy_screen - rect.h / 2;
+                    // Origine de la fenêtre d'impression dans le repère écran (coin haut-gauche)
+                    const winX = sx_screen - rect.w / 2;
+                    const winY = sy_screen - rect.h / 2;
+
+                    // Transform : monde → écran (camera) → décalage fenêtre → suréchantillon
+                    const offZoom = camera.zoom * SS;
                     offCtx.save();
-                    offCtx.scale(offCanvasScale, offCanvasScale);
-                    offCtx.translate(-sx, -sy);
-                    // lineScale = camera.zoom × offCanvasScale : les traits gardent leur épaisseur réelle
-                    _drawFullPlanOnCtx(offCtx, true, camera.zoom * offCanvasScale);
+                    offCtx.translate((camera.x - winX) * SS, (camera.y - winY) * SS);
+                    offCtx.scale(offZoom, offZoom);
+                    dimensionTextsToDraw = [];
+                    for (let s of shapes) {
+                        let layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
+                        if (layer && !layer.visible) continue;
+                        drawSingleShape(offCtx, s, true, false, 0, 0, offZoom);
+                    }
                     offCtx.restore();
+                    // Textes de cotation, dessinés en coordonnées écran-suréchantillonnées
+                    for (let d of dimensionTextsToDraw) {
+                        const px = (d.worldX * camera.zoom + camera.x - winX) * SS;
+                        const py = (d.worldY * camera.zoom + camera.y - winY) * SS;
+                        offCtx.font = "bold " + Math.round(14 * SS) + "px Arial";
+                        const m = offCtx.measureText(d.text);
+                        const th = Math.round(14 * SS);
+                        offCtx.fillStyle = "#ffffff";
+                        offCtx.fillRect(px - m.width/2 - 3, py - th/2 - 2, m.width + 6, th + 4);
+                        offCtx.fillStyle = d.color || '#000000';
+                        offCtx.textAlign = "center"; offCtx.textBaseline = "middle";
+                        offCtx.fillText(d.text, px, py);
+                    }
 
-                    // Calcul zone image dans le PDF (au-dessus du cartouche)
-                    const imgMm_x = margin;
-                    const imgMm_y = margin;
-                    const imgMm_w = drawW - cW - 2;
-                    const imgMm_h = drawH;
+                    // Inclure l'image raster du plan (PNG = sans perte → pas de bavure sur les bords)
+                    const planImg = offCanvas.toDataURL('image/png');
+                    doc.addImage(planImg, 'PNG', imgMm_x, imgMm_y, imgMm_w, imgMm_h);
 
-                    // Inclure l'image raster du plan
-                    const planImg = offCanvas.toDataURL('image/jpeg', 0.92);
-                    doc.addImage(planImg, 'JPEG', imgMm_x, imgMm_y, imgMm_w, imgMm_h);
+                    // ------ Cadre de marge (PAR-DESSUS l'image, traits nets) ------
+                    // 4 lignes explicites, épaisseur forcée juste avant chaque tracé.
+                    doc.setDrawColor(0);
+                    const FRAME_LW = 0.5;
+                    const fx = margin, fy = margin, fw = drawW, fh = drawH;
+                    doc.setLineWidth(FRAME_LW); doc.line(fx,      fy,      fx + fw, fy);       // haut
+                    doc.setLineWidth(FRAME_LW); doc.line(fx + fw, fy,      fx + fw, fy + fh);  // droite
+                    doc.setLineWidth(FRAME_LW); doc.line(fx + fw, fy + fh, fx,      fy + fh);  // bas
+                    doc.setLineWidth(FRAME_LW); doc.line(fx,      fy + fh, fx,      fy);       // gauche
 
-                    // ------ Cartouche vectoriel ------
-                    doc.setLineWidth(0.3);
+                    // ------ Cartouche vectoriel (PAR-DESSUS l'image) ------
                     doc.setDrawColor(0);
                     doc.setFillColor(255, 255, 255);
+                    doc.setLineWidth(0.5);
                     doc.rect(cX, cY, cW, cH, 'FD');
 
                     // Séparateur vertical logo / texte
                     const logoW = 22;
+                    doc.setLineWidth(0.3);
                     doc.line(cX + logoW, cY, cX + logoW, cY + cH);
 
                     // Lignes horizontales
                     const rowH = cH / 4;
                     for (let i = 1; i <= 3; i++) {
+                        doc.setLineWidth(0.3);
                         doc.line(cX + logoW, cY + rowH * i, cX + cW, cY + rowH * i);
                     }
 
@@ -806,7 +905,7 @@
                         'Plan : '       + (cartoucheData.planName     || ''),
                         'Client : '     + (cartoucheData.clientName   || ''),
                         'Dessin : '     + (cartoucheData.draftsmanName|| ''),
-                        'Échelle : 1:' + currentPrintScale,
+                        'Échelle : ' + currentPrintScale,
                     ];
                     rows.forEach((txt, idx) => {
                         doc.text(txt, cX + logoW + 2, cY + rowH * idx + rowH * 0.6, { maxWidth: cW - logoW - 2 });
@@ -828,7 +927,7 @@
 
                     // Titre échelle en haut de la page
                     doc.setFontSize(8); doc.setTextColor(60);
-                    doc.text(`A4 ${printOrientation} — 1:${currentPrintScale}`, margin + 2, margin + 6);
+                    doc.text(`A4 ${printOrientation} — ${currentPrintScale}`, margin + 2, margin + 6);
 
                     // Téléchargement
                     const filename = 'plan_momo_' + new Date().getTime() + '.pdf';
@@ -881,9 +980,19 @@
 
         // --- MOTEUR DE DESSIN ---
         // lineScale = facteur de division des épaisseurs (= camera.zoom à l'écran, = zoom d'impression pour le PDF)
+        // Couleur effective d'une forme : la couleur du calque prime si définie,
+        // sinon la couleur propre de la forme. À l'impression, blanc -> noir,
+        // mais les couleurs explicites (ex. rouge cotation) sont conservées.
+        function effectiveColor(s, isPrinting) {
+            const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
+            let col = (layer && layer.color) ? layer.color : (s.color || '#ffffff');
+            if (isPrinting && col.toLowerCase() === '#ffffff') col = '#000000';
+            return col;
+        }
+
         function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy, lineScale) {
             if (lineScale === undefined) lineScale = camera.zoom;
-            let col = s.color || '#ffffff'; if (isPrinting && col.toLowerCase() === '#ffffff') col = '#000000';
+            let col = effectiveColor(s, isPrinting);
             let w = (s.width !== undefined ? s.width : 1) * 2;
             if (s.type === 'dim-angle') { drawAngleDim(targetCtx, { ...s, vertex: {x:s.vertex.x+dx, y:s.vertex.y+dy}, p1: {x:s.p1.x+dx, y:s.p1.y+dy}, p2: {x:s.p2.x+dx, y:s.p2.y+dy} }, sel, isPrinting, lineScale); return; }
             targetCtx.beginPath(); targetCtx.strokeStyle = sel ? '#ec4899' : col; targetCtx.lineWidth = (sel ? w+3 : w)/lineScale;
@@ -907,7 +1016,7 @@
                     targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
                     let t=5/lineScale; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
                     dt(c1); dt(c2);
-                    dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
+                    dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2, color: col });
                 }
             }
             targetCtx.setLineDash([]);
@@ -944,7 +1053,27 @@
                 let px = currentX, py = currentY, pr = Math.hypot(currentX-startX, currentY-startY);
                 if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; pr = d; if (mode === 'poly' && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); px = lp.x+Math.cos(a)*d; py = lp.y+Math.sin(a)*d; } else if (mode !== 'arc') { let a = Math.atan2(currentY-startY, currentX-startX); px = startX+Math.cos(a)*d; py = startY+Math.sin(a)*d; } }
                 let previewW = (parseFloat(document.getElementById('prop-width').value) || 1) * 2;
-                if (mode === 'line') { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(startX, startY); targetCtx.lineTo(px, py); targetCtx.stroke(); }
+                if (mode === 'line') {
+                    targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
+                    targetCtx.beginPath(); targetCtx.moveTo(startX, startY); targetCtx.lineTo(px, py); targetCtx.stroke();
+                    // Guide d'alignement (mode Ortho) : trait fin pointillé du bout du segment
+                    // vers le pointeur réel, pour montrer l'alignement sans relier.
+                    if ((orthoMode || shiftHeld) && (Math.abs(rawMouseX - px) > 0.5 || Math.abs(rawMouseY - py) > 0.5)) {
+                        targetCtx.save();
+                        targetCtx.strokeStyle = 'rgba(120,200,255,0.7)';
+                        targetCtx.lineWidth = 0.7/camera.zoom;
+                        targetCtx.setLineDash([4/camera.zoom, 4/camera.zoom]);
+                        targetCtx.beginPath(); targetCtx.moveTo(px, py); targetCtx.lineTo(rawMouseX, rawMouseY); targetCtx.stroke();
+                        // petit repère croix sur le pointeur réel
+                        let cs = 4/camera.zoom;
+                        targetCtx.setLineDash([]);
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(rawMouseX-cs, rawMouseY); targetCtx.lineTo(rawMouseX+cs, rawMouseY);
+                        targetCtx.moveTo(rawMouseX, rawMouseY-cs); targetCtx.lineTo(rawMouseX, rawMouseY+cs);
+                        targetCtx.stroke();
+                        targetCtx.restore();
+                    }
+                }
                 else if (mode === 'circle') { targetCtx.strokeStyle = '#ec4899'; targetCtx.lineWidth = 2/camera.zoom; targetCtx.beginPath(); targetCtx.arc(startX, startY, pr, 0, 2*Math.PI); targetCtx.stroke(); }
                 else if (mode === 'arc') {
                     targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
@@ -1031,7 +1160,7 @@
                 let m = targetCtx.measureText(d.text);
                 targetCtx.fillStyle = isPrinting ? "rgba(255,255,255,0.9)" : "#1e1e1e";
                 targetCtx.fillRect(p.x - m.width/2 - 4, p.y - 11, m.width + 8, 22);
-                targetCtx.fillStyle = '#f59e0b';
+                targetCtx.fillStyle = d.color || '#f59e0b';
                 targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle";
                 targetCtx.fillText(d.text, p.x, p.y);
             }
@@ -1052,8 +1181,24 @@
                 const m = 10; ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 0.5; ctx.setLineDash([4, 4]);
                 ctx.strokeRect(currentX_screen - rect.w/2 + m, currentY_screen - rect.h/2 + m, rect.w - 2*m, rect.h - 2*m);
                 ctx.setLineDash([]);
+                // Silhouette du cartouche (coin bas-droite) pour visualiser la zone réservée
+                {
+                    const mg = 5; // marge mm
+                    const isLand = printOrientation === 'landscape';
+                    const pW = isLand ? 297 : 210, pH = isLand ? 210 : 297;
+                    const dW = pW - 2*mg, dH = pH - 2*mg;
+                    // échelle px par mm dans l'aperçu (rect = zone intérieure dW×dH)
+                    const pxPerMm = rect.w / dW;
+                    const cWpx = 80 * pxPerMm, cHpx = 40 * pxPerMm;
+                    const innerRight = currentX_screen + rect.w/2;
+                    const innerBottom = currentY_screen + rect.h/2;
+                    ctx.strokeStyle = "rgba(255,200,0,0.7)"; ctx.lineWidth = 1.5;
+                    ctx.strokeRect(innerRight - cWpx, innerBottom - cHpx, cWpx, cHpx);
+                    ctx.fillStyle = "rgba(255,200,0,0.08)";
+                    ctx.fillRect(innerRight - cWpx, innerBottom - cHpx, cWpx, cHpx);
+                }
                 ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
-                ctx.fillText(`A4 ${printOrientation} — 1:${currentPrintScale} → PDF`, currentX_screen, currentY_screen - rect.h/2 - 10);
+                ctx.fillText(`A4 ${printOrientation} — ${currentPrintScale} → PDF`, currentX_screen, currentY_screen - rect.h/2 - 10);
             }
 
             if (mode === 'rotate' && rotateCenter && !isPanning) {
@@ -1164,7 +1309,7 @@
                     if (arcR < 2) return;
                     const ptOnL1 = _closestPointOnLine(dimAngleLine1, dimAngleIntersect, arcR, wp);
                     const ptOnL2 = _closestPointOnLine(dimAngleLine2, dimAngleIntersect, arcR, wp);
-                    shapes.push({ type: 'dim-angle', layerId: activeLayerId, vertex: { ...dimAngleIntersect }, p1: ptOnL1, p2: ptOnL2, color: '#f97316' });
+                    shapes.push({ type: 'dim-angle', layerId: DIM_LAYER_ID, vertex: { ...dimAngleIntersect }, p1: ptOnL1, p2: ptOnL2 });
                     dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
                     invalidateCache(); saveState();
                 }
@@ -1241,7 +1386,7 @@
                 let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
                 if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; }
                 else if (dimStep === 1) { dimP2 = pt; dimStep = 2; }
-                else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: activeLayerId, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); }
+                else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: DIM_LAYER_ID, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); }
                 return;
             }
 
@@ -1269,7 +1414,7 @@
                 if (!isDrawing) { currentPolygon = [{x:px2, y:py2}]; isDrawing = true; typedInput = ""; }
                 else {
                     let f = currentPolygon[0], lp = currentPolygon[currentPolygon.length-1], fx = px2, fy = py2;
-                    if (e.shiftKey) { if (Math.abs(px2-lp.x) > Math.abs(py2-lp.y)) fy = lp.y; else fx = lp.x; }
+                    if (orthoMode || e.shiftKey) { if (Math.abs(px2-lp.x) > Math.abs(py2-lp.y)) fy = lp.y; else fx = lp.x; }
                     if (Math.hypot(fx-f.x, fy-f.y) < (SNAP_DIST_PX/camera.zoom) && currentPolygon.length > 2 && typedInput.length === 0) {
                         shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
                         isDrawing = false; currentPolygon = []; typedInput = ""; saveState();
@@ -1284,7 +1429,7 @@
             } else {
                 let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y;
                 let fx = currentX, fy = currentY, fr = Math.hypot(currentX-startX, currentY-startY);
-                if (e.shiftKey && mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) fy = startY; else fx = startX; }
+                if ((orthoMode || e.shiftKey) && mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) fy = startY; else fx = startX; }
                 if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; let a = Math.atan2(fy-startY, fx-startX); fx = startX+Math.cos(a)*d; fy = startY+Math.sin(a)*d; fr = d; }
                 if (Math.abs(fx-startX) > 0.1 || Math.abs(fy-startY) > 0.1 || fr > 0.1) {
                     if (mode === 'line') shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: fx, y2: fy, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 });
@@ -1299,10 +1444,14 @@
             currentX_screen = sx; currentY_screen = sy;
             if (isPanning) { camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); lastPanX = sx; lastPanY = sy; draw(); return; }
             let wp = screenToWorld(sx, sy);
+            shiftHeld = e.shiftKey;
             currentSnap = findSnap(wp.x, wp.y);
             currentX = currentSnap ? currentSnap.x : wp.x;
             currentY = currentSnap ? currentSnap.y : wp.y;
-            if (isDrawing && e.shiftKey) {
+            // Position réelle du pointeur (NON contrainte) pour le guide d'alignement
+            rawMouseX = currentX; rawMouseY = currentY;
+            // Contrainte orthogonale : mode Ortho permanent OU touche Shift maintenue.
+            if (isDrawing && (orthoMode || e.shiftKey)) {
                 if (mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) currentY = startY; else currentX = startX; }
                 else if (mode === 'poly' && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1]; if (Math.abs(currentX-lp.x) > Math.abs(currentY-lp.y)) currentY = lp.y; else currentX = lp.x; }
             }
@@ -1359,6 +1508,7 @@
                 if (e.key === 'Escape') { closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal(); }
                 return;
             }
+            if (e.key === 'F8') { e.preventDefault(); toggleOrtho(); return; }
             if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
             if (e.ctrlKey && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
             if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copySelection(); return; }
@@ -1411,11 +1561,14 @@
             e.preventDefault();
             const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top, wp = screenToWorld(sx, sy);
             if (mode === 'print') {
-                const um = currentUnit === 'mm' ? unitsPerSquare/1000 : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare);
-                let s = (um*12)/(camera.zoom*0.297), ci = 0, md = Infinity;
-                for (let i=0; i<PRINT_SCALES.length; i++) { let d = Math.abs(PRINT_SCALES[i]-s); if (d < md) { md = d; ci = i; } }
-                if (e.deltaY < 0) ci = Math.max(0, ci-1); else ci = Math.min(PRINT_SCALES.length-1, ci+1);
-                currentPrintScale = PRINT_SCALES[ci]; camera.zoom = (um*12)/(currentPrintScale*0.297);
+                // Scroll = passer d'une échelle à l'autre dans PRINT_SCALES.
+                // Le tableau va du plus AGRANDISSANT (5:1) au plus RÉDUISANT (1:500).
+                // Molette vers le haut (deltaY<0) -> on AGRANDIT (index plus petit).
+                const base = printBaseZoom();
+                if (e.deltaY < 0) printScaleIndex = Math.max(0, printScaleIndex - 1);
+                else printScaleIndex = Math.min(PRINT_SCALES.length - 1, printScaleIndex + 1);
+                currentPrintScale = PRINT_SCALES[printScaleIndex].label;
+                camera.zoom = base * PRINT_SCALES[printScaleIndex].factor;
             } else {
                 let zf = 1.1; if (e.deltaY < 0) camera.zoom *= zf; else camera.zoom /= zf;
                 camera.zoom = Math.max(0.01, Math.min(camera.zoom, 50));
