@@ -169,6 +169,7 @@
             <label class="flex items-center space-x-3 cursor-pointer group"><input type="checkbox" id="snap-mid" checked class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-500" onchange="toggleSnapSetting('midpoint')"><span class="text-sm text-gray-200 group-hover:text-white">Milieux</span></label>
             <label class="flex items-center space-x-3 cursor-pointer group"><input type="checkbox" id="snap-center" checked class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-500" onchange="toggleSnapSetting('center')"><span class="text-sm text-gray-200 group-hover:text-white">Centres</span></label>
             <label class="flex items-center space-x-3 cursor-pointer group"><input type="checkbox" id="snap-inter" checked class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-500" onchange="toggleSnapSetting('intersection')"><span class="text-sm text-gray-200 group-hover:text-white">Croisements / Intersections</span></label>
+            <label class="flex items-center space-x-3 cursor-pointer group"><input type="checkbox" id="snap-perp" checked class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-500" onchange="toggleSnapSetting('perpendicular')"><span class="text-sm text-gray-200 group-hover:text-white">Perpendiculaire</span></label>
         </div>
     </div>
     <div id="help-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-600 z-50 w-[500px] max-h-[80vh] overflow-y-auto custom-scrollbar">
@@ -184,7 +185,7 @@
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Clic Molette (Maintenu) :</b> Se déplacer sur le plan (Panoramique).</li>
                     <li><b class="text-white">Molette (Roulette) :</b> Zoomer / Dézoomer.</li>
-                    <li><b class="text-white">Maj (Shift) + Tracé :</b> Forcer un trait horizontal ou vertical.</li>
+                    <li><b class="text-white">Maj (Shift) + Tracé :</b> Forcer un trait horizontal ou vertical (ponctuel).</li>
                     <li><b class="text-white">Clic + Maj (Shift) :</b> Ajouter/Retirer un élément de la sélection.</li>
                 </ul>
             </div>
@@ -192,10 +193,31 @@
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">⌨️ Raccourcis Clavier</h4>
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Saisie + Entrée :</b> Indiquer la distance, l'angle ou la valeur d'un décalage.</li>
+                    <li><b class="text-white">F8 :</b> Activer / désactiver le mode Ortho.</li>
                     <li><b class="text-white">Échap (Esc) :</b> Revenir à l'outil Sélection.</li>
                     <li><b class="text-white">Suppr / Retour arrière :</b> Supprimer les objets sélectionnés.</li>
                     <li><b class="text-white">Ctrl + Z / Ctrl + Y :</b> Annuler ou Rétablir une action.</li>
                     <li><b class="text-white">Ctrl + C / Ctrl + V / Ctrl + X :</b> Copier, Coller ou Couper.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">📐 Modes d'aide au tracé (bas-droite)</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Mode Ortho (icône ⊥) :</b> Activable en bas-droite ou par F8. Force toutes les lignes et polylignes à être horizontales ou verticales. Un guide pointillé bleu relie le bout du segment au pointeur pour visualiser l'alignement.</li>
+                    <li><b class="text-white">Grille :</b> Affiche/masque le quadrillage de fond.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🧲 Points d'accrochage</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Extrémités, Milieux, Centres, Intersections :</b> activables/désactivables dans le panneau d'accrochage (icône aimant). Marqueur jaune carré.</li>
+                    <li><b class="text-white">Perpendiculaire (⊥ cyan) :</b> pendant le tracé d'une ligne ou polyligne, accroche au pied de la perpendiculaire depuis le point de départ vers la forme survolée (ligne, polyligne, cercle, arc). Incompatible avec le mode Ortho.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🎨 Calques</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Calque "Cotations" :</b> les outils de cotation (ligne de cote et angle) y déposent automatiquement leurs objets. Couleur rouge forcée à l'impression, quel que soit le calque actif.</li>
                 </ul>
             </div>
             <div>
@@ -204,8 +226,18 @@
                     <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li>
                     <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li>
                     <li><b class="text-white">Décaler (Offset) :</b> Tapez la distance désirée, puis cliquez sur l'objet.</li>
-                    <li><b class="text-white">Cotation angulaire :</b> Clic 1 = sélectionner D1, Clic 2 = sélectionner D2, Clic 3 = poser l'arc de cote. Sélection de la cote en cliquant sur la valeur °.</li>
-                    <li><b class="text-white">Impression PDF :</b> ESPACE pour pivoter, MOLETTE pour l'échelle, CLIC pour générer le PDF.</li>
+                    <li><b class="text-white">Cotation angulaire :</b> Clic 1 = D1, Clic 2 = D2, Clic 3 = pose de l'arc. Sélection en cliquant sur la valeur °.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖨️ Impression PDF</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">ESPACE :</b> bascule portrait / paysage.</li>
+                    <li><b class="text-white">Molette :</b> change l'échelle. Liste complète disponible :
+                        <span class="text-gray-400">5:1, 2:1, <b class="text-white">1:1</b> (défaut), 1:2, 1:5, 1:10, 1:25, 1:50, 1:100, 1:150, 1:200, 1:500.</span>
+                        Les agrandissements (5:1, 2:1) servent aux petites pièces, les réductions aux grands ouvrages.</li>
+                    <li><b class="text-white">Clic :</b> génère et télécharge le PDF (format A4, marge 5 mm, cartouche en bas-droite).</li>
+                    <li><b class="text-white">Zone jaune :</b> dans l'aperçu écran, la silhouette jaune indique l'emplacement réservé au cartouche — évite d'y placer des éléments importants.</li>
                 </ul>
             </div>
         </div>
@@ -305,7 +337,7 @@
         let layers = [{ id: 'layer-0', name: '0 - Murs', visible: true, color: null }, { id: 'layer-1', name: '1 - Mobilier', visible: true, color: null }, { id: 'layer-2', name: '2 - Cotations', visible: true, color: '#ff0000' }];
         const DIM_LAYER_ID = 'layer-2'; // calque cotation (rouge à l'impression)
         let activeLayerId = 'layer-0';
-        let snapSettings = { endpoint: true, midpoint: true, center: true, intersection: true };
+        let snapSettings = { endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true };
         let cachedSnapPoints = null;
         function invalidateCache() { cachedSnapPoints = null; }
 
@@ -322,7 +354,7 @@
         function openHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); }
         function openCartoucheModal() { document.getElementById('cartouche-modal').classList.remove('hidden'); document.getElementById('cartouche-plan').value = cartoucheData.planName || ""; document.getElementById('cartouche-client').value = cartoucheData.clientName || ""; document.getElementById('cartouche-draftsman').value = cartoucheData.draftsmanName || ""; }
         function applyCartouche() { cartoucheData.planName = document.getElementById('cartouche-plan').value; cartoucheData.clientName = document.getElementById('cartouche-client').value; cartoucheData.draftsmanName = document.getElementById('cartouche-draftsman').value; const logoInput = document.getElementById('cartouche-logo'); if (logoInput.files && logoInput.files[0]) { const reader = new FileReader(); reader.onload = (e) => { cartoucheData.logo = e.target.result; }; reader.readAsDataURL(logoInput.files[0]); } closeCartoucheModal(); }
-        function toggleSnapSetting(type) { snapSettings[type] = document.getElementById('snap-' + (type === 'endpoint' ? 'end' : type === 'midpoint' ? 'mid' : type === 'intersection' ? 'inter' : type)).checked; invalidateCache(); draw(); }
+        function toggleSnapSetting(type) { const idMap = { endpoint: 'end', midpoint: 'mid', intersection: 'inter', perpendicular: 'perp', center: 'center' }; snapSettings[type] = document.getElementById('snap-' + (idMap[type] || type)).checked; invalidateCache(); draw(); }
         function toggleGrid() { showGrid = !showGrid; const btn = document.getElementById('btn-toggle-grid'); if(showGrid) { btn.classList.add('text-blue-400'); btn.classList.remove('text-gray-500'); } else { btn.classList.add('text-gray-500'); btn.classList.remove('text-blue-400'); } draw(); }
         function toggleOrtho() {
             orthoMode = !orthoMode;
@@ -498,6 +530,69 @@
                 const cy = wy * camera.zoom + camera.y;
                 const distPx = Math.hypot(sx - cx, sy - cy);
                 if (distPx < bestDistPx) { bestDistPx = distPx; best = p; }
+            }
+            // --- Accroche PERPENDICULAIRE ---
+            // Disponible uniquement pendant le tracé d'une ligne/polyligne, car le pied
+            // de la perpendiculaire dépend du point d'origine du segment en cours.
+            if (snapSettings.perpendicular && isDrawing && (mode === 'line' || mode === 'poly')) {
+                let origin = null;
+                if (mode === 'line') origin = { x: startX, y: startY };
+                else if (mode === 'poly' && currentPolygon.length > 0) origin = currentPolygon[currentPolygon.length - 1];
+                if (origin) {
+                    const perp = findPerpendicularFoot(origin, wx, wy);
+                    if (perp) {
+                        const psx = perp.x * camera.zoom + camera.x, psy = perp.y * camera.zoom + camera.y;
+                        const cx = wx * camera.zoom + camera.x, cy = wy * camera.zoom + camera.y;
+                        const dPx = Math.hypot(psx - cx, psy - cy);
+                        // Le pied perpendiculaire l'emporte s'il est dans le rayon d'accroche
+                        if (dPx < snapRadiusPx && (!best || dPx <= bestDistPx)) {
+                            best = { x: perp.x, y: perp.y, perp: true };
+                        }
+                    }
+                }
+            }
+            return best;
+        }
+
+        // Pied de la perpendiculaire depuis 'origin' vers la forme la plus proche du curseur.
+        // Retourne le point sur la forme, ou null. Ne considère que lignes, polys, cercles.
+        function findPerpendicularFoot(origin, wx, wy) {
+            let best = null, bestDistPx = SNAP_DIST_PX;
+            const cx = wx * camera.zoom + camera.x, cy = wy * camera.zoom + camera.y;
+            const tryFoot = (fx, fy) => {
+                const fsx = fx * camera.zoom + camera.x, fsy = fy * camera.zoom + camera.y;
+                const d = Math.hypot(fsx - cx, fsy - cy);
+                if (d < bestDistPx) { bestDistPx = d; best = { x: fx, y: fy }; }
+            };
+            // Pied perpendiculaire d'un point P sur un segment AB (projeté, borné au segment)
+            const footOnSeg = (ax, ay, bx, by) => {
+                const dx = bx - ax, dy = by - ay, l2 = dx*dx + dy*dy;
+                if (l2 === 0) return;
+                let t = ((origin.x - ax) * dx + (origin.y - ay) * dy) / l2;
+                t = Math.max(0, Math.min(1, t)); // on reste sur le segment réel
+                tryFoot(ax + t*dx, ay + t*dy);
+            };
+            for (const s of shapes) {
+                const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
+                if (layer && !layer.visible) continue;
+                if (s.type === 'line' || s.type === 'dim') footOnSeg(s.x1, s.y1, s.x2, s.y2);
+                else if (s.type === 'poly') {
+                    for (let i = 0; i < s.points.length; i++) {
+                        const p1 = s.points[i], p2 = s.points[(i+1) % s.points.length];
+                        footOnSeg(p1.x, p1.y, p2.x, p2.y);
+                    }
+                }
+                else if (s.type === 'circle' || s.type === 'arc') {
+                    // Perpendiculaire à un cercle = le point radial aligné avec l'origine.
+                    const dx = origin.x - s.x, dy = origin.y - s.y, dlen = Math.hypot(dx, dy);
+                    if (dlen > 0.0001) {
+                        const fx = s.x + (dx/dlen)*s.r, fy = s.y + (dy/dlen)*s.r;
+                        if (s.type === 'arc') {
+                            const a = Math.atan2(fy - s.y, fx - s.x);
+                            if (isAngleBetween(a, s.startAngle, s.endAngle)) tryFoot(fx, fy);
+                        } else tryFoot(fx, fy);
+                    }
+                }
             }
             return best;
         }
@@ -774,7 +869,7 @@
                         const dimLayer = layers.find(l => l.id === DIM_LAYER_ID);
                         if (dimLayer && !dimLayer.color) dimLayer.color = '#ff0000';
                     }
-                    if (data.snapSettings) { snapSettings = data.snapSettings; document.getElementById('snap-end').checked = snapSettings.endpoint; document.getElementById('snap-mid').checked = snapSettings.midpoint; document.getElementById('snap-center').checked = snapSettings.center; document.getElementById('snap-inter').checked = snapSettings.intersection; }
+                    if (data.snapSettings) { snapSettings = Object.assign({ endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true }, data.snapSettings); document.getElementById('snap-end').checked = snapSettings.endpoint; document.getElementById('snap-mid').checked = snapSettings.midpoint; document.getElementById('snap-center').checked = snapSettings.center; document.getElementById('snap-inter').checked = snapSettings.intersection; document.getElementById('snap-perp').checked = snapSettings.perpendicular; }
                     shapes = data.shapes || []; selectedShapes = []; shapesHistory = []; historyStep = -1; saveState(); updateLayerUI(); draw();
                 } catch (err) { console.error(err); }
             };
@@ -1147,9 +1242,26 @@
             }
 
             if (currentSnap && isUIEnabled) {
-                targetCtx.strokeStyle = '#eab308'; targetCtx.lineWidth = 2/camera.zoom;
                 let t = 5/camera.zoom;
-                targetCtx.strokeRect(currentSnap.x - t, currentSnap.y - t, t*2, t*2);
+                if (currentSnap.perp) {
+                    // Symbole perpendiculaire : petit angle droit (⊥)
+                    targetCtx.strokeStyle = '#22d3ee'; targetCtx.lineWidth = 2/camera.zoom;
+                    targetCtx.setLineDash([]);
+                    targetCtx.beginPath();
+                    // côté vertical
+                    targetCtx.moveTo(currentSnap.x - t, currentSnap.y - t);
+                    targetCtx.lineTo(currentSnap.x - t, currentSnap.y + t);
+                    // côté horizontal (base)
+                    targetCtx.lineTo(currentSnap.x + t, currentSnap.y + t);
+                    // petite marque interne du carré d'angle droit
+                    targetCtx.moveTo(currentSnap.x - t, currentSnap.y + t*0.3);
+                    targetCtx.lineTo(currentSnap.x - t*0.3, currentSnap.y + t*0.3);
+                    targetCtx.lineTo(currentSnap.x - t*0.3, currentSnap.y + t);
+                    targetCtx.stroke();
+                } else {
+                    targetCtx.strokeStyle = '#eab308'; targetCtx.lineWidth = 2/camera.zoom;
+                    targetCtx.strokeRect(currentSnap.x - t, currentSnap.y - t, t*2, t*2);
+                }
             }
             targetCtx.restore();
 
