@@ -72,9 +72,24 @@
 
         <div class="tool-group flex items-center space-x-1 pr-1">
             <button id="btn-fullscreen" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Plein Écran" onclick="toggleFullScreen()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></button>
-            <button id="btn-save" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Sauvegarder en JSON" onclick="saveToJSON()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
-            <button id="btn-load" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-400" title="Charger un JSON" onclick="document.getElementById('file-input').click()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></button>
+            <!-- Menu JSON (disquette) -->
+            <div class="relative inline-block">
+                <button id="btn-json-menu" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Fichier JSON" onclick="toggleFileMenu('json', event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
+                <div id="menu-json" class="hidden absolute left-0 mt-1 w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1">
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="saveToJSON(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exporter JSON</button>
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="document.getElementById('file-input').click(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Importer JSON</button>
+                </div>
+            </div>
             <input type="file" id="file-input" class="hidden" accept=".json" onchange="loadFromJSON(event)">
+            <!-- Menu DXF -->
+            <div class="relative inline-block">
+                <button id="btn-dxf-menu" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-400 font-bold text-xs" title="Fichier DXF (R12, 1:1 mm)" onclick="toggleFileMenu('dxf', event)">DxF</button>
+                <div id="menu-dxf" class="hidden absolute left-0 mt-1 w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1">
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="exportDXFFile(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exporter DXF</button>
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="document.getElementById('dxf-input').click(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Importer DXF</button>
+                </div>
+            </div>
+            <input type="file" id="dxf-input" class="hidden" accept=".dxf" onchange="importDXFFile(event)">
             <button id="btn-cartouche" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-400" title="Éditer le Cartouche" onclick="openCartoucheModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></button>
             <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression PDF (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
             <div class="w-px h-5 bg-gray-600 mx-1"></div>
@@ -222,12 +237,23 @@
                 </ul>
             </div>
             <div>
-                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🛠️ Outils Spéciaux</h4>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🛠️ Outils de dessin & édition</h4>
                 <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Créé comme polyligne fermée (sélectionnable, déplaçable, hachurable).</li>
                     <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li>
                     <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li>
                     <li><b class="text-white">Décaler (Offset) :</b> Tapez la distance désirée, puis cliquez sur l'objet.</li>
+                    <li><b class="text-white">Cotation linéaire :</b> 3 clics (2 points d'attache + position de la ligne de cote). En mode Ortho, le 2e point se cale automatiquement à l'horizontale ou la verticale.</li>
                     <li><b class="text-white">Cotation angulaire :</b> Clic 1 = D1, Clic 2 = D2, Clic 3 = pose de l'arc. Sélection en cliquant sur la valeur °.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">💾 Fichiers (JSON / DXF)</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Menu disquette → JSON :</b> Exporter / Importer le projet complet (formes, calques, cartouche, réglages). Format natif de l'application, à utiliser pour sauvegarder et rouvrir ton travail.</li>
+                    <li><b class="text-white">Menu DxF :</b> Exporter / Importer au format DXF R12 (AC1009), à l'échelle 1:1 (1 unité = 1 mm). C'est le format d'échange universel, lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li>
+                    <li><b class="text-white">Entités DXF gérées :</b> lignes, polylignes (rectangles), cercles, arcs, textes. À l'import, l'application gère l'ancien format (POLYLINE/VERTEX) et le moderne (LWPOLYLINE). Les entités non supportées (blocs, splines, hachures) sont ignorées et signalées.</li>
+                    <li><b class="text-white">Recentrage auto :</b> après un import DXF, la vue se recentre automatiquement sur le dessin (utile car les fichiers externes ont souvent des coordonnées très éloignées de l'origine).</li>
                 </ul>
             </div>
             <div>
@@ -861,6 +887,289 @@
                 });
                 saveState(); draw();
             }
+        }
+
+        // ===== DXF =====
+        // ============ EXPORT / IMPORT DXF (échelle 1:1, 1 unité DXF = 1 mm) ============
+        // Conventions de conversion :
+        //   - px monde -> mm : diviser par MM_TO_WORLD (= GRID_SIZE/unitsPerSquare, soit 5 si 10mm/carré)
+        //   - L'axe Y est INVERSÉ entre le canvas (Y bas) et le DXF (Y haut).
+        function worldToMm(v) { return v / (GRID_SIZE / unitsPerSquare); }
+        function mmToWorld(v) { return v * (GRID_SIZE / unitsPerSquare); }
+        function layerDxfName(id) {
+            const l = layers.find(x => x.id === id);
+            // Noms de calque DXF : pas d'espaces, on remplace par _
+            return l ? l.name.replace(/[^A-Za-z0-9_\-]/g, '_') : '0';
+        }
+
+        function exportDXF() {
+            const M2 = (mmPerSquareUnit()); // pour info, non utilisé directement
+            const L = []; // lignes du fichier DXF
+            const p = (code, val) => { L.push(code); L.push(String(val)); };
+
+            // ---- En-tête R12 (AC1009), format d'échange universel, unités = mm ----
+            p(0,'SECTION'); p(2,'HEADER');
+            p(9,'$ACADVER'); p(1,'AC1009');  // R12 : lisible par tous les logiciels CAO
+            p(9,'$INSUNITS'); p(70,4);       // 4 = millimètres
+            p(9,'$MEASUREMENT'); p(70,1);    // 1 = métrique
+            p(0,'ENDSEC');
+
+            // ---- Table des calques ----
+            p(0,'SECTION'); p(2,'TABLES');
+            p(0,'TABLE'); p(2,'LAYER'); p(70, layers.length);
+            for (const l of layers) {
+                p(0,'LAYER'); p(2, layerDxfName(l.id)); p(70,0);
+                // couleur : 1=rouge si calque rouge, sinon 7 (noir/blanc)
+                const aci = (l.color && l.color.toLowerCase() === '#ff0000') ? 1 : 7;
+                p(62, aci); p(6,'CONTINUOUS');
+            }
+            p(0,'ENDTABLE'); p(0,'ENDSEC');
+
+            // ---- Entités ----
+            p(0,'SECTION'); p(2,'ENTITIES');
+            const Y = (v) => -worldToMm(v); // inversion Y + conversion mm
+            const X = (v) => worldToMm(v);
+
+            for (const s of shapes) {
+                const lname = layerDxfName(s.layerId || 'layer-0');
+                if (s.type === 'line' || s.type === 'dim') {
+                    // une cote -> on exporte juste le segment de mesure (les 2 points d'attache)
+                    p(0,'LINE'); p(8,lname);
+                    p(10, X(s.x1)); p(20, Y(s.y1)); p(30,0);
+                    p(11, X(s.x2)); p(21, Y(s.y2)); p(31,0);
+                } else if (s.type === 'circle') {
+                    p(0,'CIRCLE'); p(8,lname);
+                    p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
+                    p(40, worldToMm(s.r));
+                } else if (s.type === 'arc') {
+                    // ATTENTION : Y inversé => les angles tournent dans l'autre sens.
+                    // angle_dxf = -angle_monde (en degrés), et start/end s'échangent.
+                    p(0,'ARC'); p(8,lname);
+                    p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
+                    p(40, worldToMm(s.r));
+                    let a1 = -s.endAngle * 180/Math.PI;
+                    let a2 = -s.startAngle * 180/Math.PI;
+                    p(50, a1); p(51, a2);
+                } else if (s.type === 'poly') {
+                    // Format R12 : POLYLINE + VERTEX + SEQEND (pas de LWPOLYLINE en R12)
+                    p(0,'POLYLINE'); p(8,lname); p(66,1); p(70,1); // 66=vertices suivent, 70=1 fermée
+                    p(10,0); p(20,0); p(30,0);
+                    for (const pt of s.points) {
+                        p(0,'VERTEX'); p(8,lname); p(10, X(pt.x)); p(20, Y(pt.y)); p(30,0);
+                    }
+                    p(0,'SEQEND'); p(8,lname);
+                } else if (s.type === 'text') {
+                    p(0,'TEXT'); p(8,lname);
+                    p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
+                    p(40, worldToMm(s.size || 20)); // hauteur de texte en mm
+                    p(1, s.content || '');
+                    if (s.angle) p(50, -s.angle * 180/Math.PI);
+                }
+            }
+            p(0,'ENDSEC');
+            p(0,'EOF');
+            return L.join('\n');
+        }
+
+        function mmPerSquareUnit() {
+            return currentUnit === 'mm' ? unitsPerSquare : (currentUnit === 'cm' ? unitsPerSquare*10 : unitsPerSquare*1000);
+        }
+
+        function importDXF(text) {
+            // Parseur DXF "best effort" : lit les paires (code, valeur) et reconstruit
+            // les entités supportées. Ignore le reste (blocs, splines, hachures...).
+            const raw = text.split(/\r\n|\r|\n/);
+            const pairs = [];
+            for (let i = 0; i + 1 < raw.length; i += 2) {
+                pairs.push({ code: parseInt(raw[i].trim(), 10), val: raw[i+1] });
+            }
+            const newShapes = [];
+            const importedLayers = {}; // name -> color
+            let ignored = 0;
+            let i = 0;
+
+            // 1) Récupérer les couleurs de calques depuis la table LAYER (si présente)
+            for (let k = 0; k < pairs.length - 1; k++) {
+                if (pairs[k].code === 0 && pairs[k].val.trim() === 'LAYER') {
+                    let name = null, aci = 7;
+                    for (let j = k+1; j < pairs.length && !(pairs[j].code === 0); j++) {
+                        if (pairs[j].code === 2) name = pairs[j].val.trim();
+                        if (pairs[j].code === 62) aci = parseInt(pairs[j].val.trim(), 10);
+                    }
+                    if (name) importedLayers[name] = (aci === 1) ? '#ff0000' : null;
+                }
+            }
+
+            // 2) Trouver la section ENTITIES
+            let start = 0;
+            for (let k = 0; k < pairs.length - 1; k++) {
+                if (pairs[k].code === 2 && pairs[k].val.trim() === 'ENTITIES') { start = k; break; }
+            }
+
+            const num = (x) => parseFloat(x);
+            const X = (mm) => mmToWorld(num(mm));
+            const Y = (mm) => -mmToWorld(num(mm)); // ré-inversion Y
+
+            i = start;
+            while (i < pairs.length) {
+                if (pairs[i].code !== 0) { i++; continue; }
+                const ent = pairs[i].val.trim();
+                if (ent === 'ENDSEC' || ent === 'EOF') break;
+
+                // ----- POLYLINE ancien format (R12) : sommets dans des VERTEX -----
+                if (ent === 'POLYLINE') {
+                    const pg = {};
+                    let j = i + 1;
+                    for (; j < pairs.length && pairs[j].code !== 0; j++) pg[pairs[j].code] = pairs[j].val;
+                    const layerId = resolveImportLayer((pg[8] || '0').trim(), importedLayers);
+                    const closed = (parseInt(pg[70] || '0', 10) & 1) === 1;
+                    const pts = [];
+                    while (j < pairs.length) {
+                        if (pairs[j].code === 0 && pairs[j].val.trim() === 'VERTEX') {
+                            const vg = {}; let k = j + 1;
+                            for (; k < pairs.length && pairs[k].code !== 0; k++) vg[pairs[k].code] = pairs[k].val;
+                            if (vg[10] !== undefined && vg[20] !== undefined) pts.push({ x: X(vg[10]), y: Y(vg[20]) });
+                            j = k;
+                        } else if (pairs[j].code === 0 && pairs[j].val.trim() === 'SEQEND') { j++; break; }
+                        else if (pairs[j].code === 0) break;
+                        else j++;
+                    }
+                    if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts, color:'#ffffff', dash:'solid', width:1, hatch:false });
+                    else ignored++;
+                    i = j; continue;
+                }
+
+                // Collecte tous les codes de l'entité jusqu'au prochain code 0
+                const g = {}; const gmulti = { 10:[], 20:[] };
+                let j = i + 1;
+                for (; j < pairs.length && pairs[j].code !== 0; j++) {
+                    const c = pairs[j].code, v = pairs[j].val;
+                    if (c === 10) gmulti[10].push(v);
+                    else if (c === 20) gmulti[20].push(v);
+                    else g[c] = v;
+                }
+
+                const layerName = (g[8] || '0').trim();
+                const layerId = resolveImportLayer(layerName, importedLayers);
+
+                if (ent === 'LINE') {
+                    newShapes.push({ type:'line', layerId,
+                        x1: X(gmulti[10][0]), y1: Y(gmulti[20][0]),
+                        x2: X(g[11]), y2: Y(g[21]),
+                        color:'#ffffff', dash:'solid', width:1 });
+                } else if (ent === 'CIRCLE') {
+                    newShapes.push({ type:'circle', layerId,
+                        x: X(gmulti[10][0]), y: Y(gmulti[20][0]),
+                        r: mmToWorld(num(g[40])),
+                        color:'#ffffff', dash:'solid', width:1, hatch:false });
+                } else if (ent === 'ARC') {
+                    // Ré-inversion des angles (cf. export)
+                    const cx = X(gmulti[10][0]), cy = Y(gmulti[20][0]), r = mmToWorld(num(g[40]));
+                    let a1 = num(g[50]) * Math.PI/180, a2 = num(g[51]) * Math.PI/180;
+                    // dxf->monde : angle_monde = -angle_dxf, et on ré-échange start/end
+                    newShapes.push({ type:'arc', layerId, x:cx, y:cy, r:r,
+                        startAngle: -a2, endAngle: -a1,
+                        color:'#ffffff', dash:'solid', width:1 });
+                } else if (ent === 'LWPOLYLINE') {
+                    const pts = [];
+                    const n = Math.min(gmulti[10].length, gmulti[20].length);
+                    for (let q = 0; q < n; q++) pts.push({ x: X(gmulti[10][q]), y: Y(gmulti[20][q]) });
+                    if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts,
+                        color:'#ffffff', dash:'solid', width:1, hatch:false });
+                } else if (ent === 'TEXT' || ent === 'MTEXT') {
+                    newShapes.push({ type:'text', layerId,
+                        x: X(gmulti[10][0]), y: Y(gmulti[20][0]),
+                        content: (g[1] || '').replace(/\\P/g,' ').replace(/[{}]/g,''),
+                        color:'#ffffff', size: g[40] ? mmToWorld(num(g[40])) : 20,
+                        angle: g[50] ? -num(g[50])*Math.PI/180 : 0 });
+                } else {
+                    ignored++;
+                }
+                i = j;
+            }
+            return { shapes: newShapes, ignored };
+        }
+
+        function resolveImportLayer(name, importedLayers) {
+            // Cherche un calque existant dont le nom DXF correspond, sinon en crée un.
+            for (const l of layers) {
+                if (layerDxfName(l.id) === name) return l.id;
+            }
+            const newId = 'layer-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+            layers.push({ id:newId, name:name || 'Importé', visible:true,
+                          color: importedLayers[name] || null });
+            return newId;
+        }
+
+
+        // Recentre et ajuste le zoom de la vue sur un ensemble de formes (après import DXF).
+        function zoomToFitShapes(shapeList) {
+            let xs = [], ys = [];
+            for (const s of shapeList) {
+                if (s.points) { for (const p of s.points) { xs.push(p.x); ys.push(p.y); } }
+                else if (s.x1 !== undefined) { xs.push(s.x1, s.x2); ys.push(s.y1, s.y2); }
+                else if (s.r !== undefined) { xs.push(s.x - s.r, s.x + s.r); ys.push(s.y - s.r, s.y + s.r); }
+                else if (s.x !== undefined) { xs.push(s.x); ys.push(s.y); }
+            }
+            if (xs.length === 0) return;
+            const minX = Math.min(...xs), maxX = Math.max(...xs);
+            const minY = Math.min(...ys), maxY = Math.max(...ys);
+            const w = (maxX - minX) || 1, h = (maxY - minY) || 1;
+            const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+            // Zoom pour que le dessin tienne dans 85% de l'écran
+            const zx = (canvas.width * 0.85) / w, zy = (canvas.height * 0.85) / h;
+            camera.zoom = Math.min(zx, zy);
+            camera.x = canvas.width / 2 - cx * camera.zoom;
+            camera.y = canvas.height / 2 - cy * camera.zoom;
+        }
+
+        // --- Menus déroulants Fichier (JSON / DXF) ---
+        function toggleFileMenu(which, ev) {
+            if (ev) ev.stopPropagation();
+            const target = document.getElementById('menu-' + which);
+            const other = document.getElementById('menu-' + (which === 'json' ? 'dxf' : 'json'));
+            if (other) other.classList.add('hidden');
+            if (target) target.classList.toggle('hidden');
+        }
+        function closeFileMenus() {
+            const j = document.getElementById('menu-json'), d = document.getElementById('menu-dxf');
+            if (j) j.classList.add('hidden');
+            if (d) d.classList.add('hidden');
+        }
+        // Fermer les menus si on clique ailleurs
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#btn-json-menu') && !e.target.closest('#btn-dxf-menu')
+                && !e.target.closest('#menu-json') && !e.target.closest('#menu-dxf')) {
+                closeFileMenus();
+            }
+        });
+
+        function exportDXFFile() {
+            const dxf = exportDXF();
+            const blob = new Blob([dxf], { type: "application/dxf" });
+            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
+            a.download = "plan_momo_" + new Date().getTime() + ".dxf"; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importDXFFile(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const res = importDXF(e.target.result);
+                    if (res.shapes.length === 0) { alert("Aucune entité compatible trouvée dans ce DXF."); return; }
+                    shapes = shapes.concat(res.shapes);
+                    selectedShapes = []; saveState(); updateLayerUI();
+                    zoomToFitShapes(res.shapes); // recentrer la vue sur le dessin importé
+                    draw();
+                    let msg = res.shapes.length + " entité(s) importée(s).";
+                    if (res.ignored > 0) msg += "\n" + res.ignored + " entité(s) non supportée(s) ignorée(s) (blocs, splines, hachures...).";
+                    alert(msg);
+                } catch (err) { console.error(err); alert("Erreur de lecture du DXF : " + err.message); }
+                event.target.value = "";
+            };
+            reader.readAsText(file);
         }
 
         function saveToJSON() {
