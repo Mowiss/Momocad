@@ -97,6 +97,7 @@
             <!-- Bloc Création -->
             <div class="tool-group flex flex-col space-y-2">
                 <button id="btn-line" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Ligne" onclick="setMode('line')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"></line></svg></button>
+                <button id="btn-rect" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Rectangle" onclick="setMode('rect')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12"></rect></svg></button>
                 <button id="btn-circle" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-pink-300" title="Cercle" onclick="setMode('circle')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"></circle></svg></button>
                 <button id="btn-arc" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Arc (Centre, Début, Fin)" onclick="setMode('arc')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 18 0"></path></svg></button>
                 <button id="btn-poly" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polygone" onclick="setMode('poly')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z"></path></svg></button>
@@ -797,12 +798,26 @@
         }
 
         // --- GESTION DES OUTILS ET MODES ---
-        // Zoom caméra correspondant à une échelle d'impression 1:1.
-        // (mêmes constantes que l'ancienne formule : 12 carrés de référence, 0.297 = facteur A4)
+        // Zoom caméra correspondant à une échelle d'impression 1:1, calculé pour être
+        // DIMENSIONNELLEMENT EXACT : une cote de N mm doit mesurer N mm sur le papier.
+        //
+        // Démonstration : à l'impression, l'image offscreen (largeur rect.w*SS px) est
+        // posée sur imgMm_w mm de papier (= drawW, surface intérieure du cadre).
+        // Une cote de C mm vaut C*(GRID_SIZE/mmParCarré) px monde. Sur le papier :
+        //   C_papier = C * (GRID_SIZE/mmParCarré) * camera.zoom * (imgMm_w / rect.w)
+        // On veut C_papier = facteur * C, d'où :
+        //   camera.zoom(1:1) = rect.w / (imgMm_w * GRID_SIZE/mmParCarré)
         function printBaseZoom() {
-            const um = currentUnit === 'mm' ? unitsPerSquare/1000
-                     : (currentUnit === 'cm' ? unitsPerSquare/100 : unitsPerSquare);
-            return (um * 12) / (1 * 0.297);
+            // mm réels par carré de grille (toutes unités ramenées au mm)
+            const mmPerSquare = currentUnit === 'mm' ? unitsPerSquare
+                              : (currentUnit === 'cm' ? unitsPerSquare*10 : unitsPerSquare*1000);
+            const pxMondePerMm = GRID_SIZE / mmPerSquare;
+            const rect = getPrintRect();
+            const isLandscape = printOrientation === 'landscape';
+            const pageW = isLandscape ? 297 : 210;
+            const drawW = pageW - 2 * 5; // marge 5 mm
+            const imgMm_w = drawW;       // l'image couvre toute la largeur intérieure
+            return rect.w / (imgMm_w * pxMondePerMm);
         }
 
         function setMode(newMode) {
@@ -1148,6 +1163,10 @@
                 let px = currentX, py = currentY, pr = Math.hypot(currentX-startX, currentY-startY);
                 if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; pr = d; if (mode === 'poly' && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); px = lp.x+Math.cos(a)*d; py = lp.y+Math.sin(a)*d; } else if (mode !== 'arc') { let a = Math.atan2(currentY-startY, currentX-startX); px = startX+Math.cos(a)*d; py = startY+Math.sin(a)*d; } }
                 let previewW = (parseFloat(document.getElementById('prop-width').value) || 1) * 2;
+                if (mode === 'rect') {
+                    targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
+                    targetCtx.strokeRect(startX, startY, px - startX, py - startY);
+                }
                 if (mode === 'line') {
                     targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
                     targetCtx.beginPath(); targetCtx.moveTo(startX, startY); targetCtx.lineTo(px, py); targetCtx.stroke();
@@ -1176,7 +1195,16 @@
                     else if (arcStep === 2) { let curA = Math.atan2(py - arcCenter.y, px - arcCenter.x); if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) curA = arcStartAngle + parseFloat(typedInput)*Math.PI/180; targetCtx.beginPath(); targetCtx.arc(arcCenter.x, arcCenter.y, arcRadius, arcStartAngle, curA); targetCtx.stroke(); targetCtx.globalAlpha = 0.5; targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(arcP1.x, arcP1.y); targetCtx.stroke(); targetCtx.globalAlpha = 1.0; }
                 }
                 else if (mode === 'poly' && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let p of currentPolygon.slice(1)) targetCtx.lineTo(p.x, p.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; let t=5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x-t, currentPolygon[0].y-t, t*2, t*2); }
-                else if (mode === 'dim' && dimStep === 1) { targetCtx.strokeStyle = '#f59e0b'; targetCtx.setLineDash([5/camera.zoom, 5/camera.zoom]); targetCtx.beginPath(); targetCtx.moveTo(dimP1.x, dimP1.y); targetCtx.lineTo(currentX, currentY); targetCtx.stroke(); }
+                else if (mode === 'dim' && dimStep === 1) {
+                    // Pré-trait du 2e point : contraint H/V si Ortho actif (cohérent avec le clic).
+                    let pcx = currentX, pcy = currentY;
+                    if (orthoMode || shiftHeld) {
+                        if (Math.abs(pcx - dimP1.x) > Math.abs(pcy - dimP1.y)) pcy = dimP1.y;
+                        else pcx = dimP1.x;
+                    }
+                    targetCtx.strokeStyle = '#f59e0b'; targetCtx.setLineDash([5/camera.zoom, 5/camera.zoom]);
+                    targetCtx.beginPath(); targetCtx.moveTo(dimP1.x, dimP1.y); targetCtx.lineTo(pcx, pcy); targetCtx.stroke();
+                }
                 else if (mode === 'dim' && dimStep === 2) {
                     let dx2 = dimP2.x-dimP1.x, dy2 = dimP2.y-dimP1.y, dist = Math.hypot(dx2, dy2);
                     if (dist > 0.01) {
@@ -1325,7 +1353,7 @@
                 ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, ms.x+20, ms.y+26);
             }
 
-            if (isDrawing && !isPanning && (mode === 'line' || mode === 'circle' || mode === 'poly' || mode === 'arc')) {
+            if (isDrawing && !isPanning && (mode === 'line' || mode === 'rect' || mode === 'circle' || mode === 'poly' || mode === 'arc')) {
                 let full = "";
                 if (mode === 'arc') {
                     if (arcStep === 1) { let dist = Math.hypot(currentX - arcCenter.x, currentY - arcCenter.y); full = "R= " + (typedInput.length > 0 ? typedInput + "_ " + currentUnit : calculateRealDistance(dist)); }
@@ -1347,6 +1375,7 @@
             let msg = "Prêt.";
             if (mode === 'select-box') msg = selectedShapes.length > 0 ? `${selectedShapes.length} objet(s) sélectionné(s).` : "SÉLECTION : Cliquez sur un objet ou dessinez une zone.";
             else if (mode === 'line') msg = isDrawing ? "LIGNE : Spécifiez le point suivant (distance + Entrée)." : "LIGNE : Spécifiez le premier point.";
+            else if (mode === 'rect') msg = isDrawing ? "RECTANGLE : Spécifiez le coin opposé." : "RECTANGLE : Spécifiez le premier coin.";
             else if (mode === 'circle') msg = isDrawing ? "CERCLE : Spécifiez le rayon (valeur + Entrée)." : "CERCLE : Spécifiez le centre.";
             else if (mode === 'arc') { if (arcStep === 0) msg = "ARC : Spécifiez le centre."; else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ."; else msg = "ARC : Spécifiez l'angle de fin (valeur + Entrée)."; }
             else if (mode === 'poly') msg = isDrawing ? "POLYGONE : Spécifiez le point suivant (double-clic pour fermer)." : "POLYGONE : Spécifiez le point de départ.";
@@ -1497,7 +1526,14 @@
             if (mode === 'dim') {
                 let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
                 if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; }
-                else if (dimStep === 1) { dimP2 = pt; dimStep = 2; }
+                else if (dimStep === 1) {
+                    // Mode Ortho : 2e point d'attache contraint à H ou V par rapport au 1er.
+                    if (orthoMode || e.shiftKey) {
+                        if (Math.abs(pt.x - dimP1.x) > Math.abs(pt.y - dimP1.y)) pt.y = dimP1.y;
+                        else pt.x = dimP1.x;
+                    }
+                    dimP2 = pt; dimStep = 2;
+                }
                 else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: DIM_LAYER_ID, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); }
                 return;
             }
@@ -1542,9 +1578,15 @@
                 let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y;
                 let fx = currentX, fy = currentY, fr = Math.hypot(currentX-startX, currentY-startY);
                 if ((orthoMode || e.shiftKey) && mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) fy = startY; else fx = startX; }
-                if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; let a = Math.atan2(fy-startY, fx-startX); fx = startX+Math.cos(a)*d; fy = startY+Math.sin(a)*d; fr = d; }
+                if (typedInput.length > 0 && !isNaN(parseFloat(typedInput)) && mode !== 'rect') { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; let a = Math.atan2(fy-startY, fx-startX); fx = startX+Math.cos(a)*d; fy = startY+Math.sin(a)*d; fr = d; }
                 if (Math.abs(fx-startX) > 0.1 || Math.abs(fy-startY) > 0.1 || fr > 0.1) {
                     if (mode === 'line') shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: fx, y2: fy, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 });
+                    else if (mode === 'rect') {
+                        // Rectangle = polyligne fermée à 4 points (hérite sélection, déplacement, hachure, etc.)
+                        shapes.push({ type: 'poly', layerId: activeLayerId, points: [
+                            { x: startX, y: startY }, { x: fx, y: startY }, { x: fx, y: fy }, { x: startX, y: fy }
+                        ], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
+                    }
                     else if (mode === 'circle') shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: fr, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
                 }
                 isDrawing = false; typedInput = ""; saveState(); draw();
