@@ -52,7 +52,7 @@
                 <button id="btn-snap-settings" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-500" title="Paramètres d'accrochage" onclick="openSnapModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7"></path><circle cx="12" cy="12" r="1" fill="currentColor"></circle></svg></button>
             </div>
 
-            <div class="tool-group flex items-center space-x-3 px-3">
+            <div class="tool-group hidden items-center space-x-3 px-3">
                 <div class="flex items-center space-x-1" title="Couleur">
                     <label class="text-xs text-gray-400">Coul.</label>
                     <input type="color" id="prop-color" value="#ffffff" class="w-8 h-8 bg-transparent border-0 cursor-pointer rounded" onchange="updateSelectedProperties()">
@@ -72,18 +72,9 @@
 
         <div class="tool-group flex items-center space-x-1 pr-1">
             <button id="btn-fullscreen" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Plein Écran" onclick="toggleFullScreen()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></button>
-            <!-- Menu JSON (disquette) -->
-            <div class="relative inline-block">
-                <button id="btn-json-menu" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Fichier JSON" onclick="toggleFileMenu('json', event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
-                <div id="menu-json" class="hidden absolute left-0 mt-1 w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1">
-                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="saveToJSON(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exporter JSON</button>
-                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="document.getElementById('file-input').click(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Importer JSON</button>
-                </div>
-            </div>
-            <input type="file" id="file-input" class="hidden" accept=".json" onchange="loadFromJSON(event)">
             <!-- Menu DXF -->
             <div class="relative inline-block">
-                <button id="btn-dxf-menu" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-400 font-bold text-xs" title="Fichier DXF (R12, 1:1 mm)" onclick="toggleFileMenu('dxf', event)">DxF</button>
+                <button id="btn-dxf-menu" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Fichier DXF (R12, 1:1 mm)" onclick="toggleFileMenu('dxf', event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
                 <div id="menu-dxf" class="hidden absolute left-0 mt-1 w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1">
                     <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="exportDXFFile(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exporter DXF</button>
                     <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="document.getElementById('dxf-input').click(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Importer DXF</button>
@@ -173,10 +164,21 @@
         </div>
         <div class="flex justify-end space-x-3"><button class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white transition" onclick="closeCartoucheModal()">Annuler</button><button class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white transition" onclick="applyCartouche()">Valider</button></div>
     </div>
-    <div id="layer-modal" class="hidden absolute top-16 left-64 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-80">
+    <div id="layer-modal" class="hidden absolute top-16 left-64 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-96">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-white">Gestionnaire de Calques</h3><button class="text-gray-400 hover:text-white" onclick="closeLayerModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
         <div id="layers-list" class="flex flex-col space-y-2 mb-4 max-h-60 overflow-y-auto custom-scrollbar pr-2"></div>
         <div class="flex items-center space-x-2 border-t border-gray-700 pt-3"><input type="text" id="new-layer-name" class="flex-1 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500" placeholder="Nouveau calque..."><button class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm" onclick="addLayer()">Ajouter</button></div>
+    </div>
+    <div id="selparam-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+        <div class="bg-gray-800 p-5 rounded-lg shadow-2xl border border-gray-600 w-80">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-white">Paramétrer la sélection</h3><button class="text-gray-400 hover:text-white" onclick="closeSelectionParamModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+            <p class="text-sm text-gray-400 mb-2"><span id="selparam-count">0</span> objet(s). Assigner au calque :</p>
+            <select id="selparam-layer" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-2 outline-none focus:border-blue-500 mb-4"></select>
+            <div class="flex justify-end gap-2">
+                <button class="px-3 py-1.5 rounded bg-gray-600 hover:bg-gray-500 text-white text-sm" onclick="closeSelectionParamModal()">Annuler</button>
+                <button class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm" onclick="applySelectionLayer()">Appliquer</button>
+            </div>
+        </div>
     </div>
     <div id="snap-modal" class="hidden absolute top-16 left-96 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-64">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-white">Points d'accroche</h3><button class="text-gray-400 hover:text-white" onclick="closeSnapModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
@@ -248,12 +250,12 @@
                 </ul>
             </div>
             <div>
-                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">💾 Fichiers (JSON / DXF)</h4>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">💾 Fichiers DXF</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Menu disquette → JSON :</b> Exporter / Importer le projet complet (formes, calques, cartouche, réglages). Format natif de l'application, à utiliser pour sauvegarder et rouvrir ton travail.</li>
-                    <li><b class="text-white">Menu DxF :</b> Exporter / Importer au format DXF R12 (AC1009), à l'échelle 1:1 (1 unité = 1 mm). C'est le format d'échange universel, lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li>
-                    <li><b class="text-white">Entités DXF gérées :</b> lignes, polylignes (rectangles), cercles, arcs, textes. À l'import, l'application gère l'ancien format (POLYLINE/VERTEX) et le moderne (LWPOLYLINE). Les entités non supportées (blocs, splines, hachures) sont ignorées et signalées.</li>
-                    <li><b class="text-white">Recentrage auto :</b> après un import DXF, la vue se recentre automatiquement sur le dessin (utile car les fichiers externes ont souvent des coordonnées très éloignées de l'origine).</li>
+                    <li><b class="text-white">Menu Fichier (disquette) :</b> Exporter / Importer au format DXF R2000 (AC1015), à l'échelle 1:1 (1 unité = 1 mm). Format d'échange lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li>
+                    <li><b class="text-white">Mise en forme conservée :</b> couleur, épaisseur de trait et type de ligne (continu/tireté/axe) sont enregistrés et restitués au rechargement. Les couleurs sont ramenées à l'index ACI le plus proche (palette DXF standard).</li>
+                    <li><b class="text-white">Entités gérées :</b> lignes, polylignes (rectangles), cercles, arcs, textes. À l'import, l'application gère l'ancien format (POLYLINE/VERTEX) et le moderne (LWPOLYLINE). Les entités non supportées (blocs, splines, hachures) sont ignorées et signalées.</li>
+                    <li><b class="text-white">Recentrage auto :</b> après un import DXF, la vue se recentre automatiquement sur le dessin (les fichiers externes ont souvent des coordonnées très éloignées de l'origine).</li>
                 </ul>
             </div>
             <div>
@@ -283,6 +285,7 @@
         let shiftHeld = false; // état de la touche Shift (pour le guide d'alignement)
         let currentX_screen = 0, currentY_screen = 0;
         let typedInput = "";
+        let rectDimStep = 0, rectWidthVal = 0; // saisie rectangle par dimensions (0=largeur, 1=hauteur)
         let dimStep = 0, dimP1 = null, dimP2 = null;
         let currentPolygon = [], currentSnap = null;
         let arcStep = 0, arcCenter = null, arcP1 = null, arcRadius = 0, arcStartAngle = 0;
@@ -361,7 +364,7 @@
         let printScaleIndex = PRINT_SCALES.findIndex(s => s.label === '1:1');
         let currentPrintScale = PRINT_SCALES[printScaleIndex].label; // libellé affiché (ex. '2:1')
 
-        let layers = [{ id: 'layer-0', name: '0 - Murs', visible: true, color: null }, { id: 'layer-1', name: '1 - Mobilier', visible: true, color: null }, { id: 'layer-2', name: '2 - Cotations', visible: true, color: '#ff0000' }];
+        let layers = [{ id: 'layer-0', name: '0 - Murs', visible: true, color: '#ffffff', dash: 'solid', width: 1 }, { id: 'layer-1', name: '1 - Mobilier', visible: true, color: '#ffffff', dash: 'solid', width: 1 }, { id: 'layer-2', name: '2 - Cotations', visible: true, color: '#ff0000', dash: 'solid', width: 1 }];
         const DIM_LAYER_ID = 'layer-2'; // calque cotation (rouge à l'impression)
         let activeLayerId = 'layer-0';
         let snapSettings = { endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true };
@@ -401,8 +404,18 @@
             if (list) {
                 list.innerHTML = '';
                 layers.forEach(l => {
-                    let div = document.createElement('div'); div.className = `flex items-center justify-between p-2 rounded border ${l.id === activeLayerId ? 'bg-gray-700 border-blue-500' : 'bg-gray-800 border-gray-600'}`;
-                    div.innerHTML = `<div class="flex items-center space-x-3 flex-1 overflow-hidden"><button onclick="toggleLayerVis('${l.id}')" class="${l.visible ? 'text-blue-400' : 'text-gray-500 hover:text-gray-400'}">${l.visible ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'}</button><span class="text-sm text-gray-200 cursor-pointer truncate flex-1" onclick="setActiveLayer('${l.id}')">${l.name}</span></div><button onclick="deleteLayer('${l.id}')" class="text-gray-500 hover:text-red-400 ml-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
+                    let div = document.createElement('div'); div.className = `flex items-center gap-2 p-2 rounded border ${l.id === activeLayerId ? 'bg-gray-700 border-blue-500' : 'bg-gray-800 border-gray-600'}`;
+                    div.innerHTML = `
+                        <button onclick="toggleLayerVis('${l.id}')" class="${l.visible ? 'text-blue-400' : 'text-gray-500 hover:text-gray-400'} shrink-0">${l.visible ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>' : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'}</button>
+                        <span class="text-sm text-gray-200 cursor-pointer truncate flex-1 min-w-0" onclick="setActiveLayer('${l.id}')">${l.name}</span>
+                        <input type="color" value="${l.color || '#ffffff'}" title="Couleur" class="w-6 h-6 bg-transparent border-0 cursor-pointer rounded shrink-0 p-0" onchange="setLayerStyle('${l.id}','color',this.value)">
+                        <select title="Type de ligne" class="bg-gray-700 text-white border border-gray-600 rounded px-0.5 py-0.5 text-xs font-mono outline-none shrink-0 w-12" onchange="setLayerStyle('${l.id}','dash',this.value)">
+                            <option value="solid"${(l.dash||'solid')==='solid'?' selected':''}>──</option>
+                            <option value="dashed"${l.dash==='dashed'?' selected':''}>- -</option>
+                            <option value="center"${l.dash==='center'?' selected':''}>-·-</option>
+                        </select>
+                        <input type="number" value="${l.width||1}" min="0.1" step="0.1" max="100" title="Épaisseur" class="w-10 bg-gray-700 text-white border border-gray-600 rounded px-1 py-0.5 text-xs text-center outline-none shrink-0" onchange="setLayerStyle('${l.id}','width',parseFloat(this.value)||1)">
+                        <button onclick="deleteLayer('${l.id}')" class="text-gray-500 hover:text-red-400 shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
                     list.appendChild(div);
                 });
             }
@@ -410,7 +423,31 @@
         function changeActiveLayer() { activeLayerId = document.getElementById('active-layer-select').value; let l = layers.find(layer => layer.id === activeLayerId); if (l && !l.visible) l.visible = true; invalidateCache(); updateLayerUI(); draw(); }
         function setActiveLayer(id) { activeLayerId = id; let l = layers.find(layer => layer.id === activeLayerId); if (l && !l.visible) l.visible = true; invalidateCache(); updateLayerUI(); draw(); }
         function toggleLayerVis(id) { let l = layers.find(layer => layer.id === id); if (l) l.visible = !l.visible; invalidateCache(); updateLayerUI(); draw(); }
-        function addLayer() { const input = document.getElementById('new-layer-name'); const name = input.value.trim(); if (name) { const newId = generateId(); layers.push({ id: newId, name: name, visible: true }); activeLayerId = newId; input.value = ''; saveState(); updateLayerUI(); } }
+        function setLayerStyle(id, prop, value) {
+            const l = layers.find(layer => layer.id === id);
+            if (!l) return;
+            l[prop] = value;
+            invalidateCache(); saveState(); draw();
+        }
+        // --- Modale de paramétrage de la sélection (assignation de calque) ---
+        function openSelectionParamModal() {
+            if (selectedShapes.length === 0) return;
+            document.getElementById('selparam-count').textContent = selectedShapes.length;
+            const sel = document.getElementById('selparam-layer');
+            sel.innerHTML = '';
+            layers.forEach(l => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.name; sel.appendChild(o); });
+            // pré-sélectionner le calque du 1er objet
+            sel.value = selectedShapes[0].layerId || 'layer-0';
+            document.getElementById('selparam-modal').classList.remove('hidden');
+        }
+        function closeSelectionParamModal() { document.getElementById('selparam-modal').classList.add('hidden'); }
+        function applySelectionLayer() {
+            const id = document.getElementById('selparam-layer').value;
+            selectedShapes.forEach(s => { s.layerId = id; });
+            closeSelectionParamModal();
+            invalidateCache(); saveState(); draw();
+        }
+        function addLayer() { const input = document.getElementById('new-layer-name'); const name = input.value.trim(); if (name) { const newId = generateId(); layers.push({ id: newId, name: name, visible: true, color: '#ffffff', dash: 'solid', width: 1 }); activeLayerId = newId; input.value = ''; saveState(); updateLayerUI(); } }
         function deleteLayer(id) { if (layers.length <= 1) { alert("Dernier calque."); return; } if (confirm("Supprimer ce calque ?")) { layers = layers.filter(l => l.id !== id); shapes = shapes.filter(s => (s.layerId || 'layer-0') !== id); selectedShapes = selectedShapes.filter(s => (s.layerId || 'layer-0') !== id); if (activeLayerId === id) activeLayerId = layers[0].id; saveState(); updateLayerUI(); draw(); } }
 
         // --- MATH INTERSECTIONS ET ARCS ---
@@ -851,6 +888,7 @@
             moveBasePoint = null; isMovingObjects = false; isDrawing = false;
             dimStep = 0; rotateCenter = null; isRotatingObjects = false; typedInput = "";
             arcStep = 0; arcCenter = null; arcP1 = null;
+            rectDimStep = 0; rectWidthVal = 0;
             offsetTarget = null; offsetPreviewShape = null;
             dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
             closeTextModal(); closeLayerModal(); closeCartoucheModal(); closeSnapModal(); closeHelpModal();
@@ -902,6 +940,62 @@
             return l ? l.name.replace(/[^A-Za-z0-9_\-]/g, '_') : '0';
         }
 
+        // ===== Conversions style DXF (couleur/type/épaisseur) =====
+        // ===== Conversion couleur HEX <-> ACI (AutoyCAD Color Index) =====
+        // Palette ACI standard (les 9 premières + quelques courantes). On mappe au plus proche.
+        const ACI_PALETTE = {
+            1: [255,0,0],     // rouge
+            2: [255,255,0],   // jaune
+            3: [0,255,0],     // vert
+            4: [0,255,255],   // cyan
+            5: [0,0,255],     // bleu
+            6: [255,0,255],   // magenta
+            7: [255,255,255], // blanc/noir (selon fond)
+            8: [128,128,128], // gris
+            9: [192,192,192], // gris clair
+            30:[255,127,0],   // orange
+            250:[51,51,51],   // gris foncé
+        };
+        function hexToRgb(hex) {
+            hex = (hex||'#ffffff').replace('#','');
+            if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+            return [parseInt(hex.substr(0,2),16), parseInt(hex.substr(2,2),16), parseInt(hex.substr(4,2),16)];
+        }
+        function rgbToHex(r,g,b){ return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); }
+        function hexToAci(hex) {
+            const [r,g,b] = hexToRgb(hex);
+            let best = 7, bestD = Infinity;
+            for (const aci in ACI_PALETTE) {
+                const [pr,pg,pb] = ACI_PALETTE[aci];
+                const d = (r-pr)**2 + (g-pg)**2 + (b-pb)**2;
+                if (d < bestD) { bestD = d; best = parseInt(aci,10); }
+            }
+            return best;
+        }
+        function aciToHex(aci) {
+            const p = ACI_PALETTE[aci];
+            return p ? rgbToHex(p[0],p[1],p[2]) : '#ffffff';
+        }
+        // ===== Type de ligne app <-> DXF =====
+        function dashToDxf(dash) {
+            if (dash === 'dashed') return 'DASHED';
+            if (dash === 'center') return 'CENTER';
+            return 'CONTINUOUS';
+        }
+        function dxfToDash(lt) {
+            if (!lt) return 'solid';
+            lt = lt.toUpperCase();
+            if (lt.includes('DASH')) return 'dashed';
+            if (lt.includes('CENTER')) return 'center';
+            return 'solid';
+        }
+        // ===== Épaisseur app <-> lineweight DXF (code 370, en 1/100 mm) =====
+        // Notre "width" est un multiplicateur d'affichage. On l'exporte en 1/100 mm
+        // avec une base raisonnable : width 1 -> 0.25mm (25), width 2 -> 0.50mm (50)...
+        function widthToLineweight(w) { return Math.round((w||1) * 25); }   // en 1/100 mm
+        function lineweightToWidth(lw) { return Math.max(0.1, (lw||25) / 25); }
+
+
         function exportDXF() {
             const M2 = (mmPerSquareUnit()); // pour info, non utilisé directement
             const L = []; // lignes du fichier DXF
@@ -909,7 +1003,7 @@
 
             // ---- En-tête R12 (AC1009), format d'échange universel, unités = mm ----
             p(0,'SECTION'); p(2,'HEADER');
-            p(9,'$ACADVER'); p(1,'AC1009');  // R12 : lisible par tous les logiciels CAO
+            p(9,'$ACADVER'); p(1,'AC1015');  // R2000 : conserve couleur/épaisseur/type par entité
             p(9,'$INSUNITS'); p(70,4);       // 4 = millimètres
             p(9,'$MEASUREMENT'); p(70,1);    // 1 = métrique
             p(0,'ENDSEC');
@@ -919,9 +1013,9 @@
             p(0,'TABLE'); p(2,'LAYER'); p(70, layers.length);
             for (const l of layers) {
                 p(0,'LAYER'); p(2, layerDxfName(l.id)); p(70,0);
-                // couleur : 1=rouge si calque rouge, sinon 7 (noir/blanc)
-                const aci = (l.color && l.color.toLowerCase() === '#ff0000') ? 1 : 7;
-                p(62, aci); p(6,'CONTINUOUS');
+                p(62, hexToAci(l.color || '#ffffff'));
+                p(6, dashToDxf(l.dash || 'solid'));
+                p(370, widthToLineweight(l.width || 1));
             }
             p(0,'ENDTABLE'); p(0,'ENDSEC');
 
@@ -930,38 +1024,44 @@
             const Y = (v) => -worldToMm(v); // inversion Y + conversion mm
             const X = (v) => worldToMm(v);
 
+            // Style ByLayer : on écrit la couleur/type/épaisseur effectifs (issus du calque)
+            // sur chaque entité, pour une relecture fidèle dans tout logiciel CAO.
+            const style = (s) => {
+                const col = effectiveColor(s, false);
+                if (col) p(62, hexToAci(col));
+                const lt = dashToDxf(effectiveDash(s));
+                if (lt !== 'CONTINUOUS') p(6, lt);
+                p(370, widthToLineweight(effectiveWidth(s)));
+            };
+
             for (const s of shapes) {
                 const lname = layerDxfName(s.layerId || 'layer-0');
                 if (s.type === 'line' || s.type === 'dim') {
-                    // une cote -> on exporte juste le segment de mesure (les 2 points d'attache)
-                    p(0,'LINE'); p(8,lname);
+                    p(0,'LINE'); p(8,lname); style(s);
                     p(10, X(s.x1)); p(20, Y(s.y1)); p(30,0);
                     p(11, X(s.x2)); p(21, Y(s.y2)); p(31,0);
                 } else if (s.type === 'circle') {
-                    p(0,'CIRCLE'); p(8,lname);
+                    p(0,'CIRCLE'); p(8,lname); style(s);
                     p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
                     p(40, worldToMm(s.r));
                 } else if (s.type === 'arc') {
-                    // ATTENTION : Y inversé => les angles tournent dans l'autre sens.
-                    // angle_dxf = -angle_monde (en degrés), et start/end s'échangent.
-                    p(0,'ARC'); p(8,lname);
+                    p(0,'ARC'); p(8,lname); style(s);
                     p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
                     p(40, worldToMm(s.r));
                     let a1 = -s.endAngle * 180/Math.PI;
                     let a2 = -s.startAngle * 180/Math.PI;
                     p(50, a1); p(51, a2);
                 } else if (s.type === 'poly') {
-                    // Format R12 : POLYLINE + VERTEX + SEQEND (pas de LWPOLYLINE en R12)
-                    p(0,'POLYLINE'); p(8,lname); p(66,1); p(70,1); // 66=vertices suivent, 70=1 fermée
+                    p(0,'POLYLINE'); p(8,lname); style(s); p(66,1); p(70,1);
                     p(10,0); p(20,0); p(30,0);
                     for (const pt of s.points) {
                         p(0,'VERTEX'); p(8,lname); p(10, X(pt.x)); p(20, Y(pt.y)); p(30,0);
                     }
                     p(0,'SEQEND'); p(8,lname);
                 } else if (s.type === 'text') {
-                    p(0,'TEXT'); p(8,lname);
+                    p(0,'TEXT'); p(8,lname); style(s);
                     p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
-                    p(40, worldToMm(s.size || 20)); // hauteur de texte en mm
+                    p(40, worldToMm(s.size || 20));
                     p(1, s.content || '');
                     if (s.angle) p(50, -s.angle * 180/Math.PI);
                 }
@@ -988,15 +1088,21 @@
             let ignored = 0;
             let i = 0;
 
-            // 1) Récupérer les couleurs de calques depuis la table LAYER (si présente)
+            // 1) Récupérer le style des calques depuis la table LAYER (couleur/type/épaisseur)
             for (let k = 0; k < pairs.length - 1; k++) {
                 if (pairs[k].code === 0 && pairs[k].val.trim() === 'LAYER') {
-                    let name = null, aci = 7;
+                    let name = null, aci = 7, lt = null, lw = null;
                     for (let j = k+1; j < pairs.length && !(pairs[j].code === 0); j++) {
                         if (pairs[j].code === 2) name = pairs[j].val.trim();
                         if (pairs[j].code === 62) aci = parseInt(pairs[j].val.trim(), 10);
+                        if (pairs[j].code === 6) lt = pairs[j].val.trim();
+                        if (pairs[j].code === 370) lw = parseInt(pairs[j].val.trim(), 10);
                     }
-                    if (name) importedLayers[name] = (aci === 1) ? '#ff0000' : null;
+                    if (name) importedLayers[name] = {
+                        color: (aci > 0 && aci < 256) ? aciToHex(aci) : '#ffffff',
+                        dash: dxfToDash(lt),
+                        width: lw !== null ? lineweightToWidth(lw) : 1
+                    };
                 }
             }
 
@@ -1023,6 +1129,12 @@
                     for (; j < pairs.length && pairs[j].code !== 0; j++) pg[pairs[j].code] = pairs[j].val;
                     const layerId = resolveImportLayer((pg[8] || '0').trim(), importedLayers);
                     const closed = (parseInt(pg[70] || '0', 10) & 1) === 1;
+                    // style de la polyligne
+                    let pcolor = '#ffffff';
+                    if (pg[62] !== undefined) { const aci = parseInt(pg[62],10); if (aci>0 && aci<256) pcolor = aciToHex(aci); else { const lc=(layers.find(l=>l.id===layerId)||{}).color; if(lc) pcolor=lc; } }
+                    else { const lc=(layers.find(l=>l.id===layerId)||{}).color; if(lc) pcolor=lc; }
+                    const pdash = dxfToDash(pg[6]);
+                    const pwidth = pg[370] !== undefined ? lineweightToWidth(parseInt(pg[370],10)) : 1;
                     const pts = [];
                     while (j < pairs.length) {
                         if (pairs[j].code === 0 && pairs[j].val.trim() === 'VERTEX') {
@@ -1034,7 +1146,7 @@
                         else if (pairs[j].code === 0) break;
                         else j++;
                     }
-                    if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts, color:'#ffffff', dash:'solid', width:1, hatch:false });
+                    if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts, color:pcolor, dash:pdash, width:pwidth, hatch:false });
                     else ignored++;
                     i = j; continue;
                 }
@@ -1052,16 +1164,26 @@
                 const layerName = (g[8] || '0').trim();
                 const layerId = resolveImportLayer(layerName, importedLayers);
 
+                // Style entité : couleur (62, ByLayer si absent/256), type (6), épaisseur (370)
+                let _color = '#ffffff';
+                if (g[62] !== undefined) {
+                    const aci = parseInt(g[62], 10);
+                    if (aci > 0 && aci < 256) _color = aciToHex(aci);
+                    else { const lc = (layers.find(l => l.id === layerId) || {}).color; if (lc) _color = lc; }
+                } else { const lc = (layers.find(l => l.id === layerId) || {}).color; if (lc) _color = lc; }
+                const _dash = dxfToDash(g[6]);
+                const _width = g[370] !== undefined ? lineweightToWidth(parseInt(g[370],10)) : 1;
+
                 if (ent === 'LINE') {
                     newShapes.push({ type:'line', layerId,
                         x1: X(gmulti[10][0]), y1: Y(gmulti[20][0]),
                         x2: X(g[11]), y2: Y(g[21]),
-                        color:'#ffffff', dash:'solid', width:1 });
+                        color:_color, dash:_dash, width:_width });
                 } else if (ent === 'CIRCLE') {
                     newShapes.push({ type:'circle', layerId,
                         x: X(gmulti[10][0]), y: Y(gmulti[20][0]),
                         r: mmToWorld(num(g[40])),
-                        color:'#ffffff', dash:'solid', width:1, hatch:false });
+                        color:_color, dash:_dash, width:_width, hatch:false });
                 } else if (ent === 'ARC') {
                     // Ré-inversion des angles (cf. export)
                     const cx = X(gmulti[10][0]), cy = Y(gmulti[20][0]), r = mmToWorld(num(g[40]));
@@ -1069,18 +1191,18 @@
                     // dxf->monde : angle_monde = -angle_dxf, et on ré-échange start/end
                     newShapes.push({ type:'arc', layerId, x:cx, y:cy, r:r,
                         startAngle: -a2, endAngle: -a1,
-                        color:'#ffffff', dash:'solid', width:1 });
+                        color:_color, dash:_dash, width:_width });
                 } else if (ent === 'LWPOLYLINE') {
                     const pts = [];
                     const n = Math.min(gmulti[10].length, gmulti[20].length);
                     for (let q = 0; q < n; q++) pts.push({ x: X(gmulti[10][q]), y: Y(gmulti[20][q]) });
                     if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts,
-                        color:'#ffffff', dash:'solid', width:1, hatch:false });
+                        color:_color, dash:_dash, width:_width, hatch:false });
                 } else if (ent === 'TEXT' || ent === 'MTEXT') {
                     newShapes.push({ type:'text', layerId,
                         x: X(gmulti[10][0]), y: Y(gmulti[20][0]),
                         content: (g[1] || '').replace(/\\P/g,' ').replace(/[{}]/g,''),
-                        color:'#ffffff', size: g[40] ? mmToWorld(num(g[40])) : 20,
+                        color:_color, size: g[40] ? mmToWorld(num(g[40])) : 20,
                         angle: g[50] ? -num(g[50])*Math.PI/180 : 0 });
                 } else {
                     ignored++;
@@ -1095,9 +1217,10 @@
             for (const l of layers) {
                 if (layerDxfName(l.id) === name) return l.id;
             }
+            const st = importedLayers[name] || {};
             const newId = 'layer-' + Date.now() + '-' + Math.floor(Math.random()*1000);
             layers.push({ id:newId, name:name || 'Importé', visible:true,
-                          color: importedLayers[name] || null });
+                          color: st.color || '#ffffff', dash: st.dash || 'solid', width: st.width || 1 });
             return newId;
         }
 
@@ -1127,19 +1250,15 @@
         function toggleFileMenu(which, ev) {
             if (ev) ev.stopPropagation();
             const target = document.getElementById('menu-' + which);
-            const other = document.getElementById('menu-' + (which === 'json' ? 'dxf' : 'json'));
-            if (other) other.classList.add('hidden');
             if (target) target.classList.toggle('hidden');
         }
         function closeFileMenus() {
-            const j = document.getElementById('menu-json'), d = document.getElementById('menu-dxf');
-            if (j) j.classList.add('hidden');
+            const d = document.getElementById('menu-dxf');
             if (d) d.classList.add('hidden');
         }
         // Fermer les menus si on clique ailleurs
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('#btn-json-menu') && !e.target.closest('#btn-dxf-menu')
-                && !e.target.closest('#menu-json') && !e.target.closest('#menu-dxf')) {
+            if (!e.target.closest('#btn-dxf-menu') && !e.target.closest('#menu-dxf')) {
                 closeFileMenus();
             }
         });
@@ -1189,13 +1308,19 @@
                     if (data.cartouche) cartoucheData = data.cartouche;
                     if (data.layers) {
                         layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id;
-                        // Garantir que le calque cotation reste rouge même sur d'anciens fichiers
+                        // Compléter les champs de style manquants (anciens fichiers)
+                        layers.forEach(l => {
+                            if (!l.color) l.color = '#ffffff';
+                            if (!l.dash) l.dash = 'solid';
+                            if (l.width === undefined || l.width === null) l.width = 1;
+                        });
                         const dimLayer = layers.find(l => l.id === DIM_LAYER_ID);
-                        if (dimLayer && !dimLayer.color) dimLayer.color = '#ff0000';
+                        if (dimLayer) dimLayer.color = '#ff0000';
                     }
                     if (data.snapSettings) { snapSettings = Object.assign({ endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true }, data.snapSettings); document.getElementById('snap-end').checked = snapSettings.endpoint; document.getElementById('snap-mid').checked = snapSettings.midpoint; document.getElementById('snap-center').checked = snapSettings.center; document.getElementById('snap-inter').checked = snapSettings.intersection; document.getElementById('snap-perp').checked = snapSettings.perpendicular; }
                     shapes = data.shapes || []; selectedShapes = []; shapesHistory = []; historyStep = -1; saveState(); updateLayerUI(); draw();
-                } catch (err) { console.error(err); }
+                } catch (err) { console.error(err); alert('Erreur de lecture du JSON : ' + err.message); }
+                event.target.value = ''; // permet de recharger le même fichier
             };
             reader.readAsText(file);
         }
@@ -1402,21 +1527,32 @@
         // Couleur effective d'une forme : la couleur du calque prime si définie,
         // sinon la couleur propre de la forme. À l'impression, blanc -> noir,
         // mais les couleurs explicites (ex. rouge cotation) sont conservées.
+        // Style ByLayer : couleur, type de ligne et épaisseur viennent du calque.
+        // Les formes n'ont plus de style propre. À l'impression, blanc -> noir.
         function effectiveColor(s, isPrinting) {
             const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
-            let col = (layer && layer.color) ? layer.color : (s.color || '#ffffff');
+            let col = (layer && layer.color) ? layer.color : '#ffffff';
             if (isPrinting && col.toLowerCase() === '#ffffff') col = '#000000';
             return col;
+        }
+        function effectiveDash(s) {
+            const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
+            return (layer && layer.dash) ? layer.dash : 'solid';
+        }
+        function effectiveWidth(s) {
+            const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
+            return (layer && layer.width) ? layer.width : 1;
         }
 
         function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy, lineScale) {
             if (lineScale === undefined) lineScale = camera.zoom;
             let col = effectiveColor(s, isPrinting);
-            let w = (s.width !== undefined ? s.width : 1) * 2;
+            let dash = effectiveDash(s);
+            let w = effectiveWidth(s) * 2;
             if (s.type === 'dim-angle') { drawAngleDim(targetCtx, { ...s, vertex: {x:s.vertex.x+dx, y:s.vertex.y+dy}, p1: {x:s.p1.x+dx, y:s.p1.y+dy}, p2: {x:s.p2.x+dx, y:s.p2.y+dy} }, sel, isPrinting, lineScale); return; }
             targetCtx.beginPath(); targetCtx.strokeStyle = sel ? '#ec4899' : col; targetCtx.lineWidth = (sel ? w+3 : w)/lineScale;
-            if (s.dash === 'dashed') targetCtx.setLineDash([8/lineScale, 8/lineScale]);
-            else if (s.dash === 'center') targetCtx.setLineDash([16/lineScale, 6/lineScale, 2/lineScale, 6/lineScale]);
+            if (dash === 'dashed') targetCtx.setLineDash([8/lineScale, 8/lineScale]);
+            else if (dash === 'center') targetCtx.setLineDash([16/lineScale, 6/lineScale, 2/lineScale, 6/lineScale]);
             else targetCtx.setLineDash([]);
             if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); }
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); }
@@ -1474,7 +1610,19 @@
                 let previewW = (parseFloat(document.getElementById('prop-width').value) || 1) * 2;
                 if (mode === 'rect') {
                     targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
-                    targetCtx.strokeRect(startX, startY, px - startX, py - startY);
+                    let rx2, ry2;
+                    const sgx = (currentX >= startX) ? 1 : -1, sgy = (currentY >= startY) ? 1 : -1;
+                    if (rectDimStep === 1) {
+                        rx2 = startX + sgx * rectWidthVal;
+                        const hv = (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) ? (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE : Math.abs(currentY - startY);
+                        ry2 = startY + sgy * hv;
+                    } else if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) {
+                        const wv = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE;
+                        rx2 = startX + sgx * wv; ry2 = currentY;
+                    } else {
+                        rx2 = currentX; ry2 = currentY;
+                    }
+                    targetCtx.strokeRect(startX, startY, rx2 - startX, ry2 - startY);
                 }
                 if (mode === 'line') {
                     targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
@@ -1682,9 +1830,13 @@
 
         function updateCommandMessage() {
             let msg = "Prêt.";
-            if (mode === 'select-box') msg = selectedShapes.length > 0 ? `${selectedShapes.length} objet(s) sélectionné(s).` : "SÉLECTION : Cliquez sur un objet ou dessinez une zone.";
+            if (mode === 'select-box') msg = selectedShapes.length > 0 ? `${selectedShapes.length} objet(s) sélectionné(s). — Paramétrer la sélection ? [Y/N]` : "SÉLECTION : Cliquez sur un objet ou dessinez une zone.";
             else if (mode === 'line') msg = isDrawing ? "LIGNE : Spécifiez le point suivant (distance + Entrée)." : "LIGNE : Spécifiez le premier point.";
-            else if (mode === 'rect') msg = isDrawing ? "RECTANGLE : Spécifiez le coin opposé." : "RECTANGLE : Spécifiez le premier coin.";
+            else if (mode === 'rect') {
+                if (!isDrawing) msg = "RECTANGLE : Spécifiez le premier coin.";
+                else if (rectDimStep === 0) msg = "RECTANGLE : coin opposé, ou ⬌ largeur" + (typedInput ? " = " + typedInput + " " + currentUnit : "") + " puis [Espace].";
+                else msg = "RECTANGLE : ⬌ " + calculateRealDistance(rectWidthVal) + "  →  ⬍ hauteur" + (typedInput ? " = " + typedInput + " " + currentUnit : "") + " puis [Entrée].";
+            }
             else if (mode === 'circle') msg = isDrawing ? "CERCLE : Spécifiez le rayon (valeur + Entrée)." : "CERCLE : Spécifiez le centre.";
             else if (mode === 'arc') { if (arcStep === 0) msg = "ARC : Spécifiez le centre."; else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ."; else msg = "ARC : Spécifiez l'angle de fin (valeur + Entrée)."; }
             else if (mode === 'poly') msg = isDrawing ? "POLYGONE : Spécifiez le point suivant (double-clic pour fermer)." : "POLYGONE : Spécifiez le point de départ.";
@@ -1882,7 +2034,7 @@
 
             // Ligne / Cercle (mode générique)
             if (!isDrawing) {
-                let sn = findSnap(wp.x, wp.y); startX = sn ? sn.x : wp.x; startY = sn ? sn.y : wp.y; isDrawing = true; typedInput = "";
+                let sn = findSnap(wp.x, wp.y); startX = sn ? sn.x : wp.x; startY = sn ? sn.y : wp.y; isDrawing = true; typedInput = ""; rectDimStep = 0; rectWidthVal = 0;
             } else {
                 let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y;
                 let fx = currentX, fy = currentY, fr = Math.hypot(currentX-startX, currentY-startY);
@@ -1898,7 +2050,7 @@
                     }
                     else if (mode === 'circle') shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: fr, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
                 }
-                isDrawing = false; typedInput = ""; saveState(); draw();
+                isDrawing = false; typedInput = ""; rectDimStep = 0; rectWidthVal = 0; saveState(); draw();
             }
         });
 
@@ -1965,6 +2117,74 @@
             }
         });
 
+        // Validation d'une saisie clavier (distance/angle).
+        // returnToSelect=true (Entrée) : valide puis revient à l'outil Sélection.
+        // returnToSelect=false (Espace) : valide en gardant l'outil actif pour enchaîner.
+        function validateTypedInput(returnToSelect) {
+            const val = parseFloat(typedInput);
+            if (isNaN(val)) return;
+            const col = document.getElementById('prop-color').value;
+            const dsh = document.getElementById('prop-dash').value;
+            const wdt = parseFloat(document.getElementById('prop-width').value) || 1;
+
+            // ----- Rectangle par dimensions : ⬌ largeur [Espace] puis ⬍ hauteur [Entrée] -----
+            if (mode === 'rect' && isDrawing) {
+                const d = (val/unitsPerSquare)*GRID_SIZE;
+                if (rectDimStep === 0) {
+                    // 1ère valeur = largeur, on passe à la hauteur (ne crée pas encore)
+                    rectWidthVal = d; rectDimStep = 1; typedInput = "";
+                    updateCommandMessage(); draw(); return;
+                } else {
+                    // 2e valeur = hauteur -> on crée le rectangle.
+                    // Sens : selon la position de la souris par rapport au 1er coin.
+                    const sx = (currentX >= startX) ? 1 : -1;
+                    const sy = (currentY >= startY) ? 1 : -1;
+                    const x2 = startX + sx * rectWidthVal;
+                    const y2 = startY + sy * d;
+                    shapes.push({ type:'poly', layerId:activeLayerId, points:[
+                        {x:startX, y:startY}, {x:x2, y:startY}, {x:x2, y:y2}, {x:startX, y:y2}
+                    ], color:col, dash:dsh, width:wdt, hatch:false });
+                    isDrawing = false; rectDimStep = 0; rectWidthVal = 0; typedInput = "";
+                    saveState();
+                    if (returnToSelect) setMode('select-box');
+                    draw(); return;
+                }
+            }
+
+            if (mode === 'rotate' && rotateCenter) {
+                let rad = val * Math.PI / 180;
+                selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, rad));
+                isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState();
+                if (returnToSelect) setMode('select-box');
+                draw(); return;
+            }
+            if (mode === 'arc') {
+                if (arcStep === 1 && val > 0) {
+                    let d = (val/unitsPerSquare)*GRID_SIZE; arcRadius = d;
+                    let a = Math.atan2(currentY-arcCenter.y, currentX-arcCenter.x);
+                    arcP1 = {x: arcCenter.x + Math.cos(a)*d, y: arcCenter.y + Math.sin(a)*d};
+                    arcStartAngle = a; arcStep = 2; typedInput = ""; draw(); return;
+                } else if (arcStep === 2) {
+                    let endAngle = arcStartAngle + val*Math.PI/180;
+                    shapes.push({ type:'arc', layerId:activeLayerId, x:arcCenter.x, y:arcCenter.y, r:arcRadius, startAngle:arcStartAngle, endAngle:endAngle, color:col, dash:dsh, width:wdt });
+                    arcStep = 0; isDrawing = false; typedInput = ""; saveState();
+                    if (returnToSelect) setMode('select-box');
+                    draw(); return;
+                }
+            }
+            if (val > 0 && mode !== 'offset') {
+                let d = (val/unitsPerSquare)*GRID_SIZE;
+                if (mode === 'circle') { shapes.push({ type:'circle', layerId:activeLayerId, x:startX, y:startY, r:d, color:col, dash:dsh, width:wdt, hatch:false }); isDrawing = false; }
+                else if (mode === 'line') { let a = Math.atan2(currentY-startY, currentX-startX); shapes.push({ type:'line', layerId:activeLayerId, x1:startX, y1:startY, x2:startX+Math.cos(a)*d, y2:startY+Math.sin(a)*d, color:col, dash:dsh, width:wdt }); isDrawing = false; }
+                else if (mode === 'poly') { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); currentPolygon.push({x: lp.x+Math.cos(a)*d, y: lp.y+Math.sin(a)*d}); }
+            }
+            if (mode !== 'offset') {
+                typedInput = "";
+                if (mode !== 'poly') { saveState(); if (returnToSelect) setMode('select-box'); }
+                draw();
+            }
+        }
+
         document.addEventListener('keydown', (e) => {
             if (document.activeElement.tagName === 'INPUT') {
                 if (e.key === 'Enter') { if (document.activeElement.id === 'text-content') applyText(); if (document.activeElement.id === 'new-layer-name') addLayer(); }
@@ -1977,31 +2197,27 @@
             if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copySelection(); return; }
             if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) { e.preventDefault(); pasteSelection(); return; }
             if (e.ctrlKey && (e.key === 'x' || e.key === 'X')) { e.preventDefault(); cutSelection(); return; }
+            // Paramétrage de la sélection : Y ouvre la modale d'assignation de calque, N ignore.
+            if (mode === 'select-box' && selectedShapes.length > 0 && !e.ctrlKey && !isDrawing) {
+                if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); openSelectionParamModal(); return; }
+                if (e.key === 'n' || e.key === 'N') { e.preventDefault(); return; }
+            }
             if (isDrawing || mode === 'rotate' || mode === 'offset') {
                 if (/^[0-9.,\-]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; }
                 else if (e.key === 'Backspace') { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; }
-                else if (e.key === 'Enter' && typedInput.length > 0) {
-                    e.preventDefault(); let val = parseFloat(typedInput);
-                    if (!isNaN(val)) {
-                        if (mode === 'rotate' && rotateCenter) { let rad = val * Math.PI / 180; selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, rad)); isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw(); return; }
-                        if (mode === 'arc') {
-                            if (arcStep === 1 && val > 0) { let d = (val/unitsPerSquare)*GRID_SIZE; arcRadius = d; let a = Math.atan2(currentY-arcCenter.y, currentX-arcCenter.x); arcP1 = {x: arcCenter.x + Math.cos(a)*d, y: arcCenter.y + Math.sin(a)*d}; arcStartAngle = a; arcStep = 2; typedInput = ""; draw(); return; }
-                            else if (arcStep === 2) { let endAngle = arcStartAngle + val*Math.PI/180; shapes.push({ type: 'arc', layerId: activeLayerId, x: arcCenter.x, y: arcCenter.y, r: arcRadius, startAngle: arcStartAngle, endAngle: endAngle, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 }); arcStep = 0; isDrawing = false; typedInput = ""; saveState(); draw(); return; }
-                        }
-                        if (val > 0 && mode !== 'offset') {
-                            let d = (val/unitsPerSquare)*GRID_SIZE;
-                            if (mode === 'circle') { shapes.push({ type: 'circle', layerId: activeLayerId, x: startX, y: startY, r: d, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); isDrawing = false; }
-                            else if (mode === 'line') { let a = Math.atan2(currentY-startY, currentX-startX); shapes.push({ type: 'line', layerId: activeLayerId, x1: startX, y1: startY, x2: startX+Math.cos(a)*d, y2: startY+Math.sin(a)*d, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 }); isDrawing = false; }
-                            else if (mode === 'poly') { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); currentPolygon.push({x: lp.x+Math.cos(a)*d, y: lp.y+Math.sin(a)*d}); }
-                        }
-                        if (mode !== 'offset') { typedInput = ""; if (mode !== 'poly') saveState(); draw(); }
-                    }
+                else if ((e.key === 'Enter' || e.key === ' ') && typedInput.length > 0) {
+                    // Entrée = valider puis revenir à Sélection. Espace = valider en gardant l'outil.
+                    e.preventDefault();
+                    validateTypedInput(e.key === 'Enter');
                     return;
                 }
             }
-            if (e.key === ' ') { if (mode === 'print') { e.preventDefault(); printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape'; draw(); } }
+            if (e.key === ' ') {
+                if (mode === 'print') { e.preventDefault(); printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape'; draw(); }
+            }
             if (e.key === 'Escape') {
                 isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null;
+                rectDimStep = 0; rectWidthVal = 0;
                 dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null;
                 dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
                 closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal();
