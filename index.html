@@ -140,6 +140,7 @@
                 </div>
             </div>
 
+            <div id="properties-popup" class="hidden absolute bottom-12 right-6 bg-gray-800/95 border border-gray-600 text-gray-200 p-4 rounded-lg shadow-2xl text-xs z-40 pointer-events-none min-w-[180px] backdrop-blur-sm">
                 <h4 class="font-bold text-white mb-2 border-b border-gray-600 pb-1" id="prop-popup-title">Propriétés</h4>
                 <div id="prop-popup-content" class="flex flex-col space-y-1.5 text-[13px]"></div>
             </div>
@@ -1929,6 +1930,17 @@
                 if (mode === 'arc') {
                     if (arcStep === 1) { let dist = Math.hypot(currentX - arcCenter.x, currentY - arcCenter.y); full = "R= " + (typedInput.length > 0 ? typedInput + "_ " + currentUnit : calculateRealDistance(dist)); }
                     else if (arcStep === 2) { let curA = Math.atan2(currentY - arcCenter.y, currentX - arcCenter.x); let diffA = curA - arcStartAngle; diffA = (diffA * 180 / Math.PI); if (typedInput.length > 0) diffA = parseFloat(typedInput); full = "A= " + diffA.toFixed(1) + "°"; }
+                } else if (mode === 'rect') {
+                    // Aide dédiée rectangle : largeur ⬌ × hauteur ⬍
+                    let wWorld, hWorld;
+                    if (rectDimStep === 1) {
+                        wWorld = rectWidthVal;
+                        hWorld = (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) ? (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE : Math.abs(currentY - startY);
+                    } else {
+                        wWorld = (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) ? (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE : Math.abs(currentX - startX);
+                        hWorld = Math.abs(currentY - startY);
+                    }
+                    full = "⬌ " + calculateRealDistance(wWorld) + "  ⬍ " + calculateRealDistance(hWorld);
                 } else {
                     let lp = mode === 'poly' && currentPolygon.length > 0 ? currentPolygon[currentPolygon.length-1] : {x:startX, y:startY};
                     let dist = Math.hypot(currentX-lp.x, currentY-lp.y);
@@ -1971,6 +1983,7 @@
 
         function updatePropertiesPopup() {
             const popup = document.getElementById('properties-popup'), content = document.getElementById('prop-popup-content'), title = document.getElementById('prop-popup-title');
+            if (!popup || !content || !title) return; // garde-fou : ne jamais casser draw()
             if (selectedShapes.length === 0) { popup.classList.add('hidden'); return; }
             popup.classList.remove('hidden');
             title.textContent = selectedShapes.length === 1 ? 'Propriétés de l\'objet' : `Sélection multiple (${selectedShapes.length})`;
@@ -2103,14 +2116,14 @@
 
             if (mode === 'dim') {
                 let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
-                if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; }
+                if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; draw(); }
                 else if (dimStep === 1) {
                     // Mode Ortho : 2e point d'attache contraint à H ou V par rapport au 1er.
                     if (orthoMode || e.shiftKey) {
                         if (Math.abs(pt.x - dimP1.x) > Math.abs(pt.y - dimP1.y)) pt.y = dimP1.y;
                         else pt.x = dimP1.x;
                     }
-                    dimP2 = pt; dimStep = 2;
+                    dimP2 = pt; dimStep = 2; draw();
                 }
                 else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: DIM_LAYER_ID, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); }
                 return;
@@ -2144,6 +2157,7 @@
                     if (arcRadius > 0.1) shapes.push({ type: 'arc', layerId: activeLayerId, x: arcCenter.x, y: arcCenter.y, r: arcRadius, startAngle: arcStartAngle, endAngle: endAngle, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 });
                     arcStep = 0; isDrawing = false; typedInput = ""; saveState(); draw();
                 }
+                draw();
                 return;
             }
 
@@ -2164,6 +2178,7 @@
             // Ligne / Cercle (mode générique)
             if (!isDrawing) {
                 let sn = findSnap(wp.x, wp.y); startX = sn ? sn.x : wp.x; startY = sn ? sn.y : wp.y; isDrawing = true; typedInput = ""; rectDimStep = 0; rectWidthVal = 0;
+                draw();
             } else {
                 let sn = findSnap(wp.x, wp.y); currentX = sn ? sn.x : wp.x; currentY = sn ? sn.y : wp.y;
                 let fx = currentX, fy = currentY, fr = Math.hypot(currentX-startX, currentY-startY);
