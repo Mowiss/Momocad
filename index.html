@@ -108,6 +108,7 @@
                 <button id="btn-arc" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Arc (Centre, Début, Fin)" onclick="setMode('arc')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 18 0"></path></svg></button>
                 <button id="btn-poly" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polygone" onclick="setMode('poly')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z"></path></svg></button>
                 <button id="btn-text" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-200" title="Texte" onclick="setMode('text')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg></button>
+                <button id="btn-detail" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-200" title="Détail (annotation fléchée)" onclick="setMode('detail')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="13" y="4" width="9" height="6" rx="1"></rect><line x1="13" y1="7" x2="3" y2="19"></line><circle cx="3" cy="19" r="1.5" fill="currentColor"></circle></svg></button>
                 <button id="btn-dim" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-400" title="Cotation linéaire" onclick="setMode('dim')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="12" x2="22" y2="12"></line><polyline points="5 8 2 12 5 16"></polyline><polyline points="19 8 22 12 19 16"></polyline><line x1="2" y1="8" x2="2" y2="16"></line><line x1="22" y1="8" x2="22" y2="16"></line></svg></button>
                 <!-- Nouveau bouton : Cotation angulaire -->
                 <button id="btn-dim-angle" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-300" title="Cotation angulaire" onclick="setMode('dim-angle')">
@@ -130,8 +131,15 @@
                     <button class="px-2 py-1 text-xs rounded bg-blue-600 text-white" onclick="applyText()">Valider</button>
                 </div>
             </div>
+            <div id="detail-input-modal" class="hidden absolute bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-72">
+                <label class="block text-xs text-gray-400 mb-1">Texte du détail</label>
+                <textarea id="detail-content" rows="2" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500 mb-3 resize-none" placeholder="ex. Trou Ø12"></textarea>
+                <div class="flex justify-end space-x-2">
+                    <button class="px-2 py-1 text-xs rounded bg-gray-600 text-white" onclick="closeDetailModal()">Annuler</button>
+                    <button class="px-2 py-1 text-xs rounded bg-blue-600 text-white" onclick="applyDetail()">Valider</button>
+                </div>
+            </div>
 
-            <div id="properties-popup" class="hidden absolute bottom-12 right-6 bg-gray-800/95 border border-gray-600 text-gray-200 p-4 rounded-lg shadow-2xl text-xs z-40 pointer-events-none min-w-[180px] backdrop-blur-sm">
                 <h4 class="font-bold text-white mb-2 border-b border-gray-600 pb-1" id="prop-popup-title">Propriétés</h4>
                 <div id="prop-popup-content" class="flex flex-col space-y-1.5 text-[13px]"></div>
             </div>
@@ -287,6 +295,7 @@
         let typedInput = "";
         let rectDimStep = 0, rectWidthVal = 0; // saisie rectangle par dimensions (0=largeur, 1=hauteur)
         let dimStep = 0, dimP1 = null, dimP2 = null;
+        let detailStep = 0, detailTarget = null, detailLabelPos = null; // outil Détail (annotation fléchée)
         let currentPolygon = [], currentSnap = null;
         let arcStep = 0, arcCenter = null, arcP1 = null, arcRadius = 0, arcStartAngle = 0;
 
@@ -364,7 +373,7 @@
         let printScaleIndex = PRINT_SCALES.findIndex(s => s.label === '1:1');
         let currentPrintScale = PRINT_SCALES[printScaleIndex].label; // libellé affiché (ex. '2:1')
 
-        let layers = [{ id: 'layer-0', name: '0 - Murs', visible: true, color: '#ffffff', dash: 'solid', width: 1 }, { id: 'layer-1', name: '1 - Mobilier', visible: true, color: '#ffffff', dash: 'solid', width: 1 }, { id: 'layer-2', name: '2 - Cotations', visible: true, color: '#ff0000', dash: 'solid', width: 1 }];
+        let layers = [{ id: 'layer-0', name: '0 - Tracé', visible: true, color: '#ffffff', dash: 'solid', width: 0.5 }, { id: 'layer-1', name: '1 - Construction', visible: true, color: '#808080', dash: 'dashed', width: 0.5 }, { id: 'layer-2', name: '2 - Cotation', visible: true, color: '#ff7f00', dash: 'solid', width: 1 }];
         const DIM_LAYER_ID = 'layer-2'; // calque cotation (rouge à l'impression)
         let activeLayerId = 'layer-0';
         let snapSettings = { endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true };
@@ -375,6 +384,30 @@
         function openTextModal(wx, wy, sx, sy) { pendingTextPos = {wx, wy}; const m = document.getElementById('text-input-modal'); m.style.left = Math.min(sx + 10, window.innerWidth - 280) + 'px'; m.style.top = Math.min(sy + 10, window.innerHeight - 150) + 'px'; m.classList.remove('hidden'); document.getElementById('text-content').value = ""; document.getElementById('text-content').focus(); }
         function applyText() { const c = document.getElementById('text-content').value; if (c.trim() && pendingTextPos) { shapes.push({ type: 'text', layerId: activeLayerId, x: pendingTextPos.wx, y: pendingTextPos.wy, content: c, color: document.getElementById('prop-color').value, size: (parseFloat(document.getElementById('prop-width').value) || 1) * 20 }); saveState(); draw(); } closeTextModal(); }
         function closeTextModal() { document.getElementById('text-input-modal').classList.add('hidden'); pendingTextPos = null; }
+        // --- Outil Détail : annotation encadrée reliée par une flèche ---
+        function openDetailModal(sx, sy) {
+            const m = document.getElementById('detail-input-modal');
+            m.style.left = Math.min(sx + 10, window.innerWidth - 300) + 'px';
+            m.style.top = Math.min(sy + 10, window.innerHeight - 160) + 'px';
+            m.classList.remove('hidden');
+            const ta = document.getElementById('detail-content'); ta.value = ""; ta.focus();
+        }
+        function closeDetailModal() {
+            document.getElementById('detail-input-modal').classList.add('hidden');
+            detailStep = 0; detailTarget = null; detailLabelPos = null; isDrawing = false; draw();
+        }
+        function applyDetail() {
+            const txt = document.getElementById('detail-content').value.trim();
+            if (txt && detailTarget && detailLabelPos) {
+                shapes.push({ type:'detail', layerId: DIM_LAYER_ID,
+                    tx: detailTarget.x, ty: detailTarget.y,      // point désigné
+                    lx: detailLabelPos.x, ly: detailLabelPos.y,  // ancre de l'étiquette
+                    content: txt, size: 20 });
+                saveState();
+            }
+            document.getElementById('detail-input-modal').classList.add('hidden');
+            detailStep = 0; detailTarget = null; detailLabelPos = null; isDrawing = false; draw();
+        }
         function closeLayerModal() { document.getElementById('layer-modal').classList.add('hidden'); }
         function closeCartoucheModal() { document.getElementById('cartouche-modal').classList.add('hidden'); }
         function closeSnapModal() { document.getElementById('snap-modal').classList.add('hidden'); }
@@ -683,6 +716,16 @@
                 else if (s.type === 'arc') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) { let a = Math.atan2(p.y-s.y, p.x-s.x); if (isAngleBetween(a, s.startAngle, s.endAngle)) return s; } }
                 else if (s.type === 'poly') { for(let j=0; j<s.points.length; j++){ let p1 = s.points[j], p2 = s.points[(j+1)%s.points.length]; let l2 = Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-p1.x)*(p2.x-p1.x)+(p.y-p1.y)*(p2.y-p1.y))/l2)); if (Math.hypot(p.x-(p1.x+t*(p2.x-p1.x)), p.y-(p1.y+t*(p2.y-p1.y))) < tol) return s; } }
                 else if (s.type === 'text') { ctx.font = s.size + "px Arial"; let w = ctx.measureText(s.content).width; if (wx >= s.x && wx <= s.x + w && wy <= s.y && wy >= s.y - s.size) return s; }
+                else if (s.type === 'detail') {
+                    // Clic sur le cadre de l'étiquette (zone approximative)
+                    ctx.font = "bold " + (s.size||20) + "px Arial";
+                    const lines = (s.content||'').split('\n');
+                    let mw = 0; lines.forEach(t => mw = Math.max(mw, ctx.measureText(t).width));
+                    const bw = mw + 16, bh = lines.length*(s.size||20)*1.25 + 12;
+                    if (wx >= s.lx && wx <= s.lx + bw && wy >= s.ly && wy <= s.ly + bh) return s;
+                    // ou clic près du point désigné
+                    if (Math.hypot(wx - s.tx, wy - s.ty) < tol*1.5) return s;
+                }
                 else if (s.type === 'dim-angle') {
                     // Sélection sur le texte ° (label) ou sur l'arc de cotation
                     if (s._labelX !== undefined) {
@@ -889,6 +932,7 @@
             dimStep = 0; rotateCenter = null; isRotatingObjects = false; typedInput = "";
             arcStep = 0; arcCenter = null; arcP1 = null;
             rectDimStep = 0; rectWidthVal = 0;
+            detailStep = 0; detailTarget = null; detailLabelPos = null;
             offsetTarget = null; offsetPreviewShape = null;
             dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
             closeTextModal(); closeLayerModal(); closeCartoucheModal(); closeSnapModal(); closeHelpModal();
@@ -1064,6 +1108,18 @@
                     p(40, worldToMm(s.size || 20));
                     p(1, s.content || '');
                     if (s.angle) p(50, -s.angle * 180/Math.PI);
+                } else if (s.type === 'detail') {
+                    // Détail = ligne de rappel (LINE) + texte (TEXT) à l'ancre de l'étiquette.
+                    p(0,'LINE'); p(8,lname); style(s);
+                    p(10, X(s.lx)); p(20, Y(s.ly)); p(30,0);
+                    p(11, X(s.tx)); p(21, Y(s.ty)); p(31,0);
+                    const dlines = (s.content || '').split('\n');
+                    dlines.forEach((t, k) => {
+                        p(0,'TEXT'); p(8,lname); style(s);
+                        p(10, X(s.lx)); p(20, Y(s.ly) - worldToMm((s.size||20)*(k+1)*1.25)); p(30,0);
+                        p(40, worldToMm(s.size || 20));
+                        p(1, t);
+                    });
                 }
             }
             p(0,'ENDSEC');
@@ -1213,9 +1269,11 @@
         }
 
         function resolveImportLayer(name, importedLayers) {
-            // Cherche un calque existant dont le nom DXF correspond, sinon en crée un.
+            // Cherche un calque existant dont le nom DXF correspond (insensible à la casse),
+            // sinon en crée un.
+            const target = (name || '0').trim().toLowerCase();
             for (const l of layers) {
-                if (layerDxfName(l.id) === name) return l.id;
+                if (layerDxfName(l.id).toLowerCase() === target) return l.id;
             }
             const st = importedLayers[name] || {};
             const newId = 'layer-' + Date.now() + '-' + Math.floor(Math.random()*1000);
@@ -1314,8 +1372,6 @@
                             if (!l.dash) l.dash = 'solid';
                             if (l.width === undefined || l.width === null) l.width = 1;
                         });
-                        const dimLayer = layers.find(l => l.id === DIM_LAYER_ID);
-                        if (dimLayer) dimLayer.color = '#ff0000';
                     }
                     if (data.snapSettings) { snapSettings = Object.assign({ endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true }, data.snapSettings); document.getElementById('snap-end').checked = snapSettings.endpoint; document.getElementById('snap-mid').checked = snapSettings.midpoint; document.getElementById('snap-center').checked = snapSettings.center; document.getElementById('snap-inter').checked = snapSettings.intersection; document.getElementById('snap-perp').checked = snapSettings.perpendicular; }
                     shapes = data.shapes || []; selectedShapes = []; shapesHistory = []; historyStep = -1; saveState(); updateLayerUI(); draw();
@@ -1559,6 +1615,55 @@
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle); targetCtx.stroke(); }
             else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); }
             else if (s.type === 'text') { targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle); targetCtx.fillStyle = sel ? '#ec4899' : col; targetCtx.font = s.size + "px Arial"; targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic"; targetCtx.fillText(s.content, 0, 0); targetCtx.restore(); }
+            else if (s.type === 'detail') {
+                const tx = s.tx+dx, ty = s.ty+dy, lx = s.lx+dx, ly = s.ly+dy;
+                const fontPx = s.size || 20;
+                targetCtx.font = "bold " + fontPx + "px Arial";
+                const lines = (s.content || '').split('\n');
+                let maxW = 0; lines.forEach(t => { maxW = Math.max(maxW, targetCtx.measureText(t).width); });
+                const padX = 8, padY = 6, lineH = fontPx * 1.25;
+                const boxW = maxW + padX*2, boxH = lines.length*lineH + padY*2;
+                // Le cadre est posé à partir de l'ancre (lx,ly) = coin haut-gauche
+                const bx = lx, by = ly;
+                // Flèche : du bord du cadre le plus proche vers le point désigné
+                const cxC = bx + boxW/2, cyC = by + boxH/2;
+                let ex = cxC, ey = cyC;
+                // point de sortie du cadre vers la cible (intersection simple par côté)
+                const angT = Math.atan2(ty - cyC, tx - cxC);
+                const hw = boxW/2, hh = boxH/2;
+                const tanA = Math.tan(angT);
+                if (Math.abs(Math.cos(angT)) * hh >= Math.abs(Math.sin(angT)) * hw) {
+                    ex = cxC + (Math.cos(angT) > 0 ? hw : -hw);
+                    ey = cyC + (Math.cos(angT) > 0 ? hw : -hw) * tanA;
+                } else {
+                    ey = cyC + (Math.sin(angT) > 0 ? hh : -hh);
+                    ex = cxC + (Math.sin(angT) > 0 ? hh : -hh) / tanA;
+                }
+                targetCtx.strokeStyle = sel ? '#ec4899' : col;
+                targetCtx.fillStyle = sel ? '#ec4899' : col;
+                targetCtx.lineWidth = (effectiveWidth(s)*2)/lineScale;
+                targetCtx.setLineDash([]);
+                // ligne de rappel
+                targetCtx.beginPath(); targetCtx.moveTo(ex, ey); targetCtx.lineTo(tx, ty); targetCtx.stroke();
+                // pointe de flèche au point désigné
+                const ah = 10/lineScale, aa = Math.atan2(ty-ey, tx-ex);
+                targetCtx.beginPath();
+                targetCtx.moveTo(tx, ty);
+                targetCtx.lineTo(tx - ah*Math.cos(aa - 0.4), ty - ah*Math.sin(aa - 0.4));
+                targetCtx.lineTo(tx - ah*Math.cos(aa + 0.4), ty - ah*Math.sin(aa + 0.4));
+                targetCtx.closePath(); targetCtx.fill();
+                // petit point sur la cible
+                targetCtx.beginPath(); targetCtx.arc(tx, ty, 2.5/lineScale, 0, 2*Math.PI); targetCtx.fill();
+                // cadre + fond pour lisibilité
+                targetCtx.fillStyle = isPrinting ? '#ffffff' : 'rgba(20,20,20,0.85)';
+                targetCtx.fillRect(bx, by, boxW, boxH);
+                targetCtx.strokeStyle = sel ? '#ec4899' : col;
+                targetCtx.strokeRect(bx, by, boxW, boxH);
+                // texte
+                targetCtx.fillStyle = sel ? '#ec4899' : col;
+                targetCtx.textAlign = "left"; targetCtx.textBaseline = "top";
+                lines.forEach((t, k) => targetCtx.fillText(t, bx + padX, by + padY + k*lineH));
+            }
             else if (s.type === 'dim') {
                 let p1={x:s.x1+dx, y:s.y1+dy}, p2={x:s.x2+dx, y:s.y2+dy}, po={x:s.ox+dx, y:s.oy+dy};
                 let dx2 = p2.x-p1.x, dy2 = p2.y-p1.y, dist = Math.hypot(dx2, dy2);
@@ -1714,6 +1819,15 @@
                 targetCtx.setLineDash([]);
             }
 
+            // Prévisualisation outil Détail : flèche du point désigné vers le curseur
+            if (mode === 'detail' && detailStep === 1 && detailTarget && isUIEnabled) {
+                targetCtx.strokeStyle = '#f59e0b'; targetCtx.lineWidth = 1.5/camera.zoom; targetCtx.setLineDash([5/camera.zoom, 5/camera.zoom]);
+                targetCtx.beginPath(); targetCtx.moveTo(detailTarget.x, detailTarget.y); targetCtx.lineTo(currentX, currentY); targetCtx.stroke();
+                targetCtx.setLineDash([]);
+                // marqueur sur le point désigné
+                targetCtx.fillStyle = '#f59e0b'; targetCtx.beginPath(); targetCtx.arc(detailTarget.x, detailTarget.y, 3/camera.zoom, 0, 2*Math.PI); targetCtx.fill();
+            }
+
             if (mode === 'paste' && clipboard.length > 0 && clipboardBasePoint && !isPanning && isUIEnabled) {
                 let ddx = currentX - clipboardBasePoint.x, ddy = currentY - clipboardBasePoint.y;
                 targetCtx.globalAlpha = 0.5;
@@ -1849,6 +1963,7 @@
             else if (mode === 'offset') { if (!typedInput || isNaN(parseFloat(typedInput))) msg = "DÉCALER : Distance de décalage (valeur + Entrée)."; else if (!offsetTarget) msg = `DÉCALER (${typedInput} ${currentUnit}) : Sélectionnez l'objet.`; else msg = `DÉCALER (${typedInput} ${currentUnit}) : Cliquez du côté voulu.`; }
             else if (mode === 'paste') msg = "COLLER : Spécifiez le point d'insertion.";
             else if (mode === 'text') msg = "TEXTE : Spécifiez le point d'insertion.";
+            else if (mode === 'detail') msg = detailStep === 0 ? "DÉTAIL : Cliquez le point à désigner." : "DÉTAIL : Cliquez pour placer l'étiquette.";
             else if (mode === 'print') msg = "PDF : ESPACE (pivoter) | MOLETTE (échelle) | CLIC (générer PDF).";
             const el = document.getElementById('command-text');
             if (el) el.textContent = msg;
@@ -1930,6 +2045,7 @@
                         else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); }
                         else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; }
                         else if (s.type === 'dim-angle') { s.vertex.x += dx; s.vertex.y += dy; s.p1.x += dx; s.p1.y += dy; s.p2.x += dx; s.p2.y += dy; }
+                        else if (s.type === 'detail') { s.tx += dx; s.ty += dy; s.lx += dx; s.ly += dy; }
                         s.layerId = activeLayerId; shapes.push(s); selectedShapes.push(s);
                     });
                     saveState(); setMode('select-box');
@@ -1965,6 +2081,7 @@
                         else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += ddx; s.y += ddy; }
                         else if (s.type === 'poly') s.points.forEach(p => { p.x += ddx; p.y += ddy; });
                         else if (s.type === 'dim-angle') { s.vertex.x += ddx; s.vertex.y += ddy; s.p1.x += ddx; s.p1.y += ddy; s.p2.x += ddx; s.p2.y += ddy; }
+                        else if (s.type === 'detail') { s.tx += ddx; s.ty += ddy; s.lx += ddx; s.ly += ddy; }
                     });
                     isMovingObjects = false; moveBasePoint = null; saveState(); draw();
                 }
@@ -2000,6 +2117,18 @@
             }
 
             if (mode === 'text') { openTextModal(wp.x, wp.y, sx, sy); return; }
+
+            if (mode === 'detail') {
+                let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
+                if (detailStep === 0) {
+                    detailTarget = pt; detailStep = 1; isDrawing = true; draw();
+                } else {
+                    detailLabelPos = {x: wp.x, y: wp.y};
+                    detailStep = 2; // en attente de la saisie de texte
+                    openDetailModal(sx, sy);
+                }
+                return;
+            }
 
             if (mode === 'arc') {
                 let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
@@ -2186,9 +2315,14 @@
         }
 
         document.addEventListener('keydown', (e) => {
-            if (document.activeElement.tagName === 'INPUT') {
-                if (e.key === 'Enter') { if (document.activeElement.id === 'text-content') applyText(); if (document.activeElement.id === 'new-layer-name') addLayer(); }
-                if (e.key === 'Escape') { closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal(); }
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                if (e.key === 'Enter') {
+                    if (document.activeElement.id === 'text-content') applyText();
+                    if (document.activeElement.id === 'new-layer-name') addLayer();
+                    // Détail : Entrée valide (Maj+Entrée = saut de ligne)
+                    if (document.activeElement.id === 'detail-content' && !e.shiftKey) { e.preventDefault(); applyDetail(); }
+                }
+                if (e.key === 'Escape') { closeTextModal(); closeDetailModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal(); }
                 return;
             }
             if (e.key === 'F8') { e.preventDefault(); toggleOrtho(); return; }
@@ -2218,6 +2352,7 @@
             if (e.key === 'Escape') {
                 isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null;
                 rectDimStep = 0; rectWidthVal = 0;
+                detailStep = 0; detailTarget = null; detailLabelPos = null; closeDetailModal();
                 dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null;
                 dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
                 closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal();
