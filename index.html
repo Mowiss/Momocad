@@ -124,6 +124,7 @@
 
         <main class="flex-1 relative" id="canvas-container">
             <canvas id="cadCanvas"></canvas>
+            <textarea id="inline-editor" class="hidden absolute z-50 bg-transparent outline-none resize-none overflow-hidden p-0 m-0" spellcheck="false" style="font-family: Arial; white-space: pre; border: 1px dashed #60a5fa; line-height: 1.25;"></textarea>
             <div id="text-input-modal" class="hidden absolute bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-64">
                 <input type="text" id="text-content" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500 mb-3" placeholder="Votre texte ici...">
                 <div class="flex justify-end space-x-2">
@@ -374,8 +375,69 @@
         let printScaleIndex = PRINT_SCALES.findIndex(s => s.label === '1:1');
         let currentPrintScale = PRINT_SCALES[printScaleIndex].label; // libellé affiché (ex. '2:1')
 
-        let layers = [{ id: 'layer-0', name: '0 - Tracé', visible: true, color: '#ffffff', dash: 'solid', width: 0.5 }, { id: 'layer-1', name: '1 - Construction', visible: true, color: '#808080', dash: 'dashed', width: 0.5 }, { id: 'layer-2', name: '2 - Cotation', visible: true, color: '#ff7f00', dash: 'solid', width: 1 }];
-        const DIM_LAYER_ID = 'layer-2'; // calque cotation (rouge à l'impression)
+        let layers = [{ id: 'layer-0', name: '0 - Tracé', visible: true, color: '#ffffff', dash: 'solid', width: 0.5 }, { id: 'layer-1', name: '1 - Construction', visible: true, color: '#808080', dash: 'dashed', width: 0.5 }, { id: 'layer-2', name: '2 - Textes', visible: true, color: '#ff0000', dash: 'solid', width: 1 }, { id: 'layer-3', name: '3 - Cotation', visible: true, color: '#ff7f00', dash: 'solid', width: 1 }];
+        const DIM_LAYER_ID = 'layer-3'; // calque Cotation (orange)
+        const TEXT_LAYER_ID = 'layer-2'; // calque Textes (rouge) : texte + détail
+        // --- Édition de texte INLINE (WYSIWYG sur le canvas) ---
+        let inlineEdit = null; // { kind:'text'|'detail', wx, wy, target, detailTarget }
+        let inlineEditReady = false; // true une fois le focus posé (anti-blur immédiat)
+        const TEXT_WORLD_SIZE = 20; // hauteur de police en unités monde (cohérent avec s.size)
+        function startInlineEdit(opts) {
+            // opts: { kind, wx, wy, target?, detailTarget? }
+            inlineEdit = opts;
+            inlineEditReady = false; // évite un blur immédiat dû au cycle de clic en cours
+            const ta = document.getElementById('inline-editor');
+            const col = effectiveColor({ layerId: TEXT_LAYER_ID }, false);
+            const fontPx = TEXT_WORLD_SIZE * effectiveWidth({ layerId: TEXT_LAYER_ID }) * camera.zoom;
+            const sp = worldToScreen(opts.wx, opts.wy);
+            ta.style.left = sp.x + 'px';
+            ta.style.top = (opts.kind === 'detail' ? sp.y : sp.y - fontPx) + 'px';
+            ta.style.fontSize = fontPx + 'px';
+            ta.style.color = col;
+            ta.style.minWidth = '40px';
+            ta.style.width = 'auto';
+            ta.value = opts.target ? (opts.target.content || '') : '';
+            ta.classList.remove('hidden');
+            autoSizeInline();
+            // Focus différé : laisse le cycle mousedown/mouseup/click se terminer
+            // avant de donner le focus, sinon le mouseup provoque un blur immédiat.
+            setTimeout(() => { ta.focus(); inlineEditReady = true; }, 50);
+            draw();
+        }
+        function autoSizeInline() {
+            const ta = document.getElementById('inline-editor');
+            ta.style.height = 'auto'; ta.style.width = 'auto';
+            // largeur = plus longue ligne ; hauteur = nb lignes
+            ta.style.height = ta.scrollHeight + 'px';
+            ta.style.width = Math.max(40, ta.scrollWidth) + 'px';
+        }
+        function commitInlineEdit() {
+            const ta = document.getElementById('inline-editor');
+            if (!inlineEdit) { ta.classList.add('hidden'); return; }
+            const txt = ta.value.replace(/\s+$/,''); // retire espaces/sauts finaux
+            const e = inlineEdit;
+            if (txt) {
+                if (e.kind === 'text') {
+                    if (e.target) { e.target.content = txt; }
+                    else shapes.push({ type:'text', layerId: TEXT_LAYER_ID, x: e.wx, y: e.wy, content: txt, size: TEXT_WORLD_SIZE });
+                } else if (e.kind === 'detail') {
+                    if (e.target) { e.target.content = txt; }
+                    else shapes.push({ type:'detail', layerId: TEXT_LAYER_ID, tx: e.detailTarget.x, ty: e.detailTarget.y, lx: e.wx, ly: e.wy, content: txt, size: TEXT_WORLD_SIZE });
+                }
+                saveState();
+            }
+            ta.classList.add('hidden'); ta.value = '';
+            inlineEdit = null;
+            detailStep = 0; detailTarget = null; detailLabelPos = null; isDrawing = false;
+            draw();
+        }
+        function cancelInlineEdit() {
+            const ta = document.getElementById('inline-editor');
+            ta.classList.add('hidden'); ta.value = '';
+            inlineEdit = null;
+            detailStep = 0; detailTarget = null; detailLabelPos = null; isDrawing = false;
+            draw();
+        }
         let activeLayerId = 'layer-0';
         let snapSettings = { endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true };
         let cachedSnapPoints = null;
@@ -383,7 +445,7 @@
 
         // --- UI MODALES ---
         function openTextModal(wx, wy, sx, sy) { pendingTextPos = {wx, wy}; const m = document.getElementById('text-input-modal'); m.style.left = Math.min(sx + 10, window.innerWidth - 280) + 'px'; m.style.top = Math.min(sy + 10, window.innerHeight - 150) + 'px'; m.classList.remove('hidden'); document.getElementById('text-content').value = ""; document.getElementById('text-content').focus(); }
-        function applyText() { const c = document.getElementById('text-content').value; if (c.trim() && pendingTextPos) { shapes.push({ type: 'text', layerId: activeLayerId, x: pendingTextPos.wx, y: pendingTextPos.wy, content: c, color: document.getElementById('prop-color').value, size: (parseFloat(document.getElementById('prop-width').value) || 1) * 20 }); saveState(); draw(); } closeTextModal(); }
+        function applyText() { const c = document.getElementById('text-content').value; if (c.trim() && pendingTextPos) { shapes.push({ type: 'text', layerId: TEXT_LAYER_ID, x: pendingTextPos.wx, y: pendingTextPos.wy, content: c, size: 20 }); saveState(); draw(); } closeTextModal(); }
         function closeTextModal() { document.getElementById('text-input-modal').classList.add('hidden'); pendingTextPos = null; }
         // --- Outil Détail : annotation encadrée reliée par une flèche ---
         function openDetailModal(sx, sy) {
@@ -400,7 +462,7 @@
         function applyDetail() {
             const txt = document.getElementById('detail-content').value.trim();
             if (txt && detailTarget && detailLabelPos) {
-                shapes.push({ type:'detail', layerId: DIM_LAYER_ID,
+                shapes.push({ type:'detail', layerId: TEXT_LAYER_ID,
                     tx: detailTarget.x, ty: detailTarget.y,      // point désigné
                     lx: detailLabelPos.x, ly: detailLabelPos.y,  // ancre de l'étiquette
                     content: txt, size: 20 });
@@ -716,13 +778,14 @@
                 else if (s.type === 'circle') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) return s; }
                 else if (s.type === 'arc') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) { let a = Math.atan2(p.y-s.y, p.x-s.x); if (isAngleBetween(a, s.startAngle, s.endAngle)) return s; } }
                 else if (s.type === 'poly') { for(let j=0; j<s.points.length; j++){ let p1 = s.points[j], p2 = s.points[(j+1)%s.points.length]; let l2 = Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-p1.x)*(p2.x-p1.x)+(p.y-p1.y)*(p2.y-p1.y))/l2)); if (Math.hypot(p.x-(p1.x+t*(p2.x-p1.x)), p.y-(p1.y+t*(p2.y-p1.y))) < tol) return s; } }
-                else if (s.type === 'text') { ctx.font = s.size + "px Arial"; let w = ctx.measureText(s.content).width; if (wx >= s.x && wx <= s.x + w && wy <= s.y && wy >= s.y - s.size) return s; }
+                else if (s.type === 'text') { const fs = (s.size||20)*effectiveWidth(s); ctx.font = fs + "px Arial"; const tl=(s.content||'').split('\n'); let w=0; tl.forEach(t=>w=Math.max(w,ctx.measureText(t).width)); const th=tl.length*fs*1.25; if (wx >= s.x && wx <= s.x + w && wy <= s.y + (th - fs) && wy >= s.y - fs) return s; }
                 else if (s.type === 'detail') {
                     // Clic sur le cadre de l'étiquette (zone approximative)
-                    ctx.font = "bold " + (s.size||20) + "px Arial";
+                    const fs = (s.size||20)*effectiveWidth(s);
+                    ctx.font = "bold " + fs + "px Arial";
                     const lines = (s.content||'').split('\n');
                     let mw = 0; lines.forEach(t => mw = Math.max(mw, ctx.measureText(t).width));
-                    const bw = mw + 16, bh = lines.length*(s.size||20)*1.25 + 12;
+                    const bw = mw + 16, bh = lines.length*fs*1.25 + 12;
                     if (wx >= s.lx && wx <= s.lx + bw && wy >= s.ly && wy <= s.ly + bh) return s;
                     // ou clic près du point désigné
                     if (Math.hypot(wx - s.tx, wy - s.ty) < tol*1.5) return s;
@@ -934,6 +997,7 @@
             arcStep = 0; arcCenter = null; arcP1 = null;
             rectDimStep = 0; rectWidthVal = 0;
             detailStep = 0; detailTarget = null; detailLabelPos = null;
+            if (inlineEdit) { const _ta = document.getElementById('inline-editor'); _ta.classList.add('hidden'); _ta.value=''; inlineEdit = null; }
             offsetTarget = null; offsetPreviewShape = null;
             dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
             closeTextModal(); closeLayerModal(); closeCartoucheModal(); closeSnapModal(); closeHelpModal();
@@ -1106,7 +1170,7 @@
                 } else if (s.type === 'text') {
                     p(0,'TEXT'); p(8,lname); style(s);
                     p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
-                    p(40, worldToMm(s.size || 20));
+                    p(40, worldToMm((s.size || 20) * effectiveWidth(s)));
                     p(1, s.content || '');
                     if (s.angle) p(50, -s.angle * 180/Math.PI);
                 } else if (s.type === 'detail') {
@@ -1117,8 +1181,9 @@
                     const dlines = (s.content || '').split('\n');
                     dlines.forEach((t, k) => {
                         p(0,'TEXT'); p(8,lname); style(s);
-                        p(10, X(s.lx)); p(20, Y(s.ly) - worldToMm((s.size||20)*(k+1)*1.25)); p(30,0);
-                        p(40, worldToMm(s.size || 20));
+                        const _fs=(s.size||20)*effectiveWidth(s);
+                        p(10, X(s.lx)); p(20, Y(s.ly) - worldToMm(_fs*(k+1)*1.25)); p(30,0);
+                        p(40, worldToMm(_fs));
                         p(1, t);
                     });
                 }
@@ -1615,10 +1680,19 @@
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); }
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle); targetCtx.stroke(); }
             else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); }
-            else if (s.type === 'text') { targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle); targetCtx.fillStyle = sel ? '#ec4899' : col; targetCtx.font = s.size + "px Arial"; targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic"; targetCtx.fillText(s.content, 0, 0); targetCtx.restore(); }
+            else if (s.type === 'text') {
+                const fsize = (s.size || 20) * effectiveWidth(s); // taille pilotée par l'épaisseur du calque
+                targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle);
+                targetCtx.fillStyle = sel ? '#ec4899' : col; targetCtx.font = fsize + "px Arial";
+                targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic";
+                const tlines = (s.content || '').split('\n');
+                const lh = fsize * 1.25;
+                tlines.forEach((t, k) => targetCtx.fillText(t, 0, k * lh));
+                targetCtx.restore();
+            }
             else if (s.type === 'detail') {
                 const tx = s.tx+dx, ty = s.ty+dy, lx = s.lx+dx, ly = s.ly+dy;
-                const fontPx = s.size || 20;
+                const fontPx = (s.size || 20) * effectiveWidth(s);
                 targetCtx.font = "bold " + fontPx + "px Arial";
                 const lines = (s.content || '').split('\n');
                 let maxW = 0; lines.forEach(t => { maxW = Math.max(maxW, targetCtx.measureText(t).width); });
@@ -2129,7 +2203,7 @@
                 return;
             }
 
-            if (mode === 'text') { openTextModal(wp.x, wp.y, sx, sy); return; }
+            if (mode === 'text') { startInlineEdit({ kind:'text', wx: wp.x, wy: wp.y }); return; }
 
             if (mode === 'detail') {
                 let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
@@ -2137,8 +2211,8 @@
                     detailTarget = pt; detailStep = 1; isDrawing = true; draw();
                 } else {
                     detailLabelPos = {x: wp.x, y: wp.y};
-                    detailStep = 2; // en attente de la saisie de texte
-                    openDetailModal(sx, sy);
+                    detailStep = 2;
+                    startInlineEdit({ kind:'detail', wx: wp.x, wy: wp.y, detailTarget: detailTarget });
                 }
                 return;
             }
@@ -2405,7 +2479,18 @@
             camera.x = sx - wp.x * camera.zoom; camera.y = sy - wp.y * camera.zoom; draw();
         });
 
-        window.onload = () => { updateLayerUI(); resizeCanvas(); saveState(); };
+        window.onload = () => {
+            updateLayerUI(); resizeCanvas(); saveState();
+            const ta = document.getElementById('inline-editor');
+            ta.addEventListener('input', autoSizeInline);
+            ta.addEventListener('blur', () => { if (inlineEdit && inlineEditReady) commitInlineEdit(); });
+            ta.addEventListener('keydown', (ev) => {
+                ev.stopPropagation(); // ne pas déclencher les raccourcis CAO pendant la saisie
+                if (ev.key === 'Escape') { ev.preventDefault(); commitInlineEdit(); }
+                // Entrée = valider. Maj+Entrée = saut de ligne (laisser le comportement par défaut).
+                if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); commitInlineEdit(); }
+            });
+        };
         function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; draw(); }
         window.addEventListener('resize', resizeCanvas);
     </script>
