@@ -107,10 +107,14 @@
                 <button id="btn-circle" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-pink-300" title="Cercle" onclick="setMode('circle')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"></circle></svg></button>
                 <button id="btn-arc" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Arc (Centre, Début, Fin)" onclick="setMode('arc')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 18 0"></path></svg></button>
                 <button id="btn-poly" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polygone" onclick="setMode('poly')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z"></path></svg></button>
+                <button id="btn-hatch" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Hachures (cliquer une forme fermée)" onclick="setMode('hatch')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"></rect><line x1="8" y1="3" x2="3" y2="8"></line><line x1="13" y1="3" x2="3" y2="13"></line><line x1="18" y1="3" x2="3" y2="18"></line><line x1="21" y1="6" x2="6" y2="21"></line><line x1="21" y1="11" x2="11" y2="21"></line><line x1="21" y1="16" x2="16" y2="21"></line></svg></button>
+            </div>
+
+            <!-- Bloc Annotation (texte, détail, cotation) — repoussé en bas -->
+            <div class="tool-group flex flex-col space-y-2 mt-auto pt-3 border-t border-gray-600">
                 <button id="btn-text" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-200" title="Texte" onclick="setMode('text')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg></button>
                 <button id="btn-detail" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-200" title="Détail (annotation fléchée)" onclick="setMode('detail')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="13" y="4" width="9" height="6" rx="1"></rect><line x1="13" y1="7" x2="3" y2="19"></line><circle cx="3" cy="19" r="1.5" fill="currentColor"></circle></svg></button>
                 <button id="btn-dim" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-400" title="Cotation linéaire" onclick="setMode('dim')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="12" x2="22" y2="12"></line><polyline points="5 8 2 12 5 16"></polyline><polyline points="19 8 22 12 19 16"></polyline><line x1="2" y1="8" x2="2" y2="16"></line><line x1="22" y1="8" x2="22" y2="16"></line></svg></button>
-                <!-- Nouveau bouton : Cotation angulaire -->
                 <button id="btn-dim-angle" class="tool-btn w-10 h-10 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-300" title="Cotation angulaire" onclick="setMode('dim-angle')">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M4 20 L4 4"></path>
@@ -352,7 +356,7 @@
         
         let unitsPerSquare = 10, currentUnit = 'mm';
         
-        let shapes = [], dimensionTextsToDraw = [], pendingTextPos = null;
+        let shapes = [], dimensionTextsToDraw = [], screenTextsToDraw = [], pendingTextPos = null;
         let printOrientation = 'landscape';
         let cartoucheData = { logo: null, planName: '', clientName: '', draftsmanName: '' };
         // Échelles d'impression, du plus AGRANDISSANT au plus RÉDUISANT.
@@ -375,9 +379,9 @@
         let printScaleIndex = PRINT_SCALES.findIndex(s => s.label === '1:1');
         let currentPrintScale = PRINT_SCALES[printScaleIndex].label; // libellé affiché (ex. '2:1')
 
-        let layers = [{ id: 'layer-0', name: '0 - Tracé', visible: true, color: '#ffffff', dash: 'solid', width: 0.5 }, { id: 'layer-1', name: '1 - Construction', visible: true, color: '#808080', dash: 'dashed', width: 0.5 }, { id: 'layer-2', name: '2 - Textes', visible: true, color: '#ff0000', dash: 'solid', width: 1 }, { id: 'layer-3', name: '3 - Cotation', visible: true, color: '#ff7f00', dash: 'solid', width: 1 }];
-        const DIM_LAYER_ID = 'layer-3'; // calque Cotation (orange)
-        const TEXT_LAYER_ID = 'layer-2'; // calque Textes (rouge) : texte + détail
+        let layers = [{ id: 'layer-0', name: '0 - Tracé', visible: true, color: '#ffffff', dash: 'solid', width: 0.5 }, { id: 'layer-1', name: '1 - Construction', visible: true, color: '#808080', dash: 'dashed', width: 0.5 }, { id: 'layer-2', name: '2 - Cotation', visible: true, color: '#ff7f00', dash: 'solid', width: 1 }];
+        const DIM_LAYER_ID = 'layer-2'; // calque Cotation (orange) : cotes, texte, détail
+        const TEXT_LAYER_ID = 'layer-2'; // texte + détail = même calque que cotation
         // --- Édition de texte INLINE (WYSIWYG sur le canvas) ---
         let inlineEdit = null; // { kind:'text'|'detail', wx, wy, target, detailTarget }
         let inlineEditReady = false; // true une fois le focus posé (anti-blur immédiat)
@@ -388,7 +392,7 @@
             inlineEditReady = false; // évite un blur immédiat dû au cycle de clic en cours
             const ta = document.getElementById('inline-editor');
             const col = effectiveColor({ layerId: TEXT_LAYER_ID }, false);
-            const fontPx = TEXT_WORLD_SIZE * effectiveWidth({ layerId: TEXT_LAYER_ID }) * camera.zoom;
+            const fontPx = 14; // taille écran fixe (cohérent avec le rendu texte/détail)
             const sp = worldToScreen(opts.wx, opts.wy);
             ta.style.left = sp.x + 'px';
             ta.style.top = (opts.kind === 'detail' ? sp.y : sp.y - fontPx) + 'px';
@@ -547,6 +551,86 @@
         function deleteLayer(id) { if (layers.length <= 1) { alert("Dernier calque."); return; } if (confirm("Supprimer ce calque ?")) { layers = layers.filter(l => l.id !== id); shapes = shapes.filter(s => (s.layerId || 'layer-0') !== id); selectedShapes = selectedShapes.filter(s => (s.layerId || 'layer-0') !== id); if (activeLayerId === id) activeLayerId = layers[0].id; saveState(); updateLayerUI(); draw(); } }
 
         // --- MATH INTERSECTIONS ET ARCS ---
+        // Test point-dans-polygone (ray casting)
+        function pointInPolygon(px, py, pts) {
+            let inside = false;
+            for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+                const xi = pts[i].x, yi = pts[i].y, xj = pts[j].x, yj = pts[j].y;
+                if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) inside = !inside;
+            }
+            return inside;
+        }
+
+        // Génère les segments de hachure (lignes parallèles) clippés dans une forme fermée.
+        // spacingWorld = espacement entre lignes (unités monde), angleDeg = orientation.
+        function computeHatchLines(shape, spacingWorld, angleDeg) {
+            const segs = [];
+            const ang = angleDeg * Math.PI / 180;
+            const ca = Math.cos(ang), sa = Math.sin(ang);
+            // bounding box de la forme
+            let minX, minY, maxX, maxY;
+            if (shape.type === 'circle') {
+                minX = shape.x - shape.r; maxX = shape.x + shape.r; minY = shape.y - shape.r; maxY = shape.y + shape.r;
+            } else {
+                const xs = shape.points.map(p => p.x), ys = shape.points.map(p => p.y);
+                minX = Math.min(...xs); maxX = Math.max(...xs); minY = Math.min(...ys); maxY = Math.max(...ys);
+            }
+            const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+            const diag = Math.hypot(maxX - minX, maxY - minY);
+            const half = diag / 2 + spacingWorld;
+            // direction perpendiculaire aux lignes (on balaie le long de cette normale)
+            const nx = -sa, ny = ca;
+            for (let d = -half; d <= half; d += spacingWorld) {
+                // point de base sur la normale, ligne dans la direction (ca,sa)
+                const bx = cx + nx * d, by = cy + ny * d;
+                const x1 = bx - ca * diag, y1 = by - sa * diag;
+                const x2 = bx + ca * diag, y2 = by + sa * diag;
+                // clip de la ligne contre la forme
+                const hits = clipLineToShape(x1, y1, x2, y2, shape);
+                for (const seg of hits) segs.push(seg);
+            }
+            return segs;
+        }
+
+        // Renvoie les sous-segments d'une droite qui sont À L'INTÉRIEUR de la forme.
+        function clipLineToShape(x1, y1, x2, y2, shape) {
+            const inter = [];
+            if (shape.type === 'circle') {
+                const res = getIntersectionLineCircle(x1, y1, x2, y2, shape.x, shape.y, shape.r);
+                res.forEach(p => inter.push(p));
+            } else {
+                const pts = shape.points;
+                for (let i = 0; i < pts.length; i++) {
+                    const a = pts[i], b = pts[(i + 1) % pts.length];
+                    const ip = segLineIntersect(x1, y1, x2, y2, a.x, a.y, b.x, b.y);
+                    if (ip) inter.push(ip);
+                }
+            }
+            if (inter.length < 2) return [];
+            // trier les intersections le long de la ligne (par projection)
+            const dx = x2 - x1, dy = y2 - y1;
+            inter.forEach(p => p.t = (p.x - x1) * dx + (p.y - y1) * dy);
+            inter.sort((a, b) => a.t - b.t);
+            // apparier : intérieur entre paires successives
+            const out = [];
+            for (let i = 0; i + 1 < inter.length; i += 2) {
+                out.push({ x1: inter[i].x, y1: inter[i].y, x2: inter[i + 1].x, y2: inter[i + 1].y });
+            }
+            return out;
+        }
+
+        // Intersection d'une droite (infinie, définie par 2 points) avec un SEGMENT [a,b].
+        function segLineIntersect(lx1, ly1, lx2, ly2, ax, ay, bx, by) {
+            const r_px = lx1, r_py = ly1, r_dx = lx2 - lx1, r_dy = ly2 - ly1;
+            const s_px = ax, s_py = ay, s_dx = bx - ax, s_dy = by - ay;
+            const denom = r_dx * s_dy - r_dy * s_dx;
+            if (Math.abs(denom) < 1e-9) return null;
+            const t = ((s_px - r_px) * s_dy - (s_py - r_py) * s_dx) / denom;
+            const u = ((s_px - r_px) * r_dy - (s_py - r_py) * r_dx) / denom;
+            if (u < 0 || u > 1) return null; // hors du segment de la forme
+            return { x: r_px + t * r_dx, y: r_py + t * r_dy };
+        }
+
         function isAngleBetween(target, start, end) {
             const PI2 = Math.PI * 2; let t = (target % PI2 + PI2) % PI2, s = (start % PI2 + PI2) % PI2, e = (end % PI2 + PI2) % PI2;
             if (s < e) return t >= s && t <= e; return t >= s || t <= e;
@@ -1142,6 +1226,19 @@
                 if (lt !== 'CONTINUOUS') p(6, lt);
                 p(370, widthToLineweight(effectiveWidth(s)));
             };
+            // Export des hachures comme des entités LINE (le motif est "explosé").
+            const emitHatch = (s) => {
+                const ln = layerDxfName(s.layerId || 'layer-0');
+                const spacingMm = s.hatchSpacing || 3;
+                const angleDeg = (s.hatchAngle !== undefined) ? s.hatchAngle : 45;
+                const spacingWorld = (spacingMm / unitsPerSquare) * GRID_SIZE;
+                const segs = computeHatchLines(s, spacingWorld, angleDeg);
+                for (const seg of segs) {
+                    p(0,'LINE'); p(8,ln); p(62, hexToAci(effectiveColor(s, false)));
+                    p(10, X(seg.x1)); p(20, Y(seg.y1)); p(30,0);
+                    p(11, X(seg.x2)); p(21, Y(seg.y2)); p(31,0);
+                }
+            };
 
             for (const s of shapes) {
                 const lname = layerDxfName(s.layerId || 'layer-0');
@@ -1153,6 +1250,7 @@
                     p(0,'CIRCLE'); p(8,lname); style(s);
                     p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
                     p(40, worldToMm(s.r));
+                    if (s.hatch) emitHatch(s);
                 } else if (s.type === 'arc') {
                     p(0,'ARC'); p(8,lname); style(s);
                     p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
@@ -1167,6 +1265,7 @@
                         p(0,'VERTEX'); p(8,lname); p(10, X(pt.x)); p(20, Y(pt.y)); p(30,0);
                     }
                     p(0,'SEQEND'); p(8,lname);
+                    if (s.hatch) emitHatch(s);
                 } else if (s.type === 'text') {
                     p(0,'TEXT'); p(8,lname); style(s);
                     p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
@@ -1511,7 +1610,7 @@
                     offCtx.save();
                     offCtx.translate((camera.x - winX) * SS, (camera.y - winY) * SS);
                     offCtx.scale(offZoom, offZoom);
-                    dimensionTextsToDraw = [];
+                    dimensionTextsToDraw = []; screenTextsToDraw = [];
                     for (let s of shapes) {
                         let layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
                         if (layer && !layer.visible) continue;
@@ -1530,6 +1629,37 @@
                         offCtx.fillStyle = d.color || '#000000';
                         offCtx.textAlign = "center"; offCtx.textBaseline = "middle";
                         offCtx.fillText(d.text, px, py);
+                    }
+                    // Textes et détails en taille écran fixe (suréchantillonnés pour le PDF)
+                    {
+                        const W2S = (wx, wy) => ({ x: (wx*camera.zoom + camera.x - winX)*SS, y: (wy*camera.zoom + camera.y - winY)*SS });
+                        const FS = Math.round(14 * SS), lh = FS * 1.25;
+                        for (const d of screenTextsToDraw) {
+                            const p = W2S(d.wx, d.wy);
+                            offCtx.font = "bold " + FS + "px Arial";
+                            const dcol = (d.color === '#ffffff') ? '#000000' : d.color; // impression : blanc->noir
+                            if (d.kind === 'text') {
+                                offCtx.fillStyle = dcol; offCtx.textAlign = "left"; offCtx.textBaseline = "alphabetic";
+                                d.lines.forEach((t, k) => offCtx.fillText(t, p.x, p.y + k*lh));
+                            } else {
+                                let maxW = 0; d.lines.forEach(t => maxW = Math.max(maxW, offCtx.measureText(t).width));
+                                const padX = 6*SS, padY = 4*SS, boxW = maxW + padX*2, boxH = d.lines.length*lh + padY*2;
+                                const bx = p.x, by = p.y, tp = W2S(d.tx, d.ty);
+                                const cxC = bx+boxW/2, cyC = by+boxH/2, angT = Math.atan2(tp.y-cyC, tp.x-cxC);
+                                const hw = boxW/2, hh = boxH/2, tanA = Math.tan(angT); let ex, ey;
+                                if (Math.abs(Math.cos(angT))*hh >= Math.abs(Math.sin(angT))*hw) { ex = cxC+(Math.cos(angT)>0?hw:-hw); ey = cyC+(Math.cos(angT)>0?hw:-hw)*tanA; }
+                                else { ey = cyC+(Math.sin(angT)>0?hh:-hh); ex = cxC+(Math.sin(angT)>0?hh:-hh)/tanA; }
+                                offCtx.strokeStyle = dcol; offCtx.fillStyle = dcol; offCtx.lineWidth = 1.2*SS; offCtx.setLineDash([]);
+                                offCtx.beginPath(); offCtx.moveTo(ex, ey); offCtx.lineTo(tp.x, tp.y); offCtx.stroke();
+                                const ah = 9*SS, aa = Math.atan2(tp.y-ey, tp.x-ex);
+                                offCtx.beginPath(); offCtx.moveTo(tp.x, tp.y); offCtx.lineTo(tp.x-ah*Math.cos(aa-0.4), tp.y-ah*Math.sin(aa-0.4)); offCtx.lineTo(tp.x-ah*Math.cos(aa+0.4), tp.y-ah*Math.sin(aa+0.4)); offCtx.closePath(); offCtx.fill();
+                                offCtx.beginPath(); offCtx.arc(tp.x, tp.y, 2.5*SS, 0, 2*Math.PI); offCtx.fill();
+                                offCtx.fillStyle = '#ffffff'; offCtx.fillRect(bx, by, boxW, boxH);
+                                offCtx.strokeStyle = dcol; offCtx.strokeRect(bx, by, boxW, boxH);
+                                offCtx.fillStyle = dcol; offCtx.textAlign = "left"; offCtx.textBaseline = "top";
+                                d.lines.forEach((t, k) => offCtx.fillText(t, bx+padX, by+padY+k*lh));
+                            }
+                        }
                     }
 
                     // Inclure l'image raster du plan (PNG = sans perte → pas de bavure sur les bords)
@@ -1612,9 +1742,54 @@
 
         // Fonction de rendu plan sur un contexte arbitraire (utilisée par performPrint)
         // printLineScale : facteur de mise à l'échelle des épaisseurs pour le rendu PDF
+        // Dessine textes et étiquettes de détail en TAILLE ÉCRAN FIXE (comme les cotes).
+        function drawScreenTexts(targetCtx) {
+            const FS = 14;
+            const lh = FS * 1.25;
+            for (const d of screenTextsToDraw) {
+                const p = worldToScreen(d.wx, d.wy);
+                targetCtx.font = "bold " + FS + "px Arial";
+                if (d.kind === 'text') {
+                    targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic";
+                    targetCtx.fillStyle = d.color;
+                    d.lines.forEach((t, k) => targetCtx.fillText(t, p.x, p.y + k * lh));
+                } else if (d.kind === 'detail') {
+                    let maxW = 0; d.lines.forEach(t => maxW = Math.max(maxW, targetCtx.measureText(t).width));
+                    const padX = 6, padY = 4;
+                    const boxW = maxW + padX*2, boxH = d.lines.length*lh + padY*2;
+                    const bx = p.x, by = p.y;
+                    const tp = worldToScreen(d.tx, d.ty);
+                    const cxC = bx + boxW/2, cyC = by + boxH/2;
+                    const angT = Math.atan2(tp.y - cyC, tp.x - cxC);
+                    const hw = boxW/2, hh = boxH/2; const tanA = Math.tan(angT);
+                    let ex, ey;
+                    if (Math.abs(Math.cos(angT)) * hh >= Math.abs(Math.sin(angT)) * hw) {
+                        ex = cxC + (Math.cos(angT) > 0 ? hw : -hw); ey = cyC + (Math.cos(angT) > 0 ? hw : -hw) * tanA;
+                    } else {
+                        ey = cyC + (Math.sin(angT) > 0 ? hh : -hh); ex = cxC + (Math.sin(angT) > 0 ? hh : -hh) / tanA;
+                    }
+                    targetCtx.strokeStyle = d.color; targetCtx.fillStyle = d.color;
+                    targetCtx.lineWidth = 1.2; targetCtx.setLineDash([]);
+                    targetCtx.beginPath(); targetCtx.moveTo(ex, ey); targetCtx.lineTo(tp.x, tp.y); targetCtx.stroke();
+                    const ah = 9, aa = Math.atan2(tp.y - ey, tp.x - ex);
+                    targetCtx.beginPath(); targetCtx.moveTo(tp.x, tp.y);
+                    targetCtx.lineTo(tp.x - ah*Math.cos(aa - 0.4), tp.y - ah*Math.sin(aa - 0.4));
+                    targetCtx.lineTo(tp.x - ah*Math.cos(aa + 0.4), tp.y - ah*Math.sin(aa + 0.4));
+                    targetCtx.closePath(); targetCtx.fill();
+                    targetCtx.beginPath(); targetCtx.arc(tp.x, tp.y, 2.5, 0, 2*Math.PI); targetCtx.fill();
+                    targetCtx.fillStyle = d.isPrinting ? '#ffffff' : 'rgba(20,20,20,0.85)';
+                    targetCtx.fillRect(bx, by, boxW, boxH);
+                    targetCtx.strokeStyle = d.color; targetCtx.strokeRect(bx, by, boxW, boxH);
+                    targetCtx.fillStyle = d.color;
+                    targetCtx.textAlign = "left"; targetCtx.textBaseline = "top";
+                    d.lines.forEach((t, k) => targetCtx.fillText(t, bx + padX, by + padY + k*lh));
+                }
+            }
+        }
+
         function _drawFullPlanOnCtx(targetCtx, isPrinting, printLineScale) {
             const ls = printLineScale !== undefined ? printLineScale : camera.zoom;
-            dimensionTextsToDraw = [];
+            dimensionTextsToDraw = []; screenTextsToDraw = [];
             targetCtx.save();
             targetCtx.translate(camera.x, camera.y);
             targetCtx.scale(camera.zoom, camera.zoom);
@@ -1631,6 +1806,7 @@
                 targetCtx.fillStyle = "#ffffff"; targetCtx.fillRect(p.x - m.width/2 - 3, p.y - 10, m.width + 6, 20);
                 targetCtx.fillStyle = '#1a1a00'; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(d.text, p.x, p.y);
             }
+            drawScreenTexts(targetCtx);
         }
 
         // --- HISTORIQUE & ÉTAT ---
@@ -1643,6 +1819,20 @@
         function cutSelection() { if (selectedShapes.length > 0) { copySelection(); shapes = shapes.filter(s => !selectedShapes.includes(s)); selectedShapes = []; saveState(); draw(); } }
         function pasteSelection() { if (clipboard.length > 0) { setMode('paste'); } }
         function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        // Bascule l'icône du bouton plein écran : croix rouge quand on est en plein écran.
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.getElementById('btn-fullscreen');
+            if (!btn) return;
+            if (document.fullscreenElement) {
+                btn.title = "Quitter le plein écran";
+                btn.classList.remove('text-gray-200'); btn.classList.add('text-red-500');
+                btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            } else {
+                btn.title = "Plein Écran";
+                btn.classList.remove('text-red-500'); btn.classList.add('text-gray-200');
+                btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>';
+            }
+        });
 
         // --- MOTEUR DE DESSIN ---
         // lineScale = facteur de division des épaisseurs (= camera.zoom à l'écran, = zoom d'impression pour le PDF)
@@ -1665,6 +1855,25 @@
             const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
             return (layer && layer.width) ? layer.width : 1;
         }
+        // Dessine les hachures (lignes à 45°) à l'intérieur d'une forme fermée.
+        function drawHatch(targetCtx, s, col, dx, dy, lineScale) {
+            const spacingMm = s.hatchSpacing || 3;          // espacement en mm
+            const angleDeg = (s.hatchAngle !== undefined) ? s.hatchAngle : 45;
+            const spacingWorld = (spacingMm / unitsPerSquare) * GRID_SIZE;
+            // travailler sur une copie décalée si la forme est déplacée en preview (dx,dy)
+            const shp = (dx || dy)
+                ? (s.type === 'circle' ? { type:'circle', x:s.x+dx, y:s.y+dy, r:s.r } : { type:'poly', points: s.points.map(p => ({x:p.x+dx, y:p.y+dy})) })
+                : s;
+            const segs = computeHatchLines(shp, spacingWorld, angleDeg);
+            targetCtx.save();
+            targetCtx.strokeStyle = col;
+            targetCtx.lineWidth = (effectiveWidth(s) * 0.7) / lineScale;
+            targetCtx.setLineDash([]);
+            targetCtx.beginPath();
+            for (const seg of segs) { targetCtx.moveTo(seg.x1, seg.y1); targetCtx.lineTo(seg.x2, seg.y2); }
+            targetCtx.stroke();
+            targetCtx.restore();
+        }
 
         function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy, lineScale) {
             if (lineScale === undefined) lineScale = camera.zoom;
@@ -1677,67 +1886,18 @@
             else if (dash === 'center') targetCtx.setLineDash([16/lineScale, 6/lineScale, 2/lineScale, 6/lineScale]);
             else targetCtx.setLineDash([]);
             if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); }
-            else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); }
-            else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle); targetCtx.stroke(); }
-            else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); }
+            else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
+            else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle, !!s.anticlockwise); targetCtx.stroke(); }
+            else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
             else if (s.type === 'text') {
-                const fsize = (s.size || 20) * effectiveWidth(s); // taille pilotée par l'épaisseur du calque
-                targetCtx.save(); targetCtx.translate(s.x+dx, s.y+dy); if (s.angle) targetCtx.rotate(s.angle);
-                targetCtx.fillStyle = sel ? '#ec4899' : col; targetCtx.font = fsize + "px Arial";
-                targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic";
-                const tlines = (s.content || '').split('\n');
-                const lh = fsize * 1.25;
-                tlines.forEach((t, k) => targetCtx.fillText(t, 0, k * lh));
-                targetCtx.restore();
+                // Texte en taille ÉCRAN FIXE (comme les cotes) : on l'empile pour rendu post-transform.
+                screenTextsToDraw.push({ kind:'text', wx: s.x+dx, wy: s.y+dy, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20) });
             }
             else if (s.type === 'detail') {
                 const tx = s.tx+dx, ty = s.ty+dy, lx = s.lx+dx, ly = s.ly+dy;
-                const fontPx = (s.size || 20) * effectiveWidth(s);
-                targetCtx.font = "bold " + fontPx + "px Arial";
-                const lines = (s.content || '').split('\n');
-                let maxW = 0; lines.forEach(t => { maxW = Math.max(maxW, targetCtx.measureText(t).width); });
-                const padX = 8, padY = 6, lineH = fontPx * 1.25;
-                const boxW = maxW + padX*2, boxH = lines.length*lineH + padY*2;
-                // Le cadre est posé à partir de l'ancre (lx,ly) = coin haut-gauche
-                const bx = lx, by = ly;
-                // Flèche : du bord du cadre le plus proche vers le point désigné
-                const cxC = bx + boxW/2, cyC = by + boxH/2;
-                let ex = cxC, ey = cyC;
-                // point de sortie du cadre vers la cible (intersection simple par côté)
-                const angT = Math.atan2(ty - cyC, tx - cxC);
-                const hw = boxW/2, hh = boxH/2;
-                const tanA = Math.tan(angT);
-                if (Math.abs(Math.cos(angT)) * hh >= Math.abs(Math.sin(angT)) * hw) {
-                    ex = cxC + (Math.cos(angT) > 0 ? hw : -hw);
-                    ey = cyC + (Math.cos(angT) > 0 ? hw : -hw) * tanA;
-                } else {
-                    ey = cyC + (Math.sin(angT) > 0 ? hh : -hh);
-                    ex = cxC + (Math.sin(angT) > 0 ? hh : -hh) / tanA;
-                }
-                targetCtx.strokeStyle = sel ? '#ec4899' : col;
-                targetCtx.fillStyle = sel ? '#ec4899' : col;
-                targetCtx.lineWidth = (effectiveWidth(s)*2)/lineScale;
-                targetCtx.setLineDash([]);
-                // ligne de rappel
-                targetCtx.beginPath(); targetCtx.moveTo(ex, ey); targetCtx.lineTo(tx, ty); targetCtx.stroke();
-                // pointe de flèche au point désigné
-                const ah = 10/lineScale, aa = Math.atan2(ty-ey, tx-ex);
-                targetCtx.beginPath();
-                targetCtx.moveTo(tx, ty);
-                targetCtx.lineTo(tx - ah*Math.cos(aa - 0.4), ty - ah*Math.sin(aa - 0.4));
-                targetCtx.lineTo(tx - ah*Math.cos(aa + 0.4), ty - ah*Math.sin(aa + 0.4));
-                targetCtx.closePath(); targetCtx.fill();
-                // petit point sur la cible
-                targetCtx.beginPath(); targetCtx.arc(tx, ty, 2.5/lineScale, 0, 2*Math.PI); targetCtx.fill();
-                // cadre + fond pour lisibilité
-                targetCtx.fillStyle = isPrinting ? '#ffffff' : 'rgba(20,20,20,0.85)';
-                targetCtx.fillRect(bx, by, boxW, boxH);
-                targetCtx.strokeStyle = sel ? '#ec4899' : col;
-                targetCtx.strokeRect(bx, by, boxW, boxH);
-                // texte
-                targetCtx.fillStyle = sel ? '#ec4899' : col;
-                targetCtx.textAlign = "left"; targetCtx.textBaseline = "top";
-                lines.forEach((t, k) => targetCtx.fillText(t, bx + padX, by + padY + k*lineH));
+                // La flèche/ligne de rappel reste géométrique (repère monde).
+                // Le cadre + texte sont dessinés en taille écran fixe (post-transform).
+                screenTextsToDraw.push({ kind:'detail', wx: lx, wy: ly, tx: tx, ty: ty, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20), isPrinting });
             }
             else if (s.type === 'dim') {
                 let p1={x:s.x1+dx, y:s.y1+dy}, p2={x:s.x2+dx, y:s.y2+dy}, po={x:s.ox+dx, y:s.oy+dy};
@@ -1758,7 +1918,7 @@
         }
 
         function drawFullPlan(targetCtx, isUIEnabled = true) {
-            const isPrinting = !isUIEnabled; dimensionTextsToDraw = [];
+            const isPrinting = !isUIEnabled; dimensionTextsToDraw = []; screenTextsToDraw = [];
             targetCtx.save(); targetCtx.translate(camera.x, camera.y); targetCtx.scale(camera.zoom, camera.zoom);
             if (!isPrinting && showGrid) {
                 let l = (-camera.x)/camera.zoom, r = (canvas.width-camera.x)/camera.zoom, t = (-camera.y)/camera.zoom, b = (canvas.height-camera.y)/camera.zoom;
@@ -1829,7 +1989,14 @@
                 else if (mode === 'arc') {
                     targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
                     if (arcStep === 1) { targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.globalAlpha = 0.3; targetCtx.beginPath(); targetCtx.arc(arcCenter.x, arcCenter.y, Math.hypot(px-arcCenter.x, py-arcCenter.y), 0, Math.PI*2); targetCtx.stroke(); targetCtx.globalAlpha = 1.0; }
-                    else if (arcStep === 2) { let curA = Math.atan2(py - arcCenter.y, px - arcCenter.x); if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) curA = arcStartAngle + parseFloat(typedInput)*Math.PI/180; targetCtx.beginPath(); targetCtx.arc(arcCenter.x, arcCenter.y, arcRadius, arcStartAngle, curA); targetCtx.stroke(); targetCtx.globalAlpha = 0.5; targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(arcP1.x, arcP1.y); targetCtx.stroke(); targetCtx.globalAlpha = 1.0; }
+                    else if (arcStep === 2) {
+                        let curA = Math.atan2(py - arcCenter.y, px - arcCenter.x);
+                        let pacw = false;
+                        if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { const deg = parseFloat(typedInput); curA = arcStartAngle + deg*Math.PI/180; pacw = deg < 0; }
+                        else { let diff = curA - arcStartAngle; while (diff <= -Math.PI) diff += 2*Math.PI; while (diff > Math.PI) diff -= 2*Math.PI; pacw = diff < 0; }
+                        targetCtx.beginPath(); targetCtx.arc(arcCenter.x, arcCenter.y, arcRadius, arcStartAngle, curA, pacw); targetCtx.stroke();
+                        targetCtx.globalAlpha = 0.5; targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(arcP1.x, arcP1.y); targetCtx.stroke(); targetCtx.globalAlpha = 1.0;
+                    }
                 }
                 else if (mode === 'poly' && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let p of currentPolygon.slice(1)) targetCtx.lineTo(p.x, p.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; let t=5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x-t, currentPolygon[0].y-t, t*2, t*2); }
                 else if (mode === 'dim' && dimStep === 1) {
@@ -1950,6 +2117,7 @@
                 targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle";
                 targetCtx.fillText(d.text, p.x, p.y);
             }
+            drawScreenTexts(targetCtx);
         }
 
         function draw() {
@@ -2050,6 +2218,7 @@
             else if (mode === 'paste') msg = "COLLER : Spécifiez le point d'insertion.";
             else if (mode === 'text') msg = "TEXTE : Spécifiez le point d'insertion.";
             else if (mode === 'detail') msg = detailStep === 0 ? "DÉTAIL : Cliquez le point à désigner." : "DÉTAIL : Cliquez pour placer l'étiquette.";
+            else if (mode === 'hatch') msg = "HACHURES : Cliquez à l'intérieur d'une forme fermée (re-cliquez pour retirer).";
             else if (mode === 'print') msg = "PDF : ESPACE (pivoter) | MOLETTE (échelle) | CLIC (générer PDF).";
             const el = document.getElementById('command-text');
             if (el) el.textContent = msg;
@@ -2155,6 +2324,20 @@
             if (mode === 'trim') { trimShapeAt(wp.x, wp.y); draw(); return; }
             if (mode === 'extend') { extendShapeAt(wp.x, wp.y); draw(); return; }
 
+            if (mode === 'hatch') {
+                // Cherche une forme fermée (poly fermée ou cercle) contenant le clic, et bascule ses hachures.
+                let hit = null;
+                for (let i = shapes.length - 1; i >= 0; i--) {
+                    const s = shapes[i];
+                    const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
+                    if (layer && !layer.visible) continue;
+                    if (s.type === 'poly' && s.points && s.points.length >= 3 && pointInPolygon(wp.x, wp.y, s.points)) { hit = s; break; }
+                    if (s.type === 'circle' && Math.hypot(wp.x - s.x, wp.y - s.y) <= s.r) { hit = s; break; }
+                }
+                if (hit) { hit.hatch = !hit.hatch; invalidateCache(); saveState(); draw(); }
+                return;
+            }
+
             if (mode === 'select-box') { if (!isDrawing) { startX = wp.x; startY = wp.y; isDrawing = true; } return; }
 
             if (mode === 'move') {
@@ -2227,8 +2410,20 @@
                 }
                 else if (arcStep === 2) {
                     let endAngle = Math.atan2(pt.y - arcCenter.y, pt.x - arcCenter.x);
-                    if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) endAngle = arcStartAngle + parseFloat(typedInput)*Math.PI/180;
-                    if (arcRadius > 0.1) shapes.push({ type: 'arc', layerId: activeLayerId, x: arcCenter.x, y: arcCenter.y, r: arcRadius, startAngle: arcStartAngle, endAngle: endAngle, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 });
+                    let acw = false;
+                    if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) {
+                        const deg = parseFloat(typedInput);
+                        endAngle = arcStartAngle + deg*Math.PI/180;
+                        acw = deg < 0; // angle négatif = sens anti-horaire
+                    } else {
+                        // Sens déterminé par le geste : on prend le plus court chemin
+                        // vers le point cliqué, dans le sens correspondant.
+                        let diff = endAngle - arcStartAngle;
+                        while (diff <= -Math.PI) diff += 2*Math.PI;
+                        while (diff > Math.PI) diff -= 2*Math.PI;
+                        acw = diff < 0; // différence négative -> anti-horaire
+                    }
+                    if (arcRadius > 0.1) shapes.push({ type: 'arc', layerId: activeLayerId, x: arcCenter.x, y: arcCenter.y, r: arcRadius, startAngle: arcStartAngle, endAngle: endAngle, anticlockwise: acw, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1 });
                     arcStep = 0; isDrawing = false; typedInput = ""; saveState(); draw();
                 }
                 draw();
@@ -2384,7 +2579,7 @@
                     arcStartAngle = a; arcStep = 2; typedInput = ""; draw(); return;
                 } else if (arcStep === 2) {
                     let endAngle = arcStartAngle + val*Math.PI/180;
-                    shapes.push({ type:'arc', layerId:activeLayerId, x:arcCenter.x, y:arcCenter.y, r:arcRadius, startAngle:arcStartAngle, endAngle:endAngle, color:col, dash:dsh, width:wdt });
+                    shapes.push({ type:'arc', layerId:activeLayerId, x:arcCenter.x, y:arcCenter.y, r:arcRadius, startAngle:arcStartAngle, endAngle:endAngle, anticlockwise: val < 0, color:col, dash:dsh, width:wdt });
                     arcStep = 0; isDrawing = false; typedInput = ""; saveState();
                     if (returnToSelect) setMode('select-box');
                     draw(); return;
