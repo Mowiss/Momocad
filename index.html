@@ -1234,8 +1234,8 @@
         function mmToWorld(v) { return v * (GRID_SIZE / unitsPerSquare); }
         function layerDxfName(id) {
             const l = layers.find(x => x.id === id);
-            // Noms de calque DXF : pas d'espaces, on remplace par _
-            return l ? l.name.replace(/[^A-Za-z0-9_\-]/g, '_') : '0';
+            // Nom de calque DXF : on garde le nom réel, seuls les caractères interdits par AutoCAD sont remplacés
+            return l ? (l.name.replace(/[<>\/\\":;?*|=`]/g, '_').trim() || '0') : '0';
         }
 
         // ===== Conversions style DXF (couleur/type/épaisseur) =====
@@ -1290,111 +1290,151 @@
         // ===== Épaisseur app <-> lineweight DXF (code 370, en 1/100 mm) =====
         // Notre "width" est un multiplicateur d'affichage. On l'exporte en 1/100 mm
         // avec une base raisonnable : width 1 -> 0.25mm (25), width 2 -> 0.50mm (50)...
-        function widthToLineweight(w) { return Math.round((w||1) * 25); }   // en 1/100 mm
+        // AutoCAD n'accepte que ces épaisseurs (en 1/100 mm) : on prend la plus proche.
+        const DXF_LINEWEIGHTS = [0,5,9,13,15,18,20,25,30,35,40,50,53,60,70,80,90,100,106,120,140,158,200,211];
+        function widthToLineweight(w) {
+            const t = (w||1) * 25; let best = 25, bd = Infinity;
+            for (const v of DXF_LINEWEIGHTS) { const d = Math.abs(v - t); if (d < bd) { bd = d; best = v; } }
+            return best;
+        }
         function lineweightToWidth(lw) { return Math.max(0.1, (lw||25) / 25); }
 
 
-        function exportDXF() {
-            const M2 = (mmPerSquareUnit()); // pour info, non utilisé directement
-            const L = []; // lignes du fichier DXF
-            const p = (code, val) => { L.push(code); L.push(String(val)); };
-
-            // ---- En-tête R12 (AC1009), format d'échange universel, unités = mm ----
-            p(0,'SECTION'); p(2,'HEADER');
-            p(9,'$ACADVER'); p(1,'AC1015');  // R2000 : conserve couleur/épaisseur/type par entité
-            p(9,'$INSUNITS'); p(70,4);       // 4 = millimètres
-            p(9,'$MEASUREMENT'); p(70,1);    // 1 = métrique
-            p(0,'ENDSEC');
-
-            // ---- Table des calques ----
-            p(0,'SECTION'); p(2,'TABLES');
-            p(0,'TABLE'); p(2,'LAYER'); p(70, layers.length);
-            for (const l of layers) {
-                p(0,'LAYER'); p(2, layerDxfName(l.id)); p(70,0);
-                p(62, hexToAci(l.color || '#ffffff'));
-                p(6, dashToDxf(l.dash || 'solid'));
-                p(370, widthToLineweight(l.width || 1));
+        // --- Encodage des textes DXF : caractères non ASCII en \U+XXXX (compris par AutoCAD) ---
+        const DXF_TPL_META = {"handseed": "34", "layerTable": "1", "baseLayerCount": 2, "plotStyle": "13", "tplLayers": ["0", "Defpoints"], "msp": "17"};
+        function dxfStr(s) {
+            let out = '';
+            for (const ch of String(s)) {
+                const cp = ch.codePointAt(0);
+                if (cp < 32) continue;                       // pas de caractères de contrôle
+                out += (cp > 126 && !cp1252Byte(ch)) ? '\\U+' + cp.toString(16).toUpperCase().padStart(4, '0') : ch;
             }
-            p(0,'ENDTABLE'); p(0,'ENDSEC');
+            return out;
+        }
+        // Windows-1252 : encodage natif des DXF R2000 ($DWGCODEPAGE = ANSI_1252)
+        const CP1252_EXTRA = {0x20AC:0x80,0x201A:0x82,0x0192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x02C6:0x88,0x2030:0x89,0x0160:0x8A,0x2039:0x8B,0x0152:0x8C,0x017D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x02DC:0x98,0x2122:0x99,0x0161:0x9A,0x203A:0x9B,0x0153:0x9C,0x017E:0x9E,0x0178:0x9F};
+        function cp1252Byte(ch) {
+            const cp = ch.codePointAt(0);
+            if (cp < 0x80 || (cp >= 0xA0 && cp <= 0xFF)) return cp;
+            return CP1252_EXTRA[cp] || null;
+        }
+        function encodeCp1252(str) {
+            const bytes = new Uint8Array(str.length); let n = 0;
+            for (const ch of str) { const b = cp1252Byte(ch); bytes[n++] = (b === null) ? 63 : b; }
+            return bytes.subarray(0, n);
+        }
+        function dxfDecode(s) {
+            return String(s).replace(/\\U\+([0-9A-Fa-f]{4})/g, (m, h) => String.fromCodePoint(parseInt(h, 16)));
+        }
 
-            // ---- Entités ----
-            p(0,'SECTION'); p(2,'ENTITIES');
-            const Y = (v) => -worldToMm(v); // inversion Y + conversion mm
+        // Export DXF R2000 (AC1015) complet, lisible par AutoCAD :
+        // gabarit fixe (en-tête, tables, blocs, objets) + calques et entités générés,
+        // chaque objet avec son identifiant (handle) et son propriétaire (Model_Space).
+        function exportDXF() {
+            const M = DXF_TPL_META;
+            const tpl = document.getElementById('dxf-r2000-template').textContent.replace(/^\s*\n/, '');
+            let hnd = parseInt(M.handseed, 16);
+            const H = () => (hnd++).toString(16).toUpperCase();
+            const num = (v) => { const r = Math.round(v * 1e6) / 1e6; return (Object.is(r, -0) ? 0 : r).toString(); };
             const X = (v) => worldToMm(v);
+            const Y = (v) => -worldToMm(v);           // l'axe Y est inversé entre l'écran et le DXF
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            const ext = (x, y) => { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; };
+            const ltName = (dash) => dash === 'dashed' ? 'DASHED' : (dash === 'center' ? 'CENTER' : 'Continuous');
 
-            // Style ByLayer : on écrit la couleur/type/épaisseur effectifs (issus du calque)
-            // sur chaque entité, pour une relecture fidèle dans tout logiciel CAO.
-            const style = (s) => {
-                const col = effectiveColor(s, false);
-                if (col) p(62, hexToAci(col));
-                const lt = dashToDxf(effectiveDash(s));
-                if (lt !== 'CONTINUOUS') p(6, lt);
-                p(370, widthToLineweight(effectiveWidth(s)));
+            // ---- Calques ----
+            const LL = []; const lp = (code, v) => { LL.push(String(code).padStart(3, ' ')); LL.push(String(v)); };
+            const used = new Set(M.tplLayers.map(n => n.toLowerCase()));
+            let layerCount = M.baseLayerCount;
+            for (const l of layers) {
+                const nm = layerDxfName(l.id);
+                if (used.has(nm.toLowerCase())) continue;
+                used.add(nm.toLowerCase());
+                const aci = hexToAci(l.color || '#ffffff');
+                lp(0, 'LAYER'); lp(5, H()); lp(330, M.layerTable);
+                lp(100, 'AcDbSymbolTableRecord'); lp(100, 'AcDbLayerTableRecord');
+                lp(2, dxfStr(nm)); lp(70, 0);
+                lp(62, l.visible === false ? -aci : aci);   // couleur négative = calque éteint
+                lp(6, ltName(l.dash)); lp(370, widthToLineweight(l.width || 1)); lp(390, M.plotStyle);
+                layerCount++;
+            }
+
+            // ---- Entités (style "DuCalque" : couleur, type et épaisseur viennent du calque) ----
+            const E = []; const p = (code, v) => { E.push(String(code).padStart(3, ' ')); E.push(String(v)); };
+            const head = (type, s) => {
+                p(0, type); p(5, H()); p(330, M.msp); p(100, 'AcDbEntity');
+                p(8, dxfStr(layerDxfName(s.layerId || 'layer-0')));
             };
-            // Export des hachures comme des entités LINE (le motif est "explosé").
-            const emitHatch = (s) => {
-                const ln = layerDxfName(s.layerId || 'layer-0');
-                const spacingMm = s.hatchSpacing || 3;
+            const line = (s, x1, y1, x2, y2) => {
+                head('LINE', s); p(100, 'AcDbLine');
+                p(10, num(X(x1))); p(20, num(Y(y1))); p(30, 0);
+                p(11, num(X(x2))); p(21, num(Y(y2))); p(31, 0);
+                ext(X(x1), Y(y1)); ext(X(x2), Y(y2));
+            };
+            const text = (s, x, y, h, str, rotDeg) => {
+                head('TEXT', s); p(100, 'AcDbText');
+                p(10, num(x)); p(20, num(y)); p(30, 0); p(40, num(h));
+                p(1, dxfStr(str));
+                if (rotDeg) p(50, num(rotDeg));
+                p(100, 'AcDbText');
+                ext(x, y); ext(x + h * String(str).length * 0.7, y + h);
+            };
+            const hatch = (s) => {
+                const spacingWorld = ((s.hatchSpacing || 3) / unitsPerSquare) * GRID_SIZE;
                 const angleDeg = (s.hatchAngle !== undefined) ? s.hatchAngle : 45;
-                const spacingWorld = (spacingMm / unitsPerSquare) * GRID_SIZE;
-                const segs = computeHatchLines(s, spacingWorld, angleDeg);
-                for (const seg of segs) {
-                    p(0,'LINE'); p(8,ln); p(62, hexToAci(effectiveColor(s, false)));
-                    p(10, X(seg.x1)); p(20, Y(seg.y1)); p(30,0);
-                    p(11, X(seg.x2)); p(21, Y(seg.y2)); p(31,0);
-                }
+                for (const seg of computeHatchLines(s, spacingWorld, angleDeg)) line(s, seg.x1, seg.y1, seg.x2, seg.y2);
             };
 
             for (const s of shapes) {
-                const lname = layerDxfName(s.layerId || 'layer-0');
+                const lay = layers.find(l => l.id === (s.layerId || 'layer-0'));
                 if (s.type === 'line' || s.type === 'dim') {
-                    p(0,'LINE'); p(8,lname); style(s);
-                    p(10, X(s.x1)); p(20, Y(s.y1)); p(30,0);
-                    p(11, X(s.x2)); p(21, Y(s.y2)); p(31,0);
+                    line(s, s.x1, s.y1, s.x2, s.y2);
                 } else if (s.type === 'circle') {
-                    p(0,'CIRCLE'); p(8,lname); style(s);
-                    p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
-                    p(40, worldToMm(s.r));
-                    if (s.hatch) emitHatch(s);
+                    head('CIRCLE', s); p(100, 'AcDbCircle');
+                    p(10, num(X(s.x))); p(20, num(Y(s.y))); p(30, 0); p(40, num(worldToMm(s.r)));
+                    ext(X(s.x) - worldToMm(s.r), Y(s.y) - worldToMm(s.r)); ext(X(s.x) + worldToMm(s.r), Y(s.y) + worldToMm(s.r));
+                    if (s.hatch) hatch(s);
                 } else if (s.type === 'arc') {
-                    p(0,'ARC'); p(8,lname); style(s);
-                    p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
-                    p(40, worldToMm(s.r));
-                    let a1 = -s.endAngle * 180/Math.PI;
-                    let a2 = -s.startAngle * 180/Math.PI;
-                    p(50, a1); p(51, a2);
+                    // Le DXF trace toujours les arcs dans le sens trigonométrique (Y vers le haut).
+                    const a = -s.startAngle * 180 / Math.PI, b = -s.endAngle * 180 / Math.PI;
+                    const start = s.anticlockwise ? a : b, end = s.anticlockwise ? b : a;
+                    head('ARC', s); p(100, 'AcDbCircle');
+                    p(10, num(X(s.x))); p(20, num(Y(s.y))); p(30, 0); p(40, num(worldToMm(s.r)));
+                    p(100, 'AcDbArc'); p(50, num(((start % 360) + 360) % 360)); p(51, num(((end % 360) + 360) % 360));
+                    ext(X(s.x) - worldToMm(s.r), Y(s.y) - worldToMm(s.r)); ext(X(s.x) + worldToMm(s.r), Y(s.y) + worldToMm(s.r));
                 } else if (s.type === 'poly') {
-                    p(0,'POLYLINE'); p(8,lname); style(s); p(66,1); p(70,1);
-                    p(10,0); p(20,0); p(30,0);
-                    for (const pt of s.points) {
-                        p(0,'VERTEX'); p(8,lname); p(10, X(pt.x)); p(20, Y(pt.y)); p(30,0);
-                    }
-                    p(0,'SEQEND'); p(8,lname);
-                    if (s.hatch) emitHatch(s);
+                    head('LWPOLYLINE', s); p(100, 'AcDbPolyline'); p(90, s.points.length); p(70, 1);
+                    for (const pt of s.points) { p(10, num(X(pt.x))); p(20, num(Y(pt.y))); ext(X(pt.x), Y(pt.y)); }
+                    if (s.hatch) hatch(s);
                 } else if (s.type === 'text') {
-                    p(0,'TEXT'); p(8,lname); style(s);
-                    p(10, X(s.x)); p(20, Y(s.y)); p(30,0);
-                    p(40, worldToMm((s.size || 20) * effectiveWidth(s)));
-                    p(1, s.content || '');
-                    if (s.angle) p(50, -s.angle * 180/Math.PI);
+                    const h = worldToMm(s.size || 20);
+                    (s.content || '').split('\n').forEach((t, k) => {
+                        if (t.trim()) text(s, X(s.x), Y(s.y) - h * 1.25 * k, h, t, s.angle ? -s.angle * 180 / Math.PI : 0);
+                    });
                 } else if (s.type === 'detail') {
-                    // Détail = ligne de rappel (LINE) + texte (TEXT) à l'ancre de l'étiquette.
-                    p(0,'LINE'); p(8,lname); style(s);
-                    p(10, X(s.lx)); p(20, Y(s.ly)); p(30,0);
-                    p(11, X(s.tx)); p(21, Y(s.ty)); p(31,0);
-                    const dlines = (s.content || '').split('\n');
-                    dlines.forEach((t, k) => {
-                        p(0,'TEXT'); p(8,lname); style(s);
-                        const _fs=(s.size||20)*effectiveWidth(s);
-                        p(10, X(s.lx)); p(20, Y(s.ly) - worldToMm(_fs*(k+1)*1.25)); p(30,0);
-                        p(40, worldToMm(_fs));
-                        p(1, t);
+                    line(s, s.lx, s.ly, s.tx, s.ty);   // ligne de rappel
+                    const h = worldToMm(s.size || 20);
+                    (s.content || '').split('\n').forEach((t, k) => {
+                        if (t.trim()) text(s, X(s.lx), Y(s.ly) - h * 1.25 * (k + 1), h, t, 0);
                     });
                 }
             }
-            p(0,'ENDSEC');
-            p(0,'EOF');
-            return L.join('\n');
+
+            // ---- Vue d'ouverture cadrée sur le dessin ----
+            if (minX === Infinity) { minX = 0; minY = 0; maxX = 297; maxY = 210; }
+            const w = Math.max(maxX - minX, 1), hgt = Math.max(maxY - minY, 1);
+            const fill = (k, v) => k.split('{{' + v[0] + '}}').join(v[1]);
+            let out = tpl;
+            // les blocs calques/entités occupent une ligne entière dans le gabarit
+            out = out.split('{{LAYERS}}\n').join(LL.length ? LL.join('\n') + '\n' : '');
+            out = out.split('{{ENTITIES}}\n').join(E.length ? E.join('\n') + '\n' : '');
+            [['HANDSEED', (hnd + 1).toString(16).toUpperCase()],
+             ['LAYER_COUNT', String(layerCount)],
+             ['EXTMIN_X', num(minX)], ['EXTMIN_Y', num(minY)],
+             ['EXTMAX_X', num(maxX)], ['EXTMAX_Y', num(maxY)],
+             ['VIEW_CX', num((minX + maxX) / 2)], ['VIEW_CY', num((minY + maxY) / 2)],
+             ['VIEW_H', num(Math.max(hgt, w / 1.6) * 1.1)]].forEach(v => { out = fill(out, v); });
+            return out;
         }
 
         function mmPerSquareUnit() {
@@ -1407,7 +1447,7 @@
             const raw = text.split(/\r\n|\r|\n/);
             const pairs = [];
             for (let i = 0; i + 1 < raw.length; i += 2) {
-                pairs.push({ code: parseInt(raw[i].trim(), 10), val: raw[i+1] });
+                pairs.push({ code: parseInt(raw[i].trim(), 10), val: dxfDecode(raw[i+1]) });
             }
             const newShapes = [];
             const importedLayers = {}; // name -> color
@@ -1425,7 +1465,7 @@
                         if (pairs[j].code === 370) lw = parseInt(pairs[j].val.trim(), 10);
                     }
                     if (name) importedLayers[name] = {
-                        color: (aci > 0 && aci < 256) ? aciToHex(aci) : '#ffffff',
+                        color: (Math.abs(aci) > 0 && Math.abs(aci) < 256) ? aciToHex(Math.abs(aci)) : '#ffffff',
                         dash: dxfToDash(lt),
                         width: lw !== null ? lineweightToWidth(lw) : 1
                     };
@@ -1544,6 +1584,8 @@
             const target = (name || '0').trim().toLowerCase();
             for (const l of layers) {
                 if (layerDxfName(l.id).toLowerCase() === target) return l.id;
+                // anciens exports MomoCAD : noms avec "_" à la place des espaces et accents
+                if (l.name.replace(/[^A-Za-z0-9_\-]/g, '_').toLowerCase() === target) return l.id;
             }
             const st = importedLayers[name] || {};
             const newId = 'layer-' + Date.now() + '-' + Math.floor(Math.random()*1000);
@@ -1592,8 +1634,8 @@
         });
 
         function exportDXFFile() {
-            const dxf = exportDXF();
-            const blob = new Blob([dxf], { type: "application/dxf" });
+            const dxf = exportDXF().replace(/\r?\n/g, '\r\n');
+            const blob = new Blob([encodeCp1252(dxf)], { type: "application/dxf" });
             const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
             a.download = "plan_momo_" + new Date().getTime() + ".dxf"; a.click();
             URL.revokeObjectURL(url);
@@ -1604,7 +1646,11 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const res = importDXF(e.target.result);
+                    const buf = new Uint8Array(e.target.result);
+                    let txt;
+                    try { txt = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+                    catch (_) { txt = new TextDecoder('windows-1252').decode(buf); }
+                    const res = importDXF(txt);
                     if (res.shapes.length === 0) { alert("Aucune entité compatible trouvée dans ce DXF."); return; }
                     shapes = shapes.concat(res.shapes);
                     selectedShapes = []; saveState(); updateLayerUI();
@@ -1616,7 +1662,7 @@
                 } catch (err) { console.error(err); alert("Erreur de lecture du DXF : " + err.message); }
                 event.target.value = "";
             };
-            reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
         }
 
         function saveToJSON() {
@@ -2841,5 +2887,2867 @@
         function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; draw(); }
         window.addEventListener('resize', resizeCanvas);
     </script>
+<script type="text/plain" id="dxf-r2000-template">
+  0
+SECTION
+  2
+HEADER
+  9
+$ACADVER
+  1
+AC1015
+  9
+$ACADMAINTVER
+ 70
+6
+  9
+$DWGCODEPAGE
+  3
+ANSI_1252
+  9
+$INSBASE
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$EXTMIN
+ 10
+{{EXTMIN_X}}
+ 20
+{{EXTMIN_Y}}
+ 30
+1e+20
+  9
+$EXTMAX
+ 10
+{{EXTMAX_X}}
+ 20
+{{EXTMAX_Y}}
+ 30
+-1e+20
+  9
+$LIMMIN
+ 10
+0.0
+ 20
+0.0
+  9
+$LIMMAX
+ 10
+420.0
+ 20
+297.0
+  9
+$ORTHOMODE
+ 70
+0
+  9
+$REGENMODE
+ 70
+1
+  9
+$FILLMODE
+ 70
+1
+  9
+$QTEXTMODE
+ 70
+0
+  9
+$MIRRTEXT
+ 70
+1
+  9
+$LTSCALE
+ 40
+1.0
+  9
+$ATTMODE
+ 70
+1
+  9
+$TEXTSIZE
+ 40
+2.5
+  9
+$TRACEWID
+ 40
+1.0
+  9
+$TEXTSTYLE
+  7
+Standard
+  9
+$CLAYER
+  8
+0
+  9
+$CELTYPE
+  6
+ByLayer
+  9
+$CECOLOR
+ 62
+256
+  9
+$CELTSCALE
+ 40
+1.0
+  9
+$DISPSILH
+ 70
+0
+  9
+$DIMSCALE
+ 40
+1.0
+  9
+$DIMASZ
+ 40
+2.5
+  9
+$DIMEXO
+ 40
+0.625
+  9
+$DIMDLI
+ 40
+3.75
+  9
+$DIMRND
+ 40
+0.0
+  9
+$DIMDLE
+ 40
+0.0
+  9
+$DIMEXE
+ 40
+1.25
+  9
+$DIMTP
+ 40
+0.0
+  9
+$DIMTM
+ 40
+0.0
+  9
+$DIMTXT
+ 40
+2.5
+  9
+$DIMCEN
+ 40
+2.5
+  9
+$DIMTSZ
+ 40
+0.0
+  9
+$DIMTOL
+ 70
+0
+  9
+$DIMLIM
+ 70
+0
+  9
+$DIMTIH
+ 70
+0
+  9
+$DIMTOH
+ 70
+0
+  9
+$DIMSE1
+ 70
+0
+  9
+$DIMSE2
+ 70
+0
+  9
+$DIMTAD
+ 70
+1
+  9
+$DIMZIN
+ 70
+8
+  9
+$DIMBLK
+  1
+
+  9
+$DIMASO
+ 70
+1
+  9
+$DIMSHO
+ 70
+1
+  9
+$DIMPOST
+  1
+
+  9
+$DIMAPOST
+  1
+
+  9
+$DIMALT
+ 70
+0
+  9
+$DIMALTD
+ 70
+3
+  9
+$DIMALTF
+ 40
+0.03937007874
+  9
+$DIMLFAC
+ 40
+1.0
+  9
+$DIMTOFL
+ 70
+1
+  9
+$DIMTVP
+ 40
+0.0
+  9
+$DIMTIX
+ 70
+0
+  9
+$DIMSOXD
+ 70
+0
+  9
+$DIMSAH
+ 70
+0
+  9
+$DIMBLK1
+  1
+
+  9
+$DIMBLK2
+  1
+
+  9
+$DIMSTYLE
+  2
+ISO-25
+  9
+$DIMCLRD
+ 70
+0
+  9
+$DIMCLRE
+ 70
+0
+  9
+$DIMCLRT
+ 70
+0
+  9
+$DIMTFAC
+ 40
+1.0
+  9
+$DIMGAP
+ 40
+0.625
+  9
+$DIMJUST
+ 70
+0
+  9
+$DIMSD1
+ 70
+0
+  9
+$DIMSD2
+ 70
+0
+  9
+$DIMTOLJ
+ 70
+0
+  9
+$DIMTZIN
+ 70
+8
+  9
+$DIMALTZ
+ 70
+0
+  9
+$DIMALTTZ
+ 70
+0
+  9
+$DIMUPT
+ 70
+0
+  9
+$DIMDEC
+ 70
+2
+  9
+$DIMTDEC
+ 70
+2
+  9
+$DIMALTU
+ 70
+2
+  9
+$DIMALTTD
+ 70
+3
+  9
+$DIMTXSTY
+  7
+Standard
+  9
+$DIMAUNIT
+ 70
+0
+  9
+$DIMADEC
+ 70
+0
+  9
+$DIMALTRND
+ 40
+0.0
+  9
+$DIMAZIN
+ 70
+0
+  9
+$DIMDSEP
+ 70
+44
+  9
+$DIMATFIT
+ 70
+3
+  9
+$DIMFRAC
+ 70
+0
+  9
+$DIMLDRBLK
+  1
+
+  9
+$DIMLUNIT
+ 70
+2
+  9
+$DIMLWD
+ 70
+-2
+  9
+$DIMLWE
+ 70
+-2
+  9
+$DIMTMOVE
+ 70
+0
+  9
+$LUNITS
+ 70
+2
+  9
+$LUPREC
+ 70
+4
+  9
+$SKETCHINC
+ 40
+1.0
+  9
+$FILLETRAD
+ 40
+10.0
+  9
+$AUNITS
+ 70
+0
+  9
+$AUPREC
+ 70
+2
+  9
+$MENU
+  1
+.
+  9
+$ELEVATION
+ 40
+0.0
+  9
+$PELEVATION
+ 40
+0.0
+  9
+$THICKNESS
+ 40
+0.0
+  9
+$LIMCHECK
+ 70
+0
+  9
+$CHAMFERA
+ 40
+0.0
+  9
+$CHAMFERB
+ 40
+0.0
+  9
+$CHAMFERC
+ 40
+0.0
+  9
+$CHAMFERD
+ 40
+0.0
+  9
+$SKPOLY
+ 70
+0
+  9
+$TDCREATE
+ 40
+2461322.563761574
+  9
+$TDUCREATE
+ 40
+2458532.153996898
+  9
+$TDUPDATE
+ 40
+2461322.563761574
+  9
+$TDUUPDATE
+ 40
+2458532.1544311
+  9
+$TDINDWG
+ 40
+0.0
+  9
+$TDUSRTIMER
+ 40
+0.0
+  9
+$USRTIMER
+ 70
+1
+  9
+$ANGBASE
+ 50
+0.0
+  9
+$ANGDIR
+ 70
+0
+  9
+$PDMODE
+ 70
+0
+  9
+$PDSIZE
+ 40
+0.0
+  9
+$PLINEWID
+ 40
+0.0
+  9
+$SPLFRAME
+ 70
+0
+  9
+$SPLINETYPE
+ 70
+6
+  9
+$SPLINESEGS
+ 70
+8
+  9
+$HANDSEED
+  5
+{{HANDSEED}}
+  9
+$SURFTAB1
+ 70
+6
+  9
+$SURFTAB2
+ 70
+6
+  9
+$SURFTYPE
+ 70
+6
+  9
+$SURFU
+ 70
+6
+  9
+$SURFV
+ 70
+6
+  9
+$UCSBASE
+  2
+
+  9
+$UCSNAME
+  2
+
+  9
+$UCSORG
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$UCSXDIR
+ 10
+1.0
+ 20
+0.0
+ 30
+0.0
+  9
+$UCSYDIR
+ 10
+0.0
+ 20
+1.0
+ 30
+0.0
+  9
+$UCSORTHOREF
+  2
+
+  9
+$UCSORTHOVIEW
+ 70
+0
+  9
+$UCSORGTOP
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$UCSORGBOTTOM
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$UCSORGLEFT
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$UCSORGRIGHT
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$UCSORGFRONT
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$UCSORGBACK
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PUCSBASE
+  2
+
+  9
+$PUCSNAME
+  2
+
+  9
+$PUCSORG
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PUCSXDIR
+ 10
+1.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PUCSYDIR
+ 10
+0.0
+ 20
+1.0
+ 30
+0.0
+  9
+$PUCSORTHOREF
+  2
+
+  9
+$PUCSORTHOVIEW
+ 70
+0
+  9
+$PUCSORGTOP
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PUCSORGBOTTOM
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PUCSORGLEFT
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PUCSORGRIGHT
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PUCSORGFRONT
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PUCSORGBACK
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$USERI1
+ 70
+0
+  9
+$USERI2
+ 70
+0
+  9
+$USERI3
+ 70
+0
+  9
+$USERI4
+ 70
+0
+  9
+$USERI5
+ 70
+0
+  9
+$USERR1
+ 40
+0.0
+  9
+$USERR2
+ 40
+0.0
+  9
+$USERR3
+ 40
+0.0
+  9
+$USERR4
+ 40
+0.0
+  9
+$USERR5
+ 40
+0.0
+  9
+$WORLDVIEW
+ 70
+1
+  9
+$SHADEDGE
+ 70
+3
+  9
+$SHADEDIF
+ 70
+70
+  9
+$TILEMODE
+ 70
+1
+  9
+$MAXACTVP
+ 70
+64
+  9
+$PINSBASE
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  9
+$PLIMCHECK
+ 70
+0
+  9
+$PEXTMIN
+ 10
+1e+20
+ 20
+1e+20
+ 30
+1e+20
+  9
+$PEXTMAX
+ 10
+-1e+20
+ 20
+-1e+20
+ 30
+-1e+20
+  9
+$PLIMMIN
+ 10
+0.0
+ 20
+0.0
+  9
+$PLIMMAX
+ 10
+420.0
+ 20
+297.0
+  9
+$UNITMODE
+ 70
+0
+  9
+$VISRETAIN
+ 70
+1
+  9
+$PLINEGEN
+ 70
+0
+  9
+$PSLTSCALE
+ 70
+1
+  9
+$TREEDEPTH
+ 70
+3020
+  9
+$CMLSTYLE
+  2
+Standard
+  9
+$CMLJUST
+ 70
+0
+  9
+$CMLSCALE
+ 40
+20.0
+  9
+$PROXYGRAPHICS
+ 70
+1
+  9
+$MEASUREMENT
+ 70
+1
+  9
+$CELWEIGHT
+370
+-1
+  9
+$ENDCAPS
+280
+0
+  9
+$JOINSTYLE
+280
+0
+  9
+$LWDISPLAY
+290
+0
+  9
+$INSUNITS
+ 70
+4
+  9
+$HYPERLINKBASE
+  1
+
+  9
+$STYLESHEET
+  1
+
+  9
+$XEDIT
+290
+1
+  9
+$CEPSNTYPE
+380
+0
+  9
+$PSTYLEMODE
+290
+1
+  9
+$FINGERPRINTGUID
+  2
+{762A3B78-D520-4BD1-99CB-7AD9FB1CCD18}
+  9
+$VERSIONGUID
+  2
+{C25667D6-9A83-4AE5-A428-A8A6E4779625}
+  9
+$EXTNAMES
+290
+1
+  9
+$PSVPSCALE
+ 40
+0.0
+  9
+$OLESTARTUP
+290
+0
+  0
+ENDSEC
+  0
+SECTION
+  2
+CLASSES
+  0
+CLASS
+  1
+ACDBDICTIONARYWDFLT
+  2
+AcDbDictionaryWithDefault
+  3
+ObjectDBX Classes
+ 90
+0
+280
+0
+281
+0
+  0
+CLASS
+  1
+SUN
+  2
+AcDbSun
+  3
+SCENEOE
+ 90
+1153
+280
+0
+281
+0
+  0
+CLASS
+  1
+VISUALSTYLE
+  2
+AcDbVisualStyle
+  3
+ObjectDBX Classes
+ 90
+4095
+280
+0
+281
+0
+  0
+CLASS
+  1
+MATERIAL
+  2
+AcDbMaterial
+  3
+ObjectDBX Classes
+ 90
+1153
+280
+0
+281
+0
+  0
+CLASS
+  1
+SCALE
+  2
+AcDbScale
+  3
+ObjectDBX Classes
+ 90
+1153
+280
+0
+281
+0
+  0
+CLASS
+  1
+TABLESTYLE
+  2
+AcDbTableStyle
+  3
+ObjectDBX Classes
+ 90
+4095
+280
+0
+281
+0
+  0
+CLASS
+  1
+MLEADERSTYLE
+  2
+AcDbMLeaderStyle
+  3
+ACDB_MLEADERSTYLE_CLASS
+ 90
+4095
+280
+0
+281
+0
+  0
+CLASS
+  1
+DICTIONARYVAR
+  2
+AcDbDictionaryVar
+  3
+ObjectDBX Classes
+ 90
+0
+280
+0
+281
+0
+  0
+CLASS
+  1
+CELLSTYLEMAP
+  2
+AcDbCellStyleMap
+  3
+ObjectDBX Classes
+ 90
+1152
+280
+0
+281
+0
+  0
+CLASS
+  1
+MENTALRAYRENDERSETTINGS
+  2
+AcDbMentalRayRenderSettings
+  3
+SCENEOE
+ 90
+1024
+280
+0
+281
+0
+  0
+CLASS
+  1
+ACDBDETAILVIEWSTYLE
+  2
+AcDbDetailViewStyle
+  3
+ObjectDBX Classes
+ 90
+1025
+280
+0
+281
+0
+  0
+CLASS
+  1
+ACDBSECTIONVIEWSTYLE
+  2
+AcDbSectionViewStyle
+  3
+ObjectDBX Classes
+ 90
+1025
+280
+0
+281
+0
+  0
+CLASS
+  1
+RASTERVARIABLES
+  2
+AcDbRasterVariables
+  3
+ISM
+ 90
+0
+280
+0
+281
+0
+  0
+CLASS
+  1
+ACDBPLACEHOLDER
+  2
+AcDbPlaceHolder
+  3
+ObjectDBX Classes
+ 90
+0
+280
+0
+281
+0
+  0
+CLASS
+  1
+LAYOUT
+  2
+AcDbLayout
+  3
+ObjectDBX Classes
+ 90
+0
+280
+0
+281
+0
+  0
+ENDSEC
+  0
+SECTION
+  2
+TABLES
+  0
+TABLE
+  2
+VPORT
+  5
+8
+330
+0
+100
+AcDbSymbolTable
+ 70
+1
+  0
+VPORT
+  5
+23
+330
+8
+100
+AcDbSymbolTableRecord
+100
+AcDbViewportTableRecord
+  2
+*Active
+ 70
+0
+ 10
+0.0
+ 20
+0.0
+ 11
+1.0
+ 21
+1.0
+ 12
+{{VIEW_CX}}
+ 22
+{{VIEW_CY}}
+ 13
+0.0
+ 23
+0.0
+ 14
+0.5
+ 24
+0.5
+ 15
+0.5
+ 25
+0.5
+ 16
+0.0
+ 26
+0.0
+ 36
+1.0
+ 17
+0.0
+ 27
+0.0
+ 37
+0.0
+ 40
+{{VIEW_H}}
+ 41
+1.6
+ 42
+50.0
+ 43
+0.0
+ 44
+0.0
+ 50
+0.0
+ 51
+0.0
+ 71
+0
+ 72
+1000
+ 73
+1
+ 74
+3
+ 75
+0
+ 76
+0
+ 77
+0
+ 78
+0
+281
+0
+ 65
+0
+146
+0.0
+  0
+ENDTAB
+  0
+TABLE
+  2
+LTYPE
+  5
+2
+330
+0
+100
+AcDbSymbolTable
+ 70
+5
+  0
+LTYPE
+  5
+24
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+ByBlock
+ 70
+0
+  3
+
+ 72
+65
+ 73
+0
+ 40
+0.0
+  0
+LTYPE
+  5
+25
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+ByLayer
+ 70
+0
+  3
+
+ 72
+65
+ 73
+0
+ 40
+0.0
+  0
+LTYPE
+  5
+26
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+Continuous
+ 70
+0
+  3
+
+ 72
+65
+ 73
+0
+ 40
+0.0
+  0
+LTYPE
+  5
+2F
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+DASHED
+ 70
+0
+  3
+Tirets __ __ __
+ 72
+65
+ 73
+2
+ 40
+15.0
+ 49
+10.0
+ 74
+0
+ 49
+-5.0
+ 74
+0
+  0
+LTYPE
+  5
+30
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+CENTER
+ 70
+0
+  3
+Axe ____ _ ____
+ 72
+65
+ 73
+4
+ 40
+40.0
+ 49
+25.0
+ 74
+0
+ 49
+-5.0
+ 74
+0
+ 49
+5.0
+ 74
+0
+ 49
+-5.0
+ 74
+0
+  0
+ENDTAB
+  0
+TABLE
+  2
+LAYER
+  5
+1
+330
+0
+100
+AcDbSymbolTable
+ 70
+{{LAYER_COUNT}}
+  0
+LAYER
+  5
+27
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+0
+ 70
+0
+ 62
+7
+  6
+Continuous
+370
+-3
+390
+13
+  0
+LAYER
+  5
+28
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+Defpoints
+ 70
+0
+ 62
+7
+  6
+Continuous
+290
+0
+370
+-3
+390
+13
+{{LAYERS}}
+  0
+ENDTAB
+  0
+TABLE
+  2
+STYLE
+  5
+5
+330
+0
+100
+AcDbSymbolTable
+ 70
+1
+  0
+STYLE
+  5
+29
+330
+5
+100
+AcDbSymbolTableRecord
+100
+AcDbTextStyleTableRecord
+  2
+Standard
+ 70
+0
+ 40
+0.0
+ 41
+1.0
+ 50
+0.0
+ 71
+0
+ 42
+2.5
+  3
+txt
+  4
+
+  0
+ENDTAB
+  0
+TABLE
+  2
+VIEW
+  5
+7
+330
+0
+100
+AcDbSymbolTable
+ 70
+0
+  0
+ENDTAB
+  0
+TABLE
+  2
+UCS
+  5
+6
+330
+0
+100
+AcDbSymbolTable
+ 70
+0
+  0
+ENDTAB
+  0
+TABLE
+  2
+APPID
+  5
+3
+330
+0
+100
+AcDbSymbolTable
+ 70
+3
+  0
+APPID
+  5
+2A
+330
+3
+100
+AcDbSymbolTableRecord
+100
+AcDbRegAppTableRecord
+  2
+ACAD
+ 70
+0
+  0
+APPID
+  5
+31
+330
+3
+100
+AcDbSymbolTableRecord
+100
+AcDbRegAppTableRecord
+  2
+HATCHBACKGROUNDCOLOR
+ 70
+0
+  0
+APPID
+  5
+32
+330
+3
+100
+AcDbSymbolTableRecord
+100
+AcDbRegAppTableRecord
+  2
+EZDXF
+ 70
+0
+  0
+ENDTAB
+  0
+TABLE
+  2
+DIMSTYLE
+  5
+4
+330
+0
+100
+AcDbSymbolTable
+ 70
+1
+100
+AcDbDimStyleTable
+  0
+DIMSTYLE
+105
+2B
+330
+4
+100
+AcDbSymbolTableRecord
+100
+AcDbDimStyleTableRecord
+  2
+Standard
+ 70
+0
+  3
+
+  4
+
+ 40
+1.0
+ 41
+2.5
+ 42
+0.625
+ 43
+3.75
+ 44
+1.25
+ 45
+0.0
+ 46
+0.0
+ 47
+0.0
+ 48
+0.0
+140
+2.5
+141
+2.5
+142
+0.0
+143
+0.03937007874
+144
+1.0
+145
+0.0
+146
+1.0
+147
+0.625
+148
+0.0
+ 71
+0
+ 72
+0
+ 73
+0
+ 74
+0
+ 75
+0
+ 76
+0
+ 77
+1
+ 78
+8
+ 79
+3
+170
+0
+171
+3
+172
+1
+173
+0
+174
+0
+175
+0
+176
+0
+177
+0
+178
+0
+179
+2
+271
+2
+272
+2
+273
+2
+274
+3
+275
+0
+276
+0
+277
+2
+278
+44
+279
+0
+280
+0
+281
+0
+282
+0
+283
+0
+284
+8
+285
+0
+286
+0
+288
+0
+289
+3
+371
+-2
+372
+-2
+  0
+ENDTAB
+  0
+TABLE
+  2
+BLOCK_RECORD
+  5
+9
+330
+0
+100
+AcDbSymbolTable
+ 70
+2
+  0
+BLOCK_RECORD
+  5
+17
+330
+9
+100
+AcDbSymbolTableRecord
+100
+AcDbBlockTableRecord
+  2
+*Model_Space
+340
+1A
+  0
+BLOCK_RECORD
+  5
+1B
+330
+9
+100
+AcDbSymbolTableRecord
+100
+AcDbBlockTableRecord
+  2
+*Paper_Space
+340
+1E
+  0
+ENDTAB
+  0
+ENDSEC
+  0
+SECTION
+  2
+BLOCKS
+  0
+BLOCK
+  5
+18
+330
+17
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockBegin
+  2
+*Model_Space
+ 70
+0
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  3
+*Model_Space
+  1
+
+  0
+ENDBLK
+  5
+19
+330
+17
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockEnd
+  0
+BLOCK
+  5
+1C
+330
+1B
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockBegin
+  2
+*Paper_Space
+ 70
+0
+ 10
+0.0
+ 20
+0.0
+ 30
+0.0
+  3
+*Paper_Space
+  1
+
+  0
+ENDBLK
+  5
+1D
+330
+1B
+100
+AcDbEntity
+  8
+0
+100
+AcDbBlockEnd
+  0
+ENDSEC
+  0
+SECTION
+  2
+ENTITIES
+{{ENTITIES}}
+  0
+ENDSEC
+  0
+SECTION
+  2
+OBJECTS
+  0
+DICTIONARY
+  5
+A
+330
+0
+100
+AcDbDictionary
+281
+1
+  3
+ACAD_COLOR
+350
+B
+  3
+ACAD_GROUP
+350
+C
+  3
+ACAD_LAYOUT
+350
+D
+  3
+ACAD_MATERIAL
+350
+E
+  3
+ACAD_MLEADERSTYLE
+350
+F
+  3
+ACAD_MLINESTYLE
+350
+10
+  3
+ACAD_PLOTSETTINGS
+350
+11
+  3
+ACAD_PLOTSTYLENAME
+350
+12
+  3
+ACAD_SCALELIST
+350
+14
+  3
+ACAD_TABLESTYLE
+350
+15
+  3
+ACAD_VISUALSTYLE
+350
+16
+  3
+EZDXF_META
+350
+2D
+  0
+DICTIONARY
+  5
+B
+330
+A
+100
+AcDbDictionary
+281
+1
+  0
+DICTIONARY
+  5
+C
+330
+A
+100
+AcDbDictionary
+281
+1
+  0
+DICTIONARY
+  5
+D
+330
+A
+100
+AcDbDictionary
+281
+1
+  3
+Model
+350
+1A
+  3
+Layout1
+350
+1E
+  0
+DICTIONARY
+  5
+E
+330
+A
+100
+AcDbDictionary
+281
+1
+  3
+ByBlock
+350
+1F
+  3
+ByLayer
+350
+20
+  3
+Global
+350
+21
+  0
+DICTIONARY
+  5
+F
+330
+A
+100
+AcDbDictionary
+281
+1
+  3
+Standard
+350
+2C
+  0
+DICTIONARY
+  5
+10
+330
+A
+100
+AcDbDictionary
+281
+1
+  3
+Standard
+350
+22
+  0
+DICTIONARY
+  5
+11
+330
+A
+100
+AcDbDictionary
+281
+1
+  0
+ACDBDICTIONARYWDFLT
+  5
+12
+330
+A
+100
+AcDbDictionary
+281
+1
+  3
+Normal
+350
+13
+100
+AcDbDictionaryWithDefault
+340
+13
+  0
+ACDBPLACEHOLDER
+  5
+13
+330
+12
+  0
+DICTIONARY
+  5
+14
+330
+A
+100
+AcDbDictionary
+281
+1
+  0
+DICTIONARY
+  5
+15
+330
+A
+100
+AcDbDictionary
+281
+1
+  0
+DICTIONARY
+  5
+16
+330
+A
+100
+AcDbDictionary
+281
+1
+  0
+LAYOUT
+  5
+1A
+330
+D
+100
+AcDbPlotSettings
+  1
+
+  4
+A3
+  6
+
+ 40
+7.5
+ 41
+20.0
+ 42
+7.5
+ 43
+20.0
+ 44
+420.0
+ 45
+297.0
+ 46
+0.0
+ 47
+0.0
+ 48
+0.0
+ 49
+0.0
+140
+0.0
+141
+0.0
+142
+1.0
+143
+1.0
+ 70
+1024
+ 72
+1
+ 73
+0
+ 74
+5
+  7
+
+ 75
+16
+ 76
+0
+ 77
+2
+ 78
+300
+147
+1.0
+148
+0.0
+149
+0.0
+100
+AcDbLayout
+  1
+Model
+ 70
+1
+ 71
+0
+ 10
+0.0
+ 20
+0.0
+ 11
+420.0
+ 21
+297.0
+ 12
+0.0
+ 22
+0.0
+ 32
+0.0
+ 14
+1e+20
+ 24
+1e+20
+ 34
+1e+20
+ 15
+-1e+20
+ 25
+-1e+20
+ 35
+-1e+20
+146
+0.0
+ 13
+0.0
+ 23
+0.0
+ 33
+0.0
+ 16
+1.0
+ 26
+0.0
+ 36
+0.0
+ 17
+0.0
+ 27
+1.0
+ 37
+0.0
+ 76
+1
+330
+17
+  0
+LAYOUT
+  5
+1E
+330
+D
+100
+AcDbPlotSettings
+  1
+
+  4
+A3
+  6
+
+ 40
+7.5
+ 41
+20.0
+ 42
+7.5
+ 43
+20.0
+ 44
+420.0
+ 45
+297.0
+ 46
+0.0
+ 47
+0.0
+ 48
+0.0
+ 49
+0.0
+140
+0.0
+141
+0.0
+142
+1.0
+143
+1.0
+ 70
+0
+ 72
+1
+ 73
+0
+ 74
+5
+  7
+
+ 75
+16
+ 76
+0
+ 77
+2
+ 78
+300
+147
+1.0
+148
+0.0
+149
+0.0
+100
+AcDbLayout
+  1
+Layout1
+ 70
+1
+ 71
+1
+ 10
+0.0
+ 20
+0.0
+ 11
+420.0
+ 21
+297.0
+ 12
+0.0
+ 22
+0.0
+ 32
+0.0
+ 14
+1e+20
+ 24
+1e+20
+ 34
+1e+20
+ 15
+-1e+20
+ 25
+-1e+20
+ 35
+-1e+20
+146
+0.0
+ 13
+0.0
+ 23
+0.0
+ 33
+0.0
+ 16
+1.0
+ 26
+0.0
+ 36
+0.0
+ 17
+0.0
+ 27
+1.0
+ 37
+0.0
+ 76
+1
+330
+1B
+  0
+MATERIAL
+  5
+1F
+102
+{ACAD_REACTORS
+330
+E
+102
+}
+330
+E
+100
+AcDbMaterial
+  1
+ByBlock
+  2
+
+ 70
+0
+ 40
+1.0
+ 71
+1
+ 41
+1.0
+ 91
+-1023410177
+ 42
+1.0
+ 72
+1
+  3
+
+ 73
+1
+ 74
+1
+ 75
+1
+ 44
+0.5
+ 73
+0
+ 45
+1.0
+ 46
+1.0
+ 77
+1
+  4
+
+ 78
+1
+ 79
+1
+170
+1
+ 48
+1.0
+171
+1
+  6
+
+172
+1
+173
+1
+174
+1
+140
+1.0
+141
+1.0
+175
+1
+  7
+
+176
+1
+177
+1
+178
+1
+143
+1.0
+179
+1
+  8
+
+270
+1
+271
+1
+272
+1
+145
+1.0
+146
+1.0
+273
+1
+  9
+
+274
+1
+275
+1
+276
+1
+ 42
+1.0
+ 72
+1
+  3
+
+ 73
+1
+ 74
+1
+ 75
+1
+ 94
+63
+  0
+MATERIAL
+  5
+20
+102
+{ACAD_REACTORS
+330
+E
+102
+}
+330
+E
+100
+AcDbMaterial
+  1
+ByLayer
+  2
+
+ 70
+0
+ 40
+1.0
+ 71
+1
+ 41
+1.0
+ 91
+-1023410177
+ 42
+1.0
+ 72
+1
+  3
+
+ 73
+1
+ 74
+1
+ 75
+1
+ 44
+0.5
+ 73
+0
+ 45
+1.0
+ 46
+1.0
+ 77
+1
+  4
+
+ 78
+1
+ 79
+1
+170
+1
+ 48
+1.0
+171
+1
+  6
+
+172
+1
+173
+1
+174
+1
+140
+1.0
+141
+1.0
+175
+1
+  7
+
+176
+1
+177
+1
+178
+1
+143
+1.0
+179
+1
+  8
+
+270
+1
+271
+1
+272
+1
+145
+1.0
+146
+1.0
+273
+1
+  9
+
+274
+1
+275
+1
+276
+1
+ 42
+1.0
+ 72
+1
+  3
+
+ 73
+1
+ 74
+1
+ 75
+1
+ 94
+63
+  0
+MATERIAL
+  5
+21
+102
+{ACAD_REACTORS
+330
+E
+102
+}
+330
+E
+100
+AcDbMaterial
+  1
+Global
+  2
+
+ 70
+0
+ 40
+1.0
+ 71
+1
+ 41
+1.0
+ 91
+-1023410177
+ 42
+1.0
+ 72
+1
+  3
+
+ 73
+1
+ 74
+1
+ 75
+1
+ 44
+0.5
+ 73
+0
+ 45
+1.0
+ 46
+1.0
+ 77
+1
+  4
+
+ 78
+1
+ 79
+1
+170
+1
+ 48
+1.0
+171
+1
+  6
+
+172
+1
+173
+1
+174
+1
+140
+1.0
+141
+1.0
+175
+1
+  7
+
+176
+1
+177
+1
+178
+1
+143
+1.0
+179
+1
+  8
+
+270
+1
+271
+1
+272
+1
+145
+1.0
+146
+1.0
+273
+1
+  9
+
+274
+1
+275
+1
+276
+1
+ 42
+1.0
+ 72
+1
+  3
+
+ 73
+1
+ 74
+1
+ 75
+1
+ 94
+63
+  0
+MLINESTYLE
+  5
+22
+102
+{ACAD_REACTORS
+330
+10
+102
+}
+330
+10
+100
+AcDbMlineStyle
+  2
+Standard
+ 70
+0
+  3
+
+ 62
+256
+ 51
+90.0
+ 52
+90.0
+ 71
+2
+ 49
+0.5
+ 62
+256
+  6
+BYLAYER
+ 49
+-0.5
+ 62
+256
+  6
+BYLAYER
+  0
+MLEADERSTYLE
+  5
+2C
+102
+{ACAD_REACTORS
+330
+F
+102
+}
+330
+F
+100
+AcDbMLeaderStyle
+179
+2
+170
+2
+171
+1
+172
+0
+ 90
+2
+ 40
+0.0
+ 41
+0.0
+173
+1
+ 91
+-1056964608
+ 92
+-2
+290
+1
+ 42
+2.0
+291
+1
+ 43
+8.0
+  3
+Standard
+ 44
+4.0
+300
+
+342
+29
+174
+1
+175
+1
+176
+0
+178
+1
+ 93
+-1056964608
+ 45
+4.0
+292
+0
+297
+0
+ 46
+4.0
+ 94
+-1056964608
+ 47
+1.0
+ 49
+1.0
+140
+1.0
+294
+1
+141
+0.0
+177
+0
+142
+1.0
+295
+0
+296
+0
+143
+3.75
+271
+0
+272
+9
+273
+9
+  0
+DICTIONARY
+  5
+2D
+330
+A
+100
+AcDbDictionary
+280
+1
+281
+1
+  3
+CREATED_BY_EZDXF
+350
+2E
+  3
+WRITTEN_BY_EZDXF
+350
+33
+  0
+DICTIONARYVAR
+  5
+2E
+330
+2D
+100
+DictionaryVariables
+280
+0
+  1
+1.4.4 @ 2026-10-08T11:31:49.809132+00:00
+  0
+DICTIONARYVAR
+  5
+33
+330
+2D
+100
+DictionaryVariables
+280
+0
+  1
+1.4.4 @ 2026-10-08T11:31:49.810277+00:00
+  0
+ENDSEC
+  0
+EOF
+</script>
 </body>
 </html>
