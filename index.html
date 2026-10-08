@@ -124,8 +124,8 @@
                 </div>
             </div>
             <input type="file" id="dxf-input" class="hidden" accept=".dxf" onchange="importDXFFile(event)">
-            <button id="btn-cartouche" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-400" title="Éditer le Cartouche" onclick="openCartoucheModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></button>
             <button id="btn-preview" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-sky-300" title="Aperçu avant impression : mise en page sur fond blanc (CLIC fige la page, ENTRÉE imprime)" onclick="setMode('preview')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="16.5" cy="16.5" r="3.5"></circle><line x1="19" y1="19" x2="22" y2="22"></line></svg></button>
+            <button id="btn-print-settings" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Paramètres d'impression : format de feuille, cartouche, type de fichier (PDF / JPEG / PNG)" onclick="openCartoucheModal()"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif;font-size:19px;line-height:1">⛯</span></button>
             <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression PDF (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
             <div class="w-px h-5 bg-gray-600 mx-1"></div>
             <button id="btn-help" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-300" title="Aide & Raccourcis" onclick="openHelpModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>
@@ -224,18 +224,33 @@
     </div>
 
     <!-- Modales -->
-    <div id="cartouche-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-600 z-50 w-96">
-        <h3 class="text-lg font-bold text-white mb-4">Informations du Cartouche</h3>
-        <div class="flex flex-col space-y-3 mb-6">
+    <div id="cartouche-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-600 z-50 w-[27rem]">
+        <h3 class="text-lg font-bold text-white mb-4"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif">⛯</span> Paramètres d'impression</h3>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div><label class="block text-xs text-gray-400 mb-1">Format de feuille</label>
+                <select id="ps-paper" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
+                    <option value="A5">A5 (148 × 210 mm)</option><option value="A4">A4 (210 × 297 mm)</option><option value="A3">A3 (297 × 420 mm)</option>
+                    <option value="A2">A2 (420 × 594 mm)</option><option value="A1">A1 (594 × 841 mm)</option><option value="A0">A0 (841 × 1189 mm)</option>
+                </select></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Fichier produit</label>
+                <select id="ps-output" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
+                    <option value="pdf">PDF</option><option value="jpeg">Image JPEG</option><option value="png">Image PNG</option>
+                </select></div>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-gray-200 mb-3 cursor-pointer select-none"><input type="checkbox" id="ps-cartouche" class="w-4 h-4" onchange="document.getElementById('ps-cartouche-fields').classList.toggle('opacity-40', !this.checked)"> Imprimer le cartouche <span class="text-gray-500 text-xs">(80 × 40 mm, en bas à droite)</span></label>
+        <div id="ps-cartouche-fields" class="flex flex-col space-y-3 mb-6 border-l-2 border-gray-600 pl-3">
             <div><label class="block text-xs text-gray-400 mb-1">Nom du plan</label><input type="text" id="cartouche-plan" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none"></div>
             <div><label class="block text-xs text-gray-400 mb-1">Nom du client</label><input type="text" id="cartouche-client" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none"></div>
             <div><label class="block text-xs text-gray-400 mb-1">Dessinateur</label><input type="text" id="cartouche-draftsman" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none"></div>
-            <div><label class="block text-xs text-gray-400 mb-1">Logo de l'entreprise</label><input type="file" id="cartouche-logo" accept="image/*" class="w-full text-sm text-gray-400"></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Logo de l'entreprise <span id="ps-logo-state" class="text-gray-500"></span></label>
+                <div class="flex items-center gap-2"><input type="file" id="cartouche-logo" accept="image/*" class="flex-1 text-sm text-gray-400">
+                <button id="ps-logo-remove" type="button" class="text-xs text-red-300 hover:text-red-200" onclick="cartoucheData.logo = null; this.classList.add('hidden'); document.getElementById('ps-logo-state').textContent = '(aucun)';">Retirer</button></div></div>
         </div>
         <div class="flex justify-end space-x-3"><button class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white transition" onclick="closeCartoucheModal()">Annuler</button><button class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white transition" onclick="applyCartouche()">Valider</button></div>
     </div>
-    <div id="layer-modal" class="hidden absolute top-16 left-64 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-96">
+    <div id="layer-modal" class="hidden absolute top-16 left-64 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-[31rem]">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-white">Gestionnaire de Calques</h3><button class="text-gray-400 hover:text-white" onclick="closeLayerModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+        <div class="flex items-center gap-2 px-2 pb-1 text-[10px] uppercase tracking-wide text-gray-500 pr-4"><span class="w-[15px]"></span><span class="flex-1">Calque</span><span class="w-6 text-center">Coul.</span><span class="w-12 text-center">Trait</span><span class="w-10 text-center">Ép.</span><span class="w-12 text-center" title="Texte : vide = variable (taille constante à l'écran et sur la feuille, comme les cotes). Valeur = hauteur fixe en mm dans le dessin.">Texte</span><span class="w-12 text-center">Hach.</span><span class="w-[15px]"></span></div>
         <div id="layers-list" class="flex flex-col space-y-2 mb-4 max-h-60 overflow-y-auto custom-scrollbar pr-2"></div>
         <div class="flex items-center space-x-2 border-t border-gray-700 pt-3"><input type="text" id="new-layer-name" class="flex-1 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500" placeholder="Nouveau calque..."><button class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm" onclick="addLayer()">Ajouter</button></div>
     </div>
@@ -307,7 +322,9 @@
             <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🎨 Calques</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">3 calques :</b> 0 - Tracé (blanc, continu), 1 - Construction (gris, tireté), 2 - Cotation (orange). Couleur, type de ligne et épaisseur se règlent dans le gestionnaire de calques : chaque objet prend l'apparence de son calque.</li>
+                    <li><b class="text-white">3 calques :</b> 0 - Tracé (blanc, continu), 1 - Construction (gris, tireté), 2 - Cotation (orange). Dans le gestionnaire de calques, chaque calque a sa couleur, son type de trait, son épaisseur, et deux réglages :</li>
+                    <li><b class="text-white">Texte :</b> champ vide (« auto ») = taille <b>variable</b>, constante à l'écran et sur la feuille, comme les cotes. Une valeur (ex. <b>2,5</b>) = <b>hauteur fixe en mm dans le dessin</b> : le texte grandit avec le zoom et suit l'échelle d'impression. S'applique aux textes, détails et valeurs de cote du calque.</li>
+                    <li><b class="text-white">Hachure :</b> motif des hachures du calque : <b>///</b> (lignes), <b>XX</b> (croisée) ou <b>■</b> (plein).</li>
                     <li><b class="text-white">Paramétrer une sélection :</b> sélectionnez des objets puis tapez <b>Y</b> pour les changer de calque (<b>N</b> pour ignorer).</li>
                     <li><b class="text-white">Calque Cotation :</b> cotes, textes et détails y sont déposés automatiquement.</li>
                 </ul>
@@ -341,21 +358,22 @@
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">💾 Fichiers DXF</h4>
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Menu Fichier (disquette) :</b> Exporter / Importer au format DXF R2000 (AC1015), à l'échelle 1:1 (1 unité = 1 mm). Format d'échange lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li>
-                    <li><b class="text-white">Mise en forme conservée :</b> couleur, épaisseur de trait et type de ligne (continu/tireté/axe) sont enregistrés et restitués au rechargement. Les couleurs sont ramenées à l'index ACI le plus proche (palette DXF standard).</li>
-                    <li><b class="text-white">Entités gérées :</b> lignes, polylignes (rectangles), cercles, arcs, textes. À l'import, l'application gère l'ancien format (POLYLINE/VERTEX) et le moderne (LWPOLYLINE). Les entités non supportées (blocs, splines, hachures) sont ignorées et signalées.</li>
+                    <li><b class="text-white">Mise en forme conservée :</b> couleur, épaisseur, type de ligne, et les réglages Texte et Hachure de chaque calque sont enregistrés dans le DXF et restaurés au rechargement. Les couleurs sont ramenées à l'index ACI le plus proche (palette DXF standard).</li>
+                    <li><b class="text-white">Entités gérées :</b> lignes, polylignes (rectangles), cercles, arcs, textes et hachures. Les hachures sont exportées en vraies hachures AutoCAD (entités HATCH, îlots compris), modifiables dans AutoCAD et relues comme hachures à l'import. L'import gère l'ancien format de polyligne (POLYLINE/VERTEX) et le moderne (LWPOLYLINE). Les blocs, splines et hachures à contours courbes venant d'autres logiciels sont ignorés et signalés.</li>
                     <li><b class="text-white">Installer l'appli :</b> sur la version en ligne (GitHub), Chrome et Edge affichent un bouton vert « Installer l'appli » en haut à droite. MomoCAD s'ouvre alors dans sa propre fenêtre, avec son icône 📐 (une connexion Internet reste nécessaire). Sur iPhone/iPad : Partager → « Sur l'écran d'accueil ».</li>
                     <li><b class="text-white">Recentrage auto :</b> après un import DXF, la vue se recentre automatiquement sur le dessin (les fichiers externes ont souvent des coordonnées très éloignées de l'origine).</li>
                 </ul>
             </div>
             <div>
-                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖨️ Impression PDF</h4>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖨️ Impression</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Aperçu (bouton à gauche d'Imprimer) :</b> affiche la feuille A4 exactement comme elle sortira du PDF, sur fond blanc (cadre, cartouche, couleurs d'impression). La page suit la souris pour la mise en page ; <b>molette</b> = échelle, <b>ESPACE</b> = portrait/paysage, <b>CLIC</b> = figer ou libérer la page, <b>ENTRÉE</b> = générer le PDF de cette mise en page, <b>ÉCHAP</b> = quitter.</li>
+                    <li><b class="text-white">Paramètres ⛯ (à gauche d'Imprimer) :</b> format de feuille (A5, A4, A3, A2, A1, A0), fichier produit (<b>PDF</b>, image <b>JPEG</b> ou <b>PNG</b>), cartouche imprimé ou non, et contenu du cartouche (plan, client, dessinateur, logo). Ces réglages sont mémorisés sur ce poste.</li>
+                    <li><b class="text-white">Aperçu :</b> affiche la feuille exactement comme elle sortira, sur fond blanc (cadre, cartouche, couleurs d'impression). La page suit la souris pour la mise en page ; <b>molette</b> = échelle, <b>ESPACE</b> = portrait/paysage, <b>CLIC</b> = figer ou libérer la page, <b>ENTRÉE</b> = produire le fichier, <b>ÉCHAP</b> = quitter.</li>
                     <li><b class="text-white">ESPACE :</b> bascule portrait / paysage.</li>
                     <li><b class="text-white">Molette :</b> change l'échelle. Liste complète disponible :
                         <span class="text-gray-400">5:1, 2:1, <b class="text-white">1:1</b> (défaut), 1:2, 1:5, 1:10, 1:25, 1:50, 1:100, 1:150, 1:200, 1:500.</span>
                         Les agrandissements (5:1, 2:1) servent aux petites pièces, les réductions aux grands ouvrages.</li>
-                    <li><b class="text-white">Clic :</b> génère et télécharge le PDF (format A4, marge 5 mm, cartouche en bas-droite).</li>
+                    <li><b class="text-white">Clic (mode Imprimer) :</b> produit le fichier choisi dans ⛯ (marge 5 mm, cartouche 80 × 40 mm en bas à droite s'il est activé). Les images sont en 200 dpi (un peu moins en A1/A0). Épaisseur de trait 1 = 0,25 mm sur papier, quel que soit le format.</li>
                     <li><b class="text-white">Zone jaune :</b> dans l'aperçu écran, la silhouette jaune indique l'emplacement réservé au cartouche — évite d'y placer des éléments importants.</li>
                 </ul>
             </div>
@@ -440,6 +458,17 @@
         let shapes = [], dimensionTextsToDraw = [], screenTextsToDraw = [], pendingTextPos = null;
         let printOrientation = 'landscape';
         let cartoucheData = { logo: null, planName: '', clientName: '', draftsmanName: '' };
+        try { Object.assign(cartoucheData, JSON.parse(localStorage.getItem('momocad-cartouche') || '{}')); } catch (e) {}
+        // Formats de feuille (mm, portrait) et réglages d'impression
+        const PAPER_SIZES = { A5: [148, 210], A4: [210, 297], A3: [297, 420], A2: [420, 594], A1: [594, 841], A0: [841, 1189] };
+        let printSettings = { paper: 'A4', cartouche: true, output: 'pdf' };
+        try { Object.assign(printSettings, JSON.parse(localStorage.getItem('momocad-print') || '{}')); } catch (e) {}
+        if (!PAPER_SIZES[printSettings.paper]) printSettings.paper = 'A4';
+        function pageDims() {
+            const sz = PAPER_SIZES[printSettings.paper] || PAPER_SIZES.A4, land = printOrientation === 'landscape';
+            const pageW = land ? sz[1] : sz[0], pageH = land ? sz[0] : sz[1], margin = 5;
+            return { pageW, pageH, margin, drawW: pageW - 2 * margin, drawH: pageH - 2 * margin, land };
+        }
         // Échelles d'impression, du plus AGRANDISSANT au plus RÉDUISANT.
         // factor = facteur d'agrandissement réel (zoom relatif au 1:1).
         //   2:1 -> ×2 (pièces minuscules) ... 1:500 -> ×0.002 (grands ouvrages)
@@ -473,7 +502,7 @@
             inlineEditReady = false; // évite un blur immédiat dû au cycle de clic en cours
             const ta = document.getElementById('inline-editor');
             const col = effectiveColor({ layerId: TEXT_LAYER_ID }, false);
-            const fontPx = 14; // taille écran fixe (cohérent avec le rendu texte/détail)
+            const fontPx = annotTextPx(TEXT_LAYER_ID, 14, 1, camera.zoom); // même taille que le rendu final
             const sp = worldToScreen(opts.wx, opts.wy);
             ta.style.left = sp.x + 'px';
             ta.style.top = (opts.kind === 'detail' ? sp.y : sp.y - fontPx) + 'px';
@@ -563,8 +592,45 @@
         function openLayerModal() { closeSnapModal(); document.getElementById('layer-modal').classList.remove('hidden'); updateLayerUI(); }
         function openSnapModal() { closeLayerModal(); document.getElementById('snap-modal').classList.remove('hidden'); }
         function openHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); }
-        function openCartoucheModal() { document.getElementById('cartouche-modal').classList.remove('hidden'); document.getElementById('cartouche-plan').value = cartoucheData.planName || ""; document.getElementById('cartouche-client').value = cartoucheData.clientName || ""; document.getElementById('cartouche-draftsman').value = cartoucheData.draftsmanName || ""; }
-        function applyCartouche() { cartoucheData.planName = document.getElementById('cartouche-plan').value; cartoucheData.clientName = document.getElementById('cartouche-client').value; cartoucheData.draftsmanName = document.getElementById('cartouche-draftsman').value; const logoInput = document.getElementById('cartouche-logo'); if (logoInput.files && logoInput.files[0]) { const reader = new FileReader(); reader.onload = (e) => { cartoucheData.logo = e.target.result; }; reader.readAsDataURL(logoInput.files[0]); } closeCartoucheModal(); }
+        function openCartoucheModal() {
+            closeLayerModal(); closeSnapModal();
+            document.getElementById('cartouche-modal').classList.remove('hidden');
+            document.getElementById('ps-paper').value = printSettings.paper;
+            document.getElementById('ps-output').value = printSettings.output;
+            document.getElementById('ps-cartouche').checked = !!printSettings.cartouche;
+            document.getElementById('ps-cartouche-fields').classList.toggle('opacity-40', !printSettings.cartouche);
+            document.getElementById('cartouche-plan').value = cartoucheData.planName || "";
+            document.getElementById('cartouche-client').value = cartoucheData.clientName || "";
+            document.getElementById('cartouche-draftsman').value = cartoucheData.draftsmanName || "";
+            document.getElementById('cartouche-logo').value = "";
+            document.getElementById('ps-logo-state').textContent = cartoucheData.logo ? '(logo enregistré)' : '(aucun)';
+            document.getElementById('ps-logo-remove').classList.toggle('hidden', !cartoucheData.logo);
+        }
+        // Réglages d'impression et cartouche, mémorisés sur ce poste
+        function saveCartoucheData() {
+            try { localStorage.setItem('momocad-cartouche', JSON.stringify(cartoucheData)); }
+            catch (e) { try { localStorage.setItem('momocad-cartouche', JSON.stringify(Object.assign({}, cartoucheData, { logo: null }))); } catch (e2) {} }
+        }
+        function applyCartouche() {
+            printSettings.paper = document.getElementById('ps-paper').value;
+            printSettings.output = document.getElementById('ps-output').value;
+            printSettings.cartouche = document.getElementById('ps-cartouche').checked;
+            try { localStorage.setItem('momocad-print', JSON.stringify(printSettings)); } catch (e) {}
+            cartoucheData.planName = document.getElementById('cartouche-plan').value;
+            cartoucheData.clientName = document.getElementById('cartouche-client').value;
+            cartoucheData.draftsmanName = document.getElementById('cartouche-draftsman').value;
+            const logoInput = document.getElementById('cartouche-logo');
+            if (logoInput.files && logoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => { cartoucheData.logo = e.target.result; saveCartoucheData(); getLogoImg(); draw(); };
+                reader.readAsDataURL(logoInput.files[0]);
+            }
+            saveCartoucheData();
+            closeCartoucheModal();
+            // le format a pu changer : on garde la même échelle (1:1 reste 1:1)
+            if (mode === 'print' || mode === 'preview') { const c0 = previewPin || { x: currentX_screen, y: currentY_screen }; applyPrintScale(c0.x, c0.y); }
+            draw();
+        }
         function toggleSnapSetting(type) { const idMap = { endpoint: 'end', midpoint: 'mid', intersection: 'inter', perpendicular: 'perp', center: 'center' }; snapSettings[type] = document.getElementById('snap-' + (idMap[type] || type)).checked; invalidateCache(); draw(); }
         function setGridCm(v) {
             const g = parseFloat(String(v).replace(',', '.'));
@@ -602,6 +668,12 @@
                             <option value="center"${l.dash==='center'?' selected':''}>-·-</option>
                         </select>
                         <input type="number" value="${l.width||1}" min="0.1" step="0.1" max="100" title="Épaisseur" class="w-10 bg-gray-700 text-white border border-gray-600 rounded px-1 py-0.5 text-xs text-center outline-none shrink-0" onchange="setLayerStyle('${l.id}','width',parseFloat(this.value)||1)">
+                        <input type="text" inputmode="decimal" value="${l.textH ? String(l.textH).replace('.', ',') : ''}" placeholder="auto" title="Texte : vide = variable (taille constante, comme les cotes) ; valeur = hauteur fixe en mm dans le dessin" class="w-12 bg-gray-700 text-white border border-gray-600 rounded px-1 py-0.5 text-xs text-center outline-none shrink-0 placeholder-gray-500" onchange="setLayerStyle('${l.id}','textH',this.value)">
+                        <select title="Hachure" class="bg-gray-700 text-white border border-gray-600 rounded px-0.5 py-0.5 text-xs font-mono outline-none shrink-0 w-12" onchange="setLayerStyle('${l.id}','hatch',this.value)">
+                            <option value="lines"${(l.hatch||'lines')==='lines'?' selected':''}>///</option>
+                            <option value="cross"${l.hatch==='cross'?' selected':''}>XX</option>
+                            <option value="solid"${l.hatch==='solid'?' selected':''}>■</option>
+                        </select>
                         <button onclick="deleteLayer('${l.id}')" class="text-gray-500 hover:text-red-400 shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
                     list.appendChild(div);
                 });
@@ -613,6 +685,7 @@
         function setLayerStyle(id, prop, value) {
             const l = layers.find(layer => layer.id === id);
             if (!l) return;
+            if (prop === 'textH') { const v = parseFloat(String(value).replace(',', '.')); value = v > 0 ? v : ''; }
             l[prop] = value;
             invalidateCache(); saveState(); draw();
         }
@@ -1205,14 +1278,18 @@
                 else if (s.type === 'circle') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) return s; }
                 else if (s.type === 'arc') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) { let a = Math.atan2(p.y-s.y, p.x-s.x); if (isAngleBetween(a, s.startAngle, s.endAngle)) return s; } }
                 else if (s.type === 'poly') { for(let j=0; j<s.points.length; j++){ let p1 = s.points[j], p2 = s.points[(j+1)%s.points.length]; let l2 = Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-p1.x)*(p2.x-p1.x)+(p.y-p1.y)*(p2.y-p1.y))/l2)); if (Math.hypot(p.x-(p1.x+t*(p2.x-p1.x)), p.y-(p1.y+t*(p2.y-p1.y))) < tol) return s; } }
-                else if (s.type === 'text') { const fs = (s.size||20)*effectiveWidth(s); ctx.font = fs + "px Arial"; const tl=(s.content||'').split('\n'); let w=0; tl.forEach(t=>w=Math.max(w,ctx.measureText(t).width)); const th=tl.length*fs*1.25; if (wx >= s.x && wx <= s.x + w && wy <= s.y + (th - fs) && wy >= s.y - fs) return s; }
+                else if (s.type === 'text') {
+                    const px = annotTextPx(s.layerId, 14, 1, camera.zoom), fs = px / camera.zoom;
+                    ctx.font = "bold " + px + "px Arial"; const tl = (s.content || '').split('\n'); let w = 0; tl.forEach(t => w = Math.max(w, ctx.measureText(t).width)); w /= camera.zoom;
+                    if (wx >= s.x && wx <= s.x + w && wy >= s.y - fs && wy <= s.y + (tl.length - 1) * fs * 1.25 + fs * 0.3) return s;
+                }
                 else if (s.type === 'detail') {
                     // Clic sur le cadre de l'étiquette (zone approximative)
-                    const fs = (s.size||20)*effectiveWidth(s);
-                    ctx.font = "bold " + fs + "px Arial";
+                    const px = annotTextPx(s.layerId, 14, 1, camera.zoom), kk = px / 14;
+                    ctx.font = "bold " + px + "px Arial";
                     const lines = (s.content||'').split('\n');
                     let mw = 0; lines.forEach(t => mw = Math.max(mw, ctx.measureText(t).width));
-                    const bw = mw + 16, bh = lines.length*fs*1.25 + 12;
+                    const bw = (mw + 12 * kk) / camera.zoom, bh = (lines.length * px * 1.25 + 8 * kk) / camera.zoom;
                     if (wx >= s.lx && wx <= s.lx + bw && wy >= s.ly && wy <= s.ly + bh) return s;
                     // ou clic près du point désigné
                     if (Math.hypot(wx - s.tx, wy - s.ty) < tol*1.5) return s;
@@ -1397,7 +1474,7 @@
             const textY = vertex.y + Math.sin(midA) * (arcR + 15 / lineScale);
             // On stocke les coordonnées du label dans la shape pour la sélection
             s._labelX = textX; s._labelY = textY; s._angleDeg = angleDeg;
-            dimensionTextsToDraw.push({ text: angleDeg + '°', worldX: textX, worldY: textY, color: col });
+            dimensionTextsToDraw.push({ text: angleDeg + '°', worldX: textX, worldY: textY, color: col, layerId: s.layerId });
         }
 
         // --- GESTION DES OUTILS ET MODES ---
@@ -1416,10 +1493,7 @@
                               : (currentUnit === 'cm' ? unitsPerSquare*10 : unitsPerSquare*1000);
             const pxMondePerMm = GRID_SIZE / mmPerSquare;
             const rect = getPrintRect();
-            const isLandscape = printOrientation === 'landscape';
-            const pageW = isLandscape ? 297 : 210;
-            const drawW = pageW - 2 * 5; // marge 5 mm
-            const imgMm_w = drawW;       // l'image couvre toute la largeur intérieure
+            const imgMm_w = pageDims().drawW;   // l'image couvre toute la largeur intérieure du cadre
             return rect.w / (imgMm_w * pxMondePerMm);
         }
 
@@ -1617,7 +1691,7 @@
 
 
         // --- Encodage des textes DXF : caractères non ASCII en \U+XXXX (compris par AutoCAD) ---
-        const DXF_TPL_META = {"handseed": "34", "layerTable": "1", "baseLayerCount": 2, "plotStyle": "13", "tplLayers": ["0", "Defpoints"], "msp": "17"};
+        const DXF_TPL_META = {"handseed": "35", "layerTable": "1", "baseLayerCount": 2, "plotStyle": "13", "tplLayers": ["0", "Defpoints"], "msp": "17"};
         function dxfStr(s) {
             let out = '';
             for (const ch of String(s)) {
@@ -1672,6 +1746,8 @@
                 lp(2, dxfStr(nm)); lp(70, 0);
                 lp(62, l.visible === false ? -aci : aci);   // couleur négative = calque éteint
                 lp(6, ltName(l.dash)); lp(370, widthToLineweight(l.width || 1)); lp(390, M.plotStyle);
+                // réglages propres à MomoCAD (texte variable/fixe, motif de hachure), relus à l'import
+                lp(1001, 'MOMOCAD'); lp(1000, 'textH=' + (parseFloat(l.textH) > 0 ? parseFloat(l.textH) : '') + ';hatch=' + (l.hatch || 'lines'));
                 layerCount++;
             }
 
@@ -1696,9 +1772,34 @@
                 ext(x, y); ext(x + h * String(str).length * 0.7, y + h);
             };
             const hatch = (s) => {
-                const spacingWorld = ((s.hatchSpacing || 3) / unitsPerSquare) * GRID_SIZE;
-                const angleDeg = (s.hatchAngle !== undefined) ? s.hatchAngle : 45;
-                for (const seg of computeHatchLines(s, spacingWorld, angleDeg)) line(s, seg.x1, seg.y1, seg.x2, seg.y2);
+                // contours : hachure-objet (avec îlots), polygone, ou cercle découpé en 72 côtés
+                let loops;
+                if (s.loops) loops = s.loops;
+                else if (s.type === 'poly') loops = [s.points];
+                else if (s.type === 'circle') { loops = [[]]; for (let i = 0; i < 72; i++) { const a = i / 72 * 2 * Math.PI; loops[0].push({ x: s.x + s.r * Math.cos(a), y: s.y + s.r * Math.sin(a) }); } }
+                else return;
+                const pattern = layerHatch(s), solid = pattern === 'solid', cross = pattern === 'cross';
+                const sp = s.hatchSpacing || 3;
+                // l'axe Y est inversé : un angle de 45° à l'écran vaut 135° dans le DXF
+                const phi = ((360 - ((s.hatchAngle !== undefined) ? s.hatchAngle : 45)) % 180 + 180) % 180;
+                head('HATCH', s); p(100, 'AcDbHatch');
+                p(10, 0); p(20, 0); p(30, 0); p(210, 0); p(220, 0); p(230, 1);
+                p(2, solid ? 'SOLID' : '_USER'); p(70, solid ? 1 : 0); p(71, 0);
+                p(91, loops.length);
+                loops.forEach((l, i) => {
+                    p(92, i === 0 ? 3 : 2); p(72, 0); p(73, 1); p(93, l.length);
+                    for (const q of l) { p(10, num(X(q.x))); p(20, num(Y(q.y))); ext(X(q.x), Y(q.y)); }
+                    p(97, 0);
+                });
+                p(75, 0); p(76, solid ? 1 : 0);
+                if (!solid) {
+                    p(52, num(phi)); p(41, 1); p(77, cross ? 1 : 0); p(78, cross ? 2 : 1);
+                    for (const a of (cross ? [phi, phi + 90] : [phi])) {
+                        const r = a * Math.PI / 180;
+                        p(53, num(a)); p(43, 0); p(44, 0); p(45, num(-sp * Math.sin(r))); p(46, num(sp * Math.cos(r))); p(79, 0);
+                    }
+                }
+                p(98, 0);
             };
 
             for (const s of shapes) {
@@ -1723,15 +1824,15 @@
                     for (const pt of s.points) { p(10, num(X(pt.x))); p(20, num(Y(pt.y))); ext(X(pt.x), Y(pt.y)); }
                     if (s.hatch) hatch(s);
                 } else if (s.type === 'text') {
-                    const h = worldToMm(s.size || 20);
+                    const h = layerTextH(s.layerId) || worldToMm(s.size || 20);
                     (s.content || '').split('\n').forEach((t, k) => {
                         if (t.trim()) text(s, X(s.x), Y(s.y) - h * 1.25 * k, h, t, s.angle ? -s.angle * 180 / Math.PI : 0);
                     });
                 } else if (s.type === 'hatch') {
-                    hatch(s);   // motif explosé en lignes, contour invisible
+                    hatch(s);   // hachure AutoCAD (contour invisible, îlots conservés)
                 } else if (s.type === 'detail') {
                     line(s, s.lx, s.ly, s.tx, s.ty);   // ligne de rappel
-                    const h = worldToMm(s.size || 20);
+                    const h = layerTextH(s.layerId) || worldToMm(s.size || 20);
                     (s.content || '').split('\n').forEach((t, k) => {
                         if (t.trim()) text(s, X(s.lx), Y(s.ly) - h * 1.25 * (k + 1), h, t, 0);
                     });
@@ -1775,18 +1876,29 @@
             // 1) Récupérer le style des calques depuis la table LAYER (couleur/type/épaisseur)
             for (let k = 0; k < pairs.length - 1; k++) {
                 if (pairs[k].code === 0 && pairs[k].val.trim() === 'LAYER') {
-                    let name = null, aci = 7, lt = null, lw = null;
+                    let name = null, aci = 7, lt = null, lw = null, momo = null, app = null;
                     for (let j = k+1; j < pairs.length && !(pairs[j].code === 0); j++) {
+                        if (pairs[j].code === 1001) app = pairs[j].val.trim();
+                        if (pairs[j].code === 1000 && app === 'MOMOCAD') momo = pairs[j].val;
+                        if (app) continue;   // données étendues : ne pas confondre avec les codes du calque
                         if (pairs[j].code === 2) name = pairs[j].val.trim();
                         if (pairs[j].code === 62) aci = parseInt(pairs[j].val.trim(), 10);
                         if (pairs[j].code === 6) lt = pairs[j].val.trim();
                         if (pairs[j].code === 370) lw = parseInt(pairs[j].val.trim(), 10);
                     }
-                    if (name) importedLayers[name] = {
-                        color: (Math.abs(aci) > 0 && Math.abs(aci) < 256) ? aciToHex(Math.abs(aci)) : '#ffffff',
-                        dash: dxfToDash(lt),
-                        width: lw !== null ? lineweightToWidth(lw) : 1
-                    };
+                    if (name) {
+                        importedLayers[name] = {
+                            color: (Math.abs(aci) > 0 && Math.abs(aci) < 256) ? aciToHex(Math.abs(aci)) : '#ffffff',
+                            dash: dxfToDash(lt),
+                            width: lw !== null ? lineweightToWidth(lw) : 1
+                        };
+                        if (momo) {   // ex. "textH=2.5;hatch=cross"
+                            const kv = {}; momo.split(';').forEach(t => { const [a, b] = t.split('='); if (a) kv[a.trim()] = (b || '').trim(); });
+                            importedLayers[name].momo = true;
+                            importedLayers[name].textH = parseFloat(kv.textH) > 0 ? parseFloat(kv.textH) : '';
+                            importedLayers[name].hatch = ['lines', 'cross', 'solid'].includes(kv.hatch) ? kv.hatch : 'lines';
+                        }
+                    }
                 }
             }
 
@@ -1807,6 +1919,34 @@
                 if (ent === 'ENDSEC' || ent === 'EOF') break;
 
                 // ----- POLYLINE ancien format (R12) : sommets dans des VERTEX -----
+                if (ent === 'HATCH') {
+                    let j = i + 1, layerName = '0', nLoops = -1, ok = true;
+                    const loops = [];
+                    // en-tête jusqu'au nombre de contours (91)
+                    for (; j < pairs.length && pairs[j].code !== 0; j++) {
+                        if (pairs[j].code === 8) layerName = pairs[j].val.trim();
+                        if (pairs[j].code === 91) { nLoops = parseInt(pairs[j].val, 10); j++; break; }
+                    }
+                    for (let L = 0; L < nLoops && ok && j < pairs.length; L++) {
+                        while (j < pairs.length && pairs[j].code !== 92 && pairs[j].code !== 0) j++;
+                        if (j >= pairs.length || pairs[j].code !== 92) { ok = false; break; }
+                        const flags = parseInt(pairs[j].val, 10); j++;
+                        if (!(flags & 2)) { ok = false; break; }          // contour fait d'arêtes (arcs, splines) : non géré
+                        let nv = 0;
+                        while (j < pairs.length && pairs[j].code !== 93 && pairs[j].code !== 0) j++;
+                        if (pairs[j] && pairs[j].code === 93) { nv = parseInt(pairs[j].val, 10); j++; }
+                        const pts = [];
+                        while (pts.length < nv && j < pairs.length && pairs[j].code !== 0) {
+                            if (pairs[j].code === 10 && pairs[j + 1] && pairs[j + 1].code === 20) { pts.push({ x: X(pairs[j].val), y: Y(pairs[j + 1].val) }); j += 2; }
+                            else j++;
+                        }
+                        if (pts.length >= 3) loops.push(pts);
+                    }
+                    while (j < pairs.length && pairs[j].code !== 0) j++;
+                    if (ok && loops.length) newShapes.push({ type: 'hatch', layerId: resolveImportLayer(layerName, importedLayers), loops });
+                    else ignored++;
+                    i = j; continue;
+                }
                 if (ent === 'POLYLINE') {
                     const pg = {};
                     let j = i + 1;
@@ -1900,15 +2040,21 @@
             // Cherche un calque existant dont le nom DXF correspond (insensible à la casse),
             // sinon en crée un.
             const target = (name || '0').trim().toLowerCase();
+            const st0 = importedLayers[name];
             for (const l of layers) {
-                if (layerDxfName(l.id).toLowerCase() === target) return l.id;
+                if (layerDxfName(l.id).toLowerCase() === target) {
+                    // fichier exporté par MomoCAD : on restaure tous les réglages du calque
+                    if (st0 && st0.momo) Object.assign(l, { color: st0.color, dash: st0.dash, width: st0.width, textH: st0.textH, hatch: st0.hatch });
+                    return l.id;
+                }
                 // anciens exports MomoCAD : noms avec "_" à la place des espaces et accents
                 if (l.name.replace(/[^A-Za-z0-9_\-]/g, '_').toLowerCase() === target) return l.id;
             }
             const st = importedLayers[name] || {};
             const newId = 'layer-' + Date.now() + '-' + Math.floor(Math.random()*1000);
             layers.push({ id:newId, name:name || 'Importé', visible:true,
-                          color: st.color || '#ffffff', dash: st.dash || 'solid', width: st.width || 1 });
+                          color: st.color || '#ffffff', dash: st.dash || 'solid', width: st.width || 1,
+                          textH: st.textH || '', hatch: st.hatch || 'lines' });
             return newId;
         }
 
@@ -2016,32 +2162,42 @@
         }
 
         function getPrintRect() {
-            // Ratio de la zone image = surface intérieure du cadre (page - marges).
-            // Le cartouche se superpose ensuite, il n'ampute donc pas le ratio.
-            const margin = 5;
-            const isLandscape = printOrientation === 'landscape';
-            const pageW = isLandscape ? 297 : 210, pageH = isLandscape ? 210 : 297;
-            const drawW = pageW - 2 * margin, drawH = pageH - 2 * margin;
+            // Zone image = surface intérieure du cadre (feuille moins 5 mm de marge), aux proportions du format.
+            // 700 px de large au plus, réduite si besoin pour que la feuille tienne dans la fenêtre.
+            const { drawW, drawH } = pageDims();
             const ratio = drawW / drawH;
-            const baseW = 700;
-            return { w: baseW, h: baseW / ratio };
+            let w = Math.min(700, canvas.width * 0.86, (canvas.height - 100) * 0.86 * ratio);
+            w = Math.max(200, w);
+            return { w, h: w / ratio };
+        }
+        // Recalcule le zoom de l'échelle d'impression courante (après changement de format ou d'orientation),
+        // en gardant fixe le point du dessin sous (ax, ay).
+        function applyPrintScale(ax, ay) {
+            const wp = screenToWorld(ax, ay);
+            currentPrintScale = PRINT_SCALES[printScaleIndex].label;
+            camera.zoom = printBaseZoom() * PRINT_SCALES[printScaleIndex].factor;
+            camera.x = ax - wp.x * camera.zoom; camera.y = ay - wp.y * camera.zoom;
         }
 
         // Image du plan telle qu'elle sera imprimée (fond blanc, couleurs d'impression).
-        // Utilisée par le PDF (SS = 3, haute qualité) et par l'aperçu à l'écran (SS = 1 ou 2).
+        // Utilisée par l'aperçu (SS = 1 ou 2), le PDF et les images (SS calculé pour ~200 dpi).
         // winX / winY : coin haut-gauche de la zone image, en coordonnées écran.
+        // Tailles physiques identiques sur tous les formats de feuille :
+        //  - textes « variables » : REF_MM_PER_PX = taille sur papier d'un pixel écran de référence (A4 paysage : 287 mm / 700 px) ;
+        //  - traits : épaisseur 1 du calque = 0,25 mm sur papier (même règle que l'export DXF),
+        //    avec un minimum d'environ 1 pixel dans l'aperçu à l'écran pour rester visible.
+        const REF_MM_PER_PX = 287 / 700;
         function renderPrintCanvas(winX, winY, SS) {
             const rect = getPrintRect();
-            const offw = Math.round(rect.w * SS);
-            const offh = Math.round(rect.h * SS);
+            const offw = Math.round(rect.w * SS), offh = Math.round(rect.h * SS);
             const offCanvas = document.createElement('canvas');
             offCanvas.width = offw; offCanvas.height = offh;
             const offCtx = offCanvas.getContext('2d');
             offCtx.fillStyle = '#ffffff'; offCtx.fillRect(0, 0, offw, offh);
-
-
-            // Transform : monde → écran (camera) → décalage fenêtre → suréchantillon
-            const offZoom = camera.zoom * SS;
+            const pxPerMm = offw / pageDims().drawW;              // pixels image par mm de papier
+            const f = REF_MM_PER_PX * pxPerMm;                    // textes : pixels image par pixel écran de référence
+            const fl = Math.max(0.125 * pxPerMm, SS <= 2 ? 0.8 : 0); // traits : épaisseur 1 -> 0,25 mm
+            const offZoom = camera.zoom * SS;                     // monde -> pixels image
             offCtx.save();
             offCtx.translate((camera.x - winX) * SS, (camera.y - winY) * SS);
             offCtx.scale(offZoom, offZoom);
@@ -2049,54 +2205,11 @@
             for (let s of shapes) {
                 let layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
                 if (layer && !layer.visible) continue;
-                drawSingleShape(offCtx, s, true, false, 0, 0, offZoom);
+                drawSingleShape(offCtx, s, true, false, 0, 0, offZoom / fl);
             }
             offCtx.restore();
-            // Textes de cotation, dessinés en coordonnées écran-suréchantillonnées
-            for (let d of dimensionTextsToDraw) {
-                const px = (d.worldX * camera.zoom + camera.x - winX) * SS;
-                const py = (d.worldY * camera.zoom + camera.y - winY) * SS;
-                offCtx.font = "bold " + Math.round(14 * SS) + "px Arial";
-                const m = offCtx.measureText(d.text);
-                const th = Math.round(14 * SS);
-                offCtx.fillStyle = "#ffffff";
-                offCtx.fillRect(px - m.width/2 - 3, py - th/2 - 2, m.width + 6, th + 4);
-                offCtx.fillStyle = d.color || '#000000';
-                offCtx.textAlign = "center"; offCtx.textBaseline = "middle";
-                offCtx.fillText(d.text, px, py);
-            }
-            // Textes et détails en taille écran fixe (suréchantillonnés pour le PDF)
-            {
-                const W2S = (wx, wy) => ({ x: (wx*camera.zoom + camera.x - winX)*SS, y: (wy*camera.zoom + camera.y - winY)*SS });
-                const FS = Math.round(14 * SS), lh = FS * 1.25;
-                for (const d of screenTextsToDraw) {
-                    const p = W2S(d.wx, d.wy);
-                    offCtx.font = "bold " + FS + "px Arial";
-                    const dcol = (d.color === '#ffffff') ? '#000000' : d.color; // impression : blanc->noir
-                    if (d.kind === 'text') {
-                        offCtx.fillStyle = dcol; offCtx.textAlign = "left"; offCtx.textBaseline = "alphabetic";
-                        d.lines.forEach((t, k) => offCtx.fillText(t, p.x, p.y + k*lh));
-                    } else {
-                        let maxW = 0; d.lines.forEach(t => maxW = Math.max(maxW, offCtx.measureText(t).width));
-                        const padX = 6*SS, padY = 4*SS, boxW = maxW + padX*2, boxH = d.lines.length*lh + padY*2;
-                        const bx = p.x, by = p.y, tp = W2S(d.tx, d.ty);
-                        const cxC = bx+boxW/2, cyC = by+boxH/2, angT = Math.atan2(tp.y-cyC, tp.x-cxC);
-                        const hw = boxW/2, hh = boxH/2, tanA = Math.tan(angT); let ex, ey;
-                        if (Math.abs(Math.cos(angT))*hh >= Math.abs(Math.sin(angT))*hw) { ex = cxC+(Math.cos(angT)>0?hw:-hw); ey = cyC+(Math.cos(angT)>0?hw:-hw)*tanA; }
-                        else { ey = cyC+(Math.sin(angT)>0?hh:-hh); ex = cxC+(Math.sin(angT)>0?hh:-hh)/tanA; }
-                        offCtx.strokeStyle = dcol; offCtx.fillStyle = dcol; offCtx.lineWidth = 1.2*SS; offCtx.setLineDash([]);
-                        offCtx.beginPath(); offCtx.moveTo(ex, ey); offCtx.lineTo(tp.x, tp.y); offCtx.stroke();
-                        const ah = 9*SS, aa = Math.atan2(tp.y-ey, tp.x-ex);
-                        offCtx.beginPath(); offCtx.moveTo(tp.x, tp.y); offCtx.lineTo(tp.x-ah*Math.cos(aa-0.4), tp.y-ah*Math.sin(aa-0.4)); offCtx.lineTo(tp.x-ah*Math.cos(aa+0.4), tp.y-ah*Math.sin(aa+0.4)); offCtx.closePath(); offCtx.fill();
-                        offCtx.beginPath(); offCtx.arc(tp.x, tp.y, 2.5*SS, 0, 2*Math.PI); offCtx.fill();
-                        offCtx.fillStyle = '#ffffff'; offCtx.fillRect(bx, by, boxW, boxH);
-                        offCtx.strokeStyle = dcol; offCtx.strokeRect(bx, by, boxW, boxH);
-                        offCtx.fillStyle = dcol; offCtx.textAlign = "left"; offCtx.textBaseline = "top";
-                        d.lines.forEach((t, k) => offCtx.fillText(t, bx+padX, by+padY+k*lh));
-                    }
-                }
-            }
-
+            const W2S = (wx, wy) => ({ x: (wx * camera.zoom + camera.x - winX) * SS, y: (wy * camera.zoom + camera.y - winY) * SS });
+            drawAnnotations(offCtx, W2S, f, offZoom, true);
             return offCanvas;
         }
 
@@ -2107,107 +2220,73 @@
             document.getElementById('print-loader').classList.remove('hidden');
             setTimeout(() => {
                 try {
+                    const P = pageDims(), rect = getPrintRect();
+                    const winX = sx_screen - rect.w / 2, winY = sy_screen - rect.h / 2;
+                    // Résolution ~200 dpi, plafonnée à ~40 millions de pixels pour les grands formats (A1, A0)
+                    let dpi = 200;
+                    const sqIn = (P.pageW / 25.4) * (P.pageH / 25.4);
+                    if (sqIn * dpi * dpi > 40e6) dpi = Math.sqrt(40e6 / sqIn);
+                    const SS = (P.drawW / 25.4 * dpi) / rect.w;
+                    const img = renderPrintCanvas(winX, winY, SS);    // même rendu que l'aperçu
+                    const base = 'plan_momo_' + new Date().getTime();
+
+                    if (printSettings.output !== 'pdf') {
+                        // Image de la feuille entière (fond blanc, cadre, cartouche)
+                        const k = dpi / 25.4;
+                        const sheet = document.createElement('canvas');
+                        sheet.width = Math.round(P.pageW * k); sheet.height = Math.round(P.pageH * k);
+                        drawSheet(sheet.getContext('2d'), 0, 0, k, img);
+                        const png = printSettings.output === 'png';
+                        sheet.toBlob((blob) => {
+                            const url = URL.createObjectURL(blob), a = document.createElement('a');
+                            a.href = url; a.download = base + (png ? '.png' : '.jpg'); a.click();
+                            setTimeout(() => URL.revokeObjectURL(url), 2000);
+                        }, png ? 'image/png' : 'image/jpeg', 0.92);
+                        return;
+                    }
+
                     const { jsPDF } = window.jspdf;
-                    const isLandscape = printOrientation === 'landscape';
-                    const doc = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
-
-                    const pageW = isLandscape ? 297 : 210;
-                    const pageH = isLandscape ? 210 : 297;
-                    const margin = 5;
-                    const drawW = pageW - 2 * margin;
-                    const drawH = pageH - 2 * margin;
-
-                    // Cartouche dimensions en mm
-                    const cW = 80, cH = 40;
-                    const cX = pageW - margin - cW, cY = pageH - margin - cH;
-                    // ------ Fond blanc (la page entière) ------
+                    const doc = new jsPDF({ orientation: P.land ? 'landscape' : 'portrait', unit: 'mm', format: printSettings.paper.toLowerCase() });
+                    const pageW = P.pageW, pageH = P.pageH, margin = P.margin, drawW = P.drawW, drawH = P.drawH;
                     doc.setFillColor(255, 255, 255);
                     doc.rect(0, 0, pageW, pageH, 'F');
+                    // Plan (PNG compressé sans perte)
+                    doc.addImage(img.toDataURL('image/png'), 'PNG', margin, margin, drawW, drawH, undefined, 'FAST');
 
-                    // ------ Canvas offscreen ------
-                    // Zone image = TOUTE la surface intérieure du cadre.
-                    // Le cartouche est ensuite dessiné PAR-DESSUS dans le coin bas-droite.
-                    const imgMm_x = margin;
-                    const imgMm_y = margin;
-                    const imgMm_w = drawW;
-                    const imgMm_h = drawH;
-
-                    // getPrintRect() retourne déjà le bon ratio (zone image PDF) :
-                    // la prévisualisation écran et la sortie PDF sont donc identiques.
-                    const rect = getPrintRect();
-                    const winX = sx_screen - rect.w / 2;
-                    const winY = sy_screen - rect.h / 2;
-                    const offCanvas = renderPrintCanvas(winX, winY, 3);   // même rendu que l'aperçu
-                    // Inclure l'image raster du plan (PNG = sans perte → pas de bavure sur les bords)
-                    const planImg = offCanvas.toDataURL('image/png');
-                    doc.addImage(planImg, 'PNG', imgMm_x, imgMm_y, imgMm_w, imgMm_h, undefined, 'FAST');   // compressé (sinon ~12 Mo)
-
-                    // ------ Cadre de marge (PAR-DESSUS l'image, traits nets) ------
-                    // 4 lignes explicites, épaisseur forcée juste avant chaque tracé.
+                    // Cadre de marge (4 traits nets, par-dessus l'image)
                     doc.setDrawColor(0);
                     const FRAME_LW = 0.5;
-                    const fx = margin, fy = margin, fw = drawW, fh = drawH;
-                    doc.setLineWidth(FRAME_LW); doc.line(fx,      fy,      fx + fw, fy);       // haut
-                    doc.setLineWidth(FRAME_LW); doc.line(fx + fw, fy,      fx + fw, fy + fh);  // droite
-                    doc.setLineWidth(FRAME_LW); doc.line(fx + fw, fy + fh, fx,      fy + fh);  // bas
-                    doc.setLineWidth(FRAME_LW); doc.line(fx,      fy + fh, fx,      fy);       // gauche
+                    doc.setLineWidth(FRAME_LW); doc.line(margin, margin, margin + drawW, margin);
+                    doc.setLineWidth(FRAME_LW); doc.line(margin + drawW, margin, margin + drawW, margin + drawH);
+                    doc.setLineWidth(FRAME_LW); doc.line(margin + drawW, margin + drawH, margin, margin + drawH);
+                    doc.setLineWidth(FRAME_LW); doc.line(margin, margin + drawH, margin, margin);
 
-                    // ------ Cartouche vectoriel (PAR-DESSUS l'image) ------
-                    doc.setDrawColor(0);
-                    doc.setFillColor(255, 255, 255);
-                    doc.setLineWidth(0.5);
-                    doc.rect(cX, cY, cW, cH, 'FD');
-
-                    // Séparateur vertical logo / texte
-                    const logoW = 22;
-                    doc.setLineWidth(0.3);
-                    doc.line(cX + logoW, cY, cX + logoW, cY + cH);
-
-                    // Lignes horizontales
-                    const rowH = cH / 4;
-                    for (let i = 1; i <= 3; i++) {
-                        doc.setLineWidth(0.3);
-                        doc.line(cX + logoW, cY + rowH * i, cX + cW, cY + rowH * i);
+                    if (printSettings.cartouche) {
+                        // Cartouche vectoriel, 80 x 40 mm en bas à droite
+                        const cW = 80, cH = 40, cX = pageW - margin - cW, cY = pageH - margin - cH, logoW = 22, rowH = cH / 4;
+                        doc.setDrawColor(0); doc.setFillColor(255, 255, 255);
+                        doc.setLineWidth(0.5); doc.rect(cX, cY, cW, cH, 'FD');
+                        doc.setLineWidth(0.3); doc.line(cX + logoW, cY, cX + logoW, cY + cH);
+                        for (let i = 1; i <= 3; i++) { doc.setLineWidth(0.3); doc.line(cX + logoW, cY + rowH * i, cX + cW, cY + rowH * i); }
+                        doc.setFontSize(7); doc.setTextColor(0);
+                        ['Plan : ' + (cartoucheData.planName || ''), 'Client : ' + (cartoucheData.clientName || ''),
+                         'Dessin : ' + (cartoucheData.draftsmanName || ''), 'Échelle : ' + currentPrintScale]
+                            .forEach((txt, idx) => doc.text(txt, cX + logoW + 2, cY + rowH * idx + rowH * 0.6, { maxWidth: cW - logoW - 2 }));
+                        if (cartoucheData.logo) {
+                            try { doc.addImage(cartoucheData.logo, cX + 1, cY + 1, logoW - 2, cH - 2, undefined, 'FAST'); } catch (e) { /* logo invalide */ }
+                        } else {
+                            doc.setFontSize(5); doc.setTextColor(120); doc.text('LOGO', cX + logoW / 2, cY + cH / 2, { align: 'center' });
+                        }
+                        doc.setFontSize(5); doc.setTextColor(80);
+                        doc.text(new Date().toLocaleDateString('fr-FR'), cX + cW - 1, cY + cH - 1, { align: 'right' });
                     }
-
-                    // Textes cartouche
-                    doc.setFontSize(7);
-                    doc.setTextColor(0);
-                    const rows = [
-                        'Plan : '       + (cartoucheData.planName     || ''),
-                        'Client : '     + (cartoucheData.clientName   || ''),
-                        'Dessin : '     + (cartoucheData.draftsmanName|| ''),
-                        'Échelle : ' + currentPrintScale,
-                    ];
-                    rows.forEach((txt, idx) => {
-                        doc.text(txt, cX + logoW + 2, cY + rowH * idx + rowH * 0.6, { maxWidth: cW - logoW - 2 });
-                    });
-
-                    // Logo si présent
-                    if (cartoucheData.logo) {
-                        try {
-                            doc.addImage(cartoucheData.logo, cX + 1, cY + 1, logoW - 2, cH - 2, undefined, 'FAST');
-                        } catch(e) { /* logo invalide, on ignore */ }
-                    } else {
-                        doc.setFontSize(5); doc.setTextColor(120);
-                        doc.text('LOGO', cX + logoW / 2, cY + cH / 2, { align: 'center' });
-                    }
-
-                    // Date en bas du cartouche
-                    doc.setFontSize(5); doc.setTextColor(80);
-                    doc.text(new Date().toLocaleDateString('fr-FR'), cX + cW - 1, cY + cH - 1, { align: 'right' });
-
-                    // Titre échelle en haut de la page
                     doc.setFontSize(8); doc.setTextColor(60);
-                    doc.text(`A4 ${isLandscape ? 'paysage' : 'portrait'} — ${currentPrintScale}`, margin + 2, margin + 6);
-
-                    // Téléchargement
-                    const filename = 'plan_momo_' + new Date().getTime() + '.pdf';
-                    doc.save(filename);
+                    doc.text(`${printSettings.paper} ${P.land ? 'paysage' : 'portrait'} — ${currentPrintScale}`, margin + 2, margin + 6);
+                    doc.save(base + '.pdf');
 
                 } catch(err) {
-                    console.error('Erreur PDF :', err);
-                    alert('Erreur lors de la génération du PDF. Vérifiez la console.');
+                    console.error('Erreur impression :', err);
+                    alert("Erreur lors de la génération du fichier d'impression. Vérifiez la console.");
                 } finally {
                     setMode('select-box');
                     document.getElementById('print-loader').classList.add('hidden');
@@ -2218,47 +2297,63 @@
 
         // Fonction de rendu plan sur un contexte arbitraire (utilisée par performPrint)
         // printLineScale : facteur de mise à l'échelle des épaisseurs pour le rendu PDF
-        // Dessine textes et étiquettes de détail en TAILLE ÉCRAN FIXE (comme les cotes).
-        function drawScreenTexts(targetCtx) {
-            const FS = 14;
-            const lh = FS * 1.25;
+        // Hauteur d'un texte d'annotation (texte, détail, valeur de cote) selon le réglage de son calque :
+        //  - variable (champ vide) : basePx × unit, taille constante à l'écran et sur la feuille ;
+        //  - fixe (valeur en mm)   : hauteur réelle dans le dessin, qui suit le zoom et l'échelle d'impression.
+        function layerTextH(layerId) {
+            const l = layers.find(x => x.id === (layerId || 'layer-0'));
+            const h = l ? parseFloat(l.textH) : NaN;
+            return h > 0 ? h : 0;
+        }
+        function annotTextPx(layerId, basePx, unit, worldScale) {
+            const h = layerTextH(layerId);
+            return h > 0 ? mmToWorld(h) * worldScale : basePx * unit;
+        }
+        // W2S : monde -> pixels de la cible ; unit : pixels cible par pixel écran ; worldScale : pixels cible par unité monde
+        function drawAnnotations(tctx, W2S, unit, worldScale, isPrinting) {
+            for (const d of dimensionTextsToDraw) {
+                const p = W2S(d.worldX, d.worldY);
+                const fs = annotTextPx(d.layerId || DIM_LAYER_ID, 13, unit, worldScale), k = fs / 13;
+                tctx.font = "bold " + fs + "px Arial";
+                const m = tctx.measureText(d.text);
+                tctx.fillStyle = isPrinting ? "#ffffff" : "#1e1e1e";
+                tctx.fillRect(p.x - m.width / 2 - 4 * k, p.y - fs * 0.85, m.width + 8 * k, fs * 1.7);
+                tctx.fillStyle = d.color || (isPrinting ? '#000000' : '#f59e0b');
+                tctx.textAlign = "center"; tctx.textBaseline = "middle";
+                tctx.fillText(d.text, p.x, p.y);
+            }
             for (const d of screenTextsToDraw) {
-                const p = worldToScreen(d.wx, d.wy);
-                targetCtx.font = "bold " + FS + "px Arial";
+                const fs = annotTextPx(d.layerId, 14, unit, worldScale), k = fs / 14, lh = fs * 1.25;
+                const p = W2S(d.wx, d.wy);
+                const col = (isPrinting && d.color === '#ffffff') ? '#000000' : d.color;
+                tctx.font = "bold " + fs + "px Arial";
                 if (d.kind === 'text') {
-                    targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic";
-                    targetCtx.fillStyle = d.color;
-                    d.lines.forEach((t, k) => targetCtx.fillText(t, p.x, p.y + k * lh));
+                    tctx.textAlign = "left"; tctx.textBaseline = "alphabetic"; tctx.fillStyle = col;
+                    d.lines.forEach((t, i) => tctx.fillText(t, p.x, p.y + i * lh));
                 } else if (d.kind === 'detail') {
-                    let maxW = 0; d.lines.forEach(t => maxW = Math.max(maxW, targetCtx.measureText(t).width));
-                    const padX = 6, padY = 4;
-                    const boxW = maxW + padX*2, boxH = d.lines.length*lh + padY*2;
-                    const bx = p.x, by = p.y;
-                    const tp = worldToScreen(d.tx, d.ty);
-                    const cxC = bx + boxW/2, cyC = by + boxH/2;
+                    let maxW = 0; d.lines.forEach(t => maxW = Math.max(maxW, tctx.measureText(t).width));
+                    const padX = 6 * k, padY = 4 * k;
+                    const boxW = maxW + padX * 2, boxH = d.lines.length * lh + padY * 2;
+                    const bx = p.x, by = p.y, tp = W2S(d.tx, d.ty);
+                    const cxC = bx + boxW / 2, cyC = by + boxH / 2;
                     const angT = Math.atan2(tp.y - cyC, tp.x - cxC);
-                    const hw = boxW/2, hh = boxH/2; const tanA = Math.tan(angT);
+                    const hw = boxW / 2, hh = boxH / 2, tanA = Math.tan(angT);
                     let ex, ey;
-                    if (Math.abs(Math.cos(angT)) * hh >= Math.abs(Math.sin(angT)) * hw) {
-                        ex = cxC + (Math.cos(angT) > 0 ? hw : -hw); ey = cyC + (Math.cos(angT) > 0 ? hw : -hw) * tanA;
-                    } else {
-                        ey = cyC + (Math.sin(angT) > 0 ? hh : -hh); ex = cxC + (Math.sin(angT) > 0 ? hh : -hh) / tanA;
-                    }
-                    targetCtx.strokeStyle = d.color; targetCtx.fillStyle = d.color;
-                    targetCtx.lineWidth = 1.2; targetCtx.setLineDash([]);
-                    targetCtx.beginPath(); targetCtx.moveTo(ex, ey); targetCtx.lineTo(tp.x, tp.y); targetCtx.stroke();
-                    const ah = 9, aa = Math.atan2(tp.y - ey, tp.x - ex);
-                    targetCtx.beginPath(); targetCtx.moveTo(tp.x, tp.y);
-                    targetCtx.lineTo(tp.x - ah*Math.cos(aa - 0.4), tp.y - ah*Math.sin(aa - 0.4));
-                    targetCtx.lineTo(tp.x - ah*Math.cos(aa + 0.4), tp.y - ah*Math.sin(aa + 0.4));
-                    targetCtx.closePath(); targetCtx.fill();
-                    targetCtx.beginPath(); targetCtx.arc(tp.x, tp.y, 2.5, 0, 2*Math.PI); targetCtx.fill();
-                    targetCtx.fillStyle = d.isPrinting ? '#ffffff' : 'rgba(20,20,20,0.85)';
-                    targetCtx.fillRect(bx, by, boxW, boxH);
-                    targetCtx.strokeStyle = d.color; targetCtx.strokeRect(bx, by, boxW, boxH);
-                    targetCtx.fillStyle = d.color;
-                    targetCtx.textAlign = "left"; targetCtx.textBaseline = "top";
-                    d.lines.forEach((t, k) => targetCtx.fillText(t, bx + padX, by + padY + k*lh));
+                    if (Math.abs(Math.cos(angT)) * hh >= Math.abs(Math.sin(angT)) * hw) { ex = cxC + (Math.cos(angT) > 0 ? hw : -hw); ey = cyC + (Math.cos(angT) > 0 ? hw : -hw) * tanA; }
+                    else { ey = cyC + (Math.sin(angT) > 0 ? hh : -hh); ex = cxC + (Math.sin(angT) > 0 ? hh : -hh) / tanA; }
+                    tctx.strokeStyle = col; tctx.fillStyle = col; tctx.lineWidth = 1.2 * k; tctx.setLineDash([]);
+                    tctx.beginPath(); tctx.moveTo(ex, ey); tctx.lineTo(tp.x, tp.y); tctx.stroke();
+                    const ah = 9 * k, aa = Math.atan2(tp.y - ey, tp.x - ex);
+                    tctx.beginPath(); tctx.moveTo(tp.x, tp.y);
+                    tctx.lineTo(tp.x - ah * Math.cos(aa - 0.4), tp.y - ah * Math.sin(aa - 0.4));
+                    tctx.lineTo(tp.x - ah * Math.cos(aa + 0.4), tp.y - ah * Math.sin(aa + 0.4));
+                    tctx.closePath(); tctx.fill();
+                    tctx.beginPath(); tctx.arc(tp.x, tp.y, 2.5 * k, 0, 2 * Math.PI); tctx.fill();
+                    tctx.fillStyle = isPrinting ? '#ffffff' : 'rgba(20,20,20,0.85)';
+                    tctx.fillRect(bx, by, boxW, boxH);
+                    tctx.strokeStyle = col; tctx.strokeRect(bx, by, boxW, boxH);
+                    tctx.fillStyle = col; tctx.textAlign = "left"; tctx.textBaseline = "top";
+                    d.lines.forEach((t, i) => tctx.fillText(t, bx + padX, by + padY + i * lh));
                 }
             }
         }
@@ -2274,15 +2369,7 @@
                 drawSingleShape(targetCtx, s, isPrinting, false, 0, 0, ls);
             }
             targetCtx.restore();
-            // textes de cotation
-            for (let d of dimensionTextsToDraw) {
-                let p = worldToScreen(d.worldX, d.worldY);
-                targetCtx.font = "bold 14px Arial";
-                let m = targetCtx.measureText(d.text);
-                targetCtx.fillStyle = "#ffffff"; targetCtx.fillRect(p.x - m.width/2 - 3, p.y - 10, m.width + 6, 20);
-                targetCtx.fillStyle = '#1a1a00'; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(d.text, p.x, p.y);
-            }
-            drawScreenTexts(targetCtx);
+            drawAnnotations(targetCtx, worldToScreen, 1, camera.zoom, isPrinting);
         }
 
         // --- HISTORIQUE & ÉTAT ---
@@ -2332,24 +2419,39 @@
             return (layer && layer.width) ? layer.width : 1;
         }
         // Dessine les hachures (lignes à 45°) à l'intérieur d'une forme fermée.
+        function layerHatch(s) {
+            const l = layers.find(x => x.id === (s.layerId || 'layer-0'));
+            return (l && l.hatch) || 'lines';
+        }
         function drawHatch(targetCtx, s, col, dx, dy, lineScale) {
             const spacingMm = s.hatchSpacing || 3;          // espacement en mm
             const angleDeg = (s.hatchAngle !== undefined) ? s.hatchAngle : 45;
             const spacingWorld = (spacingMm / unitsPerSquare) * GRID_SIZE;
+            const pattern = layerHatch(s);
             // travailler sur une copie décalée si la forme est déplacée en preview (dx,dy)
             const shp = (dx || dy)
                 ? (s.type === 'circle' ? { type:'circle', x:s.x+dx, y:s.y+dy, r:s.r }
                    : s.loops ? { type:'hatch', loops: s.loops.map(l => l.map(p => ({x:p.x+dx, y:p.y+dy}))) }
                    : { type:'poly', points: s.points.map(p => ({x:p.x+dx, y:p.y+dy})) })
                 : s;
-            const segs = computeHatchLines(shp, spacingWorld, angleDeg);
             targetCtx.save();
-            targetCtx.strokeStyle = col;
-            targetCtx.lineWidth = (effectiveWidth(s) * 0.7) / lineScale;
             targetCtx.setLineDash([]);
-            targetCtx.beginPath();
-            for (const seg of segs) { targetCtx.moveTo(seg.x1, seg.y1); targetCtx.lineTo(seg.x2, seg.y2); }
-            targetCtx.stroke();
+            if (pattern === 'solid') {
+                // plein : remplissage (les îlots restent vides, règle pair/impair)
+                targetCtx.fillStyle = col;
+                targetCtx.beginPath();
+                if (shp.type === 'circle') targetCtx.arc(shp.x, shp.y, shp.r, 0, 2 * Math.PI);
+                else for (const l of (shp.loops || [shp.points])) { targetCtx.moveTo(l[0].x, l[0].y); for (const q of l) targetCtx.lineTo(q.x, q.y); targetCtx.closePath(); }
+                targetCtx.fill('evenodd');
+            } else {
+                let segs = computeHatchLines(shp, spacingWorld, angleDeg);
+                if (pattern === 'cross') segs = segs.concat(computeHatchLines(shp, spacingWorld, angleDeg + 90));
+                targetCtx.strokeStyle = col;
+                targetCtx.lineWidth = (effectiveWidth(s) * 0.7) / lineScale;
+                targetCtx.beginPath();
+                for (const seg of segs) { targetCtx.moveTo(seg.x1, seg.y1); targetCtx.lineTo(seg.x2, seg.y2); }
+                targetCtx.stroke();
+            }
             targetCtx.restore();
         }
 
@@ -2378,13 +2480,13 @@
             }
             else if (s.type === 'text') {
                 // Texte en taille ÉCRAN FIXE (comme les cotes) : on l'empile pour rendu post-transform.
-                screenTextsToDraw.push({ kind:'text', wx: s.x+dx, wy: s.y+dy, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20) });
+                screenTextsToDraw.push({ kind:'text', layerId: s.layerId, wx: s.x+dx, wy: s.y+dy, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20) });
             }
             else if (s.type === 'detail') {
                 const tx = s.tx+dx, ty = s.ty+dy, lx = s.lx+dx, ly = s.ly+dy;
                 // La flèche/ligne de rappel reste géométrique (repère monde).
                 // Le cadre + texte sont dessinés en taille écran fixe (post-transform).
-                screenTextsToDraw.push({ kind:'detail', wx: lx, wy: ly, tx: tx, ty: ty, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20), isPrinting });
+                screenTextsToDraw.push({ kind:'detail', layerId: s.layerId, wx: lx, wy: ly, tx: tx, ty: ty, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20), isPrinting });
             }
             else if (s.type === 'dim') {
                 let p1={x:s.x1+dx, y:s.y1+dy}, p2={x:s.x2+dx, y:s.y2+dy}, po={x:s.ox+dx, y:s.oy+dy};
@@ -2398,7 +2500,7 @@
                     targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
                     let t=5/lineScale; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
                     dt(c1); dt(c2);
-                    dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2, color: col });
+                    dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2, color: col, layerId: s.layerId });
                 }
             }
             targetCtx.setLineDash([]);
@@ -2603,18 +2705,8 @@
             }
             targetCtx.restore();
 
-            // Textes de cotation (post-transform)
-            for (let d of dimensionTextsToDraw) {
-                let p = worldToScreen(d.worldX, d.worldY);
-                targetCtx.font = "bold 13px Arial";
-                let m = targetCtx.measureText(d.text);
-                targetCtx.fillStyle = isPrinting ? "rgba(255,255,255,0.9)" : "#1e1e1e";
-                targetCtx.fillRect(p.x - m.width/2 - 4, p.y - 11, m.width + 8, 22);
-                targetCtx.fillStyle = d.color || '#f59e0b';
-                targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle";
-                targetCtx.fillText(d.text, p.x, p.y);
-            }
-            drawScreenTexts(targetCtx);
+            // Textes de cotation, textes et détails (post-transform, taille selon le calque)
+            drawAnnotations(targetCtx, worldToScreen, 1, camera.zoom, isPrinting);
         }
 
         // Repère d'origine façon AutoCAD : axe X (rouge, vers la droite) et axe Y (vert, vers le haut)
@@ -2648,56 +2740,70 @@
             el.textContent = 'X ' + f(worldToMm(currentX)) + '   Y ' + f(-worldToMm(currentY)) + ' ' + currentUnit;
         }
 
-        // Aperçu avant impression : la feuille A4 telle que le PDF la produira
-        // (image du plan, cadre de marge, cartouche, titre), sur fond assombri.
-        let previewLogoImg = null;
+        // Logo du cartouche, chargé une fois pour l'aperçu et les exports image
+        let logoImg = null;
+        function getLogoImg() {
+            if (!cartoucheData.logo) return null;
+            if (!logoImg || logoImg.src !== cartoucheData.logo) {
+                logoImg = new Image();
+                logoImg.onload = () => { if (mode === 'preview') draw(); };
+                logoImg.src = cartoucheData.logo;
+            }
+            return (logoImg.complete && logoImg.naturalWidth) ? logoImg : null;
+        }
+        // Dessine la feuille comme le PDF : fond blanc, plan, cadre de marge, cartouche, titre.
+        // (sx, sy) = coin haut-gauche de la feuille, k = pixels par mm de papier.
+        function drawSheet(tctx, sx, sy, k, img) {
+            const P = pageDims();
+            const pt = (v) => v * 0.3528 * k;                         // taille de police (pt) -> px
+            tctx.save();
+            tctx.fillStyle = '#ffffff'; tctx.fillRect(sx, sy, P.pageW * k, P.pageH * k);
+            const ix = sx + P.margin * k, iy = sy + P.margin * k, iw = P.drawW * k, ih = P.drawH * k;
+            tctx.drawImage(img, ix, iy, iw, ih);
+            tctx.strokeStyle = '#000'; tctx.setLineDash([]);
+            tctx.lineWidth = Math.max(1, 0.5 * k); tctx.strokeRect(ix, iy, iw, ih);
+            if (printSettings.cartouche) {
+                const cW = 80 * k, cH = 40 * k, logoW = 22 * k, rowH = cH / 4;
+                const cX = sx + (P.pageW - P.margin - 80) * k, cY = sy + (P.pageH - P.margin - 40) * k;
+                tctx.fillStyle = '#fff'; tctx.fillRect(cX, cY, cW, cH);
+                tctx.lineWidth = Math.max(1, 0.5 * k); tctx.strokeRect(cX, cY, cW, cH);
+                tctx.lineWidth = Math.max(0.6, 0.3 * k);
+                tctx.beginPath(); tctx.moveTo(cX + logoW, cY); tctx.lineTo(cX + logoW, cY + cH);
+                for (let i = 1; i <= 3; i++) { tctx.moveTo(cX + logoW, cY + rowH * i); tctx.lineTo(cX + cW, cY + rowH * i); }
+                tctx.stroke();
+                const rows = ['Plan : ' + (cartoucheData.planName || ''), 'Client : ' + (cartoucheData.clientName || ''),
+                              'Dessin : ' + (cartoucheData.draftsmanName || ''), 'Échelle : ' + currentPrintScale];
+                tctx.fillStyle = '#000'; tctx.font = pt(7) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'left'; tctx.textBaseline = 'alphabetic';
+                rows.forEach((t, i) => tctx.fillText(t, cX + logoW + 2 * k, cY + rowH * i + rowH * 0.6, cW - logoW - 3 * k));
+                const logo = getLogoImg();
+                if (logo) tctx.drawImage(logo, cX + k, cY + k, logoW - 2 * k, cH - 2 * k);
+                else if (!cartoucheData.logo) {
+                    tctx.fillStyle = 'rgb(120,120,120)'; tctx.font = pt(5) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'center';
+                    tctx.fillText('LOGO', cX + logoW / 2, cY + cH / 2);
+                }
+                tctx.fillStyle = 'rgb(80,80,80)'; tctx.font = pt(5) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'right';
+                tctx.fillText(new Date().toLocaleDateString('fr-FR'), cX + cW - k, cY + cH - k);
+            }
+            tctx.fillStyle = 'rgb(60,60,60)'; tctx.font = pt(8) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'left'; tctx.textBaseline = 'alphabetic';
+            tctx.fillText(printSettings.paper + ' ' + (P.land ? 'paysage' : 'portrait') + ' — ' + currentPrintScale, sx + (P.margin + 2) * k, sy + (P.margin + 6) * k);
+            tctx.restore();
+        }
+        // Aperçu avant impression : la feuille telle que le fichier la produira, sur fond assombri.
         function drawPreviewSheet(cx, cy) {
-            const rect = getPrintRect();
-            const isLand = printOrientation === 'landscape';
-            const pageW = isLand ? 297 : 210, pageH = isLand ? 210 : 297, margin = 5, drawW = pageW - 2 * margin;
-            const k = rect.w / drawW;                                   // pixels écran par mm de papier
+            const rect = getPrintRect(), P = pageDims();
+            const k = rect.w / P.drawW;                                 // pixels écran par mm de papier
             const imgX = cx - rect.w / 2, imgY = cy - rect.h / 2;
-            const sheetX = imgX - margin * k, sheetY = imgY - margin * k, sheetW = pageW * k, sheetH = pageH * k;
-            const pt = (v) => v * 0.3528 * k;                         // taille de police jsPDF (pt) -> px
+            const sheetX = imgX - P.margin * k, sheetY = imgY - P.margin * k;
             ctx.save();
             ctx.fillStyle = 'rgba(12,12,14,0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(sheetX, sheetY, sheetW, sheetH);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(sheetX, sheetY, P.pageW * k, P.pageH * k);
             ctx.restore();
-            // plan : même fonction que le PDF (plus net quand la page est figée)
-            const img = renderPrintCanvas(imgX, imgY, previewPin ? 2 : 1);
-            ctx.drawImage(img, imgX, imgY, rect.w, rect.h);
+            drawSheet(ctx, sheetX, sheetY, k, renderPrintCanvas(imgX, imgY, previewPin ? 2 : 1));   // même rendu que le fichier
             ctx.save();
-            // cadre de marge
-            ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(1, 0.5 * k); ctx.setLineDash([]);
-            ctx.strokeRect(imgX, imgY, rect.w, rect.h);
-            // cartouche (mêmes cotes que le PDF : 80 x 40 mm, logo 22 mm, 4 lignes)
-            const cW = 80 * k, cH = 40 * k, logoW = 22 * k, rowH = cH / 4;
-            const cX = sheetX + (pageW - margin - 80) * k, cY = sheetY + (pageH - margin - 40) * k;
-            ctx.fillStyle = '#fff'; ctx.fillRect(cX, cY, cW, cH);
-            ctx.lineWidth = Math.max(1, 0.5 * k); ctx.strokeRect(cX, cY, cW, cH);
-            ctx.lineWidth = Math.max(0.6, 0.3 * k);
-            ctx.beginPath(); ctx.moveTo(cX + logoW, cY); ctx.lineTo(cX + logoW, cY + cH);
-            for (let i = 1; i <= 3; i++) { ctx.moveTo(cX + logoW, cY + rowH * i); ctx.lineTo(cX + cW, cY + rowH * i); }
-            ctx.stroke();
-            const rows = ['Plan : ' + (cartoucheData.planName || ''), 'Client : ' + (cartoucheData.clientName || ''),
-                          'Dessin : ' + (cartoucheData.draftsmanName || ''), 'Échelle : ' + currentPrintScale];
-            ctx.fillStyle = '#000'; ctx.font = pt(7) + 'px Helvetica, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-            rows.forEach((t, i) => ctx.fillText(t, cX + logoW + 2 * k, cY + rowH * i + rowH * 0.6, cW - logoW - 3 * k));
-            if (cartoucheData.logo) {
-                if (!previewLogoImg || previewLogoImg.src !== cartoucheData.logo) { previewLogoImg = new Image(); previewLogoImg.onload = () => { if (mode === 'preview') draw(); }; previewLogoImg.src = cartoucheData.logo; }
-                if (previewLogoImg.complete && previewLogoImg.naturalWidth) ctx.drawImage(previewLogoImg, cX + k, cY + k, logoW - 2 * k, cH - 2 * k);
-            } else {
-                ctx.fillStyle = 'rgb(120,120,120)'; ctx.font = pt(5) + 'px Helvetica, Arial, sans-serif'; ctx.textAlign = 'center';
-                ctx.fillText('LOGO', cX + logoW / 2, cY + cH / 2);
-            }
-            ctx.fillStyle = 'rgb(80,80,80)'; ctx.font = pt(5) + 'px Helvetica, Arial, sans-serif'; ctx.textAlign = 'right';
-            ctx.fillText(new Date().toLocaleDateString('fr-FR'), cX + cW - k, cY + cH - k);
-            ctx.fillStyle = 'rgb(60,60,60)'; ctx.font = pt(8) + 'px Helvetica, Arial, sans-serif'; ctx.textAlign = 'left';
-            ctx.fillText('A4 ' + (isLand ? 'paysage' : 'portrait') + ' — ' + currentPrintScale, sheetX + (margin + 2) * k, sheetY + (margin + 6) * k);
-            // titre au-dessus de la feuille
             ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-            ctx.fillText('APERÇU — A4 ' + (isLand ? 'paysage' : 'portrait') + ' — ' + currentPrintScale + (previewPin ? '  ·  page figée (ENTRÉE = imprimer)' : '  ·  CLIC pour figer'), cx, sheetY - 10);
+            const out = printSettings.output === 'pdf' ? 'PDF' : printSettings.output.toUpperCase();
+            ctx.fillText('APERÇU — ' + printSettings.paper + ' ' + (P.land ? 'paysage' : 'portrait') + ' — ' + currentPrintScale + ' — ' + out + (previewPin ? '  ·  page figée (ENTRÉE = imprimer)' : '  ·  CLIC pour figer'), cx, sheetY - 10);
             ctx.restore();
         }
 
@@ -2720,23 +2826,17 @@
                 ctx.strokeRect(currentX_screen - rect.w/2 + m, currentY_screen - rect.h/2 + m, rect.w - 2*m, rect.h - 2*m);
                 ctx.setLineDash([]);
                 // Silhouette du cartouche (coin bas-droite) pour visualiser la zone réservée
-                {
-                    const mg = 5; // marge mm
-                    const isLand = printOrientation === 'landscape';
-                    const pW = isLand ? 297 : 210, pH = isLand ? 210 : 297;
-                    const dW = pW - 2*mg, dH = pH - 2*mg;
-                    // échelle px par mm dans l'aperçu (rect = zone intérieure dW×dH)
-                    const pxPerMm = rect.w / dW;
+                const P0 = pageDims(), pxPerMm = rect.w / P0.drawW;
+                if (printSettings.cartouche) {
                     const cWpx = 80 * pxPerMm, cHpx = 40 * pxPerMm;
-                    const innerRight = currentX_screen + rect.w/2;
-                    const innerBottom = currentY_screen + rect.h/2;
+                    const innerRight = currentX_screen + rect.w/2, innerBottom = currentY_screen + rect.h/2;
                     ctx.strokeStyle = "rgba(255,200,0,0.7)"; ctx.lineWidth = 1.5;
                     ctx.strokeRect(innerRight - cWpx, innerBottom - cHpx, cWpx, cHpx);
                     ctx.fillStyle = "rgba(255,200,0,0.08)";
                     ctx.fillRect(innerRight - cWpx, innerBottom - cHpx, cWpx, cHpx);
                 }
                 ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
-                ctx.fillText(`A4 ${printOrientation} — ${currentPrintScale} → PDF`, currentX_screen, currentY_screen - rect.h/2 - 10);
+                ctx.fillText(`${printSettings.paper} ${P0.land ? 'paysage' : 'portrait'} — ${currentPrintScale} → ${printSettings.output === 'pdf' ? 'PDF' : printSettings.output.toUpperCase()}`, currentX_screen, currentY_screen - rect.h/2 - 10);
             }
 
             if (mode === 'rotate' && rotateCenter && !isPanning) {
@@ -2822,7 +2922,7 @@
             else if (mode === 'text') msg = "TEXTE : Spécifiez le point d'insertion.";
             else if (mode === 'detail') msg = detailStep === 0 ? "DÉTAIL : Cliquez le point à désigner." : "DÉTAIL : Cliquez pour placer l'étiquette.";
             else if (mode === 'hatch') msg = "HACHURES : Cliquez à l'intérieur d'une zone fermée par des traits (re-cliquez dans une hachure pour la retirer).";
-            else if (mode === 'print') msg = "PDF : ESPACE (pivoter) | MOLETTE (échelle) | CLIC (générer PDF).";
+            else if (mode === 'print') msg = "IMPRESSION " + printSettings.paper + " → " + (printSettings.output === 'pdf' ? 'PDF' : printSettings.output.toUpperCase()) + " : ESPACE (pivoter) | MOLETTE (échelle) | CLIC (générer) | réglages : bouton ⛯.";
             else if (mode === 'preview') msg = "APERÇU " + (previewPin ? "(page figée)" : "(la page suit la souris)") + " : MOLETTE (échelle) | ESPACE (pivoter) | CLIC (" + (previewPin ? "libérer" : "figer") + " la page) | ENTRÉE (imprimer) | ÉCHAP (quitter).";
             if (flashMsg && Date.now() < flashUntil) msg = flashMsg;
             const el = document.getElementById('command-text');
@@ -3284,7 +3384,12 @@
                 return;
             }
             if (e.key === ' ') {
-                if (mode === 'print' || mode === 'preview') { e.preventDefault(); printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape'; draw(); }
+                if (mode === 'print' || mode === 'preview') {
+                    e.preventDefault();
+                    printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape';
+                    const c0 = (mode === 'preview' && previewPin) ? previewPin : { x: currentX_screen, y: currentY_screen };
+                    applyPrintScale(c0.x, c0.y); draw();
+                }
             }
             if (e.key === 'Escape') {
                 isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null;
@@ -3333,6 +3438,7 @@
         window.onload = () => {
             updateLayerUI(); resizeCanvas(); saveState();
             { const gi = document.getElementById('grid-mm'); if (gi) gi.value = +(gridMm / 10).toFixed(4); }
+            getLogoImg();
             const ta = document.getElementById('inline-editor');
             ta.addEventListener('input', autoSizeInline);
             ta.addEventListener('blur', () => { if (inlineEdit && inlineEditReady) commitInlineEdit(); });
@@ -3343,7 +3449,7 @@
                 if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); commitInlineEdit(); }
             });
         };
-        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; draw(); }
+        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; if (mode === 'print' || mode === 'preview') applyPrintScale(canvas.width / 2, canvas.height / 2); draw(); }
         window.addEventListener('resize', resizeCanvas);
     </script>
 <script type="text/plain" id="dxf-r2000-template">
@@ -3794,7 +3900,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461322.563761574
+2461322.5991203706
   9
 $TDUCREATE
  40
@@ -3802,7 +3908,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461322.563761574
+2461322.5991203706
   9
 $TDUUPDATE
  40
@@ -4234,11 +4340,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{762A3B78-D520-4BD1-99CB-7AD9FB1CCD18}
+{1EBDDB43-4DAB-4C55-BF97-74254F4658C0}
   9
 $VERSIONGUID
   2
-{C25667D6-9A83-4AE5-A428-A8A6E4779625}
+{9E625D4E-6333-4079-9CF4-0D15C0DDCAA3}
   9
 $EXTNAMES
 290
@@ -4863,7 +4969,7 @@ APPID
 100
 AcDbSymbolTable
  70
-3
+4
   0
 APPID
   5
@@ -4889,13 +4995,27 @@ AcDbSymbolTableRecord
 100
 AcDbRegAppTableRecord
   2
-HATCHBACKGROUNDCOLOR
+MOMOCAD
  70
 0
   0
 APPID
   5
 32
+330
+3
+100
+AcDbSymbolTableRecord
+100
+AcDbRegAppTableRecord
+  2
+HATCHBACKGROUNDCOLOR
+ 70
+0
+  0
+APPID
+  5
+33
 330
 3
 100
@@ -6178,7 +6298,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-33
+34
   0
 DICTIONARYVAR
   5
@@ -6190,11 +6310,11 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-08T11:31:49.809132+00:00
+1.4.4 @ 2026-10-08T12:22:44.218430+00:00
   0
 DICTIONARYVAR
   5
-33
+34
 330
 2D
 100
@@ -6202,7 +6322,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-08T11:31:49.810277+00:00
+1.4.4 @ 2026-10-08T12:22:44.220436+00:00
   0
 ENDSEC
   0
