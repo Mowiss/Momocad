@@ -164,6 +164,7 @@
                     <span id="command-text" class="text-gray-300 font-mono text-sm tracking-wide">Prêt</span>
                 </div>
                 <div class="flex items-center space-x-3">
+                    <span id="cursor-coords" class="text-gray-400 font-mono text-xs tabular-nums mr-2" title="Coordonnées du curseur par rapport à l'origine 0,0 (mm), identiques à AutoCAD"></span>
                     <button id="btn-toggle-ortho" class="flex items-center justify-center text-gray-500 hover:text-white transition-colors focus:outline-none" title="Mode Ortho : trace uniquement horizontal/vertical (F8)" onclick="toggleOrtho()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 L5 19 L19 19"></path><path d="M5 12 L12 12 L12 19" stroke-dasharray="2 2"></path></svg>
                     </button>
@@ -245,6 +246,8 @@
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Mode Ortho (icône ⊥) :</b> Activable en bas-droite ou par F8. Force toutes les lignes et polylignes à être horizontales ou verticales. Un guide pointillé bleu relie le bout du segment au pointeur pour visualiser l'alignement.</li>
                     <li><b class="text-white">Grille :</b> Affiche/masque le quadrillage de fond.</li>
+                    <li><b class="text-white">Origine 0,0 (repère X/Y) :</b> comme dans AutoCAD, le repère rouge (X, vers la droite) et vert (Y, vers le haut) marque le point 0,0. Quand l'origine sort de l'écran, il se range en bas à gauche. Le point 0,0 est accrochable (accroche Extrémités).</li>
+                    <li><b class="text-white">Coordonnées :</b> en bas à droite, X et Y du curseur par rapport à l'origine. Ce sont les mêmes coordonnées que dans AutoCAD après export DXF.</li>
                 </ul>
             </div>
             <div>
@@ -799,7 +802,7 @@
 
         // Comparaison en pixels écran — le carré snap ne "saute" plus au zoom
         function findSnap(wx, wy) {
-            const pts = getSnapPoints();
+            const pts = snapSettings.endpoint ? getSnapPoints().concat([{ x: 0, y: 0 }]) : getSnapPoints();
             const snapRadiusPx = SNAP_DIST_PX;
             let best = null, bestDistPx = snapRadiusPx;
 
@@ -2272,9 +2275,42 @@
             drawScreenTexts(targetCtx);
         }
 
+        // Repère d'origine façon AutoCAD : axe X (rouge, vers la droite) et axe Y (vert, vers le haut)
+        // au point 0,0. Si l'origine sort de l'écran, l'icône se range dans le coin bas-gauche.
+        // Uniquement à l'écran (jamais imprimé ni exporté).
+        function drawOriginIcon() {
+            const L = 46, o = worldToScreen(0, 0);
+            const inside = o.x > 8 && o.x < canvas.width - L - 20 && o.y > L + 20 && o.y < canvas.height - 50;
+            const ox = inside ? o.x : 22, oy = inside ? o.y : canvas.height - 72;
+            const axis = (dx, dy, col, label) => {
+                const ex = ox + dx * L, ey = oy + dy * L;
+                ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2; ctx.setLineDash([]);
+                ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
+                const a = Math.atan2(dy, dx), ah = 9;
+                ctx.beginPath(); ctx.moveTo(ex + Math.cos(a) * 3, ey + Math.sin(a) * 3);
+                ctx.lineTo(ex - ah * Math.cos(a - 0.45), ey - ah * Math.sin(a - 0.45));
+                ctx.lineTo(ex - ah * Math.cos(a + 0.45), ey - ah * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
+                ctx.font = "bold 12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                if (dx) ctx.fillText(label, ex + 8, ey + 12); else ctx.fillText(label, ex, ey - 17);
+            };
+            ctx.save();
+            axis(1, 0, '#ef4444', 'X');
+            axis(0, -1, '#22c55e', 'Y');
+            ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1.5; ctx.strokeRect(ox - 4, oy - 4, 8, 8);
+            if (!inside) { ctx.fillStyle = '#9ca3af'; ctx.font = "10px Arial"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("0,0 hors écran", ox - 6, oy + 28); }
+            ctx.restore();
+        }
+        function updateCursorCoords() {
+            const el = document.getElementById('cursor-coords'); if (!el) return;
+            const f = (v) => { const r = Math.round(v * 10) / 10; return (Object.is(r, -0) ? 0 : r).toLocaleString('fr-FR'); };
+            el.textContent = 'X ' + f(worldToMm(currentX)) + '   Y ' + f(-worldToMm(currentY)) + ' ' + currentUnit;
+        }
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawFullPlan(ctx, true);
+            if (mode !== 'print') drawOriginIcon();
+            updateCursorCoords();
 
             if (mode === 'print') {
                 const rect = getPrintRect();
