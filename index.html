@@ -125,6 +125,7 @@
             </div>
             <input type="file" id="dxf-input" class="hidden" accept=".dxf" onchange="importDXFFile(event)">
             <button id="btn-cartouche" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-400" title="Éditer le Cartouche" onclick="openCartoucheModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></button>
+            <button id="btn-preview" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-sky-300" title="Aperçu avant impression : mise en page sur fond blanc (CLIC fige la page, ENTRÉE imprime)" onclick="setMode('preview')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="16.5" cy="16.5" r="3.5"></circle><line x1="19" y1="19" x2="22" y2="22"></line></svg></button>
             <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression PDF (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
             <div class="w-px h-5 bg-gray-600 mx-1"></div>
             <button id="btn-help" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-300" title="Aide & Raccourcis" onclick="openHelpModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>
@@ -211,6 +212,9 @@
                     <button id="btn-toggle-ortho" class="flex items-center justify-center text-gray-500 hover:text-white transition-colors focus:outline-none" title="Mode Ortho : trace uniquement horizontal/vertical (F8)" onclick="toggleOrtho()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 L5 19 L19 19"></path><path d="M5 12 L12 12 L12 19" stroke-dasharray="2 2"></path></svg>
                     </button>
+                    <label class="flex items-center gap-1 text-gray-400 font-mono text-xs" title="Taille d'un carreau de la grille (cm). Quand les carreaux deviennent trop petits à l'écran, seuls les multiples de 10 sont affichés.">◻ =
+                        <input id="grid-mm" type="number" min="0.1" step="any" class="w-14 bg-gray-800 border border-gray-600 rounded px-1 py-0.5 text-gray-200 text-xs text-right focus:outline-none focus:border-blue-500" onchange="setGridCm(this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">cm
+                    </label>
                     <button id="btn-toggle-grid" class="flex items-center justify-center text-blue-400 hover:text-white transition-colors focus:outline-none" title="Afficher/Masquer la grille de fond" onclick="toggleGrid()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
                     </button>
@@ -288,7 +292,7 @@
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">📐 Modes d'aide au tracé (bas-droite)</h4>
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Mode Ortho (icône ⊥) :</b> Activable en bas-droite ou par F8. Force toutes les lignes et polylignes à être horizontales ou verticales. Un guide pointillé bleu relie le bout du segment au pointeur pour visualiser l'alignement.</li>
-                    <li><b class="text-white">Grille :</b> Affiche/masque le quadrillage de fond.</li>
+                    <li><b class="text-white">Grille :</b> Affiche/masque le quadrillage de fond. Le champ <b>◻ = 1 cm</b> à côté règle la taille d'un carreau (mémorisée sur ce poste). Quand les carreaux deviennent trop petits à l'écran, seul un trait sur 10 est affiché.</li>
                     <li><b class="text-white">Origine 0,0 (repère X/Y) :</b> comme dans AutoCAD, le repère rouge (X, vers la droite) et vert (Y, vers le haut) marque le point 0,0. Quand l'origine sort de l'écran, il se range en bas à gauche. Le point 0,0 est accrochable (accroche Extrémités).</li>
                     <li><b class="text-white">Coordonnées :</b> en bas à droite, X et Y du curseur par rapport à l'origine. Ce sont les mêmes coordonnées que dans AutoCAD après export DXF.</li>
                 </ul>
@@ -346,6 +350,7 @@
             <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖨️ Impression PDF</h4>
                 <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Aperçu (bouton à gauche d'Imprimer) :</b> affiche la feuille A4 exactement comme elle sortira du PDF, sur fond blanc (cadre, cartouche, couleurs d'impression). La page suit la souris pour la mise en page ; <b>molette</b> = échelle, <b>ESPACE</b> = portrait/paysage, <b>CLIC</b> = figer ou libérer la page, <b>ENTRÉE</b> = générer le PDF de cette mise en page, <b>ÉCHAP</b> = quitter.</li>
                     <li><b class="text-white">ESPACE :</b> bascule portrait / paysage.</li>
                     <li><b class="text-white">Molette :</b> change l'échelle. Liste complète disponible :
                         <span class="text-gray-400">5:1, 2:1, <b class="text-white">1:1</b> (défaut), 1:2, 1:5, 1:10, 1:25, 1:50, 1:100, 1:150, 1:200, 1:500.</span>
@@ -407,6 +412,10 @@
         }
 
         let showGrid = true;
+        let previewPin = null;   // aperçu : position figée de la page (coordonnées écran), null = suit la souris
+        // Taille d'un carreau de grille en mm (réglée en cm en bas à droite, mémorisée sur ce poste). Défaut : 1 cm.
+        let gridMm = 10;
+        try { const g = parseFloat(localStorage.getItem('momocad-grid-mm')); if (g > 0) gridMm = g; } catch (e) {}
         let orthoMode = false; // mode orthogonal : ne dessine que H/V
 
         // =====================================================================
@@ -557,6 +566,12 @@
         function openCartoucheModal() { document.getElementById('cartouche-modal').classList.remove('hidden'); document.getElementById('cartouche-plan').value = cartoucheData.planName || ""; document.getElementById('cartouche-client').value = cartoucheData.clientName || ""; document.getElementById('cartouche-draftsman').value = cartoucheData.draftsmanName || ""; }
         function applyCartouche() { cartoucheData.planName = document.getElementById('cartouche-plan').value; cartoucheData.clientName = document.getElementById('cartouche-client').value; cartoucheData.draftsmanName = document.getElementById('cartouche-draftsman').value; const logoInput = document.getElementById('cartouche-logo'); if (logoInput.files && logoInput.files[0]) { const reader = new FileReader(); reader.onload = (e) => { cartoucheData.logo = e.target.result; }; reader.readAsDataURL(logoInput.files[0]); } closeCartoucheModal(); }
         function toggleSnapSetting(type) { const idMap = { endpoint: 'end', midpoint: 'mid', intersection: 'inter', perpendicular: 'perp', center: 'center' }; snapSettings[type] = document.getElementById('snap-' + (idMap[type] || type)).checked; invalidateCache(); draw(); }
+        function setGridCm(v) {
+            const g = parseFloat(String(v).replace(',', '.'));
+            if (g > 0) { gridMm = g * 10; try { localStorage.setItem('momocad-grid-mm', String(gridMm)); } catch (e) {} }
+            const inp = document.getElementById('grid-mm'); if (inp) inp.value = +(gridMm / 10).toFixed(4);
+            draw();
+        }
         function toggleGrid() { showGrid = !showGrid; const btn = document.getElementById('btn-toggle-grid'); if(showGrid) { btn.classList.add('text-blue-400'); btn.classList.remove('text-gray-500'); } else { btn.classList.add('text-gray-500'); btn.classList.remove('text-blue-400'); } draw(); }
         function toggleOrtho() {
             orthoMode = !orthoMode;
@@ -1492,8 +1507,9 @@
             closeTextModal(); closeLayerModal(); closeCartoucheModal(); closeSnapModal(); closeHelpModal();
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
             const btn = document.getElementById('btn-' + newMode); if (btn) btn.classList.add('active');
-            canvas.style.cursor = (['move', 'rotate', 'scale-up', 'scale-down', 'select-box', 'text', 'print', 'trim', 'extend', 'paste', 'offset'].includes(mode)) ? 'default' : 'crosshair';
-            if (newMode === 'print') {
+            canvas.style.cursor = (['move', 'rotate', 'scale-up', 'scale-down', 'select-box', 'text', 'print', 'preview', 'trim', 'extend', 'paste', 'offset'].includes(mode)) ? 'default' : 'crosshair';
+            previewPin = null;
+            if (newMode === 'print' || newMode === 'preview') {
                 // Facteur d'agrandissement courant déduit du zoom caméra, puis snap
                 // sur l'échelle la plus proche dans PRINT_SCALES.
                 const base = printBaseZoom();              // zoom correspondant au 1:1
@@ -2011,6 +2027,79 @@
             return { w: baseW, h: baseW / ratio };
         }
 
+        // Image du plan telle qu'elle sera imprimée (fond blanc, couleurs d'impression).
+        // Utilisée par le PDF (SS = 3, haute qualité) et par l'aperçu à l'écran (SS = 1 ou 2).
+        // winX / winY : coin haut-gauche de la zone image, en coordonnées écran.
+        function renderPrintCanvas(winX, winY, SS) {
+            const rect = getPrintRect();
+            const offw = Math.round(rect.w * SS);
+            const offh = Math.round(rect.h * SS);
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = offw; offCanvas.height = offh;
+            const offCtx = offCanvas.getContext('2d');
+            offCtx.fillStyle = '#ffffff'; offCtx.fillRect(0, 0, offw, offh);
+
+
+            // Transform : monde → écran (camera) → décalage fenêtre → suréchantillon
+            const offZoom = camera.zoom * SS;
+            offCtx.save();
+            offCtx.translate((camera.x - winX) * SS, (camera.y - winY) * SS);
+            offCtx.scale(offZoom, offZoom);
+            dimensionTextsToDraw = []; screenTextsToDraw = [];
+            for (let s of shapes) {
+                let layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
+                if (layer && !layer.visible) continue;
+                drawSingleShape(offCtx, s, true, false, 0, 0, offZoom);
+            }
+            offCtx.restore();
+            // Textes de cotation, dessinés en coordonnées écran-suréchantillonnées
+            for (let d of dimensionTextsToDraw) {
+                const px = (d.worldX * camera.zoom + camera.x - winX) * SS;
+                const py = (d.worldY * camera.zoom + camera.y - winY) * SS;
+                offCtx.font = "bold " + Math.round(14 * SS) + "px Arial";
+                const m = offCtx.measureText(d.text);
+                const th = Math.round(14 * SS);
+                offCtx.fillStyle = "#ffffff";
+                offCtx.fillRect(px - m.width/2 - 3, py - th/2 - 2, m.width + 6, th + 4);
+                offCtx.fillStyle = d.color || '#000000';
+                offCtx.textAlign = "center"; offCtx.textBaseline = "middle";
+                offCtx.fillText(d.text, px, py);
+            }
+            // Textes et détails en taille écran fixe (suréchantillonnés pour le PDF)
+            {
+                const W2S = (wx, wy) => ({ x: (wx*camera.zoom + camera.x - winX)*SS, y: (wy*camera.zoom + camera.y - winY)*SS });
+                const FS = Math.round(14 * SS), lh = FS * 1.25;
+                for (const d of screenTextsToDraw) {
+                    const p = W2S(d.wx, d.wy);
+                    offCtx.font = "bold " + FS + "px Arial";
+                    const dcol = (d.color === '#ffffff') ? '#000000' : d.color; // impression : blanc->noir
+                    if (d.kind === 'text') {
+                        offCtx.fillStyle = dcol; offCtx.textAlign = "left"; offCtx.textBaseline = "alphabetic";
+                        d.lines.forEach((t, k) => offCtx.fillText(t, p.x, p.y + k*lh));
+                    } else {
+                        let maxW = 0; d.lines.forEach(t => maxW = Math.max(maxW, offCtx.measureText(t).width));
+                        const padX = 6*SS, padY = 4*SS, boxW = maxW + padX*2, boxH = d.lines.length*lh + padY*2;
+                        const bx = p.x, by = p.y, tp = W2S(d.tx, d.ty);
+                        const cxC = bx+boxW/2, cyC = by+boxH/2, angT = Math.atan2(tp.y-cyC, tp.x-cxC);
+                        const hw = boxW/2, hh = boxH/2, tanA = Math.tan(angT); let ex, ey;
+                        if (Math.abs(Math.cos(angT))*hh >= Math.abs(Math.sin(angT))*hw) { ex = cxC+(Math.cos(angT)>0?hw:-hw); ey = cyC+(Math.cos(angT)>0?hw:-hw)*tanA; }
+                        else { ey = cyC+(Math.sin(angT)>0?hh:-hh); ex = cxC+(Math.sin(angT)>0?hh:-hh)/tanA; }
+                        offCtx.strokeStyle = dcol; offCtx.fillStyle = dcol; offCtx.lineWidth = 1.2*SS; offCtx.setLineDash([]);
+                        offCtx.beginPath(); offCtx.moveTo(ex, ey); offCtx.lineTo(tp.x, tp.y); offCtx.stroke();
+                        const ah = 9*SS, aa = Math.atan2(tp.y-ey, tp.x-ex);
+                        offCtx.beginPath(); offCtx.moveTo(tp.x, tp.y); offCtx.lineTo(tp.x-ah*Math.cos(aa-0.4), tp.y-ah*Math.sin(aa-0.4)); offCtx.lineTo(tp.x-ah*Math.cos(aa+0.4), tp.y-ah*Math.sin(aa+0.4)); offCtx.closePath(); offCtx.fill();
+                        offCtx.beginPath(); offCtx.arc(tp.x, tp.y, 2.5*SS, 0, 2*Math.PI); offCtx.fill();
+                        offCtx.fillStyle = '#ffffff'; offCtx.fillRect(bx, by, boxW, boxH);
+                        offCtx.strokeStyle = dcol; offCtx.strokeRect(bx, by, boxW, boxH);
+                        offCtx.fillStyle = dcol; offCtx.textAlign = "left"; offCtx.textBaseline = "top";
+                        d.lines.forEach((t, k) => offCtx.fillText(t, bx+padX, by+padY+k*lh));
+                    }
+                }
+            }
+
+            return offCanvas;
+        }
+
         // =====================================================================
         // IMPRESSION PDF via jsPDF
         // =====================================================================
@@ -2046,78 +2135,12 @@
                     // getPrintRect() retourne déjà le bon ratio (zone image PDF) :
                     // la prévisualisation écran et la sortie PDF sont donc identiques.
                     const rect = getPrintRect();
-                    const SS = 3;                             // suréchantillonnage qualité
-                    const offw = Math.round(rect.w * SS);
-                    const offh = Math.round(rect.h * SS);
-                    const offCanvas = document.createElement('canvas');
-                    offCanvas.width = offw; offCanvas.height = offh;
-                    const offCtx = offCanvas.getContext('2d');
-                    offCtx.fillStyle = '#ffffff'; offCtx.fillRect(0, 0, offw, offh);
-
-                    // Origine de la fenêtre d'impression dans le repère écran (coin haut-gauche)
                     const winX = sx_screen - rect.w / 2;
                     const winY = sy_screen - rect.h / 2;
-
-                    // Transform : monde → écran (camera) → décalage fenêtre → suréchantillon
-                    const offZoom = camera.zoom * SS;
-                    offCtx.save();
-                    offCtx.translate((camera.x - winX) * SS, (camera.y - winY) * SS);
-                    offCtx.scale(offZoom, offZoom);
-                    dimensionTextsToDraw = []; screenTextsToDraw = [];
-                    for (let s of shapes) {
-                        let layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
-                        if (layer && !layer.visible) continue;
-                        drawSingleShape(offCtx, s, true, false, 0, 0, offZoom);
-                    }
-                    offCtx.restore();
-                    // Textes de cotation, dessinés en coordonnées écran-suréchantillonnées
-                    for (let d of dimensionTextsToDraw) {
-                        const px = (d.worldX * camera.zoom + camera.x - winX) * SS;
-                        const py = (d.worldY * camera.zoom + camera.y - winY) * SS;
-                        offCtx.font = "bold " + Math.round(14 * SS) + "px Arial";
-                        const m = offCtx.measureText(d.text);
-                        const th = Math.round(14 * SS);
-                        offCtx.fillStyle = "#ffffff";
-                        offCtx.fillRect(px - m.width/2 - 3, py - th/2 - 2, m.width + 6, th + 4);
-                        offCtx.fillStyle = d.color || '#000000';
-                        offCtx.textAlign = "center"; offCtx.textBaseline = "middle";
-                        offCtx.fillText(d.text, px, py);
-                    }
-                    // Textes et détails en taille écran fixe (suréchantillonnés pour le PDF)
-                    {
-                        const W2S = (wx, wy) => ({ x: (wx*camera.zoom + camera.x - winX)*SS, y: (wy*camera.zoom + camera.y - winY)*SS });
-                        const FS = Math.round(14 * SS), lh = FS * 1.25;
-                        for (const d of screenTextsToDraw) {
-                            const p = W2S(d.wx, d.wy);
-                            offCtx.font = "bold " + FS + "px Arial";
-                            const dcol = (d.color === '#ffffff') ? '#000000' : d.color; // impression : blanc->noir
-                            if (d.kind === 'text') {
-                                offCtx.fillStyle = dcol; offCtx.textAlign = "left"; offCtx.textBaseline = "alphabetic";
-                                d.lines.forEach((t, k) => offCtx.fillText(t, p.x, p.y + k*lh));
-                            } else {
-                                let maxW = 0; d.lines.forEach(t => maxW = Math.max(maxW, offCtx.measureText(t).width));
-                                const padX = 6*SS, padY = 4*SS, boxW = maxW + padX*2, boxH = d.lines.length*lh + padY*2;
-                                const bx = p.x, by = p.y, tp = W2S(d.tx, d.ty);
-                                const cxC = bx+boxW/2, cyC = by+boxH/2, angT = Math.atan2(tp.y-cyC, tp.x-cxC);
-                                const hw = boxW/2, hh = boxH/2, tanA = Math.tan(angT); let ex, ey;
-                                if (Math.abs(Math.cos(angT))*hh >= Math.abs(Math.sin(angT))*hw) { ex = cxC+(Math.cos(angT)>0?hw:-hw); ey = cyC+(Math.cos(angT)>0?hw:-hw)*tanA; }
-                                else { ey = cyC+(Math.sin(angT)>0?hh:-hh); ex = cxC+(Math.sin(angT)>0?hh:-hh)/tanA; }
-                                offCtx.strokeStyle = dcol; offCtx.fillStyle = dcol; offCtx.lineWidth = 1.2*SS; offCtx.setLineDash([]);
-                                offCtx.beginPath(); offCtx.moveTo(ex, ey); offCtx.lineTo(tp.x, tp.y); offCtx.stroke();
-                                const ah = 9*SS, aa = Math.atan2(tp.y-ey, tp.x-ex);
-                                offCtx.beginPath(); offCtx.moveTo(tp.x, tp.y); offCtx.lineTo(tp.x-ah*Math.cos(aa-0.4), tp.y-ah*Math.sin(aa-0.4)); offCtx.lineTo(tp.x-ah*Math.cos(aa+0.4), tp.y-ah*Math.sin(aa+0.4)); offCtx.closePath(); offCtx.fill();
-                                offCtx.beginPath(); offCtx.arc(tp.x, tp.y, 2.5*SS, 0, 2*Math.PI); offCtx.fill();
-                                offCtx.fillStyle = '#ffffff'; offCtx.fillRect(bx, by, boxW, boxH);
-                                offCtx.strokeStyle = dcol; offCtx.strokeRect(bx, by, boxW, boxH);
-                                offCtx.fillStyle = dcol; offCtx.textAlign = "left"; offCtx.textBaseline = "top";
-                                d.lines.forEach((t, k) => offCtx.fillText(t, bx+padX, by+padY+k*lh));
-                            }
-                        }
-                    }
-
+                    const offCanvas = renderPrintCanvas(winX, winY, 3);   // même rendu que l'aperçu
                     // Inclure l'image raster du plan (PNG = sans perte → pas de bavure sur les bords)
                     const planImg = offCanvas.toDataURL('image/png');
-                    doc.addImage(planImg, 'PNG', imgMm_x, imgMm_y, imgMm_w, imgMm_h);
+                    doc.addImage(planImg, 'PNG', imgMm_x, imgMm_y, imgMm_w, imgMm_h, undefined, 'FAST');   // compressé (sinon ~12 Mo)
 
                     // ------ Cadre de marge (PAR-DESSUS l'image, traits nets) ------
                     // 4 lignes explicites, épaisseur forcée juste avant chaque tracé.
@@ -2176,7 +2199,7 @@
 
                     // Titre échelle en haut de la page
                     doc.setFontSize(8); doc.setTextColor(60);
-                    doc.text(`A4 ${printOrientation} — ${currentPrintScale}`, margin + 2, margin + 6);
+                    doc.text(`A4 ${isLandscape ? 'paysage' : 'portrait'} — ${currentPrintScale}`, margin + 2, margin + 6);
 
                     // Téléchargement
                     const filename = 'plan_momo_' + new Date().getTime() + '.pdf';
@@ -2386,13 +2409,22 @@
             targetCtx.save(); targetCtx.translate(camera.x, camera.y); targetCtx.scale(camera.zoom, camera.zoom);
             if (!isPrinting && showGrid) {
                 let l = (-camera.x)/camera.zoom, r = (canvas.width-camera.x)/camera.zoom, t = (-camera.y)/camera.zoom, b = (canvas.height-camera.y)/camera.zoom;
-                let sx = Math.floor(l/GRID_SIZE)*GRID_SIZE, sy = Math.floor(t/GRID_SIZE)*GRID_SIZE;
+                // pas de grille réglable (mm) ; si les carreaux font moins de 6 px à l'écran,
+                // on n'affiche qu'un trait sur 10 (puis sur 100…) pour garder une grille lisible
+                let step = gridMm * (GRID_SIZE / unitsPerSquare);
+                while (step * camera.zoom < 6) step *= 10;
+                const major = step * 10;
+                let sx = Math.floor(l/step)*step, sy = Math.floor(t/step)*step;
                 targetCtx.lineWidth = 1/camera.zoom; targetCtx.strokeStyle = '#2c2c2c';
-                for (let x=sx; x<r; x+=GRID_SIZE) { targetCtx.beginPath(); targetCtx.moveTo(x, t); targetCtx.lineTo(x, b); targetCtx.stroke(); }
-                for (let y=sy; y<b; y+=GRID_SIZE) { targetCtx.beginPath(); targetCtx.moveTo(l, y); targetCtx.lineTo(r, y); targetCtx.stroke(); }
+                targetCtx.beginPath();
+                for (let x=sx; x<r; x+=step) { targetCtx.moveTo(x, t); targetCtx.lineTo(x, b); }
+                for (let y=sy; y<b; y+=step) { targetCtx.moveTo(l, y); targetCtx.lineTo(r, y); }
+                targetCtx.stroke();
                 targetCtx.lineWidth = 1.5/camera.zoom; targetCtx.strokeStyle = '#3c3c3c';
-                for (let x=sx; x<r; x+=GRID_SIZE) { if (Math.round(x/GRID_SIZE)%10===0) { targetCtx.beginPath(); targetCtx.moveTo(x, t); targetCtx.lineTo(x, b); targetCtx.stroke(); } }
-                for (let y=sy; y<b; y+=GRID_SIZE) { if (Math.round(y/GRID_SIZE)%10===0) { targetCtx.beginPath(); targetCtx.moveTo(l, y); targetCtx.lineTo(r, y); targetCtx.stroke(); } }
+                targetCtx.beginPath();
+                for (let x=Math.floor(l/major)*major; x<r; x+=major) { targetCtx.moveTo(x, t); targetCtx.lineTo(x, b); }
+                for (let y=Math.floor(t/major)*major; y<b; y+=major) { targetCtx.moveTo(l, y); targetCtx.lineTo(r, y); }
+                targetCtx.stroke();
             }
 
             for (let s of shapes) {
@@ -2616,10 +2648,64 @@
             el.textContent = 'X ' + f(worldToMm(currentX)) + '   Y ' + f(-worldToMm(currentY)) + ' ' + currentUnit;
         }
 
+        // Aperçu avant impression : la feuille A4 telle que le PDF la produira
+        // (image du plan, cadre de marge, cartouche, titre), sur fond assombri.
+        let previewLogoImg = null;
+        function drawPreviewSheet(cx, cy) {
+            const rect = getPrintRect();
+            const isLand = printOrientation === 'landscape';
+            const pageW = isLand ? 297 : 210, pageH = isLand ? 210 : 297, margin = 5, drawW = pageW - 2 * margin;
+            const k = rect.w / drawW;                                   // pixels écran par mm de papier
+            const imgX = cx - rect.w / 2, imgY = cy - rect.h / 2;
+            const sheetX = imgX - margin * k, sheetY = imgY - margin * k, sheetW = pageW * k, sheetH = pageH * k;
+            const pt = (v) => v * 0.3528 * k;                         // taille de police jsPDF (pt) -> px
+            ctx.save();
+            ctx.fillStyle = 'rgba(12,12,14,0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(sheetX, sheetY, sheetW, sheetH);
+            ctx.restore();
+            // plan : même fonction que le PDF (plus net quand la page est figée)
+            const img = renderPrintCanvas(imgX, imgY, previewPin ? 2 : 1);
+            ctx.drawImage(img, imgX, imgY, rect.w, rect.h);
+            ctx.save();
+            // cadre de marge
+            ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(1, 0.5 * k); ctx.setLineDash([]);
+            ctx.strokeRect(imgX, imgY, rect.w, rect.h);
+            // cartouche (mêmes cotes que le PDF : 80 x 40 mm, logo 22 mm, 4 lignes)
+            const cW = 80 * k, cH = 40 * k, logoW = 22 * k, rowH = cH / 4;
+            const cX = sheetX + (pageW - margin - 80) * k, cY = sheetY + (pageH - margin - 40) * k;
+            ctx.fillStyle = '#fff'; ctx.fillRect(cX, cY, cW, cH);
+            ctx.lineWidth = Math.max(1, 0.5 * k); ctx.strokeRect(cX, cY, cW, cH);
+            ctx.lineWidth = Math.max(0.6, 0.3 * k);
+            ctx.beginPath(); ctx.moveTo(cX + logoW, cY); ctx.lineTo(cX + logoW, cY + cH);
+            for (let i = 1; i <= 3; i++) { ctx.moveTo(cX + logoW, cY + rowH * i); ctx.lineTo(cX + cW, cY + rowH * i); }
+            ctx.stroke();
+            const rows = ['Plan : ' + (cartoucheData.planName || ''), 'Client : ' + (cartoucheData.clientName || ''),
+                          'Dessin : ' + (cartoucheData.draftsmanName || ''), 'Échelle : ' + currentPrintScale];
+            ctx.fillStyle = '#000'; ctx.font = pt(7) + 'px Helvetica, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+            rows.forEach((t, i) => ctx.fillText(t, cX + logoW + 2 * k, cY + rowH * i + rowH * 0.6, cW - logoW - 3 * k));
+            if (cartoucheData.logo) {
+                if (!previewLogoImg || previewLogoImg.src !== cartoucheData.logo) { previewLogoImg = new Image(); previewLogoImg.onload = () => { if (mode === 'preview') draw(); }; previewLogoImg.src = cartoucheData.logo; }
+                if (previewLogoImg.complete && previewLogoImg.naturalWidth) ctx.drawImage(previewLogoImg, cX + k, cY + k, logoW - 2 * k, cH - 2 * k);
+            } else {
+                ctx.fillStyle = 'rgb(120,120,120)'; ctx.font = pt(5) + 'px Helvetica, Arial, sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText('LOGO', cX + logoW / 2, cY + cH / 2);
+            }
+            ctx.fillStyle = 'rgb(80,80,80)'; ctx.font = pt(5) + 'px Helvetica, Arial, sans-serif'; ctx.textAlign = 'right';
+            ctx.fillText(new Date().toLocaleDateString('fr-FR'), cX + cW - k, cY + cH - k);
+            ctx.fillStyle = 'rgb(60,60,60)'; ctx.font = pt(8) + 'px Helvetica, Arial, sans-serif'; ctx.textAlign = 'left';
+            ctx.fillText('A4 ' + (isLand ? 'paysage' : 'portrait') + ' — ' + currentPrintScale, sheetX + (margin + 2) * k, sheetY + (margin + 6) * k);
+            // titre au-dessus de la feuille
+            ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText('APERÇU — A4 ' + (isLand ? 'paysage' : 'portrait') + ' — ' + currentPrintScale + (previewPin ? '  ·  page figée (ENTRÉE = imprimer)' : '  ·  CLIC pour figer'), cx, sheetY - 10);
+            ctx.restore();
+        }
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawFullPlan(ctx, true);
-            if (mode !== 'print') drawOriginIcon();
+            if (mode !== 'print' && mode !== 'preview') drawOriginIcon();
+            if (mode === 'preview') { const c0 = previewPin || { x: currentX_screen, y: currentY_screen }; drawPreviewSheet(c0.x, c0.y); }
             updateCursorCoords();
 
             if (mode === 'print') {
@@ -2737,6 +2823,7 @@
             else if (mode === 'detail') msg = detailStep === 0 ? "DÉTAIL : Cliquez le point à désigner." : "DÉTAIL : Cliquez pour placer l'étiquette.";
             else if (mode === 'hatch') msg = "HACHURES : Cliquez à l'intérieur d'une zone fermée par des traits (re-cliquez dans une hachure pour la retirer).";
             else if (mode === 'print') msg = "PDF : ESPACE (pivoter) | MOLETTE (échelle) | CLIC (générer PDF).";
+            else if (mode === 'preview') msg = "APERÇU " + (previewPin ? "(page figée)" : "(la page suit la souris)") + " : MOLETTE (échelle) | ESPACE (pivoter) | CLIC (" + (previewPin ? "libérer" : "figer") + " la page) | ENTRÉE (imprimer) | ÉCHAP (quitter).";
             if (flashMsg && Date.now() < flashUntil) msg = flashMsg;
             const el = document.getElementById('command-text');
             if (el) el.textContent = msg;
@@ -2781,6 +2868,7 @@
             const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top;
             if (e.button === 1) { e.preventDefault(); isPanning = true; lastPanX = sx; lastPanY = sy; canvas.style.cursor = 'grabbing'; return; }
             if (mode === 'print') { performPrint(sx, sy); return; }
+            if (mode === 'preview') { previewPin = previewPin ? null : { x: sx, y: sy }; draw(); return; }
             let wp = screenToWorld(sx, sy);
 
             // --- Cotation angulaire : D1 → D2 → pose arc ---
@@ -3189,8 +3277,14 @@
                     return;
                 }
             }
+            if (mode === 'preview' && e.key === 'Enter') {
+                e.preventDefault();
+                const c0 = previewPin || { x: currentX_screen, y: currentY_screen };
+                performPrint(c0.x, c0.y);
+                return;
+            }
             if (e.key === ' ') {
-                if (mode === 'print') { e.preventDefault(); printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape'; draw(); }
+                if (mode === 'print' || mode === 'preview') { e.preventDefault(); printOrientation = printOrientation === 'landscape' ? 'portrait' : 'landscape'; draw(); }
             }
             if (e.key === 'Escape') {
                 isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null;
@@ -3217,8 +3311,10 @@
 
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top, wp = screenToWorld(sx, sy);
-            if (mode === 'print') {
+            const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top;
+            if (mode === 'preview' && previewPin) { sx = previewPin.x; sy = previewPin.y; }
+            let wp = screenToWorld(sx, sy);
+            if (mode === 'print' || mode === 'preview') {
                 // Scroll = passer d'une échelle à l'autre dans PRINT_SCALES.
                 // Le tableau va du plus AGRANDISSANT (5:1) au plus RÉDUISANT (1:500).
                 // Molette vers le haut (deltaY<0) -> on AGRANDIT (index plus petit).
@@ -3236,6 +3332,7 @@
 
         window.onload = () => {
             updateLayerUI(); resizeCanvas(); saveState();
+            { const gi = document.getElementById('grid-mm'); if (gi) gi.value = +(gridMm / 10).toFixed(4); }
             const ta = document.getElementById('inline-editor');
             ta.addEventListener('input', autoSizeInline);
             ta.addEventListener('blur', () => { if (inlineEdit && inlineEditReady) commitInlineEdit(); });
