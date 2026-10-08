@@ -39,7 +39,13 @@
             catch (e) { l.href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(manifest)); }
             document.head.appendChild(l);
         }
-        if (location.protocol.startsWith('http')) addEmbeddedManifest();
+        // Si un manifest.json est publié à côté de index.html, on l'utilise (association des .mmc la plus fiable) ;
+        // sinon, manifeste intégré : le HTML seul reste une appli complète.
+        if (location.protocol.startsWith('http')) {
+            fetch('manifest.json', { method: 'HEAD', cache: 'no-store' })
+                .then(r => { if (!r.ok) throw 0; const l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.json'; document.head.appendChild(l); })
+                .catch(addEmbeddedManifest);
+        }
         // Le navigateur propose l'installation : on garde l'événement et on affiche le bouton.
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
