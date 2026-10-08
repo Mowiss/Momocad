@@ -178,7 +178,8 @@
             <div class="tool-group grid grid-cols-2 gap-1 mt-auto pt-3 border-t border-gray-600">
                 <button id="btn-text" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-200" title="Texte" onclick="setMode('text')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg></button>
                 <button id="btn-detail" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-200" title="Détail (annotation fléchée)" onclick="setMode('detail')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="13" y="4" width="9" height="6" rx="1"></rect><line x1="13" y1="7" x2="3" y2="19"></line><circle cx="3" cy="19" r="1.5" fill="currentColor"></circle></svg></button>
-                <button id="btn-dim" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-400" title="Cotation linéaire" onclick="setMode('dim')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="12" x2="22" y2="12"></line><polyline points="5 8 2 12 5 16"></polyline><polyline points="19 8 22 12 19 16"></polyline><line x1="2" y1="8" x2="2" y2="16"></line><line x1="22" y1="8" x2="22" y2="16"></line></svg></button>
+                <button id="btn-dim-ortho" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-400" title="Cote ortho : horizontale ou verticale uniquement (tapez 1 = cumulée, 2 = successive, 0 = simple, puis Espace/Entrée pour valider)" onclick="setMode('dim-ortho')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="7" x2="3" y2="19"></line><line x1="21" y1="7" x2="21" y2="19"></line><line x1="3" y1="13" x2="21" y2="13"></line><polyline points="6.5 10 3 13 6.5 16"></polyline><polyline points="17.5 10 21 13 17.5 16"></polyline></svg></button>
+                <button id="btn-dim" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-400" title="Cote libre : alignée sur les 2 points (tapez 1 = cumulée, 2 = successive, 0 = simple, puis Espace/Entrée pour valider)" onclick="setMode('dim')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="4"></line><polyline points="4 15 4 20 9 20"></polyline><polyline points="15 4 20 4 20 9"></polyline><line x1="2" y1="17" x2="7" y2="22" stroke-width="1.5"></line><line x1="17" y1="2" x2="22" y2="7" stroke-width="1.5"></line></svg></button>
                 <button id="btn-dim-angle" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-orange-300" title="Cotation angulaire" onclick="setMode('dim-angle')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M4 20 L4 4"></path>
@@ -187,6 +188,7 @@
                         <text x="10" y="16" font-size="6" fill="currentColor" stroke="none">°</text>
                     </svg>
                 </button>
+                <button id="btn-dim-text" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-300" title="Texte des cotes : aligné sur la ligne de cote / toujours horizontal (clic pour basculer)" onclick="toggleDimTextAligned()"><svg id="dim-text-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
             </div>
         </aside>
 
@@ -239,6 +241,20 @@
     </div>
 
     <!-- Modales -->
+    <div id="crop-modal" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+        <div style="background:#1f2937;border:1px solid #4b5563;border-radius:10px;padding:16px;color:#e5e7eb;box-shadow:0 20px 50px rgba(0,0,0,.5);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:16px;">
+                <h3 style="font-size:17px;font-weight:700;color:#fff;margin:0;">✂️ Recadrer le logo</h3>
+                <span style="font-size:12px;color:#9ca3af;">Glissez le carré · coins pour redimensionner · molette = taille</span>
+            </div>
+            <canvas id="crop-canvas" width="420" height="420" style="display:block;background:repeating-conic-gradient(#374151 0 25%,#4b5563 0 50%) 0 0/16px 16px;border-radius:6px;cursor:move;touch-action:none;margin:0 auto;max-width:80vw;max-height:70vh;"></canvas>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap;">
+                <button type="button" onclick="cropWhole()" title="Garder toute l'image, centrée dans le carré" style="background:#4b5563;color:#fff;border:0;border-radius:6px;padding:7px 12px;cursor:pointer;margin-right:auto;">Image entière</button>
+                <button type="button" onclick="closeCrop()" style="background:#4b5563;color:#fff;border:0;border-radius:6px;padding:7px 14px;cursor:pointer;">Annuler</button>
+                <button type="button" onclick="applyCrop()" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:7px 14px;cursor:pointer;">Recadrer</button>
+            </div>
+        </div>
+    </div>
     <div id="basemap-modal" style="display:none;position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
         <div style="background:#1f2937;border:1px solid #4b5563;border-radius:10px;padding:16px;width:min(920px,94vw);box-shadow:0 20px 50px rgba(0,0,0,.5);color:#e5e7eb;font-family:inherit;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -284,14 +300,14 @@
                     <option value="pdf">PDF</option><option value="jpeg">Image JPEG</option><option value="png">Image PNG</option>
                 </select></div>
         </div>
-        <label class="flex items-center gap-2 text-sm text-gray-200 mb-3 cursor-pointer select-none"><input type="checkbox" id="ps-cartouche" class="w-4 h-4" onchange="document.getElementById('ps-cartouche-fields').classList.toggle('opacity-40', !this.checked)"> Imprimer le cartouche <span class="text-gray-500 text-xs">(80 × 40 mm, en bas à droite)</span></label>
+        <label class="flex items-center gap-2 text-sm text-gray-200 mb-3 cursor-pointer select-none"><input type="checkbox" id="ps-cartouche" class="w-4 h-4" onchange="document.getElementById('ps-cartouche-fields').classList.toggle('opacity-40', !this.checked)"> Imprimer le cartouche <span class="text-gray-500 text-xs">(70 × 20 mm, en bas à droite)</span></label>
         <div id="ps-cartouche-fields" class="flex flex-col space-y-3 mb-6 border-l-2 border-gray-600 pl-3">
             <div><label class="block text-xs text-gray-400 mb-1">Nom du plan</label><input type="text" id="cartouche-plan" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none"></div>
             <div><label class="block text-xs text-gray-400 mb-1">Nom du client</label><input type="text" id="cartouche-client" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none"></div>
             <div><label class="block text-xs text-gray-400 mb-1">Dessinateur</label><input type="text" id="cartouche-draftsman" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none"></div>
             <div><label class="block text-xs text-gray-400 mb-1">Logo de l'entreprise <span id="ps-logo-state" class="text-gray-500"></span></label>
-                <div class="flex items-center gap-2"><input type="file" id="cartouche-logo" accept="image/*" class="flex-1 text-sm text-gray-400">
-                <button id="ps-logo-remove" type="button" class="text-xs text-red-300 hover:text-red-200" onclick="cartoucheData.logo = null; this.classList.add('hidden'); document.getElementById('ps-logo-state').textContent = '(aucun)';">Retirer</button></div></div>
+                <div class="flex items-center gap-2"><input type="file" id="cartouche-logo" accept="image/*" class="flex-1 text-sm text-gray-400" onchange="startLogoCrop(this)">
+                <button id="ps-logo-remove" type="button" class="text-xs text-red-300 hover:text-red-200" onclick="cartoucheData.logo = null; pendingLogo = null; document.getElementById('cartouche-logo').value = ''; this.classList.add('hidden'); document.getElementById('ps-logo-state').textContent = '(aucun)';">Retirer</button></div></div>
         </div>
         <div class="flex justify-end space-x-3"><button class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white transition" onclick="closeCartoucheModal()">Annuler</button><button class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white transition" onclick="applyCartouche()">Valider</button></div>
     </div>
@@ -399,7 +415,10 @@
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Texte :</b> cliquez puis tapez directement sur le plan. <b>Maj+Entrée</b> = retour à la ligne, <b>Entrée</b> ou <b>Échap</b> = valider.</li>
                     <li><b class="text-white">Détail :</b> clic 1 = point désigné, clic 2 = position de l'étiquette, puis tapez le texte. Texte encadré relié par une flèche.</li>
-                    <li><b class="text-white">Cotation linéaire :</b> 3 clics (2 points d'attache + position de la ligne de cote). En mode Ortho, le 2e point se cale à l'horizontale ou la verticale.</li>
+                    <li><b class="text-white">Cote ortho (H/V) :</b> ne mesure que l'horizontale ou la verticale. 3 clics : 1er point, 2e point, position de la ligne. La ligne au-dessus ou en dessous donne une cote horizontale, à gauche ou à droite une cote verticale.</li>
+                    <li><b class="text-white">Cote libre :</b> mesure la vraie distance entre les 2 points, ligne de cote parallèle à eux (avec Ortho F8 / Maj, le 2e point se cale à l'horizontale ou la verticale).</li>
+                    <li><b class="text-white">Cotes cumulées / successives :</b> outil de cote actif, tapez <b>1</b> (cumulée), <b>2</b> (successive) ou <b>0</b> (simple), puis <b>Espace</b> ou <b>Entrée</b> ; le mode reste choisi jusqu'au prochain changement. <b>Cumulée</b> : clics 1, 2 puis 3 (hauteur de la ligne) ; chaque clic suivant (4, 5…) ajoute une cote mesurée depuis le point 1, sa ligne décalée du même écart que la première, comme un empilement. <b>Successive</b> : clics 1, 2, 3 ; chaque clic suivant ajoute une cote depuis le dernier point, sur la même ligne (cotes bout à bout). <b>Entrée</b>, <b>Espace</b> ou <b>Échap</b> termine la série.</li>
+                    <li><b class="text-white">Texte des cotes (bouton « 1.23 » sur une ligne verticale) :</b> bascule entre texte <b>aligné</b> sur la ligne de cote (jamais à l'envers) et texte <b>toujours horizontal</b>. S'applique à toutes les cotes, à l'impression et au DXF ; enregistré dans le plan.</li>
                     <li><b class="text-white">Cotation angulaire :</b> Clic 1 = D1, Clic 2 = D2, Clic 3 = pose de l'arc. Sélection en cliquant sur la valeur °.</li>
                     <li>Textes, détails et cotes vont sur le calque <b>Cotation</b> (orange) et gardent une taille lisible constante quel que soit le zoom.</li>
                 </ul>
@@ -407,7 +426,7 @@
             <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">💾 Fichiers</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Ouvrir… (Ctrl+O) / Enregistrer (Ctrl+S) / Enregistrer sous… (Ctrl+Maj+S) :</b> dans le menu disquette. Le plan est enregistré dans un fichier <b>.mmc</b> (plan MomoCAD) qui contient tout : dessin, calques et leurs réglages, accrochages, cartouche, grille, fonds de carte (images comprises) et la vue en cours. Le nom du plan s'affiche à côté du menu, avec un <b>•</b> orange tant qu'il reste des modifications non enregistrées ; MomoCAD prévient avant de fermer la page ou d'ouvrir un autre plan.</li>
+                    <li><b class="text-white">Ouvrir… (Ctrl+O) / Enregistrer (Ctrl+S) / Enregistrer sous… (Ctrl+Maj+S) :</b> dans le menu disquette. Le plan est enregistré dans un fichier <b>.mmc</b> (plan MomoCAD) qui contient tout : dessin, calques et leurs réglages, accrochages, cartouche, grille, fonds de carte (images comprises), la vue en cours, et les réglages ⛯ (unité, décimales, format de feuille, type de fichier, cartouche oui/non) ainsi que le sens du texte des cotes, rétablis à l'ouverture. Le nom du plan s'affiche à côté du menu, avec un <b>•</b> orange tant qu'il reste des modifications non enregistrées ; MomoCAD prévient avant de fermer la page ou d'ouvrir un autre plan.</li>
                     <li><b class="text-white">Enregistrer en DXF :</b> dans « Enregistrer sous », choisissez le type <b>DXF AutoCAD (.dxf)</b> (ou tapez un nom finissant par <b>.dxf</b>). Ensuite Ctrl+S réécrit ce DXF. Le DXF garde la géométrie, les calques et leurs réglages, les textes, cotes et hachures, mais pas les fonds de carte, les cotes d'angle ni le cartouche : gardez aussi un .mmc pour ne rien perdre. <b>Ouvrir</b> accepte aussi les DXF (ils deviennent le plan en cours) et les anciens fichiers .momocad.</li>
                     <li><b class="text-white">Chrome / Edge :</b> on choisit le dossier et le nom une fois (Enregistrer sous), ensuite <b>Ctrl+S</b> réécrit directement le même fichier, comme un vrai logiciel (le navigateur demande l'autorisation la première fois). <b>Firefox / Safari :</b> Enregistrer télécharge le fichier dans le dossier Téléchargements, et Ouvrir passe par le sélecteur de fichier.</li>
                     <li><b class="text-white">DXF (même menu) :</b> Exporter / Importer au format DXF R2000 (AC1015), à l'échelle 1:1 (1 unité = 1 mm). Format d'échange lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li>
@@ -421,13 +440,13 @@
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖨️ Impression</h4>
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Unité et décimales ⛯ :</b> choisissez l'unité (<b>mm</b>, <b>cm</b> ou <b>m</b>) et le nombre de décimales affichées (0 à 4). Elles s'appliquent aux coordonnées X / Y en bas de l'écran, aux cotes, aux longueurs des propriétés et de la barre de commande, et aux valeurs tapées au clavier (en mètres, « 2,5 » trace 2,5 m). Le dessin lui-même ne change pas : seule la lecture change. Le champ de grille ◻ suit aussi l'unité. Les hauteurs de texte des calques restent en mm.</li>
-                    <li><b class="text-white">Paramètres ⛯ (à gauche d'Imprimer) :</b> format de feuille (A5, A4, A3, A2, A1, A0), fichier produit (<b>PDF</b>, image <b>JPEG</b> ou <b>PNG</b>), cartouche imprimé ou non, et contenu du cartouche (plan, client, dessinateur, logo). Ces réglages sont mémorisés sur ce poste.</li>
+                    <li><b class="text-white">Paramètres ⛯ (à gauche d'Imprimer) :</b> format de feuille (A5, A4, A3, A2, A1, A0), fichier produit (<b>PDF</b>, image <b>JPEG</b> ou <b>PNG</b>), cartouche imprimé ou non, et contenu du cartouche (plan, client, dessinateur, logo). Ces réglages sont mémorisés sur ce poste. Le cartouche est compact (70 × 20 mm) avec une case logo carrée. À l'import du logo, une fenêtre de <b>recadrage</b> s'ouvre : glissez le carré, tirez un coin ou utilisez la molette pour sa taille, puis <b>Recadrer</b> (ou <b>Image entière</b> pour garder tout le logo, centré sur fond blanc).</li>
                     <li><b class="text-white">Aperçu :</b> affiche la feuille exactement comme elle sortira, sur fond blanc (cadre, cartouche, couleurs d'impression). La page suit la souris pour la mise en page ; <b>molette</b> = échelle, <b>ESPACE</b> = portrait/paysage, <b>CLIC</b> = figer ou libérer la page, <b>ENTRÉE</b> = produire le fichier, <b>ÉCHAP</b> = quitter.</li>
                     <li><b class="text-white">ESPACE :</b> bascule portrait / paysage.</li>
                     <li><b class="text-white">Molette :</b> change l'échelle. Liste complète disponible :
                         <span class="text-gray-400">5:1, 2:1, <b class="text-white">1:1</b> (défaut), 1:2, 1:5, 1:10, 1:25, 1:50, 1:100, 1:150, 1:200, 1:500.</span>
                         Les agrandissements (5:1, 2:1) servent aux petites pièces, les réductions aux grands ouvrages.</li>
-                    <li><b class="text-white">Clic (mode Imprimer) :</b> produit le fichier choisi dans ⛯ (marge 5 mm, cartouche 80 × 40 mm en bas à droite s'il est activé). Les images sont en 200 dpi (un peu moins en A1/A0). Épaisseur de trait 1 = 0,25 mm sur papier, quel que soit le format.</li>
+                    <li><b class="text-white">Clic (mode Imprimer) :</b> produit le fichier choisi dans ⛯ (marge 5 mm, cartouche 70 × 20 mm en bas à droite s'il est activé). Les images sont en 200 dpi (un peu moins en A1/A0). Épaisseur de trait 1 = 0,25 mm sur papier, quel que soit le format.</li>
                     <li><b class="text-white">Zone jaune :</b> dans l'aperçu écran, la silhouette jaune indique l'emplacement réservé au cartouche — évite d'y placer des éléments importants.</li>
                 </ul>
             </div>
@@ -449,6 +468,10 @@
         let typedInput = "";
         let rectDimStep = 0, rectWidthVal = 0; // saisie rectangle par dimensions (0=largeur, 1=hauteur)
         let dimStep = 0, dimP1 = null, dimP2 = null;
+        // Chaîne de cotes : 'single' (simple), 'cumul' (cumulées depuis le 1er point), 'succ' (successives, bout à bout)
+        let dimChain = 'single', dimChainInfo = null;
+        let dimTextAligned = false;
+        try { dimTextAligned = localStorage.getItem('momocad-dim-text') === 'aligned'; } catch (e) {}
         let detailStep = 0, detailTarget = null, detailLabelPos = null; // outil Détail (annotation fléchée)
         let currentPolygon = [], currentSnap = null;
         let arcStep = 0, arcCenter = null, arcP1 = null, arcRadius = 0, arcStartAngle = 0;
@@ -515,6 +538,8 @@
         try { Object.assign(cartoucheData, JSON.parse(localStorage.getItem('momocad-cartouche') || '{}')); } catch (e) {}
         // Formats de feuille (mm, portrait) et réglages d'impression
         const PAPER_SIZES = { A5: [148, 210], A4: [210, 297], A3: [297, 420], A2: [420, 594], A1: [594, 841], A0: [841, 1189] };
+        // Cartouche compact (mm) : case logo carrée à gauche + 4 lignes de texte
+        const CART_W = 70, CART_H = 20, CART_LOGO = 20, CART_FONT = 6;
         let printSettings = { paper: 'A4', cartouche: true, output: 'pdf', unit: 'mm', decimals: 0 };
         try { Object.assign(printSettings, JSON.parse(localStorage.getItem('momocad-print') || '{}')); } catch (e) {}
         // Unité d'affichage (⛯) : le dessin reste en mm en interne (10 mm par carré de grille),
@@ -676,7 +701,7 @@
             document.getElementById('cartouche-plan').value = cartoucheData.planName || "";
             document.getElementById('cartouche-client').value = cartoucheData.clientName || "";
             document.getElementById('cartouche-draftsman').value = cartoucheData.draftsmanName || "";
-            document.getElementById('cartouche-logo').value = "";
+            document.getElementById('cartouche-logo').value = ""; pendingLogo = null;
             document.getElementById('ps-logo-state').textContent = cartoucheData.logo ? '(logo enregistré)' : '(aucun)';
             document.getElementById('ps-logo-remove').classList.toggle('hidden', !cartoucheData.logo);
         }
@@ -696,12 +721,7 @@
             cartoucheData.planName = document.getElementById('cartouche-plan').value;
             cartoucheData.clientName = document.getElementById('cartouche-client').value;
             cartoucheData.draftsmanName = document.getElementById('cartouche-draftsman').value;
-            const logoInput = document.getElementById('cartouche-logo');
-            if (logoInput.files && logoInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => { cartoucheData.logo = e.target.result; saveCartoucheData(); getLogoImg(); draw(); };
-                reader.readAsDataURL(logoInput.files[0]);
-            }
+            if (pendingLogo) { cartoucheData.logo = pendingLogo; pendingLogo = null; getLogoImg(); }
             saveCartoucheData();
             closeCartoucheModal();
             // le format a pu changer : on garde la même échelle (1:1 reste 1:1)
@@ -893,6 +913,108 @@
                 updateCommandMessageText('FOND DE CARTE : rayon ' + R.toLocaleString('fr-FR') + ' m inséré à l\'échelle' + (res.missing ? ' (' + res.missing + ' tuile(s) manquante(s))' : '') + '.');
             } catch (err) { bmInfo('Erreur : ' + err.message); }
             finally { bmBusy = false; btn.textContent = 'Valider'; btn.style.opacity = ''; }
+        }
+        // =====================================================================
+        // COTATIONS : géométrie commune (cote libre = alignée, cote ortho = horizontale 'h' ou verticale 'v')
+        // =====================================================================
+        const isDimMode = () => mode === 'dim' || mode === 'dim-ortho';
+        function orthoOrient(p1, p2, p3) {
+            const minX = Math.min(p1.x, p2.x), maxX = Math.max(p1.x, p2.x), minY = Math.min(p1.y, p2.y), maxY = Math.max(p1.y, p2.y);
+            const ex = p3.x < minX ? minX - p3.x : (p3.x > maxX ? p3.x - maxX : 0);
+            const ey = p3.y < minY ? minY - p3.y : (p3.y > maxY ? p3.y - maxY : 0);
+            if (ey > 0 && ex === 0) return 'h';
+            if (ex > 0 && ey === 0) return 'v';
+            if (ex === 0 && ey === 0) return (maxX - minX) >= (maxY - minY) ? 'h' : 'v';
+            return ey >= ex ? 'h' : 'v';
+        }
+        // Renvoie les points utiles d'une cote : c1/c2 (extrémités de la ligne de cote), dist, direction u, angle
+        function dimGeom(s, dx, dy) {
+            dx = dx || 0; dy = dy || 0;
+            const p1 = { x: s.x1 + dx, y: s.y1 + dy }, p2 = { x: s.x2 + dx, y: s.y2 + dy }, po = { x: s.ox + dx, y: s.oy + dy };
+            let c1, c2, dist;
+            if (s.orient === 'h') { c1 = { x: p1.x, y: po.y }; c2 = { x: p2.x, y: po.y }; dist = Math.abs(p2.x - p1.x); }
+            else if (s.orient === 'v') { c1 = { x: po.x, y: p1.y }; c2 = { x: po.x, y: p2.y }; dist = Math.abs(p2.y - p1.y); }
+            else {
+                dist = Math.hypot(p2.x - p1.x, p2.y - p1.y); if (dist < 1e-9) return null;
+                const ux = (p2.x - p1.x) / dist, uy = (p2.y - p1.y) / dist, nx = -uy, ny = ux;
+                const off = (po.x - p1.x) * nx + (po.y - p1.y) * ny;
+                c1 = { x: p1.x + nx * off, y: p1.y + ny * off }; c2 = { x: p2.x + nx * off, y: p2.y + ny * off };
+            }
+            const L = Math.hypot(c2.x - c1.x, c2.y - c1.y); if (L < 1e-9) return null;
+            const ux = (c2.x - c1.x) / L, uy = (c2.y - c1.y) / L;
+            return { p1, p2, c1, c2, dist, ux, uy, mid: { x: (c1.x + c2.x) / 2, y: (c1.y + c2.y) / 2 }, ang: Math.atan2(uy, ux) };
+        }
+        // Dessin d'une cote (traits de rappel, ligne de cote, tirets obliques) + texte empilé pour le rendu écran
+        function drawDimShape(targetCtx, s, col, dx, dy, lineScale) {
+            const g = dimGeom(s, dx, dy); if (!g) return;
+            const ext = (p, c) => {   // trait de rappel : léger décalage au départ, dépasse de 5 px après la ligne
+                let vx = c.x - p.x, vy = c.y - p.y; const L = Math.hypot(vx, vy);
+                if (L < 1e-9) { vx = -g.uy; vy = g.ux; } else { vx /= L; vy /= L; }
+                targetCtx.moveTo(p.x + vx * L * 0.1, p.y + vy * L * 0.1); targetCtx.lineTo(c.x + vx * 5 / lineScale, c.y + vy * 5 / lineScale);
+            };
+            targetCtx.setLineDash([]); targetCtx.globalAlpha = 0.6; targetCtx.beginPath(); ext(g.p1, g.c1); ext(g.p2, g.c2); targetCtx.stroke();
+            targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(g.c1.x, g.c1.y); targetCtx.lineTo(g.c2.x, g.c2.y); targetCtx.stroke();
+            const t = 5 / lineScale, nx = -g.uy, ny = g.ux;
+            const tick = (p) => { targetCtx.beginPath(); targetCtx.moveTo(p.x - (g.ux + nx) * t, p.y - (g.uy + ny) * t); targetCtx.lineTo(p.x + (g.ux + nx) * t, p.y + (g.uy + ny) * t); targetCtx.stroke(); };
+            tick(g.c1); tick(g.c2);
+            dimensionTextsToDraw.push({ text: calculateRealDistance(g.dist), worldX: g.mid.x, worldY: g.mid.y, color: col, layerId: s.layerId || DIM_LAYER_ID, angle: g.ang });
+        }
+        // Construit une cote à partir de 2 points et d'une position de ligne (point p3), en mode libre ou ortho
+        function makeDim(p1, p2, p3, orient) {
+            const d = { type: 'dim', layerId: DIM_LAYER_ID, x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, ox: p3.x, oy: p3.y };
+            if (orient) d.orient = orient;
+            return d;
+        }
+        // Cote suivante d'une chaîne (cumulée ou successive) vers le point pn
+        function nextChainDim(pn) {
+            const ci = dimChainInfo; if (!ci) return null;
+            const from = ci.type === 'cumul' ? ci.base : ci.last;
+            const k = ci.count;                     // nombre de cotes déjà posées
+            if (ci.orient === 'h') {
+                const y = ci.type === 'cumul' ? ci.base.y + ci.step * (k + 1) : ci.lineY;
+                return makeDim(from, pn, { x: (from.x + pn.x) / 2, y }, 'h');
+            }
+            if (ci.orient === 'v') {
+                const x = ci.type === 'cumul' ? ci.base.x + ci.step * (k + 1) : ci.lineX;
+                return makeDim(from, pn, { x, y: (from.y + pn.y) / 2 }, 'v');
+            }
+            // libre : décalage le long de la normale, du même côté que la 1re cote
+            const L = Math.hypot(pn.x - from.x, pn.y - from.y); if (L < 1e-9) return null;
+            let nx = -(pn.y - from.y) / L, ny = (pn.x - from.x) / L;
+            if (nx * ci.n.x + ny * ci.n.y < 0) { nx = -nx; ny = -ny; }
+            const off = ci.type === 'cumul' ? ci.step * (k + 1) : ci.step;
+            return makeDim(from, pn, { x: from.x + nx * off, y: from.y + ny * off }, null);
+        }
+        function startDimChain(first) {
+            if (dimChain === 'single') return;
+            const g = dimGeom(first); if (!g) return;
+            const ci = { type: dimChain, orient: first.orient || null, base: dimP1, last: dimP2, count: 1 };
+            if (ci.orient === 'h') { ci.step = first.oy - dimP1.y; ci.lineY = first.oy; }
+            else if (ci.orient === 'v') { ci.step = first.ox - dimP1.x; ci.lineX = first.ox; }
+            else {
+                const L = Math.hypot(dimP2.x - dimP1.x, dimP2.y - dimP1.y), nx = -(dimP2.y - dimP1.y) / L, ny = (dimP2.x - dimP1.x) / L;
+                const off = (first.ox - dimP1.x) * nx + (first.oy - dimP1.y) * ny;
+                ci.n = off >= 0 ? { x: nx, y: ny } : { x: -nx, y: -ny }; ci.step = Math.abs(off);
+            }
+            dimChainInfo = ci; dimStep = 3; isDrawing = true;
+        }
+        function endDimChain() { dimChainInfo = null; dimStep = 0; isDrawing = false; typedInput = ""; }
+        const DIM_CHAIN_LABEL = { single: 'simple', cumul: 'cumulée', succ: 'successive' };
+        function toggleDimTextAligned() {
+            dimTextAligned = !dimTextAligned;
+            try { localStorage.setItem('momocad-dim-text', dimTextAligned ? 'aligned' : 'horizontal'); } catch (e) {}
+            refreshDimTextButton(); invalidateCache(); draw();
+            updateCommandMessageText('TEXTE DES COTES : ' + (dimTextAligned ? 'aligné sur la ligne de cote.' : 'toujours horizontal.'));
+        }
+        function refreshDimTextButton() {
+            const ic = document.getElementById('dim-text-icon'); if (!ic) return;
+            // ligne de cote verticale ; la valeur est soit horizontale (lisible), soit tournée le long de la ligne
+            const tick = '<line x1="12" y1="2" x2="12" y2="7"></line><line x1="12" y1="17" x2="12" y2="22"></line><line x1="9.5" y1="2" x2="14.5" y2="2"></line><line x1="9.5" y1="22" x2="14.5" y2="22"></line>';
+            const tickA = '<line x1="12" y1="1" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="23"></line><line x1="9.5" y1="1" x2="14.5" y2="1"></line><line x1="9.5" y1="23" x2="14.5" y2="23"></line>';
+            ic.innerHTML = dimTextAligned
+                ? tickA + '<text x="12" y="12" font-size="7.5" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle" dominant-baseline="central" transform="rotate(-90 12 12)" textLength="14" lengthAdjust="spacingAndGlyphs">1.23</text>'
+                : tick + '<text x="12" y="12" font-size="7.5" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle" dominant-baseline="central">1.23</text>';
+            const b = document.getElementById('btn-dim-text'); if (b) b.title = 'Texte des cotes : ' + (dimTextAligned ? 'ALIGNÉ sur la ligne de cote' : 'toujours HORIZONTAL') + ' (clic pour basculer)';
         }
         // Déplacement d'une forme (toutes géométries)
         function translateShape(s, ddx, ddy) {
@@ -1375,7 +1497,13 @@
             else if (s.type === 'arc') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.startAngle += angleRad; s.endAngle += angleRad; }
             else if (s.type === 'poly') { s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
             else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; }
-            else if (s.type === 'dim') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2), po = rot(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
+            else if (s.type === 'dim') {
+                if (s.orient) {   // cote ortho : on garde H/V pour les quarts de tour, sinon elle devient une cote libre sur ses points de ligne
+                    const q = Math.round(angleRad / (Math.PI / 2)), isQuarter = Math.abs(angleRad - q * Math.PI / 2) < 1e-6;
+                    if (isQuarter) { if (Math.abs(q) % 2 === 1) s.orient = s.orient === 'h' ? 'v' : 'h'; }
+                    else { const g = dimGeom(s); if (g) { s.x1 = g.c1.x; s.y1 = g.c1.y; s.x2 = g.c2.x; s.y2 = g.c2.y; s.ox = g.mid.x; s.oy = g.mid.y; } delete s.orient; }
+                }
+                let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2), po = rot(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
             else if (s.type === 'dim-angle') { let pv = rot(s.vertex.x, s.vertex.y), pp1 = rot(s.p1.x, s.p1.y), pp2 = rot(s.p2.x, s.p2.y); s.vertex = pv; s.p1 = pp1; s.p2 = pp2; }
             else if (s.type === 'hatch') { s.loops.forEach(l => l.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; })); s.hatchAngle = ((s.hatchAngle !== undefined) ? s.hatchAngle : 45) + angleRad * 180 / Math.PI; }
             else if (s.type === 'detail') { let pt = rot(s.tx, s.ty), pl = rot(s.lx, s.ly); s.tx = pt.x; s.ty = pt.y; s.lx = pl.x; s.ly = pl.y; }
@@ -1556,12 +1684,10 @@
                 let s = shapes[i], l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue;
                 if (s.type === 'line') { let l2 = Math.pow(s.x2-s.x1,2)+Math.pow(s.y2-s.y1,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-s.x1)*(s.x2-s.x1)+(p.y-s.y1)*(s.y2-s.y1))/l2)); if (Math.hypot(p.x-(s.x1+t*(s.x2-s.x1)), p.y-(s.y1+t*(s.y2-s.y1))) < tol) return s; }
                 else if (s.type === 'dim') {
-                    let dx = s.x2-s.x1, dy = s.y2-s.y1, dist = Math.hypot(dx, dy); if (dist < 0.01) continue;
-                    let ux = dx/dist, uy = dy/dist, nx = -uy, ny = ux, vOffX = s.ox-s.x1, vOffY = s.oy-s.y1, off = vOffX*nx + vOffY*ny;
-                    let c1x = s.x1+nx*off, c1y = s.y1+ny*off, c2x = s.x2+nx*off, c2y = s.y2+ny*off;
-                    let l2 = Math.pow(c2x-c1x,2)+Math.pow(c2y-c1y,2); if (l2 === 0) continue;
-                    let t = Math.max(0, Math.min(1, ((p.x-c1x)*(c2x-c1x)+(p.y-c1y)*(c2y-c1y))/l2));
-                    if (Math.hypot(p.x-(c1x+t*(c2x-c1x)), p.y-(c1y+t*(c2y-c1y))) < tol) return s;
+                    const g = dimGeom(s); if (!g) continue;
+                    const l2 = Math.pow(g.c2.x-g.c1.x,2)+Math.pow(g.c2.y-g.c1.y,2); if (l2 === 0) continue;
+                    const t = Math.max(0, Math.min(1, ((p.x-g.c1.x)*(g.c2.x-g.c1.x)+(p.y-g.c1.y)*(g.c2.y-g.c1.y))/l2));
+                    if (Math.hypot(p.x-(g.c1.x+t*(g.c2.x-g.c1.x)), p.y-(g.c1.y+t*(g.c2.y-g.c1.y))) < tol) return s;
                 }
                 else if (s.type === 'circle') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) return s; }
                 else if (s.type === 'arc') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) { let a = Math.atan2(p.y-s.y, p.x-s.x); if (isAngleBetween(a, s.startAngle, s.endAngle)) return s; } }
@@ -1863,7 +1989,7 @@
         function setMode(newMode) {
             mode = newMode;
             moveBasePoint = null; isMovingObjects = false; isDrawing = false; moveTypedX = null;
-            dimStep = 0; rotateCenter = null; isRotatingObjects = false; typedInput = "";
+            dimStep = 0; dimChainInfo = null; rotateCenter = null; isRotatingObjects = false; typedInput = "";
             arcStep = 0; arcCenter = null; arcP1 = null;
             scaleCenter = null; scaleRefDist = 0; isScalingObjects = false;
             rectDimStep = 0; rectWidthVal = 0;
@@ -2097,7 +2223,21 @@
 
             for (const s of shapes) {
                 const lay = layers.find(l => l.id === (s.layerId || 'layer-0'));
-                if (s.type === 'line' || s.type === 'dim') {
+                if (s.type === 'dim') {
+                    // cote : traits de rappel, ligne de cote, tirets obliques et valeur (texte)
+                    const g = dimGeom(s);
+                    if (g) {
+                        line(s, g.p1.x, g.p1.y, g.c1.x, g.c1.y); line(s, g.p2.x, g.p2.y, g.c2.x, g.c2.y); line(s, g.c1.x, g.c1.y, g.c2.x, g.c2.y);
+                        const tk = mmToWorld(1.2), nx = -g.uy, ny = g.ux;
+                        [g.c1, g.c2].forEach(c => line(s, c.x - (g.ux + nx) * tk, c.y - (g.uy + ny) * tk, c.x + (g.ux + nx) * tk, c.y + (g.uy + ny) * tk));
+                        const h = layerTextH(s.layerId || DIM_LAYER_ID) || 2.5, str = calculateRealDistance(g.dist);
+                        let a = dimTextAligned ? -g.ang : 0;   // degrés DXF (Y vers le haut), jamais à l'envers
+                        while (a > Math.PI / 2 + 1e-9) a -= Math.PI; while (a <= -Math.PI / 2 + 1e-9) a += Math.PI;
+                        const wTxt = h * str.length * 0.6, cx = X(g.mid.x), cy = Y(g.mid.y), ca = Math.cos(a), sa = Math.sin(a);
+                        const ox = -wTxt / 2, oy = h * 0.5;   // texte centré, juste au-dessus de la ligne
+                        text(s, cx + ox * ca - oy * sa, cy + ox * sa + oy * ca, h, str, a * 180 / Math.PI);
+                    }
+                } else if (s.type === 'line') {
                     line(s, s.x1, s.y1, s.x2, s.y2);
                 } else if (s.type === 'circle') {
                     head('CIRCLE', s); p(100, 'AcDbCircle');
@@ -2439,7 +2579,10 @@
             const basemaps = {}; shapes.forEach(sh => { if (sh.type !== 'basemap') return; [sh.mapId, sh.mapId + '_cad'].forEach(k => { if (basemapStore[k]) basemaps[k] = basemapStore[k]; }); });
             const c = screenToWorld(canvas.width / 2, canvas.height / 2);
             return { app: 'MomoCAD', version: '1.3', scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes,
-                     cartouche: cartoucheData, basemaps, gridMm, view: { cx: c.x, cy: c.y, zoom: camera.zoom } };
+                     cartouche: cartoucheData, basemaps, gridMm, view: { cx: c.x, cy: c.y, zoom: camera.zoom },
+                     // réglages d'affichage et d'impression du plan
+                     settings: { unit: printSettings.unit, decimals: printSettings.decimals, dimText: dimTextAligned ? 'aligned' : 'horizontal',
+                                 paper: printSettings.paper, output: printSettings.output, cartouche: !!printSettings.cartouche } };
         }
         function fileBytes(name) {
             if (isDxfName(name)) return encodeCp1252(exportDXF().replace(/\r?\n/g, '\r\n'));
@@ -2547,7 +2690,19 @@
                 });
             }
             if (data.snapSettings) { snapSettings = Object.assign({ endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true }, data.snapSettings); ['end:endpoint', 'mid:midpoint', 'inter:intersection', 'perp:perpendicular', 'center:center'].forEach(p => { const [id, k] = p.split(':'); const el = document.getElementById('snap-' + id); if (el) el.checked = !!snapSettings[k]; }); }
-            if (data.gridMm > 0) { gridMm = data.gridMm; refreshGridField(); }
+            if (data.settings) {
+                const st = data.settings;
+                if (UNIT_MM[st.unit]) printSettings.unit = st.unit;
+                if (st.decimals !== undefined) printSettings.decimals = st.decimals;
+                if (st.paper) printSettings.paper = st.paper;
+                if (st.output) printSettings.output = st.output;
+                if (st.cartouche !== undefined) printSettings.cartouche = !!st.cartouche;
+                if (st.dimText) dimTextAligned = st.dimText === 'aligned';
+                applyUnitSettings(); refreshDimTextButton();
+                try { localStorage.setItem('momocad-print', JSON.stringify(printSettings)); localStorage.setItem('momocad-dim-text', dimTextAligned ? 'aligned' : 'horizontal'); } catch (e) {}
+            }
+            if (data.gridMm > 0) { gridMm = data.gridMm; }
+            refreshGridField(); updateCursorCoords();
             shapes = data.shapes; selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI();
             if (data.view && data.view.zoom > 0) {
@@ -2662,23 +2817,22 @@
                     doc.setLineWidth(FRAME_LW); doc.line(margin, margin + drawH, margin, margin);
 
                     if (printSettings.cartouche) {
-                        // Cartouche vectoriel, 80 x 40 mm en bas à droite
-                        const cW = 80, cH = 40, cX = pageW - margin - cW, cY = pageH - margin - cH, logoW = 22, rowH = cH / 4;
+                        // Cartouche vectoriel compact en bas à droite (case logo carrée)
+                        const cW = CART_W, cH = CART_H, cX = pageW - margin - cW, cY = pageH - margin - cH, logoW = CART_LOGO, rowH = cH / 4;
                         doc.setDrawColor(0); doc.setFillColor(255, 255, 255);
-                        doc.setLineWidth(0.5); doc.rect(cX, cY, cW, cH, 'FD');
-                        doc.setLineWidth(0.3); doc.line(cX + logoW, cY, cX + logoW, cY + cH);
-                        for (let i = 1; i <= 3; i++) { doc.setLineWidth(0.3); doc.line(cX + logoW, cY + rowH * i, cX + cW, cY + rowH * i); }
-                        doc.setFontSize(7); doc.setTextColor(0);
-                        ['Plan : ' + (cartoucheData.planName || ''), 'Client : ' + (cartoucheData.clientName || ''),
-                         'Dessin : ' + (cartoucheData.draftsmanName || ''), 'Échelle : ' + currentPrintScale]
-                            .forEach((txt, idx) => doc.text(txt, cX + logoW + 2, cY + rowH * idx + rowH * 0.6, { maxWidth: cW - logoW - 2 }));
+                        doc.setLineWidth(0.35); doc.rect(cX, cY, cW, cH, 'FD');
+                        doc.setLineWidth(0.2); doc.line(cX + logoW, cY, cX + logoW, cY + cH);
+                        for (let i = 1; i <= 3; i++) doc.line(cX + logoW, cY + rowH * i, cX + cW, cY + rowH * i);
+                        doc.setFontSize(CART_FONT); doc.setTextColor(0);
+                        cartoucheRows().forEach((txt, idx) => doc.text(txt, cX + logoW + 1.2, cY + rowH * idx + rowH * 0.68, { maxWidth: cW - logoW - 2.4 }));
+                        doc.setFontSize(CART_FONT - 1); doc.setTextColor(80);
+                        doc.text(new Date().toLocaleDateString('fr-FR'), cX + cW - 1.2, cY + rowH * 3 + rowH * 0.68, { align: 'right' });
                         if (cartoucheData.logo) {
-                            try { doc.addImage(cartoucheData.logo, cX + 1, cY + 1, logoW - 2, cH - 2, undefined, 'FAST'); } catch (e) { /* logo invalide */ }
+                            const lb = logoBox(logoW - 2); 
+                            try { doc.addImage(cartoucheData.logo, cX + 1 + lb.x, cY + 1 + lb.y, lb.w, lb.h, undefined, 'FAST'); } catch (e) { /* logo invalide */ }
                         } else {
-                            doc.setFontSize(5); doc.setTextColor(120); doc.text('LOGO', cX + logoW / 2, cY + cH / 2, { align: 'center' });
+                            doc.setFontSize(5); doc.setTextColor(120); doc.text('LOGO', cX + logoW / 2, cY + cH / 2 + 0.8, { align: 'center' });
                         }
-                        doc.setFontSize(5); doc.setTextColor(80);
-                        doc.text(new Date().toLocaleDateString('fr-FR'), cX + cW - 1, cY + cH - 1, { align: 'right' });
                     }
                     doc.setFontSize(8); doc.setTextColor(60);
                     doc.text(`${printSettings.paper} ${P.land ? 'paysage' : 'portrait'} — ${currentPrintScale}`, margin + 2, margin + 6);
@@ -2718,11 +2872,18 @@
                 const fs = annotTextPx(d.layerId || DIM_LAYER_ID, 13, unit, worldScale), k = fs / 13;
                 tctx.font = "bold " + fs + "px Arial";
                 const m = tctx.measureText(d.text);
+                tctx.save(); tctx.translate(p.x, p.y);
+                if (dimTextAligned && d.angle !== undefined) {
+                    // aligné sur la ligne de cote, mais jamais à l'envers
+                    let a = d.angle; while (a > Math.PI / 2 + 1e-9) a -= Math.PI; while (a <= -Math.PI / 2 + 1e-9) a += Math.PI;
+                    tctx.rotate(a);
+                }
                 tctx.fillStyle = isPrinting ? "#ffffff" : "#1e1e1e";
-                tctx.fillRect(p.x - m.width / 2 - 4 * k, p.y - fs * 0.85, m.width + 8 * k, fs * 1.7);
+                tctx.fillRect(-m.width / 2 - 4 * k, -fs * 0.85, m.width + 8 * k, fs * 1.7);
                 tctx.fillStyle = d.color || (isPrinting ? '#000000' : '#f59e0b');
                 tctx.textAlign = "center"; tctx.textBaseline = "middle";
-                tctx.fillText(d.text, p.x, p.y);
+                tctx.fillText(d.text, 0, 0);
+                tctx.restore();
             }
             for (const d of screenTextsToDraw) {
                 const fs = annotTextPx(d.layerId, 14, unit, worldScale), k = fs / 14, lh = fs * 1.25;
@@ -2909,21 +3070,7 @@
                 // Le cadre + texte sont dessinés en taille écran fixe (post-transform).
                 screenTextsToDraw.push({ kind:'detail', layerId: s.layerId, wx: lx, wy: ly, tx: tx, ty: ty, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20), isPrinting });
             }
-            else if (s.type === 'dim') {
-                let p1={x:s.x1+dx, y:s.y1+dy}, p2={x:s.x2+dx, y:s.y2+dy}, po={x:s.ox+dx, y:s.oy+dy};
-                let dx2 = p2.x-p1.x, dy2 = p2.y-p1.y, dist = Math.hypot(dx2, dy2);
-                if (dist > 0.01) {
-                    let ux = dx2/dist, uy = dy2/dist, nx = -uy, ny = ux, vOffX = po.x-p1.x, vOffY = po.y-p1.y, off = vOffX*nx + vOffY*ny;
-                    let c1 = {x:p1.x+nx*off, y:p1.y+ny*off}, c2 = {x:p2.x+nx*off, y:p2.y+ny*off};
-                    targetCtx.setLineDash([]); targetCtx.globalAlpha = 0.6; targetCtx.beginPath();
-                    targetCtx.moveTo(p1.x+nx*(off*0.1), p1.y+ny*(off*0.1)); targetCtx.lineTo(c1.x+nx*(off>0?5:-5)/lineScale, c1.y+ny*(off>0?5:-5)/lineScale);
-                    targetCtx.moveTo(p2.x+nx*(off*0.1), p2.y+ny*(off*0.1)); targetCtx.lineTo(c2.x+nx*(off>0?5:-5)/lineScale, c2.y+ny*(off>0?5:-5)/lineScale);
-                    targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
-                    let t=5/lineScale; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
-                    dt(c1); dt(c2);
-                    dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2, color: col, layerId: s.layerId });
-                }
-            }
+            else if (s.type === 'dim') { drawDimShape(targetCtx, s, col, dx, dy, lineScale); }
             targetCtx.setLineDash([]);
         }
 
@@ -3021,29 +3168,22 @@
                     }
                 }
                 else if (mode === 'poly' && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let p of currentPolygon.slice(1)) targetCtx.lineTo(p.x, p.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; let t=5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x-t, currentPolygon[0].y-t, t*2, t*2); }
-                else if (mode === 'dim' && dimStep === 1) {
+                else if (isDimMode() && dimStep === 1) {
                     // Pré-trait du 2e point : contraint H/V si Ortho actif (cohérent avec le clic).
                     let pcx = currentX, pcy = currentY;
-                    if (orthoMode || shiftHeld) {
+                    if (mode === 'dim' && (orthoMode || shiftHeld)) {
                         if (Math.abs(pcx - dimP1.x) > Math.abs(pcy - dimP1.y)) pcy = dimP1.y;
                         else pcx = dimP1.x;
                     }
                     targetCtx.strokeStyle = '#f59e0b'; targetCtx.setLineDash([5/camera.zoom, 5/camera.zoom]);
                     targetCtx.beginPath(); targetCtx.moveTo(dimP1.x, dimP1.y); targetCtx.lineTo(pcx, pcy); targetCtx.stroke();
                 }
-                else if (mode === 'dim' && dimStep === 2) {
-                    let dx2 = dimP2.x-dimP1.x, dy2 = dimP2.y-dimP1.y, dist = Math.hypot(dx2, dy2);
-                    if (dist > 0.01) {
-                        let ux = dx2/dist, uy = dy2/dist, nx = -uy, ny = ux, vOffX = currentX-dimP1.x, vOffY = currentY-dimP1.y, off = vOffX*nx + vOffY*ny;
-                        let c1 = {x:dimP1.x+nx*off, y:dimP1.y+ny*off}, c2 = {x:dimP2.x+nx*off, y:dimP2.y+ny*off};
-                        targetCtx.strokeStyle = '#f59e0b'; targetCtx.lineWidth = 1/camera.zoom; targetCtx.setLineDash([]);
-                        targetCtx.globalAlpha = 0.6; targetCtx.beginPath();
-                        targetCtx.moveTo(dimP1.x+nx*(off*0.1), dimP1.y+ny*(off*0.1)); targetCtx.lineTo(c1.x+nx*(off>0?5:-5)/camera.zoom, c1.y+ny*(off>0?5:-5)/camera.zoom);
-                        targetCtx.moveTo(dimP2.x+nx*(off*0.1), dimP2.y+ny*(off*0.1)); targetCtx.lineTo(c2.x+nx*(off>0?5:-5)/camera.zoom, c2.y+ny*(off>0?5:-5)/camera.zoom);
-                        targetCtx.stroke(); targetCtx.globalAlpha = 1.0; targetCtx.beginPath(); targetCtx.moveTo(c1.x, c1.y); targetCtx.lineTo(c2.x, c2.y); targetCtx.stroke();
-                        let t=5/camera.zoom; const dt=(p)=>{ targetCtx.beginPath(); targetCtx.moveTo(p.x-(ux+nx)*t, p.y-(uy+ny)*t); targetCtx.lineTo(p.x+(ux+nx)*t, p.y+(uy+ny)*t); targetCtx.stroke(); };
-                        dt(c1); dt(c2); dimensionTextsToDraw.push({ text: calculateRealDistance(dist), worldX: (c1.x+c2.x)/2, worldY: (c1.y+c2.y)/2 });
-                    }
+                else if (isDimMode() && (dimStep === 2 || dimStep === 3)) {
+                    const cur = { x: currentX, y: currentY };
+                    let pv = null;
+                    if (dimStep === 2) pv = makeDim(dimP1, dimP2, cur, mode === 'dim-ortho' ? orthoOrient(dimP1, dimP2, cur) : null);
+                    else { const sn = findSnap(currentX, currentY); pv = nextChainDim(sn ? { x: sn.x, y: sn.y } : cur); }
+                    if (pv) { targetCtx.strokeStyle = '#f59e0b'; targetCtx.lineWidth = 1/camera.zoom; drawDimShape(targetCtx, pv, '#f59e0b', 0, 0, camera.zoom); }
                 }
                 else if (mode === 'select-box') { targetCtx.strokeStyle = '#ec4899'; targetCtx.lineWidth = 1/camera.zoom; targetCtx.setLineDash([4/camera.zoom, 4/camera.zoom]); targetCtx.strokeRect(startX, startY, currentX-startX, currentY-startY); }
             }
@@ -3163,6 +3303,103 @@
             el.textContent = 'X ' + fmtNum(worldToMm(currentX) / k) + '   Y ' + fmtNum(-worldToMm(currentY) / k) + ' ' + currentUnit;
         }
 
+        // ---------- Recadrage rapide du logo (carré) ----------
+        let pendingLogo = null, cropImg = null, cropBox = null, cropView = null, cropDrag = null;
+        function startLogoCrop(input) {
+            const f = input.files && input.files[0]; if (!f) return;
+            const rd = new FileReader();
+            rd.onload = () => {
+                const im = new Image();
+                im.onload = () => {
+                    cropImg = im;
+                    const cv = document.getElementById('crop-canvas'), W = cv.width, H = cv.height, pad = 16;
+                    const sc = Math.min((W - 2 * pad) / im.naturalWidth, (H - 2 * pad) / im.naturalHeight);
+                    cropView = { sc, x: (W - im.naturalWidth * sc) / 2, y: (H - im.naturalHeight * sc) / 2, w: im.naturalWidth * sc, h: im.naturalHeight * sc };
+                    const side = Math.min(cropView.w, cropView.h);   // carré le plus grand, centré
+                    cropBox = { x: cropView.x + (cropView.w - side) / 2, y: cropView.y + (cropView.h - side) / 2, s: side };
+                    document.getElementById('crop-modal').style.display = 'flex'; drawCrop();
+                };
+                im.onerror = () => alert("Image illisible.");
+                im.src = rd.result;
+            };
+            rd.readAsDataURL(f);
+        }
+        function clampCrop() {
+            const v = cropView, b = cropBox, maxS = Math.max(v.w, v.h);
+            b.s = Math.max(12, Math.min(b.s, maxS));
+            // le carré peut déborder de l'image (zones vides = blanc), mais son centre reste sur l'image
+            b.x = Math.min(Math.max(b.x, v.x - b.s / 2), v.x + v.w - b.s / 2);
+            b.y = Math.min(Math.max(b.y, v.y - b.s / 2), v.y + v.h - b.s / 2);
+        }
+        function drawCrop() {
+            const cv = document.getElementById('crop-canvas'), c = cv.getContext('2d'), v = cropView, b = cropBox;
+            c.clearRect(0, 0, cv.width, cv.height);
+            c.drawImage(cropImg, v.x, v.y, v.w, v.h);
+            c.fillStyle = 'rgba(0,0,0,0.55)';
+            c.beginPath(); c.rect(0, 0, cv.width, cv.height); c.rect(b.x, b.y, b.s, b.s); c.fill('evenodd');
+            c.strokeStyle = '#fff'; c.lineWidth = 2; c.strokeRect(b.x, b.y, b.s, b.s);
+            c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 1; c.beginPath();
+            for (let i = 1; i < 3; i++) { c.moveTo(b.x + b.s * i / 3, b.y); c.lineTo(b.x + b.s * i / 3, b.y + b.s); c.moveTo(b.x, b.y + b.s * i / 3); c.lineTo(b.x + b.s, b.y + b.s * i / 3); }
+            c.stroke();
+            c.fillStyle = '#fff'; [[b.x, b.y], [b.x + b.s, b.y], [b.x, b.y + b.s], [b.x + b.s, b.y + b.s]].forEach(([x, y]) => c.fillRect(x - 5, y - 5, 10, 10));
+        }
+        function cropPt(e) { const cv = document.getElementById('crop-canvas'), r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; }
+        (function initCrop() {
+            const cv = document.getElementById('crop-canvas'); if (!cv) return;
+            cv.addEventListener('pointerdown', (e) => {
+                if (!cropBox) return; const p = cropPt(e), b = cropBox;
+                const corners = [[b.x, b.y, b.x + b.s, b.y + b.s], [b.x + b.s, b.y, b.x, b.y + b.s], [b.x, b.y + b.s, b.x + b.s, b.y], [b.x + b.s, b.y + b.s, b.x, b.y]];
+                const hit = corners.find(([x, y]) => Math.abs(p.x - x) < 12 && Math.abs(p.y - y) < 12);
+                if (hit) cropDrag = { kind: 'resize', ax: hit[2], ay: hit[3] };              // coin opposé fixe
+                else if (p.x >= b.x && p.x <= b.x + b.s && p.y >= b.y && p.y <= b.y + b.s) cropDrag = { kind: 'move', dx: p.x - b.x, dy: p.y - b.y };
+                else return;
+                cv.setPointerCapture(e.pointerId); e.preventDefault();
+            });
+            cv.addEventListener('pointermove', (e) => {
+                if (!cropDrag) return; const p = cropPt(e), b = cropBox;
+                if (cropDrag.kind === 'move') { b.x = p.x - cropDrag.dx; b.y = p.y - cropDrag.dy; }
+                else {
+                    const s = Math.max(12, Math.max(Math.abs(p.x - cropDrag.ax), Math.abs(p.y - cropDrag.ay)));
+                    b.s = s; b.x = p.x < cropDrag.ax ? cropDrag.ax - s : cropDrag.ax; b.y = p.y < cropDrag.ay ? cropDrag.ay - s : cropDrag.ay;
+                }
+                clampCrop(); drawCrop();
+            });
+            cv.addEventListener('pointerup', () => { cropDrag = null; });
+            cv.addEventListener('wheel', (e) => {
+                if (!cropBox) return; e.preventDefault();
+                const b = cropBox, cx = b.x + b.s / 2, cy = b.y + b.s / 2;
+                b.s *= e.deltaY < 0 ? 0.92 : 1.08; b.x = cx - b.s / 2; b.y = cy - b.s / 2; clampCrop(); drawCrop();
+            }, { passive: false });
+        })();
+        function closeCrop() {
+            document.getElementById('crop-modal').style.display = 'none'; cropImg = null; cropBox = null;
+            if (!pendingLogo) document.getElementById('cartouche-logo').value = '';
+        }
+        function exportCrop(sxImg, syImg, sImg) {
+            const N = 512, out = document.createElement('canvas'); out.width = out.height = N;
+            const c = out.getContext('2d'); c.fillStyle = '#ffffff'; c.fillRect(0, 0, N, N);
+            const k = N / sImg; c.imageSmoothingQuality = 'high';
+            c.drawImage(cropImg, -sxImg * k, -syImg * k, cropImg.naturalWidth * k, cropImg.naturalHeight * k);
+            pendingLogo = out.toDataURL('image/png');
+            document.getElementById('ps-logo-state').textContent = '(nouveau logo recadré — cliquez Valider)';
+            document.getElementById('ps-logo-remove').classList.remove('hidden');
+            document.getElementById('crop-modal').style.display = 'none'; cropImg = null; cropBox = null;
+        }
+        function applyCrop() { const v = cropView, b = cropBox; exportCrop((b.x - v.x) / v.sc, (b.y - v.y) / v.sc, b.s / v.sc); }
+        function cropWhole() {
+            const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight, side = Math.max(iw, ih);
+            exportCrop((iw - side) / 2, (ih - side) / 2, side);
+        }
+        function cartoucheRows() {
+            return ['Plan : ' + (cartoucheData.planName || ''), 'Client : ' + (cartoucheData.clientName || ''),
+                    'Dessin : ' + (cartoucheData.draftsmanName || ''), 'Échelle : ' + currentPrintScale];
+        }
+        // Logo centré dans la case carrée (proportions conservées) ; size = côté utile
+        function logoBox(size, img) {
+            img = img || getLogoImg();
+            const iw = img && img.naturalWidth || 1, ih = img && img.naturalHeight || 1, r = Math.min(size / iw, size / ih);
+            const w = iw * r, h = ih * r; return { x: (size - w) / 2, y: (size - h) / 2, w, h };
+        }
         // Logo du cartouche, chargé une fois pour l'aperçu et les exports image
         let logoImg = null;
         function getLogoImg() {
@@ -3186,26 +3423,24 @@
             tctx.strokeStyle = '#000'; tctx.setLineDash([]);
             tctx.lineWidth = Math.max(1, 0.5 * k); tctx.strokeRect(ix, iy, iw, ih);
             if (printSettings.cartouche) {
-                const cW = 80 * k, cH = 40 * k, logoW = 22 * k, rowH = cH / 4;
-                const cX = sx + (P.pageW - P.margin - 80) * k, cY = sy + (P.pageH - P.margin - 40) * k;
+                const cW = CART_W * k, cH = CART_H * k, logoW = CART_LOGO * k, rowH = cH / 4;
+                const cX = sx + (P.pageW - P.margin - CART_W) * k, cY = sy + (P.pageH - P.margin - CART_H) * k;
                 tctx.fillStyle = '#fff'; tctx.fillRect(cX, cY, cW, cH);
-                tctx.lineWidth = Math.max(1, 0.5 * k); tctx.strokeRect(cX, cY, cW, cH);
-                tctx.lineWidth = Math.max(0.6, 0.3 * k);
+                tctx.lineWidth = Math.max(1, 0.35 * k); tctx.strokeRect(cX, cY, cW, cH);
+                tctx.lineWidth = Math.max(0.5, 0.2 * k);
                 tctx.beginPath(); tctx.moveTo(cX + logoW, cY); tctx.lineTo(cX + logoW, cY + cH);
                 for (let i = 1; i <= 3; i++) { tctx.moveTo(cX + logoW, cY + rowH * i); tctx.lineTo(cX + cW, cY + rowH * i); }
                 tctx.stroke();
-                const rows = ['Plan : ' + (cartoucheData.planName || ''), 'Client : ' + (cartoucheData.clientName || ''),
-                              'Dessin : ' + (cartoucheData.draftsmanName || ''), 'Échelle : ' + currentPrintScale];
-                tctx.fillStyle = '#000'; tctx.font = pt(7) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'left'; tctx.textBaseline = 'alphabetic';
-                rows.forEach((t, i) => tctx.fillText(t, cX + logoW + 2 * k, cY + rowH * i + rowH * 0.6, cW - logoW - 3 * k));
+                tctx.fillStyle = '#000'; tctx.font = pt(CART_FONT) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'left'; tctx.textBaseline = 'alphabetic';
+                cartoucheRows().forEach((t, i) => tctx.fillText(t, cX + logoW + 1.2 * k, cY + rowH * i + rowH * 0.68, cW - logoW - 2.4 * k));
+                tctx.fillStyle = 'rgb(80,80,80)'; tctx.font = pt(CART_FONT - 1) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'right';
+                tctx.fillText(new Date().toLocaleDateString('fr-FR'), cX + cW - 1.2 * k, cY + rowH * 3 + rowH * 0.68);
                 const logo = getLogoImg();
-                if (logo) tctx.drawImage(logo, cX + k, cY + k, logoW - 2 * k, cH - 2 * k);
+                if (logo) { const lb = logoBox((CART_LOGO - 2) * k, logo); tctx.drawImage(logo, cX + k + lb.x, cY + k + lb.y, lb.w, lb.h); }
                 else if (!cartoucheData.logo) {
                     tctx.fillStyle = 'rgb(120,120,120)'; tctx.font = pt(5) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'center';
-                    tctx.fillText('LOGO', cX + logoW / 2, cY + cH / 2);
+                    tctx.fillText('LOGO', cX + logoW / 2, cY + cH / 2 + 0.8 * k);
                 }
-                tctx.fillStyle = 'rgb(80,80,80)'; tctx.font = pt(5) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'right';
-                tctx.fillText(new Date().toLocaleDateString('fr-FR'), cX + cW - k, cY + cH - k);
             }
             tctx.fillStyle = 'rgb(60,60,60)'; tctx.font = pt(8) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'left'; tctx.textBaseline = 'alphabetic';
             tctx.fillText(printSettings.paper + ' ' + (P.land ? 'paysage' : 'portrait') + ' — ' + currentPrintScale, sx + (P.margin + 2) * k, sy + (P.margin + 6) * k);
@@ -3253,7 +3488,7 @@
                 // Silhouette du cartouche (coin bas-droite) pour visualiser la zone réservée
                 const P0 = pageDims(), pxPerMm = rect.w / P0.drawW;
                 if (printSettings.cartouche) {
-                    const cWpx = 80 * pxPerMm, cHpx = 40 * pxPerMm;
+                    const cWpx = CART_W * pxPerMm, cHpx = CART_H * pxPerMm;
                     const innerRight = currentX_screen + rect.w/2, innerBottom = currentY_screen + rect.h/2;
                     ctx.strokeStyle = "rgba(255,200,0,0.7)"; ctx.lineWidth = 1.5;
                     ctx.strokeRect(innerRight - cWpx, innerBottom - cHpx, cWpx, cHpx);
@@ -3333,7 +3568,14 @@
             else if (mode === 'circle') msg = isDrawing ? "CERCLE : Spécifiez le rayon (valeur + Entrée)." : "CERCLE : Spécifiez le centre.";
             else if (mode === 'arc') { if (arcStep === 0) msg = "ARC : Spécifiez le centre."; else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ."; else msg = "ARC : Spécifiez l'angle de fin (valeur + Entrée)."; }
             else if (mode === 'poly') msg = isDrawing ? "POLYGONE : Spécifiez le point suivant (double-clic pour fermer)." : "POLYGONE : Spécifiez le point de départ.";
-            else if (mode === 'dim') { if (dimStep === 0) msg = "COTATION : 1er point d'attache."; else if (dimStep === 1) msg = "COTATION : 2ème point d'attache."; else msg = "COTATION : Position de la ligne de cote."; }
+            else if (isDimMode()) {
+                const nm = (mode === 'dim-ortho' ? 'COTE ORTHO' : 'COTE LIBRE') + ' [' + DIM_CHAIN_LABEL[dimChain] + ']';
+                if (dimStep === 0) msg = typedInput ? nm + " : type " + typedInput + " (" + ({ '0': 'simple', '1': 'cumulée', '2': 'successive' }[typedInput] || '?') + ") — VALIDEZ avec [Espace] ou [Entrée] pour appliquer ce mode."
+                                                    : nm + " : 1er point — ou changez de mode : tapez 1 = cumulée, 2 = successive, 0 = simple, puis VALIDEZ avec [Espace] ou [Entrée].";
+                else if (dimStep === 1) msg = nm + " : 2e point.";
+                else if (dimStep === 2) msg = nm + " : position de la ligne de cote.";
+                else msg = nm + " : point suivant (" + (dimChain === 'cumul' ? "depuis le 1er point" : "depuis le dernier point") + ") — [Entrée], [Espace] ou [Échap] pour terminer.";
+            }
             else if (mode === 'dim-angle') { if (dimAngleStep === 0) msg = "ANGLE : Cliquez sur la 1ère droite (D1)."; else if (dimAngleStep === 1) msg = "ANGLE : Cliquez sur la 2ème droite (D2)."; else msg = "ANGLE : Cliquez pour poser l'arc de cotation."; }
             else if (mode === 'move') {
                 if (selectedShapes.length === 0) msg = "DÉPLACER : Cliquez sur un objet.";
@@ -3372,7 +3614,8 @@
             let totalLength = 0, totalArea = 0, radius = 0;
             const distFactor = unitsPerSquare / GRID_SIZE, areaFactor = distFactor * distFactor;
             selectedShapes.forEach(s => {
-                if (s.type === 'line' || s.type === 'dim') { totalLength += Math.hypot(s.x2 - s.x1, s.y2 - s.y1) * distFactor; }
+                if (s.type === 'line') { totalLength += Math.hypot(s.x2 - s.x1, s.y2 - s.y1) * distFactor; }
+                else if (s.type === 'dim') { const g = dimGeom(s); if (g) totalLength += g.dist * distFactor; }
                 else if (s.type === 'circle') { let r = s.r * distFactor; radius = r; totalLength += 2 * Math.PI * r; totalArea += Math.PI * r * r; }
                 else if (s.type === 'arc') { let r = s.r * distFactor; radius = r; let dAngle = s.endAngle - s.startAngle; if (dAngle < 0) dAngle += 2 * Math.PI; totalLength += r * dAngle; }
                 else if (s.type === 'hatch') { totalArea += hatchArea(s) * areaFactor; }
@@ -3546,18 +3789,29 @@
                 return;
             }
 
-            if (mode === 'dim') {
+            if (isDimMode()) {
                 let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
-                if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; draw(); }
+                if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; typedInput = ""; draw(); }
                 else if (dimStep === 1) {
-                    // Mode Ortho : 2e point d'attache contraint à H ou V par rapport au 1er.
-                    if (orthoMode || e.shiftKey) {
+                    // Cote libre + Ortho (F8 / Maj) : 2e point contraint à H ou V par rapport au 1er.
+                    if (mode === 'dim' && (orthoMode || e.shiftKey)) {
                         if (Math.abs(pt.x - dimP1.x) > Math.abs(pt.y - dimP1.y)) pt.y = dimP1.y;
                         else pt.x = dimP1.x;
                     }
                     dimP2 = pt; dimStep = 2; draw();
                 }
-                else if (dimStep === 2) { shapes.push({ type: 'dim', layerId: DIM_LAYER_ID, x1: dimP1.x, y1: dimP1.y, x2: dimP2.x, y2: dimP2.y, ox: wp.x, oy: wp.y }); dimStep = 0; isDrawing = false; saveState(); draw(); }
+                else if (dimStep === 2) {
+                    const p3 = { x: wp.x, y: wp.y };
+                    const d = makeDim(dimP1, dimP2, p3, mode === 'dim-ortho' ? orthoOrient(dimP1, dimP2, p3) : null);
+                    shapes.push(d); saveState();
+                    if (dimChain === 'single') { dimStep = 0; isDrawing = false; } else startDimChain(d);
+                    draw();
+                }
+                else if (dimStep === 3) {
+                    const d = nextChainDim(pt);
+                    if (d) { shapes.push(d); dimChainInfo.count++; dimChainInfo.last = pt; saveState(); }
+                    draw();
+                }
                 return;
             }
 
@@ -3784,6 +4038,7 @@
                 if (k === 'o') { e.preventDefault(); openProject(); return; }
             }
             if (document.getElementById('basemap-modal').style.display === 'flex') { if (e.key === 'Escape') closeBasemapModal(); return; }
+            if (document.getElementById('crop-modal').style.display === 'flex') { if (e.key === 'Escape') closeCrop(); if (e.key === 'Enter') applyCrop(); return; }
             if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
                 if (e.key === 'Enter') {
                     if (document.activeElement.id === 'text-content') applyText();
@@ -3834,6 +4089,19 @@
                     draw(); return;
                 }
             }
+            // Cotes : choix du type (0 simple, 1 cumulée, 2 successive) puis Espace/Entrée ; fin de chaîne avec Entrée/Espace
+            if (isDimMode() && !e.ctrlKey) {
+                if (dimStep === 0) {
+                    if (/^[012]$/.test(e.key)) { e.preventDefault(); typedInput = e.key; draw(); return; }
+                    if (e.key === 'Backspace' && typedInput) { e.preventDefault(); typedInput = ""; draw(); return; }
+                    if ((e.key === ' ' || e.key === 'Enter') && typedInput) {
+                        e.preventDefault(); dimChain = ['single', 'cumul', 'succ'][+typedInput]; typedInput = "";
+                        updateCommandMessageText((mode === 'dim-ortho' ? 'COTE ORTHO' : 'COTE LIBRE') + ' : mode ' + DIM_CHAIN_LABEL[dimChain] + '. Cliquez le 1er point.'); draw(); return;
+                    }
+                } else if (dimStep === 3 && (e.key === ' ' || e.key === 'Enter')) {
+                    e.preventDefault(); endDimChain(); updateCommandMessageText('Cotation terminée.'); draw(); return;
+                }
+            }
             // Mode échelle : accepte x[n] (multiplier) ou /[n] (diviser), en plus des chiffres.
             if (isScaleMode() && selectedShapes.length > 0) {
                 if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; }
@@ -3868,7 +4136,7 @@
                 isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null;
                 rectDimStep = 0; rectWidthVal = 0;
                 detailStep = 0; detailTarget = null; detailLabelPos = null; closeDetailModal();
-                dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null;
+                dimStep = 0; dimChainInfo = null; selectedShapes = []; isRotatingObjects = false; rotateCenter = null;
                 scaleCenter = null; scaleRefDist = 0; isScalingObjects = false;
                 dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
                 closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal();
@@ -3910,7 +4178,7 @@
         });
 
         window.onload = () => {
-            updateLayerUI(); resizeCanvas(); saveState(); markSaved();
+            updateLayerUI(); resizeCanvas(); saveState(); markSaved(); refreshDimTextButton();
             refreshGridField();
             getLogoImg();
             const ta = document.getElementById('inline-editor');
