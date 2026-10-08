@@ -100,6 +100,14 @@
                 <button id="btn-offset" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-sky-300" title="Décaler (Offset)" onclick="setMode('offset')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17L2 17"></path><path d="M22 7L2 7"></path><path d="M12 17L12 7"></path><polyline points="9 10 12 7 15 10"></polyline></svg></button>
             </div>
 
+            <!-- Bloc Échelle & Fusion (isolé) -->
+            <div class="tool-group grid grid-cols-2 gap-1 pt-2 border-t border-gray-600">
+                <button id="btn-scale-up" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-emerald-300" title="Agrandir la sélection" onclick="setMode('scale-up')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
+                <button id="btn-scale-down" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-emerald-300" title="Réduire la sélection" onclick="setMode('scale-down')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
+                <button id="btn-group" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Fusionner la sélection (cliquer un objet sélectionne tout le groupe)" onclick="groupSelection()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></button>
+                <button id="btn-ungroup" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Défusionner la sélection" onclick="ungroupSelection()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg></button>
+            </div>
+
             <!-- Bloc Création -->
             <div class="tool-group grid grid-cols-2 gap-1">
                 <button id="btn-line" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Ligne" onclick="setMode('line')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"></line></svg></button>
@@ -249,18 +257,34 @@
             <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🎨 Calques</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Calque "Cotations" :</b> les outils de cotation (ligne de cote et angle) y déposent automatiquement leurs objets. Couleur rouge forcée à l'impression, quel que soit le calque actif.</li>
+                    <li><b class="text-white">3 calques :</b> 0 - Tracé (blanc, continu), 1 - Construction (gris, tireté), 2 - Cotation (orange). Couleur, type de ligne et épaisseur se règlent dans le gestionnaire de calques : chaque objet prend l'apparence de son calque.</li>
+                    <li><b class="text-white">Paramétrer une sélection :</b> sélectionnez des objets puis tapez <b>Y</b> pour les changer de calque (<b>N</b> pour ignorer).</li>
+                    <li><b class="text-white">Calque Cotation :</b> cotes, textes et détails y sont déposés automatiquement.</li>
                 </ul>
             </div>
             <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🛠️ Outils de dessin & édition</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Créé comme polyligne fermée (sélectionnable, déplaçable, hachurable).</li>
+                    <li><b class="text-white">Validation clavier :</b> après une saisie de valeur, <b>Entrée</b> valide et revient à la Sélection, <b>Espace</b> valide et garde l'outil actif.</li>
+                    <li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Ou par dimensions : après le 1er coin, tapez la largeur ⬌ + <b>Espace</b>, puis la hauteur ⬍ + <b>Entrée</b>. Le sens suit la position de la souris.</li>
+                    <li><b class="text-white">Arc :</b> centre, puis rayon/point de départ, puis point de fin. L'arc se trace du côté où va la souris (angle tapé négatif = autre sens).</li>
+                    <li><b class="text-white">Hachures :</b> cliquez à l'intérieur d'un rectangle, polygone ou cercle (re-cliquez pour retirer). Lignes à 45°, espacement 3 mm.</li>
                     <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li>
                     <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li>
                     <li><b class="text-white">Décaler (Offset) :</b> Tapez la distance désirée, puis cliquez sur l'objet.</li>
-                    <li><b class="text-white">Cotation linéaire :</b> 3 clics (2 points d'attache + position de la ligne de cote). En mode Ortho, le 2e point se cale automatiquement à l'horizontale ou la verticale.</li>
+                    <li><b class="text-white">Agrandir / Réduire :</b> sélectionnez, puis choisissez Agrandir ou Réduire. Tapez un facteur puis <b>Entrée</b> (ex. <b>2</b> : ×2 avec Agrandir, ÷2 avec Réduire). L'échelle se fait autour du centre de la sélection. Ou en graphique : <b>clic 1</b> = point de base, <b>clic 2</b> = facteur (distance 2 / distance 1), avec aperçu en direct.</li>
+                    <li><b class="text-white">Fusionner (cadenas fermé) :</b> regroupe plusieurs objets. Ensuite, un clic sur l'un d'eux sélectionne tout le groupe (pour déplacer, tourner, mettre à l'échelle ensemble). Actif seulement si plusieurs objets non fusionnés sont sélectionnés.</li>
+                    <li><b class="text-white">Défusionner (cadenas ouvert) :</b> sépare le groupe sélectionné. Actif seulement si la sélection contient un groupe. Sans sélection, les deux boutons sont grisés.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">📝 Annotation (encart bas de palette)</h4>
+                <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Texte :</b> cliquez puis tapez directement sur le plan. <b>Maj+Entrée</b> = retour à la ligne, <b>Entrée</b> ou <b>Échap</b> = valider.</li>
+                    <li><b class="text-white">Détail :</b> clic 1 = point désigné, clic 2 = position de l'étiquette, puis tapez le texte. Texte encadré relié par une flèche.</li>
+                    <li><b class="text-white">Cotation linéaire :</b> 3 clics (2 points d'attache + position de la ligne de cote). En mode Ortho, le 2e point se cale à l'horizontale ou la verticale.</li>
                     <li><b class="text-white">Cotation angulaire :</b> Clic 1 = D1, Clic 2 = D2, Clic 3 = pose de l'arc. Sélection en cliquant sur la valeur °.</li>
+                    <li>Textes, détails et cotes vont sur le calque <b>Cotation</b> (orange) et gardent une taille lisible constante quel que soit le zoom.</li>
                 </ul>
             </div>
             <div>
@@ -347,6 +371,7 @@
         const SNAP_DIST_PX = 14; // pixels écran, constant quelle que soit le zoom
         let selectedShapes = [], moveBasePoint = null, isMovingObjects = false;
         let rotateCenter = null, rotateStartAngle = 0, isRotatingObjects = false;
+        let scaleCenter = null, scaleRefDist = 0, isScalingObjects = false; // outil mise à l'échelle
         
         let clipboard = [];
         let clipboardBasePoint = null;
@@ -687,6 +712,19 @@
             else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; }
             else if (s.type === 'dim') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2), po = rot(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
             else if (s.type === 'dim-angle') { let pv = rot(s.vertex.x, s.vertex.y), pp1 = rot(s.p1.x, s.p1.y), pp2 = rot(s.p2.x, s.p2.y); s.vertex = pv; s.p1 = pp1; s.p2 = pp2; }
+        }
+
+        // Mise à l'échelle d'une forme autour d'un centre (cx,cy) par un facteur.
+        function applyScaleToShape(s, cx, cy, f) {
+            const sc = (x, y) => ({ x: cx + (x - cx) * f, y: cy + (y - cy) * f });
+            if (s.type === 'line') { let p1 = sc(s.x1, s.y1), p2 = sc(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
+            else if (s.type === 'circle') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
+            else if (s.type === 'arc') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
+            else if (s.type === 'poly') { s.points.forEach(pt => { let p = sc(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
+            else if (s.type === 'text') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.size = (s.size || 20) * f; }
+            else if (s.type === 'dim') { let p1 = sc(s.x1, s.y1), p2 = sc(s.x2, s.y2), po = sc(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
+            else if (s.type === 'dim-angle') { let pv = sc(s.vertex.x, s.vertex.y), pp1 = sc(s.p1.x, s.p1.y), pp2 = sc(s.p2.x, s.p2.y); s.vertex = pv; s.p1 = pp1; s.p2 = pp2; }
+            else if (s.type === 'detail') { let pt = sc(s.tx, s.ty), pl = sc(s.lx, s.ly); s.tx = pt.x; s.ty = pt.y; s.lx = pl.x; s.ly = pl.y; }
         }
 
         // --- CORE GEOMETRY & SNAP ---
@@ -1074,11 +1112,78 @@
             return rect.w / (imgMm_w * pxMondePerMm);
         }
 
+        // --- Fusion (groupes) ---
+        // Chaque objet fusionné porte un groupId ; cliquer l'un d'eux sélectionne tout le groupe.
+        function expandGroups(list) {
+            const ids = new Set(list.filter(s => s.groupId).map(s => s.groupId));
+            if (ids.size === 0) return list.slice();
+            const out = list.slice();
+            shapes.forEach(s => { if (s.groupId && ids.has(s.groupId) && !out.includes(s)) out.push(s); });
+            return out;
+        }
+        function selectionHasGroup() { return selectedShapes.some(s => s.groupId); }
+        function groupSelection() {
+            if (selectedShapes.length < 2 || selectionHasGroup()) return;
+            const gid = 'grp-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+            selectedShapes.forEach(s => { s.groupId = gid; });
+            saveState(); draw();
+            updateCommandMessageText(selectedShapes.length + " objets fusionnés.");
+        }
+        function ungroupSelection() {
+            if (!selectionHasGroup()) return;
+            selectedShapes.forEach(s => { delete s.groupId; });
+            saveState(); draw();
+            updateCommandMessageText("Sélection défusionnée.");
+        }
+        // Active / grise les boutons Fusionner et Défusionner selon la sélection.
+        function updateGroupButtons() {
+            const hasGroup = selectionHasGroup();
+            const canGroup = selectedShapes.length >= 2 && !hasGroup;
+            const set = (id, on) => {
+                const b = document.getElementById(id); if (!b) return;
+                b.disabled = !on;
+                b.classList.toggle('opacity-30', !on);
+                b.classList.toggle('pointer-events-none', !on);
+            };
+            set('btn-group', canGroup);
+            set('btn-ungroup', hasGroup);
+        }
+        function isScaleMode() { return mode === 'scale-up' || mode === 'scale-down'; }
+        // Saisie clavier de l'échelle : un nombre n => ×n (Agrandir) ou ÷n (Réduire).
+        function applyScaleFromTyped() {
+            if (selectedShapes.length === 0) return;
+            const v = parseFloat(typedInput.trim());
+            if (isNaN(v) || v <= 0) { updateCommandMessageText("ÉCHELLE : valeur invalide."); typedInput = ""; return; }
+            const f = (mode === 'scale-down') ? 1 / v : v;
+            // centre = point de base s'il est posé, sinon centre de la sélection
+            let cx, cy;
+            if (scaleCenter) { cx = scaleCenter.x; cy = scaleCenter.y; }
+            else {
+                let xs = [], ys = [];
+                selectedShapes.forEach(s => {
+                    if (s.points) s.points.forEach(p => { xs.push(p.x); ys.push(p.y); });
+                    else if (s.type === 'line' || s.type === 'dim') { xs.push(s.x1, s.x2); ys.push(s.y1, s.y2); }
+                    else if (s.vertex) { xs.push(s.vertex.x); ys.push(s.vertex.y); }
+                    else if (s.type === 'detail') { xs.push(s.lx, s.tx); ys.push(s.ly, s.ty); }
+                    else { xs.push(s.x); ys.push(s.y); }
+                });
+                cx = (Math.min(...xs) + Math.max(...xs)) / 2; cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+            }
+            selectedShapes.forEach(s => applyScaleToShape(s, cx, cy, f));
+            isScalingObjects = false; scaleCenter = null; scaleRefDist = 0; typedInput = "";
+            saveState(); draw();
+        }
+        // Affiche un message ponctuel dans la barre de commande (écrasé au prochain draw).
+        function updateCommandMessageText(msg) {
+            const el = document.getElementById('command-text'); if (el) el.textContent = msg;
+        }
+
         function setMode(newMode) {
             mode = newMode;
             moveBasePoint = null; isMovingObjects = false; isDrawing = false;
             dimStep = 0; rotateCenter = null; isRotatingObjects = false; typedInput = "";
             arcStep = 0; arcCenter = null; arcP1 = null;
+            scaleCenter = null; scaleRefDist = 0; isScalingObjects = false;
             rectDimStep = 0; rectWidthVal = 0;
             detailStep = 0; detailTarget = null; detailLabelPos = null;
             if (inlineEdit) { const _ta = document.getElementById('inline-editor'); _ta.classList.add('hidden'); _ta.value=''; inlineEdit = null; }
@@ -1087,7 +1192,7 @@
             closeTextModal(); closeLayerModal(); closeCartoucheModal(); closeSnapModal(); closeHelpModal();
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
             const btn = document.getElementById('btn-' + newMode); if (btn) btn.classList.add('active');
-            canvas.style.cursor = (['move', 'rotate', 'select-box', 'text', 'print', 'trim', 'extend', 'paste', 'offset'].includes(mode)) ? 'default' : 'crosshair';
+            canvas.style.cursor = (['move', 'rotate', 'scale-up', 'scale-down', 'select-box', 'text', 'print', 'trim', 'extend', 'paste', 'offset'].includes(mode)) ? 'default' : 'crosshair';
             if (newMode === 'print') {
                 // Facteur d'agrandissement courant déduit du zoom caméra, puis snap
                 // sur l'échelle la plus proche dans PRINT_SCALES.
@@ -1937,6 +2042,7 @@
                 if (sel) {
                     if (isMovingObjects && moveBasePoint) { ddx = currentX - moveBasePoint.x; ddy = currentY - moveBasePoint.y; }
                     else if (isRotatingObjects && rotateCenter) { s = JSON.parse(JSON.stringify(s)); let curA = Math.atan2(currentY - rotateCenter.y, currentX - rotateCenter.x), diff = curA - rotateStartAngle; if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diff = parseFloat(typedInput) * Math.PI / 180; applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diff); }
+                    else if (isScalingObjects && scaleCenter) { s = JSON.parse(JSON.stringify(s)); let d2 = Math.hypot(currentX - scaleCenter.x, currentY - scaleCenter.y); let f = (scaleRefDist > 0.0001) ? d2 / scaleRefDist : 1; if (f > 0.0001) applyScaleToShape(s, scaleCenter.x, scaleCenter.y, f); }
                 }
                 drawSingleShape(targetCtx, s, isPrinting, sel, ddx, ddy);
             }
@@ -2167,6 +2273,18 @@
                 ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, ms.x+20, ms.y+26);
             }
 
+            if (isScaleMode() && scaleCenter && !isPanning) {
+                let d2 = Math.hypot(currentX - scaleCenter.x, currentY - scaleCenter.y);
+                let f = (scaleRefDist > 0.0001) ? d2 / scaleRefDist : 1;
+                let full = "×" + f.toFixed(2);
+                let cs = worldToScreen(scaleCenter.x, scaleCenter.y), ms = worldToScreen(currentX, currentY);
+                ctx.strokeStyle = '#10b981'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(cs.x, cs.y); ctx.lineTo(ms.x, ms.y); ctx.stroke(); ctx.setLineDash([]);
+                ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(cs.x, cs.y, 5, 0, Math.PI*2); ctx.fill();
+                ctx.font = "bold 12px Arial"; let meas = ctx.measureText(full);
+                ctx.fillStyle = "rgba(30,30,30,0.9)"; ctx.fillRect(ms.x+15, ms.y+15, meas.width+10, 22);
+                ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, ms.x+20, ms.y+26);
+            }
+
             if (isDrawing && !isPanning && (mode === 'line' || mode === 'rect' || mode === 'circle' || mode === 'poly' || mode === 'arc')) {
                 let full = "";
                 if (mode === 'arc') {
@@ -2194,6 +2312,7 @@
 
             updatePropertiesPopup();
             updateCommandMessage();
+            updateGroupButtons();
         }
 
         function updateCommandMessage() {
@@ -2212,6 +2331,12 @@
             else if (mode === 'dim-angle') { if (dimAngleStep === 0) msg = "ANGLE : Cliquez sur la 1ère droite (D1)."; else if (dimAngleStep === 1) msg = "ANGLE : Cliquez sur la 2ème droite (D2)."; else msg = "ANGLE : Cliquez pour poser l'arc de cotation."; }
             else if (mode === 'move') { if (selectedShapes.length === 0) msg = "DÉPLACER : Cliquez sur un objet."; else if (!moveBasePoint) msg = "DÉPLACER : Point de base."; else msg = "DÉPLACER : Point de destination."; }
             else if (mode === 'rotate') { if (selectedShapes.length === 0) msg = "ROTATION : Cliquez sur un objet."; else if (!rotateCenter) msg = "ROTATION : Point de base (centre de rotation)."; else msg = "ROTATION : Angle de rotation (valeur + Entrée)."; }
+            else if (isScaleMode()) {
+                const lbl = mode === 'scale-up' ? "AGRANDIR" : "RÉDUIRE", op = mode === 'scale-up' ? "×" : "÷";
+                if (selectedShapes.length === 0) msg = lbl + " : Sélectionnez des éléments (ou cliquez un objet).";
+                else if (!scaleCenter) msg = lbl + " : tapez le facteur (" + op + (typedInput || "n") + ") + Entrée, ou cliquez le point de base.";
+                else msg = lbl + " : 2e point pour définir le facteur (ou " + op + "n + Entrée).";
+            }
             else if (mode === 'trim') msg = "AJUSTER : Cliquez sur la portion à supprimer.";
             else if (mode === 'extend') msg = "PROLONGER : Cliquez près de l'extrémité à étendre.";
             else if (mode === 'offset') { if (!typedInput || isNaN(parseFloat(typedInput))) msg = "DÉCALER : Distance de décalage (valeur + Entrée)."; else if (!offsetTarget) msg = `DÉCALER (${typedInput} ${currentUnit}) : Sélectionnez l'objet.`; else msg = `DÉCALER (${typedInput} ${currentUnit}) : Cliquez du côté voulu.`; }
@@ -2294,6 +2419,9 @@
                     let sn = findSnap(wp.x, wp.y); let px2 = sn ? sn.x : wp.x; let py2 = sn ? sn.y : wp.y;
                     let dx = px2 - clipboardBasePoint.x; let dy = py2 - clipboardBasePoint.y;
                     let newShapes = JSON.parse(JSON.stringify(clipboard));
+                    // les copies forment leurs propres groupes (pas rattachées aux originaux)
+                    const gmap = {};
+                    newShapes.forEach(s => { if (s.groupId) { if (!gmap[s.groupId]) gmap[s.groupId] = 'grp-' + Date.now() + '-' + Math.floor(Math.random()*100000); s.groupId = gmap[s.groupId]; } });
                     selectedShapes = [];
                     newShapes.forEach(s => {
                         if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; }
@@ -2341,7 +2469,7 @@
             if (mode === 'select-box') { if (!isDrawing) { startX = wp.x; startY = wp.y; isDrawing = true; } return; }
 
             if (mode === 'move') {
-                if (selectedShapes.length === 0) { let target = findShapeAt(wp.x, wp.y); if (target) { selectedShapes = [target]; draw(); } else return; }
+                if (selectedShapes.length === 0) { let target = findShapeAt(wp.x, wp.y); if (target) { selectedShapes = expandGroups([target]); draw(); } else return; }
                 if (!moveBasePoint) { let sn = findSnap(wp.x, wp.y); moveBasePoint = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y}; isMovingObjects = true; }
                 else {
                     let sn = findSnap(wp.x, wp.y), dest = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y}, ddx = dest.x-moveBasePoint.x, ddy = dest.y-moveBasePoint.y;
@@ -2359,7 +2487,7 @@
             }
 
             if (mode === 'rotate') {
-                if (selectedShapes.length === 0) { let target = findShapeAt(wp.x, wp.y); if (target) { selectedShapes = [target]; draw(); } else return; }
+                if (selectedShapes.length === 0) { let target = findShapeAt(wp.x, wp.y); if (target) { selectedShapes = expandGroups([target]); draw(); } else return; }
                 let sn = findSnap(wp.x, wp.y); let pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
                 if (!rotateCenter) { rotateCenter = pt; rotateStartAngle = Math.atan2(wp.y - rotateCenter.y, wp.x - rotateCenter.x); isRotatingObjects = true; typedInput = ""; }
                 else {
@@ -2367,6 +2495,22 @@
                     if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) diff = parseFloat(typedInput) * Math.PI / 180;
                     selectedShapes.forEach(s => applyRotationToShape(s, rotateCenter.x, rotateCenter.y, diff));
                     isRotatingObjects = false; rotateCenter = null; typedInput = ""; saveState(); draw();
+                }
+                return;
+            }
+
+            if (isScaleMode()) {
+                if (selectedShapes.length === 0) { let target = findShapeAt(wp.x, wp.y); if (target) { selectedShapes = expandGroups([target]); draw(); } else return; }
+                let sn = findSnap(wp.x, wp.y); let pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
+                if (!scaleCenter) {
+                    scaleCenter = pt;
+                    scaleRefDist = Math.hypot(wp.x - scaleCenter.x, wp.y - scaleCenter.y);
+                    isScalingObjects = true; typedInput = "";
+                } else {
+                    let d2 = Math.hypot(wp.x - scaleCenter.x, wp.y - scaleCenter.y);
+                    let f = (scaleRefDist > 0.0001) ? d2 / scaleRefDist : 1;
+                    if (f > 0.0001) selectedShapes.forEach(s => applyScaleToShape(s, scaleCenter.x, scaleCenter.y, f));
+                    isScalingObjects = false; scaleCenter = null; scaleRefDist = 0; typedInput = ""; saveState(); draw();
                 }
                 return;
             }
@@ -2512,7 +2656,7 @@
                 let dist = Math.hypot(currentX - startX, currentY - startY);
                 if (dist < 5 / camera.zoom) {
                     let clickedShape = findShapeAt(startX, startY);
-                    if (clickedShape) { if (!e.shiftKey) selectedShapes = [clickedShape]; else if (selectedShapes.includes(clickedShape)) selectedShapes = selectedShapes.filter(s => s !== clickedShape); else selectedShapes.push(clickedShape); }
+                    if (clickedShape) { const grp = expandGroups([clickedShape]); if (!e.shiftKey) selectedShapes = grp; else if (selectedShapes.includes(clickedShape)) selectedShapes = selectedShapes.filter(s => !grp.includes(s)); else grp.forEach(g => { if (!selectedShapes.includes(g)) selectedShapes.push(g); }); }
                     else if (!e.shiftKey) { selectedShapes = []; }
                 } else {
                     if (!e.shiftKey) selectedShapes = [];
@@ -2525,6 +2669,7 @@
                         else if (s.type === 'dim-angle') b = isPointInRect(s.vertex.x, s.vertex.y, startX, startY, currentX-startX, currentY-startY);
                         if (b && !selectedShapes.includes(s)) selectedShapes.push(s);
                     });
+                    selectedShapes = expandGroups(selectedShapes);
                 }
                 isDrawing = false; draw();
             }
@@ -2620,6 +2765,12 @@
                 if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); openSelectionParamModal(); return; }
                 if (e.key === 'n' || e.key === 'N') { e.preventDefault(); return; }
             }
+            // Mode échelle : accepte x[n] (multiplier) ou /[n] (diviser), en plus des chiffres.
+            if (isScaleMode() && selectedShapes.length > 0) {
+                if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; }
+                else if (e.key === 'Backspace') { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; }
+                else if (e.key === 'Enter' && typedInput.length > 0) { e.preventDefault(); applyScaleFromTyped(); return; }
+            }
             if (isDrawing || mode === 'rotate' || mode === 'offset') {
                 if (/^[0-9.,\-]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; }
                 else if (e.key === 'Backspace') { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; }
@@ -2638,6 +2789,7 @@
                 rectDimStep = 0; rectWidthVal = 0;
                 detailStep = 0; detailTarget = null; detailLabelPos = null; closeDetailModal();
                 dimStep = 0; selectedShapes = []; isRotatingObjects = false; rotateCenter = null;
+                scaleCenter = null; scaleRefDist = 0; isScalingObjects = false;
                 dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
                 closeTextModal(); closeCartoucheModal(); closeLayerModal(); closeSnapModal(); closeHelpModal();
                 typedInput = ""; offsetTarget = null; offsetPreviewShape = null;
