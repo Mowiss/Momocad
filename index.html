@@ -289,9 +289,9 @@
         </div>
         <div class="flex justify-end space-x-3"><button class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white transition" onclick="closeCartoucheModal()">Annuler</button><button class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white transition" onclick="applyCartouche()">Valider</button></div>
     </div>
-    <div id="layer-modal" class="hidden absolute top-16 left-64 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-[31rem]">
+    <div id="layer-modal" class="hidden absolute top-16 left-64 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-600 z-50 w-[34rem]">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-white">Gestionnaire de Calques</h3><button class="text-gray-400 hover:text-white" onclick="closeLayerModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
-        <div class="flex items-center gap-2 px-2 pb-1 text-[10px] uppercase tracking-wide text-gray-500 pr-4"><span class="w-[15px]"></span><span class="flex-1">Calque</span><span class="w-6 text-center">Coul.</span><span class="w-12 text-center">Trait</span><span class="w-10 text-center">Ép.</span><span class="w-12 text-center" title="Texte : vide = variable (taille constante à l'écran et sur la feuille, comme les cotes). Valeur = hauteur fixe en mm dans le dessin.">Texte</span><span class="w-12 text-center">Hach.</span><span class="w-[15px]"></span></div>
+        <div class="flex items-center gap-2 px-2 pb-1 text-[10px] uppercase tracking-wide text-gray-500 pr-4"><span class="w-[15px]"></span><span class="flex-1">Calque</span><span class="w-6 text-center">Coul.</span><span class="w-12 text-center">Trait</span><span class="w-10 text-center">Ép.</span><span class="w-12 text-center" title="Texte : vide = variable (taille constante à l'écran et sur la feuille, comme les cotes). Valeur = hauteur fixe en mm dans le dessin.">Texte</span><span class="w-12 text-center">Hach.</span><span class="w-10 text-center" title="Échelle de hachure : multiplie l'écartement des traits (1 = 3 mm, 2 = 6 mm, 0,5 = 1,5 mm)">Éch.</span><span class="w-[15px]"></span></div>
         <div id="layers-list" class="flex flex-col space-y-2 mb-4 max-h-60 overflow-y-auto custom-scrollbar pr-2"></div>
         <div class="flex items-center space-x-2 border-t border-gray-700 pt-3"><input type="text" id="new-layer-name" class="flex-1 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500" placeholder="Nouveau calque..."><button class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm" onclick="addLayer()">Ajouter</button></div>
     </div>
@@ -366,6 +366,7 @@
                     <li><b class="text-white">3 calques :</b> 0 - Tracé (blanc, continu), 1 - Construction (gris, tireté), 2 - Cotation (orange). Dans le gestionnaire de calques, chaque calque a sa couleur, son type de trait, son épaisseur, et deux réglages :</li>
                     <li><b class="text-white">Texte :</b> champ vide (« auto ») = taille <b>variable</b>, constante à l'écran et sur la feuille, comme les cotes. Une valeur (ex. <b>2,5</b>) = <b>hauteur fixe en mm dans le dessin</b> : le texte grandit avec le zoom et suit l'échelle d'impression. S'applique aux textes, détails et valeurs de cote du calque.</li>
                     <li><b class="text-white">Hachure :</b> motif des hachures du calque : <b>///</b> (lignes), <b>XX</b> (croisée) ou <b>■</b> (plein).</li>
+                    <li><b class="text-white">Échelle de hachure (Éch.) :</b> multiplie l'écartement des traits de hachure du calque : <b>1</b> = 3 mm (par défaut), <b>2</b> = 6 mm, <b>0,5</b> = 1,5 mm. S'applique à toutes les hachures du calque, à l'écran, à l'impression et dans le DXF. Sans effet sur le plein.</li>
                     <li><b class="text-white">Paramétrer une sélection :</b> sélectionnez des objets puis tapez <b>Y</b> pour les changer de calque (<b>N</b> pour ignorer).</li>
                     <li><b class="text-white">Calque Cotation :</b> cotes, textes et détails y sont déposés automatiquement.</li>
                 </ul>
@@ -950,6 +951,7 @@
                             <option value="cross"${l.hatch==='cross'?' selected':''}>XX</option>
                             <option value="solid"${l.hatch==='solid'?' selected':''}>■</option>
                         </select>
+                        <input type="text" inputmode="decimal" value="${String(layerHatchScaleOf(l)).replace('.', ',')}" title="Échelle de hachure : multiplie l'écartement des traits (1 = 3 mm, 2 = 6 mm, 0,5 = 1,5 mm). Sans effet sur le plein." class="w-10 bg-gray-700 text-white border border-gray-600 rounded px-1 py-0.5 text-xs text-center outline-none shrink-0 ${l.hatch==='solid'?'opacity-40':''}" onchange="setLayerStyle('${l.id}','hatchScale',this.value)">
                         <button onclick="deleteLayer('${l.id}')" class="text-gray-500 hover:text-red-400 shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
                     list.appendChild(div);
                 });
@@ -962,8 +964,10 @@
             const l = layers.find(layer => layer.id === id);
             if (!l) return;
             if (prop === 'textH') { const v = parseFloat(String(value).replace(',', '.')); value = v > 0 ? v : ''; }
+            if (prop === 'hatchScale') { const v = parseFloat(String(value).replace(',', '.')); value = v > 0 ? Math.min(v, 1000) : 1; }
             l[prop] = value;
             invalidateCache(); saveState(); draw();
+            if (prop === 'hatchScale' || prop === 'hatch') updateLayerUI();
         }
         // --- Modale de paramétrage de la sélection (assignation de calque) ---
         function openSelectionParamModal() {
@@ -2026,7 +2030,7 @@
                 lp(62, l.visible === false ? -aci : aci);   // couleur négative = calque éteint
                 lp(6, ltName(l.dash)); lp(370, widthToLineweight(l.width || 1)); lp(390, M.plotStyle);
                 // réglages propres à MomoCAD (texte variable/fixe, motif de hachure), relus à l'import
-                lp(1001, 'MOMOCAD'); lp(1000, 'textH=' + (parseFloat(l.textH) > 0 ? parseFloat(l.textH) : '') + ';hatch=' + (l.hatch || 'lines'));
+                lp(1001, 'MOMOCAD'); lp(1000, 'textH=' + (parseFloat(l.textH) > 0 ? parseFloat(l.textH) : '') + ';hatch=' + (l.hatch || 'lines') + ';hscale=' + layerHatchScaleOf(l));
                 layerCount++;
             }
 
@@ -2058,7 +2062,7 @@
                 else if (s.type === 'circle') { loops = [[]]; for (let i = 0; i < 72; i++) { const a = i / 72 * 2 * Math.PI; loops[0].push({ x: s.x + s.r * Math.cos(a), y: s.y + s.r * Math.sin(a) }); } }
                 else return;
                 const pattern = layerHatch(s), solid = pattern === 'solid', cross = pattern === 'cross';
-                const sp = s.hatchSpacing || 3;
+                const sp = (s.hatchSpacing || 3) * layerHatchScale(s);
                 // l'axe Y est inversé : un angle de 45° à l'écran vaut 135° dans le DXF
                 const phi = ((360 - ((s.hatchAngle !== undefined) ? s.hatchAngle : 45)) % 180 + 180) % 180;
                 head('HATCH', s); p(100, 'AcDbHatch');
@@ -2176,6 +2180,7 @@
                             importedLayers[name].momo = true;
                             importedLayers[name].textH = parseFloat(kv.textH) > 0 ? parseFloat(kv.textH) : '';
                             importedLayers[name].hatch = ['lines', 'cross', 'solid'].includes(kv.hatch) ? kv.hatch : 'lines';
+                            importedLayers[name].hatchScale = parseFloat(kv.hscale) > 0 ? parseFloat(kv.hscale) : 1;
                         }
                     }
                 }
@@ -2323,7 +2328,7 @@
             for (const l of layers) {
                 if (layerDxfName(l.id).toLowerCase() === target) {
                     // fichier exporté par MomoCAD : on restaure tous les réglages du calque
-                    if (st0 && st0.momo) Object.assign(l, { color: st0.color, dash: st0.dash, width: st0.width, textH: st0.textH, hatch: st0.hatch });
+                    if (st0 && st0.momo) Object.assign(l, { color: st0.color, dash: st0.dash, width: st0.width, textH: st0.textH, hatch: st0.hatch, hatchScale: st0.hatchScale || 1 });
                     return l.id;
                 }
                 // anciens exports MomoCAD : noms avec "_" à la place des espaces et accents
@@ -2333,7 +2338,7 @@
             const newId = 'layer-' + Date.now() + '-' + Math.floor(Math.random()*1000);
             layers.push({ id:newId, name:name || 'Importé', visible:true,
                           color: st.color || '#ffffff', dash: st.dash || 'solid', width: st.width || 1,
-                          textH: st.textH || '', hatch: st.hatch || 'lines' });
+                          textH: st.textH || '', hatch: st.hatch || 'lines', hatchScale: st.hatchScale || 1 });
             return newId;
         }
 
@@ -2702,12 +2707,15 @@
             return (layer && layer.width) ? layer.width : 1;
         }
         // Dessine les hachures (lignes à 45°) à l'intérieur d'une forme fermée.
+        // Échelle de hachure du calque (multiplie l'écartement de base de 3 mm)
+        function layerHatchScaleOf(l) { const v = l ? parseFloat(l.hatchScale) : NaN; return v > 0 ? v : 1; }
+        function layerHatchScale(s) { return layerHatchScaleOf(layers.find(x => x.id === (s.layerId || 'layer-0'))); }
         function layerHatch(s) {
             const l = layers.find(x => x.id === (s.layerId || 'layer-0'));
             return (l && l.hatch) || 'lines';
         }
         function drawHatch(targetCtx, s, col, dx, dy, lineScale) {
-            const spacingMm = s.hatchSpacing || 3;          // espacement en mm
+            const spacingMm = (s.hatchSpacing || 3) * layerHatchScale(s);   // espacement en mm × échelle du calque
             const angleDeg = (s.hatchAngle !== undefined) ? s.hatchAngle : 45;
             const spacingWorld = mmToWorld(spacingMm);
             const pattern = layerHatch(s);
