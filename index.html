@@ -59,7 +59,13 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-    </style>
+        /* petit interrupteur (fond de carte : cadastre) */
+    .bm-switch { appearance: none; -webkit-appearance: none; width: 34px; height: 18px; border-radius: 9px; background: #4b5563; position: relative; cursor: pointer; transition: background .15s; flex-shrink: 0; margin: 0; }
+    .bm-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
+    .bm-switch:checked { background: #10b981; }
+    .bm-switch:checked::after { left: 18px; }
+    .bm-switch:disabled { opacity: .4; cursor: not-allowed; }
+</style>
 </head>
 <body class="flex flex-col h-screen relative">
 
@@ -218,7 +224,7 @@
                     <button id="btn-toggle-grid" class="flex items-center justify-center text-blue-400 hover:text-white transition-colors focus:outline-none" title="Afficher/Masquer la grille de fond" onclick="toggleGrid()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
                     </button>
-                    <button id="btn-basemap" class="flex items-center justify-center text-emerald-400 hover:text-white transition-colors focus:outline-none" title="Fond de carte : choisir un lieu (plan ou satellite) et l'insérer à l'échelle dans un rond" onclick="openBasemapModal()">
+                    <button id="btn-basemap" class="flex items-center justify-center text-emerald-400 hover:text-white transition-colors focus:outline-none" title="Fond de carte : choisir un lieu en vue satellite (cadastre en option) et l'insérer à l'échelle dans un rond" onclick="openBasemapModal()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3c2.6 2.5 3.9 5.5 3.9 9s-1.3 6.5-3.9 9c-2.6-2.5-3.9-5.5-3.9-9S9.4 5.5 12 3z"></path></svg>
                     </button>
                 </div>
@@ -236,9 +242,8 @@
             <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
                 <input id="bm-search" type="text" placeholder="Rechercher un lieu, une adresse…" autocomplete="off" style="flex:1;min-width:200px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:6px 10px;outline:none;">
                 <button type="button" onclick="bmSearch()" style="background:#4b5563;color:#fff;border:0;border-radius:6px;padding:6px 14px;cursor:pointer;">Chercher</button>
-                <select id="bm-provider" onchange="bmSetProvider(this.value)" title="Type de fond" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:6px 8px;outline:none;">
-                    <option value="plan">🗺️ Plan</option><option value="sat">🛰️ Satellite</option>
-                </select>
+                <label title="Afficher le plan cadastral (parcelles, IGN / DGFiP)" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-size:14px;padding:0 4px;">
+                    <input id="bm-cadastre" type="checkbox" class="bm-switch" onchange="bmSetCadastre(this.checked)"> Cadastre</label>
             </div>
             <div id="bm-map" style="width:100%;height:min(58vh,520px);border-radius:6px;background:#e5e7eb;overflow:hidden;"></div>
             <div style="display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap;">
@@ -371,7 +376,7 @@
                     <li><b class="text-white">Validation clavier :</b> après une saisie de valeur, <b>Entrée</b> valide et revient à la Sélection, <b>Espace</b> valide et garde l'outil actif.</li>
                     <li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Ou par dimensions : après le 1er coin, tapez la largeur ⬌ + <b>Espace</b>, puis la hauteur ⬍ + <b>Entrée</b>. Le sens suit la position de la souris.</li>
                     <li><b class="text-white">Arc :</b> centre, puis rayon/point de départ, puis point de fin. L'arc se trace du côté où va la souris (angle tapé négatif = autre sens).</li>
-                    <li><b class="text-white">Fond de carte 🌍 (bouton planète, en bas à droite à côté de la grille) :</b> ouvre une carte. Déplacez-vous (glisser, molette) ou tapez un lieu / une adresse puis <b>Chercher</b>. Cliquez sur la carte pour placer le <b>centre</b>, indiquez le <b>rayon en mètres</b> (le cercle bleu montre la zone) puis <b>Valider</b>. Le plan s'insère <b>à l'échelle</b> (1 m = 1 000 mm du dessin) dans un rond, sous tous les traits, au centre de l'écran. C'est un objet comme les autres : clic à l'intérieur pour le sélectionner, puis Déplacer, Pivoter, Copier, Supprimer ; son centre s'accroche. Agrandir/Réduire le fait sortir de l'échelle (signalé dans les propriétés). Il s'imprime et s'enregistre dans le fichier .json, mais n'est pas exporté en DXF. Deux fonds au choix : <b>🗺️ Plan</b> (données OpenStreetMap, rendu CARTO) ou <b>🛰️ Satellite</b> (Esri). Nécessite une connexion Internet ; la mention de la source est incrustée dans le rond.</li>
+                    <li><b class="text-white">Fond de carte 🌍 (bouton planète, en bas à droite à côté de la grille) :</b> ouvre une carte. Déplacez-vous (glisser, molette) ou tapez un lieu / une adresse puis <b>Chercher</b>. Cliquez sur la carte pour placer le <b>centre</b>, indiquez le <b>rayon en mètres</b> (le cercle bleu montre la zone) puis <b>Valider</b>. Le plan s'insère <b>à l'échelle</b> (1 m = 1 000 mm du dessin) dans un rond, sous tous les traits, au centre de l'écran. C'est un objet comme les autres : clic à l'intérieur pour le sélectionner, puis Déplacer, Pivoter, Copier, Supprimer ; son centre s'accroche. Agrandir/Réduire le fait sortir de l'échelle (signalé dans les propriétés). Il s'imprime et s'enregistre dans le fichier .json, mais n'est pas exporté en DXF. Le fond est une <b>vue satellite</b> (Esri). L'interrupteur <b>Cadastre</b> superpose les parcelles (IGN / DGFiP, France uniquement) ; une fois le fond posé, le même interrupteur se trouve dans ses propriétés pour afficher ou masquer le cadastre à tout moment. Nécessite une connexion Internet ; la mention des sources est incrustée dans le rond.</li>
                     <li><b class="text-white">Hachures :</b> cliquez à l'intérieur de n'importe quelle zone fermée, même formée par des traits qui se croisent ou dépassent, des arcs ou des cercles. La plus petite zone autour du clic est hachurée, et les formes isolées à l'intérieur sont laissées en blanc (îlots). La surface s'affiche dans la barre de commande. La hachure est un objet à part, au contour invisible : elle se sélectionne en cliquant dedans, se déplace et se supprime comme les autres objets, et sa surface apparaît dans les propriétés. Re-cliquez dedans avec l'outil Hachures pour la retirer. Un petit écart (environ 1,5 pixel à l'écran) entre deux traits est toléré ; au-delà, zoomez ou fermez le contour.</li>
                     <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li>
                     <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li>
@@ -707,25 +712,28 @@
         let basemapStore = {};
         const basemapImgCache = {};
         let bmMap = null, bmMarker = null, bmCircle = null, bmCenter = null, bmLabel = '', bmBusy = false, bmLayer = null;
-        // Fournisseurs de tuiles. Les serveurs bénévoles tile.openstreetmap.org refusent les applis (403 « Access blocked »),
-        // on passe donc par CARTO (données OpenStreetMap) pour le plan et Esri pour la vue satellite.
-        const BM_PROVIDERS = {
-            plan: { url: (z, x, y) => 'https://' + 'abcd'[(x + y) % 4] + '.basemaps.cartocdn.com/rastertiles/voyager/' + z + '/' + x + '/' + y + '.png',
-                    leaflet: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', sub: 'abcd', maxZoom: 20,
-                    attrib: '&copy; contributeurs OpenStreetMap &copy; CARTO', stamp: '© OpenStreetMap © CARTO', bg: '#f2efe9' },
-            sat:  { url: (z, x, y) => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' + z + '/' + y + '/' + x,
-                    leaflet: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', sub: '', maxZoom: 19,
-                    attrib: 'Imagerie &copy; Esri, Maxar, Earthstar Geographics', stamp: '© Esri, Maxar', bg: '#1f2937' }
-        };
-        let bmProvider = 'plan';
-        try { const v = localStorage.getItem('momocad-basemap-provider'); if (BM_PROVIDERS[v]) bmProvider = v; } catch (e) {}
-        function bmSetProvider(v) {
-            if (!BM_PROVIDERS[v]) return; bmProvider = v;
-            try { localStorage.setItem('momocad-basemap-provider', v); } catch (e) {}
+        // Fond : imagerie satellite Esri. Calque optionnel : cadastre (Parcellaire Express, IGN / DGFiP, Géoplateforme).
+        const BM_SAT = { url: (z, x, y) => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' + z + '/' + y + '/' + x,
+                         leaflet: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19,
+                         attrib: 'Imagerie &copy; Esri, Maxar, Earthstar Geographics' };
+        const BM_CAD_TPL = 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=CADASTRALPARCELS.PARCELLAIRE_EXPRESS&STYLE=PCI%20vecteur&TILEMATRIXSET=PM&FORMAT=image/png';
+        const BM_CAD = { url: (z, x, y) => BM_CAD_TPL + '&TILEMATRIX=' + z + '&TILEROW=' + y + '&TILECOL=' + x,
+                         leaflet: BM_CAD_TPL + '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', maxZoom: 19, attrib: 'Cadastre &copy; IGN / DGFiP' };
+        let bmCadOn = false, bmCadLayer = null;
+        try { bmCadOn = localStorage.getItem('momocad-basemap-cadastre') === '1'; } catch (e) {}
+        function bmSetCadastre(on) {
+            bmCadOn = !!on;
+            try { localStorage.setItem('momocad-basemap-cadastre', bmCadOn ? '1' : '0'); } catch (e) {}
             if (!bmMap) return;
-            if (bmLayer) bmMap.removeLayer(bmLayer);
-            const P = BM_PROVIDERS[v];
-            bmLayer = L.tileLayer(P.leaflet, { maxZoom: P.maxZoom, subdomains: P.sub || 'abc', attribution: P.attrib, crossOrigin: true }).addTo(bmMap);
+            if (bmCadOn && !bmCadLayer) bmCadLayer = L.tileLayer(BM_CAD.leaflet, { maxZoom: 20, maxNativeZoom: BM_CAD.maxZoom, attribution: BM_CAD.attrib, crossOrigin: true });
+            if (bmCadOn) bmCadLayer.addTo(bmMap); else if (bmCadLayer) bmMap.removeLayer(bmCadLayer);
+        }
+        // Cadastre d'un fond de carte déjà posé : interrupteur dans les propriétés
+        function toggleBasemapCadastre(on) {
+            const b = selectedShapes.find(x => x.type === 'basemap'); if (!b) return;
+            if (!basemapStore[b.mapId + '_cad']) return;
+            selectedShapes.filter(x => x.type === 'basemap').forEach(x => { if (basemapStore[x.mapId + '_cad']) x.cadastre = !!on; });
+            saveState(); draw();
         }
         function bmImg(id) {
             const src = basemapStore[id]; if (!src) return null;
@@ -764,13 +772,14 @@
             if (!bmMap) {
                 let v = null; try { v = JSON.parse(localStorage.getItem('momocad-basemap-view') || 'null'); } catch (e) {}
                 bmMap = L.map('bm-map').setView(v ? [v.lat, v.lng] : [46.6, 2.4], v ? v.z : 6);
-                bmSetProvider(bmProvider);
+                L.tileLayer(BM_SAT.leaflet, { maxZoom: 20, maxNativeZoom: BM_SAT.maxZoom, attribution: BM_SAT.attrib, crossOrigin: true }).addTo(bmMap);
+                bmSetCadastre(bmCadOn);
                 bmMap.on('click', (e) => { bmLabel = ''; bmSetCenter(e.latlng); });
                 bmMap.on('moveend', () => { const c = bmMap.getCenter(); try { localStorage.setItem('momocad-basemap-view', JSON.stringify({ lat: c.lat, lng: c.lng, z: bmMap.getZoom() })); } catch (e) {} });
                 document.getElementById('bm-radius').addEventListener('input', bmUpdateCircle);
                 document.getElementById('bm-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); bmSearch(); } });
             }
-            document.getElementById('bm-provider').value = bmProvider;
+            document.getElementById('bm-cadastre').checked = bmCadOn;
             setTimeout(() => bmMap.invalidateSize(), 50);
             if (!bmCenter) bmInfo('Cliquez sur la carte pour choisir le centre du fond de carte.');
         }
@@ -799,12 +808,12 @@
                 const rr = bmRadius(); if (rr) bmMap.fitBounds(bmCircle.getBounds(), { padding: [30, 30], maxZoom: 18 });
             } catch (err) { bmInfo('Recherche impossible : ' + err.message); }
         }
-        // Assemble les tuiles OSM autour du centre et renvoie une image carrée (diamètre = 2 × rayon).
-        async function buildBasemapImage(lat, lon, R, prov) {
-            const P = BM_PROVIDERS[prov] || BM_PROVIDERS.plan;
+        // Assemble les tuiles d'un fournisseur autour du centre : image carrée (diamètre = 2 × rayon).
+        // Satellite en JPEG ; cadastre en PNG transparent, posé par-dessus au dessin.
+        async function buildBasemapLayer(src, lat, lon, R, opaque) {
             const cosl = Math.cos(lat * Math.PI / 180), M0 = 156543.03392 * cosl;  // m/px au zoom 0
             let z = Math.floor(Math.log2(M0 * 1280 / (2 * R)));
-            z = Math.max(0, Math.min(P.maxZoom, z));
+            z = Math.max(0, Math.min(src.maxZoom, z));
             const n = Math.pow(2, z), mpp = M0 / n, D = 2 * R / mpp;               // diamètre en pixels de tuile
             const k = Math.max(1, 512 / D), S = Math.round(D * k);                  // agrandit les très petits rayons
             const cx = (lon + 180) / 360 * 256 * n;
@@ -821,25 +830,26 @@
                         const t = setTimeout(() => res(null), 20000);
                         im.onload = () => { clearTimeout(t); res({ im, tx, ty }); };
                         im.onerror = () => { clearTimeout(t); res(null); };
-                        im.src = P.url(z, wx, ty);
+                        im.src = src.url(z, wx, ty);
                     }));
                 }
             const tiles = await Promise.all(jobs);
             const ok = tiles.filter(Boolean);
-            if (!ok.length) throw new Error('impossible de télécharger les tuiles de carte');
+            if (!ok.length) return null;
             const cv = document.createElement('canvas'); cv.width = cv.height = S;
             const c = cv.getContext('2d');
-            c.fillStyle = P.bg; c.fillRect(0, 0, S, S);
+            if (opaque) { c.fillStyle = '#1f2937'; c.fillRect(0, 0, S, S); }
             c.imageSmoothingQuality = 'high';
             c.save(); c.scale(k, k);
             for (const t of ok) c.drawImage(t.im, t.tx * 256 - x0, t.ty * 256 - y0, 256, 256);
             c.restore();
-            // attribution OSM (obligatoire), en bas dans le rond
-            const fs = Math.max(9, Math.round(S * 0.028)), txt = P.stamp;
+            return { cv, S, missing: tiles.length - ok.length };
+        }
+        function bmStamp(cv, txt) {
+            const c = cv.getContext('2d'), S = cv.width, fs = Math.max(9, Math.round(S * 0.026));
             c.font = fs + 'px Arial'; const tw = c.measureText(txt).width;
             c.fillStyle = 'rgba(255,255,255,0.75)'; c.fillRect(S / 2 - tw / 2 - fs * 0.3, S * 0.9 - fs, tw + fs * 0.6, fs * 1.3);
             c.fillStyle = '#333'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillText(txt, S / 2, S * 0.9);
-            return { src: cv.toDataURL('image/jpeg', 0.88), missing: tiles.length - ok.length };
         }
         async function validateBasemap() {
             if (bmBusy || !bmMap) return;
@@ -847,18 +857,22 @@
             const ll = bmCenter || bmMap.getCenter();
             const btn = document.getElementById('bm-ok'); bmBusy = true; btn.textContent = 'Chargement…'; btn.style.opacity = '0.6';
             try {
-                const res = await buildBasemapImage(ll.lat, ll.lng, R, bmProvider);
+                const [sat, cad] = await Promise.all([buildBasemapLayer(BM_SAT, ll.lat, ll.lng, R, true), buildBasemapLayer(BM_CAD, ll.lat, ll.lng, R, false)]);
+                if (!sat) throw new Error('impossible de télécharger l\'image satellite');
+                bmStamp(sat.cv, '© Esri, Maxar' + (cad ? ' · Cadastre © IGN / DGFiP' : ''));
+                const res = { missing: sat.missing };
                 const id = 'bm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-                basemapStore[id] = res.src;
+                basemapStore[id] = sat.cv.toDataURL('image/jpeg', 0.88);
+                if (cad) basemapStore[id + '_cad'] = cad.cv.toDataURL('image/png');
                 const r = mmToWorld(R * 1000);
                 const c = screenToWorld(canvas.width / 2, canvas.height / 2);
-                const shp = { type: 'basemap', layerId: activeLayerId, x: c.x, y: c.y, r, rot: 0, mapId: id, lat: ll.lat, lon: ll.lng, radiusM: R, label: bmLabel || '', provider: bmProvider };
+                const shp = { type: 'basemap', layerId: activeLayerId, x: c.x, y: c.y, r, rot: 0, mapId: id, lat: ll.lat, lon: ll.lng, radiusM: R, label: bmLabel || '', cadastre: !!(cad && bmCadOn) };
                 shapes.unshift(shp);
                 // cadrer le fond de carte
                 camera.zoom = Math.min(canvas.width, canvas.height) * 0.8 / (2 * r);
                 camera.x = canvas.width / 2 - c.x * camera.zoom; camera.y = canvas.height / 2 - c.y * camera.zoom;
                 selectedShapes = [shp]; saveState(); closeBasemapModal();
-                bmImg(id); draw();
+                bmImg(id); if (cad) bmImg(id + '_cad'); draw();
                 updateCommandMessageText('FOND DE CARTE : rayon ' + R.toLocaleString('fr-FR') + ' m inséré à l\'échelle' + (res.missing ? ' (' + res.missing + ' tuile(s) manquante(s))' : '') + '.');
             } catch (err) { bmInfo('Erreur : ' + err.message); }
             finally { bmBusy = false; btn.textContent = 'Valider'; btn.style.opacity = ''; }
@@ -2364,7 +2378,7 @@
         }
 
         function saveToJSON() {
-            const basemaps = {}; shapes.forEach(sh => { if (sh.type === 'basemap' && basemapStore[sh.mapId]) basemaps[sh.mapId] = basemapStore[sh.mapId]; });
+            const basemaps = {}; shapes.forEach(sh => { if (sh.type !== 'basemap') return; [sh.mapId, sh.mapId + '_cad'].forEach(k => { if (basemapStore[k]) basemaps[k] = basemapStore[k]; }); });
             const data = { version: "1.2", scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes, cartouche: cartoucheData, basemaps };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
             const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
@@ -2709,7 +2723,11 @@
                 const X = s.x + dx, Y = s.y + dy, img = bmImg(s.mapId);
                 targetCtx.save();
                 targetCtx.beginPath(); targetCtx.arc(X, Y, s.r, 0, 2 * Math.PI); targetCtx.clip();
-                if (img) { targetCtx.translate(X, Y); targetCtx.rotate(s.rot || 0); targetCtx.drawImage(img, -s.r, -s.r, 2 * s.r, 2 * s.r); }
+                if (img) {
+                    targetCtx.translate(X, Y); targetCtx.rotate(s.rot || 0); targetCtx.drawImage(img, -s.r, -s.r, 2 * s.r, 2 * s.r);
+                    const cad = s.cadastre ? bmImg(s.mapId + '_cad') : null;
+                    if (cad) targetCtx.drawImage(cad, -s.r, -s.r, 2 * s.r, 2 * s.r);
+                }
                 else { targetCtx.fillStyle = '#d1d5db'; targetCtx.fill(); }
                 targetCtx.restore();
                 targetCtx.save(); targetCtx.setLineDash(sel ? [6 / lineScale, 4 / lineScale] : []);
@@ -3210,6 +3228,8 @@
                 html += `<div class="flex justify-between items-center"><span>Fond de carte:</span> <span class="font-mono text-emerald-300 ml-4">R ${realR.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} m</span></div>`;
                 if (Math.abs(realR - b.radiusM) > 1e-6 * b.radiusM) html += `<div class="text-yellow-300 text-xs">Agrandi/réduit : n'est plus à l'échelle (d'origine ${b.radiusM.toLocaleString('fr-FR')} m)</div>`;
                 html += `<div class="text-gray-400 text-xs">${b.label ? esc(b.label) + ' — ' : ''}${b.lat.toFixed(5)}, ${b.lon.toFixed(5)}</div>`;
+                const hasCad = !!basemapStore[b.mapId + '_cad'];
+                html += `<label class="flex justify-between items-center mt-1 cursor-pointer select-none" title="${hasCad ? 'Afficher / masquer le cadastre' : 'Cadastre indisponible pour ce lieu'}"><span>Cadastre:</span> <input type="checkbox" class="bm-switch ml-4" ${b.cadastre ? 'checked' : ''} ${hasCad ? '' : 'disabled'} onchange="toggleBasemapCadastre(this.checked)"></label>`;
             }
             if (html === '') html = '<div class="text-gray-500 italic">Aucune géométrie calculable</div>';
             content.innerHTML = html;
