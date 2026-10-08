@@ -314,7 +314,7 @@
                     <li><b class="text-white">Validation clavier :</b> après une saisie de valeur, <b>Entrée</b> valide et revient à la Sélection, <b>Espace</b> valide et garde l'outil actif.</li>
                     <li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Ou par dimensions : après le 1er coin, tapez la largeur ⬌ + <b>Espace</b>, puis la hauteur ⬍ + <b>Entrée</b>. Le sens suit la position de la souris.</li>
                     <li><b class="text-white">Arc :</b> centre, puis rayon/point de départ, puis point de fin. L'arc se trace du côté où va la souris (angle tapé négatif = autre sens).</li>
-                    <li><b class="text-white">Hachures :</b> cliquez à l'intérieur d'un rectangle, polygone ou cercle (re-cliquez pour retirer). Lignes à 45°, espacement 3 mm.</li>
+                    <li><b class="text-white">Hachures :</b> cliquez à l'intérieur de n'importe quelle zone fermée, même formée par des traits qui se croisent ou dépassent, des arcs ou des cercles. La plus petite zone autour du clic est hachurée, et les formes isolées à l'intérieur sont laissées en blanc (îlots). La surface s'affiche dans la barre de commande. La hachure est un objet à part, au contour invisible : elle se sélectionne en cliquant dedans, se déplace et se supprime comme les autres objets, et sa surface apparaît dans les propriétés. Re-cliquez dedans avec l'outil Hachures pour la retirer. Un petit écart (environ 1,5 pixel à l'écran) entre deux traits est toléré ; au-delà, zoomez ou fermez le contour.</li>
                     <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li>
                     <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li>
                     <li><b class="text-white">Décaler (Offset) :</b> Tapez la distance désirée, puis cliquez sur l'objet.</li>
@@ -643,6 +643,9 @@
             let minX, minY, maxX, maxY;
             if (shape.type === 'circle') {
                 minX = shape.x - shape.r; maxX = shape.x + shape.r; minY = shape.y - shape.r; maxY = shape.y + shape.r;
+            } else if (shape.loops) {
+                const all = shape.loops.flat(), xs = all.map(p => p.x), ys = all.map(p => p.y);
+                minX = Math.min(...xs); maxX = Math.max(...xs); minY = Math.min(...ys); maxY = Math.max(...ys);
             } else {
                 const xs = shape.points.map(p => p.x), ys = shape.points.map(p => p.y);
                 minX = Math.min(...xs); maxX = Math.max(...xs); minY = Math.min(...ys); maxY = Math.max(...ys);
@@ -671,11 +674,17 @@
                 const res = getIntersectionLineCircle(x1, y1, x2, y2, shape.x, shape.y, shape.r);
                 res.forEach(p => inter.push(p));
             } else {
-                const pts = shape.points;
-                for (let i = 0; i < pts.length; i++) {
-                    const a = pts[i], b = pts[(i + 1) % pts.length];
-                    const ip = segLineIntersect(x1, y1, x2, y2, a.x, a.y, b.x, b.y);
-                    if (ip) inter.push(ip);
+                // Contours (polygone ou zone avec îlots). Un sommet posé exactement sur la droite
+                // compte d'un seul côté : pas de croisement compté deux fois.
+                const dx = x2 - x1, dy = y2 - y1;
+                const side = (p) => ((dx * (p.y - y1) - dy * (p.x - x1)) >= 0 ? 1 : -1);
+                for (const pts of (shape.loops || [shape.points])) {
+                    for (let i = 0; i < pts.length; i++) {
+                        const a = pts[i], b = pts[(i + 1) % pts.length];
+                        if (side(a) === side(b)) continue;
+                        const ip = segLineIntersect(x1, y1, x2, y2, a.x, a.y, b.x, b.y);
+                        if (ip) inter.push(ip);
+                    }
                 }
             }
             if (inter.length < 2) return [];
@@ -696,11 +705,241 @@
             const r_px = lx1, r_py = ly1, r_dx = lx2 - lx1, r_dy = ly2 - ly1;
             const s_px = ax, s_py = ay, s_dx = bx - ax, s_dy = by - ay;
             const denom = r_dx * s_dy - r_dy * s_dx;
-            if (Math.abs(denom) < 1e-9) return null;
+            if (Math.abs(denom) < 1e-12) return null;
             const t = ((s_px - r_px) * s_dy - (s_py - r_py) * s_dx) / denom;
             const u = ((s_px - r_px) * r_dy - (s_py - r_py) * r_dx) / denom;
-            if (u < 0 || u > 1) return null; // hors du segment de la forme
+            if (u < -1e-9 || u > 1 + 1e-9) return null; // hors du segment de la forme
             return { x: r_px + t * r_dx, y: r_py + t * r_dy };
+        }
+
+        // =====================================================================
+        // DÉTECTION DE ZONE FERMÉE (hachures par point intérieur, façon AutoCAD)
+        // Les traits visibles sont découpés à chaque croisement pour former un
+        // réseau ; on fait le tour de la plus petite zone qui contient le clic.
+        // Les formes isolées à l'intérieur deviennent des îlots (trous).
+        // =====================================================================
+        function hatchBoundarySegments(tol) {
+            const segs = []; let curveId = 0;
+            const add = (ax, ay, bx, by, cid) => { if (Math.hypot(bx - ax, by - ay) > 1e-9) segs.push({ ax, ay, bx, by, cid }); };
+            for (const s of shapes) {
+                const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
+                if (layer && !layer.visible) continue;
+                if (s.type === 'line') add(s.x1, s.y1, s.x2, s.y2);
+                else if (s.type === 'poly' && s.points && s.points.length >= 2) {
+                    const n = s.points.length;
+                    for (let i = 0; i < (n >= 3 ? n : n - 1); i++) { const a = s.points[i], b = s.points[(i + 1) % n]; add(a.x, a.y, b.x, b.y); }
+                } else if (s.type === 'circle' || s.type === 'arc') {
+                    // cercles et arcs découpés en petits segments (écart < 0,05 % du rayon)
+                    let a0 = 0, sweep = 2 * Math.PI;
+                    if (s.type === 'arc') {
+                        a0 = s.startAngle; let d = s.endAngle - s.startAngle;
+                        if (s.anticlockwise) { while (d >= 0) d -= 2 * Math.PI; while (d < -2 * Math.PI) d += 2 * Math.PI; }
+                        else { while (d <= 0) d += 2 * Math.PI; while (d > 2 * Math.PI) d -= 2 * Math.PI; }
+                        sweep = d;
+                    }
+                    // segments assez longs devant la tolérance pour ne pas être fusionnés entre eux
+                    const arcLen = Math.abs(sweep) * s.r;
+                    const n = Math.max(8, Math.min(Math.ceil(Math.abs(sweep) / (2 * Math.PI) * 128), Math.floor(arcLen / (1.5 * tol))));
+                    const cid = ++curveId;
+                    let px = s.x + s.r * Math.cos(a0), py = s.y + s.r * Math.sin(a0);
+                    for (let k = 1; k <= n; k++) {
+                        const a = a0 + sweep * k / n, qx = s.x + s.r * Math.cos(a), qy = s.y + s.r * Math.sin(a);
+                        add(px, py, qx, qy, cid); px = qx; py = qy;
+                    }
+                }
+            }
+            return segs;
+        }
+
+        function findClosedRegion(px, py) {
+            // tolérance de fermeture : ~1,5 px à l'écran (bornée), comme ce que l'œil voit "fermé"
+            const tol = Math.min(Math.max(1.5 / camera.zoom, 0.01), (1 / unitsPerSquare) * GRID_SIZE);
+            const segs = hatchBoundarySegments(tol);
+            if (segs.length < 2) return null;
+
+            // ---- 1) points de coupe sur chaque segment (croisements, jonctions en T, recouvrements) ----
+            segs.forEach(s => {
+                s.len = Math.hypot(s.bx - s.ax, s.by - s.ay);
+                s.cuts = [{ t: 0, x: s.ax, y: s.ay }, { t: 1, x: s.bx, y: s.by }];
+                s.minX = Math.min(s.ax, s.bx) - tol; s.maxX = Math.max(s.ax, s.bx) + tol;
+                s.minY = Math.min(s.ay, s.by) - tol; s.maxY = Math.max(s.ay, s.by) + tol;
+            });
+            const order = segs.slice().sort((a, b) => a.minX - b.minX);
+            const projT = (s, x, y) => ((x - s.ax) * (s.bx - s.ax) + (y - s.ay) * (s.by - s.ay)) / (s.len * s.len);
+            for (let i = 0; i < order.length; i++) {
+                const A = order[i];
+                for (let j = i + 1; j < order.length && order[j].minX <= A.maxX; j++) {
+                    const B = order[j];
+                    if (B.minY > A.maxY || B.maxY < A.minY) continue;
+                    if (A.cid && A.cid === B.cid) continue;   // un cercle/arc ne se recoupe pas lui-même
+                    const rx = A.bx - A.ax, ry = A.by - A.ay, sx = B.bx - B.ax, sy = B.by - B.ay;
+                    const den = rx * sy - ry * sx;
+                    const qx = B.ax - A.ax, qy = B.ay - A.ay;
+                    if (Math.abs(den) < 1e-12 * A.len * B.len) {
+                        // parallèles : si colinéaires, chaque extrémité de l'un coupe l'autre (traits superposés)
+                        if (Math.abs(qx * ry - qy * rx) / A.len > tol) continue;
+                        for (const [S1, S2] of [[A, B], [B, A]]) {
+                            for (const [x, y] of [[S2.ax, S2.ay], [S2.bx, S2.by]]) {
+                                const t = projT(S1, x, y);
+                                if (t > 0 && t < 1) S1.cuts.push({ t, x, y });
+                            }
+                        }
+                        continue;
+                    }
+                    const t = (qx * sy - qy * sx) / den, u = (qx * ry - qy * rx) / den;
+                    const et = tol / A.len, eu = tol / B.len;
+                    if (t < -et || t > 1 + et || u < -eu || u > 1 + eu) continue;
+                    const X = A.ax + rx * t, Y = A.ay + ry * t;
+                    if (t < 0 || t > 1 || u < 0 || u > 1) {
+                        // petit écart : la jonction doit être à moins de la tolérance de chaque trait
+                        const tc = Math.min(1, Math.max(0, t)), uc = Math.min(1, Math.max(0, u));
+                        if (Math.hypot(A.ax + rx * tc - X, A.ay + ry * tc - Y) > tol) continue;
+                        if (Math.hypot(B.ax + sx * uc - X, B.ay + sy * uc - Y) > tol) continue;
+                    }
+                    A.cuts.push({ t: Math.min(1, Math.max(0, t)), x: X, y: Y });
+                    B.cuts.push({ t: Math.min(1, Math.max(0, u)), x: X, y: Y });
+                }
+            }
+
+            // ---- 2) nœuds (points fusionnés à la tolérance près) et arêtes ----
+            const nodes = [], grid = new Map();
+            const cell = (v) => Math.floor(v / tol);
+            const nodeId = (x, y) => {
+                const cx = cell(x), cy = cell(y);
+                for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+                    const list = grid.get((cx + dx) + ',' + (cy + dy));
+                    if (list) for (const id of list) if (Math.hypot(nodes[id].x - x, nodes[id].y - y) <= tol) return id;
+                }
+                const id = nodes.length; nodes.push({ x, y });
+                const k = cx + ',' + cy; if (!grid.has(k)) grid.set(k, []); grid.get(k).push(id);
+                return id;
+            };
+            const adj = new Map(); const edgeSet = new Set();
+            const link = (u, v) => {
+                if (u === v) return;
+                const k = u < v ? u + '_' + v : v + '_' + u;
+                if (edgeSet.has(k)) return; edgeSet.add(k);
+                if (!adj.has(u)) adj.set(u, new Set()); if (!adj.has(v)) adj.set(v, new Set());
+                adj.get(u).add(v); adj.get(v).add(u);
+            };
+            for (const s of segs) {
+                s.cuts.sort((a, b) => a.t - b.t);
+                let prev = nodeId(s.cuts[0].x, s.cuts[0].y);
+                for (let k = 1; k < s.cuts.length; k++) { const id = nodeId(s.cuts[k].x, s.cuts[k].y); link(prev, id); prev = id; }
+            }
+
+            // ---- 3) suppression des bouts qui dépassent (ils ne ferment rien) ----
+            const queue = [];
+            adj.forEach((set, id) => { if (set.size <= 1) queue.push(id); });
+            while (queue.length) {
+                const id = queue.pop(); const set = adj.get(id); if (!set) continue;
+                for (const nb of set) { const s2 = adj.get(nb); s2.delete(id); if (s2.size <= 1) queue.push(nb); }
+                adj.delete(id);
+            }
+            if (adj.size === 0) return null;
+
+            // ---- 4) composantes connexes ----
+            const comp = new Map(); let nComp = 0;
+            adj.forEach((_, id) => {
+                if (comp.has(id)) return;
+                const stack = [id]; comp.set(id, nComp);
+                while (stack.length) { const n = stack.pop(); for (const nb of adj.get(n)) if (!comp.has(nb)) { comp.set(nb, nComp); stack.push(nb); } }
+                nComp++;
+            });
+
+            // ---- 5) tour d'une face : on garde la zone à gauche, en tournant au plus serré ----
+            const walk = (a, b) => {
+                const loop = []; const startA = a, startB = b; let guard = 0;
+                do {
+                    loop.push({ x: nodes[a].x, y: nodes[a].y });
+                    const back = Math.atan2(nodes[a].y - nodes[b].y, nodes[a].x - nodes[b].x);
+                    let best = -1, bestD = Infinity;
+                    for (const w of adj.get(b)) {
+                        let d = back - Math.atan2(nodes[w].y - nodes[b].y, nodes[w].x - nodes[b].x);
+                        while (d <= 1e-12) d += 2 * Math.PI;
+                        while (d > 2 * Math.PI + 1e-12) d -= 2 * Math.PI;
+                        if (d < bestD) { bestD = d; best = w; }
+                    }
+                    a = b; b = best;
+                    if (++guard > edgeSet.size * 2 + 10) return null;
+                } while (!(a === startA && b === startB));
+                return loop;
+            };
+            // rayon horizontal vers la droite : première arête rencontrée (hors composantes exclues)
+            const rayHit = (qx, qy, allowed) => {
+                let best = null, bestX = Infinity;
+                adj.forEach((set, u) => {
+                    if (!allowed(comp.get(u))) return;
+                    for (const v of set) {
+                        if (v < u) continue;
+                        const A = nodes[u], B = nodes[v];
+                        if ((A.y > qy) === (B.y > qy)) continue;
+                        const x = A.x + (qy - A.y) * (B.x - A.x) / (B.y - A.y);
+                        if (x > qx && x < bestX) { bestX = x; best = [u, v]; }
+                    }
+                });
+                if (!best) return null;
+                const [u, v] = best, A = nodes[u], B = nodes[v];
+                // orienter l'arête pour que le point de départ soit à sa gauche
+                return ((B.x - A.x) * (qy - A.y) - (B.y - A.y) * (qx - A.x)) > 0 ? [u, v] : [v, u];
+            };
+
+            const qy = py + 1e-7 * (1 + Math.abs(py));
+            const excluded = new Set(); let outer = null, outerComp = -1;
+            for (let guard = 0; guard <= nComp; guard++) {
+                const h = rayHit(px, qy, c => !excluded.has(c));
+                if (!h) return null;
+                const loop = walk(h[0], h[1]);
+                if (!loop) return null;
+                if (pointInPolygon(px, py, loop)) { outer = loop; outerComp = comp.get(h[0]); break; }
+                excluded.add(comp.get(h[0]));   // le clic est à l'extérieur de ce groupe de traits
+            }
+            if (!outer) return null;
+
+            // ---- 6) îlots : groupes de traits entièrement à l'intérieur de la zone ----
+            const loops = [outer];
+            for (let c = 0; c < nComp; c++) {
+                if (c === outerComp) continue;
+                let anyNode = -1, minNode = -1;
+                adj.forEach((_, id) => {
+                    if (comp.get(id) !== c) return;
+                    if (anyNode < 0) anyNode = id;
+                    if (minNode < 0 || nodes[id].x < nodes[minNode].x) minNode = id;
+                });
+                if (anyNode < 0 || !pointInPolygon(nodes[anyNode].x, nodes[anyNode].y, outer)) continue;
+                const ox = nodes[minNode].x - 10 * tol, oy = nodes[minNode].y + 1e-7 * (1 + Math.abs(nodes[minNode].y));
+                const h = rayHit(ox, oy, cc => cc === c);
+                if (!h) continue;
+                const loop = walk(h[0], h[1]);
+                if (loop && loop.length >= 3) loops.push(loop);
+            }
+            return { loops };
+        }
+
+        // Surface lisible : m² pour les grandes surfaces, cm² ou mm² pour les petites pièces
+        function fmtSurface(a) {
+            const mm2 = currentUnit === 'mm' ? a : currentUnit === 'cm' ? a * 100 : a * 1e6;
+            const nf = (v, d) => v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+            if (mm2 >= 1e5) return nf(mm2 / 1e6, 2) + ' m²';
+            if (mm2 >= 100) return nf(mm2 / 100, 1) + ' cm²';
+            return nf(mm2, 1) + ' mm²';
+        }
+        // Point dans une hachure : règle pair/impair sur tous ses contours (les îlots sont des trous)
+        function pointInHatch(s, x, y) {
+            let inside = false;
+            for (const l of s.loops) if (pointInPolygon(x, y, l)) inside = !inside;
+            return inside;
+        }
+        // Surface d'une hachure (contour extérieur moins les îlots, en tenant compte des imbrications)
+        function hatchArea(s) {
+            const area = (l) => { let a = 0; for (let i = 0; i < l.length; i++) { const j = (i + 1) % l.length; a += l[i].x * l[j].y - l[j].x * l[i].y; } return Math.abs(a / 2); };
+            let total = 0;
+            s.loops.forEach((l, i) => {
+                let depth = 0;
+                s.loops.forEach((m, k) => { if (k !== i && pointInPolygon(l[0].x, l[0].y, m)) depth++; });
+                total += (depth % 2 ? -1 : 1) * area(l);
+            });
+            return Math.abs(total);
         }
 
         function isAngleBetween(target, start, end) {
@@ -759,6 +998,8 @@
             else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; }
             else if (s.type === 'dim') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2), po = rot(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
             else if (s.type === 'dim-angle') { let pv = rot(s.vertex.x, s.vertex.y), pp1 = rot(s.p1.x, s.p1.y), pp2 = rot(s.p2.x, s.p2.y); s.vertex = pv; s.p1 = pp1; s.p2 = pp2; }
+            else if (s.type === 'hatch') { s.loops.forEach(l => l.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; })); s.hatchAngle = ((s.hatchAngle !== undefined) ? s.hatchAngle : 45) + angleRad * 180 / Math.PI; }
+            else if (s.type === 'detail') { let pt = rot(s.tx, s.ty), pl = rot(s.lx, s.ly); s.tx = pt.x; s.ty = pt.y; s.lx = pl.x; s.ly = pl.y; }
         }
 
         // Mise à l'échelle d'une forme autour d'un centre (cx,cy) par un facteur.
@@ -772,6 +1013,7 @@
             else if (s.type === 'dim') { let p1 = sc(s.x1, s.y1), p2 = sc(s.x2, s.y2), po = sc(s.ox, s.oy); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; s.ox = po.x; s.oy = po.y; }
             else if (s.type === 'dim-angle') { let pv = sc(s.vertex.x, s.vertex.y), pp1 = sc(s.p1.x, s.p1.y), pp2 = sc(s.p2.x, s.p2.y); s.vertex = pv; s.p1 = pp1; s.p2 = pp2; }
             else if (s.type === 'detail') { let pt = sc(s.tx, s.ty), pl = sc(s.lx, s.ly); s.tx = pt.x; s.ty = pt.y; s.lx = pl.x; s.ly = pl.y; }
+            else if (s.type === 'hatch') { s.loops.forEach(l => l.forEach(pt => { let p = sc(pt.x, pt.y); pt.x = p.x; pt.y = p.y; })); }
         }
 
         // --- CORE GEOMETRY & SNAP ---
@@ -791,6 +1033,7 @@
                 if (s.type === 'line' || s.type === 'dim') { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); }
                 else if (s.type === 'circle' || s.type === 'arc') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); }
                 else if (s.type === 'poly') { s.points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
+                else if (s.type === 'hatch') { s.loops[0].forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
                 else if (s.type === 'text') { minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x + 100); minY = Math.min(minY, s.y - s.size); maxY = Math.max(maxY, s.y); }
             });
             if (minX === Infinity) return null;
@@ -968,7 +1211,13 @@
                     // Fallback : clic près du sommet
                     if (Math.hypot(p.x - s.vertex.x, p.y - s.vertex.y) < tol * 5) return s;
                 }
-            } return null;
+            }
+            for (let i = shapes.length - 1; i >= 0; i--) {
+                const s = shapes[i]; if (s.type !== 'hatch') continue;
+                const l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue;
+                if (pointInHatch(s, wx, wy)) return s;
+            }
+            return null;
         }
 
         // --- LOGIQUE AJUSTER ET PROLONGER ---
@@ -1212,6 +1461,7 @@
                     else if (s.type === 'line' || s.type === 'dim') { xs.push(s.x1, s.x2); ys.push(s.y1, s.y2); }
                     else if (s.vertex) { xs.push(s.vertex.x); ys.push(s.vertex.y); }
                     else if (s.type === 'detail') { xs.push(s.lx, s.tx); ys.push(s.ly, s.ty); }
+                    else if (s.loops) s.loops.forEach(l => l.forEach(p => { xs.push(p.x); ys.push(p.y); }));
                     else { xs.push(s.x); ys.push(s.y); }
                 });
                 cx = (Math.min(...xs) + Math.max(...xs)) / 2; cy = (Math.min(...ys) + Math.max(...ys)) / 2;
@@ -1221,7 +1471,10 @@
             saveState(); draw();
         }
         // Affiche un message ponctuel dans la barre de commande (écrasé au prochain draw).
+        // (le message reste affiché 4 s même si la souris bouge)
+        let flashMsg = null, flashUntil = 0;
         function updateCommandMessageText(msg) {
+            flashMsg = msg; flashUntil = Date.now() + 4000;
             const el = document.getElementById('command-text'); if (el) el.textContent = msg;
         }
 
@@ -1458,6 +1711,8 @@
                     (s.content || '').split('\n').forEach((t, k) => {
                         if (t.trim()) text(s, X(s.x), Y(s.y) - h * 1.25 * k, h, t, s.angle ? -s.angle * 180 / Math.PI : 0);
                     });
+                } else if (s.type === 'hatch') {
+                    hatch(s);   // motif explosé en lignes, contour invisible
                 } else if (s.type === 'detail') {
                     line(s, s.lx, s.ly, s.tx, s.ty);   // ligne de rappel
                     const h = worldToMm(s.size || 20);
@@ -2060,7 +2315,9 @@
             const spacingWorld = (spacingMm / unitsPerSquare) * GRID_SIZE;
             // travailler sur une copie décalée si la forme est déplacée en preview (dx,dy)
             const shp = (dx || dy)
-                ? (s.type === 'circle' ? { type:'circle', x:s.x+dx, y:s.y+dy, r:s.r } : { type:'poly', points: s.points.map(p => ({x:p.x+dx, y:p.y+dy})) })
+                ? (s.type === 'circle' ? { type:'circle', x:s.x+dx, y:s.y+dy, r:s.r }
+                   : s.loops ? { type:'hatch', loops: s.loops.map(l => l.map(p => ({x:p.x+dx, y:p.y+dy}))) }
+                   : { type:'poly', points: s.points.map(p => ({x:p.x+dx, y:p.y+dy})) })
                 : s;
             const segs = computeHatchLines(shp, spacingWorld, angleDeg);
             targetCtx.save();
@@ -2087,6 +2344,15 @@
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle, !!s.anticlockwise); targetCtx.stroke(); }
             else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
+            else if (s.type === 'hatch') {
+                drawHatch(targetCtx, s, sel ? '#ec4899' : col, dx, dy, lineScale);
+                if (sel) {
+                    targetCtx.save(); targetCtx.strokeStyle = '#ec4899'; targetCtx.lineWidth = 1.5 / lineScale; targetCtx.setLineDash([6 / lineScale, 4 / lineScale]);
+                    targetCtx.beginPath();
+                    for (const l of s.loops) { targetCtx.moveTo(l[0].x + dx, l[0].y + dy); for (const q of l) targetCtx.lineTo(q.x + dx, q.y + dy); targetCtx.closePath(); }
+                    targetCtx.stroke(); targetCtx.restore();
+                }
+            }
             else if (s.type === 'text') {
                 // Texte en taille ÉCRAN FIXE (comme les cotes) : on l'empile pour rendu post-transform.
                 screenTextsToDraw.push({ kind:'text', wx: s.x+dx, wy: s.y+dy, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20) });
@@ -2469,8 +2735,9 @@
             else if (mode === 'paste') msg = "COLLER : Spécifiez le point d'insertion.";
             else if (mode === 'text') msg = "TEXTE : Spécifiez le point d'insertion.";
             else if (mode === 'detail') msg = detailStep === 0 ? "DÉTAIL : Cliquez le point à désigner." : "DÉTAIL : Cliquez pour placer l'étiquette.";
-            else if (mode === 'hatch') msg = "HACHURES : Cliquez à l'intérieur d'une forme fermée (re-cliquez pour retirer).";
+            else if (mode === 'hatch') msg = "HACHURES : Cliquez à l'intérieur d'une zone fermée par des traits (re-cliquez dans une hachure pour la retirer).";
             else if (mode === 'print') msg = "PDF : ESPACE (pivoter) | MOLETTE (échelle) | CLIC (générer PDF).";
+            if (flashMsg && Date.now() < flashUntil) msg = flashMsg;
             const el = document.getElementById('command-text');
             if (el) el.textContent = msg;
         }
@@ -2487,11 +2754,12 @@
                 if (s.type === 'line' || s.type === 'dim') { totalLength += Math.hypot(s.x2 - s.x1, s.y2 - s.y1) * distFactor; }
                 else if (s.type === 'circle') { let r = s.r * distFactor; radius = r; totalLength += 2 * Math.PI * r; totalArea += Math.PI * r * r; }
                 else if (s.type === 'arc') { let r = s.r * distFactor; radius = r; let dAngle = s.endAngle - s.startAngle; if (dAngle < 0) dAngle += 2 * Math.PI; totalLength += r * dAngle; }
+                else if (s.type === 'hatch') { totalArea += hatchArea(s) * areaFactor; }
                 else if (s.type === 'poly') { let pLen = 0; for (let i = 0; i < s.points.length - 1; i++) { pLen += Math.hypot(s.points[i+1].x - s.points[i].x, s.points[i+1].y - s.points[i].y); } totalLength += pLen * distFactor; if (s.points.length > 2) { let area = 0; for (let i = 0; i < s.points.length; i++) { let j = (i + 1) % s.points.length; area += s.points[i].x * s.points[j].y; area -= s.points[j].x * s.points[i].y; } totalArea += Math.abs(area / 2) * areaFactor; } }
             });
             let html = '';
             const fmt = (val) => { if (currentUnit === 'm' && val < 1) return (val * 100).toFixed(1) + ' cm'; if (currentUnit === 'mm') return Math.round(val) + ' mm'; return val.toFixed(2) + ' ' + currentUnit; }
-            const fmtArea = (val) => { if (currentUnit === 'mm') return (val / 1000000).toFixed(3) + ' m²'; if (currentUnit === 'cm') return (val / 10000).toFixed(3) + ' m²'; return val.toFixed(2) + ' m²'; }
+            const fmtArea = (val) => fmtSurface(val);
             if (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'arc')) html += `<div class="flex justify-between items-center"><span>Rayon:</span> <span class="font-mono text-cyan-300 ml-4 font-bold">${fmt(radius)}</span></div>`;
             if (selectedShapes.length === 1 && selectedShapes[0].type === 'dim-angle') {
                 const s = selectedShapes[0];
@@ -2556,6 +2824,7 @@
                         else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; }
                         else if (s.type === 'dim-angle') { s.vertex.x += dx; s.vertex.y += dy; s.p1.x += dx; s.p1.y += dy; s.p2.x += dx; s.p2.y += dy; }
                         else if (s.type === 'detail') { s.tx += dx; s.ty += dy; s.lx += dx; s.ly += dy; }
+                        else if (s.type === 'hatch') { s.loops.forEach(l => l.forEach(p => { p.x += dx; p.y += dy; })); }
                         s.layerId = activeLayerId; shapes.push(s); selectedShapes.push(s);
                     });
                     saveState(); setMode('select-box');
@@ -2579,16 +2848,27 @@
             if (mode === 'extend') { extendShapeAt(wp.x, wp.y); draw(); return; }
 
             if (mode === 'hatch') {
-                // Cherche une forme fermée (poly fermée ou cercle) contenant le clic, et bascule ses hachures.
-                let hit = null;
+                // 1) clic dans une hachure existante : on la retire
                 for (let i = shapes.length - 1; i >= 0; i--) {
-                    const s = shapes[i];
-                    const layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
-                    if (layer && !layer.visible) continue;
-                    if (s.type === 'poly' && s.points && s.points.length >= 3 && pointInPolygon(wp.x, wp.y, s.points)) { hit = s; break; }
-                    if (s.type === 'circle' && Math.hypot(wp.x - s.x, wp.y - s.y) <= s.r) { hit = s; break; }
+                    const s = shapes[i]; if (s.type !== 'hatch') continue;
+                    const lay = layers.find(l => l.id === (s.layerId || 'layer-0')); if (lay && !lay.visible) continue;
+                    if (pointInHatch(s, wp.x, wp.y)) { shapes.splice(i, 1); selectedShapes = selectedShapes.filter(x => x !== s); saveState(); draw(); updateCommandMessageText("Hachure retirée."); return; }
                 }
-                if (hit) { hit.hatch = !hit.hatch; invalidateCache(); saveState(); draw(); }
+                // anciennes hachures attachées à un rectangle ou un cercle : on les retire aussi
+                for (let i = shapes.length - 1; i >= 0; i--) {
+                    const s = shapes[i]; if (!s.hatch) continue;
+                    const lay = layers.find(l => l.id === (s.layerId || 'layer-0')); if (lay && !lay.visible) continue;
+                    const inside = (s.type === 'poly' && pointInPolygon(wp.x, wp.y, s.points)) || (s.type === 'circle' && Math.hypot(wp.x - s.x, wp.y - s.y) <= s.r);
+                    if (inside) { s.hatch = false; invalidateCache(); saveState(); draw(); updateCommandMessageText("Hachure retirée."); return; }
+                }
+                // 2) détection de la zone fermée autour du clic
+                const region = findClosedRegion(wp.x, wp.y);
+                if (!region) { updateCommandMessageText("HACHURES : aucune zone fermée trouvée ici (contour ouvert ou trop d'écart entre les traits)."); return; }
+                const h = { type: 'hatch', layerId: activeLayerId, loops: region.loops };
+                shapes.unshift(h);   // dessinée sous les traits
+                saveState(); draw();
+                const surf = fmtSurface(hatchArea(h) * Math.pow(unitsPerSquare / GRID_SIZE, 2));
+                updateCommandMessageText("Zone hachurée : " + surf + (region.loops.length > 1 ? " (" + (region.loops.length - 1) + " îlot(s) exclu(s))" : "") + ".");
                 return;
             }
 
@@ -2606,6 +2886,7 @@
                         else if (s.type === 'poly') s.points.forEach(p => { p.x += ddx; p.y += ddy; });
                         else if (s.type === 'dim-angle') { s.vertex.x += ddx; s.vertex.y += ddy; s.p1.x += ddx; s.p1.y += ddy; s.p2.x += ddx; s.p2.y += ddy; }
                         else if (s.type === 'detail') { s.tx += ddx; s.ty += ddy; s.lx += ddx; s.ly += ddy; }
+                        else if (s.type === 'hatch') { s.loops.forEach(l => l.forEach(p => { p.x += ddx; p.y += ddy; })); }
                     });
                     isMovingObjects = false; moveBasePoint = null; saveState(); draw();
                 }
@@ -2793,6 +3074,7 @@
                         else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'poly') b = s.points.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         else if (s.type === 'dim-angle') b = isPointInRect(s.vertex.x, s.vertex.y, startX, startY, currentX-startX, currentY-startY);
+                        else if (s.type === 'hatch') b = s.loops[0].every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         if (b && !selectedShapes.includes(s)) selectedShapes.push(s);
                     });
                     selectedShapes = expandGroups(selectedShapes);
