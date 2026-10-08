@@ -123,13 +123,19 @@
             <button id="btn-fullscreen" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Plein Écran" onclick="toggleFullScreen()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></button>
             <!-- Menu DXF -->
             <div class="relative inline-block">
-                <button id="btn-dxf-menu" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Fichier DXF (R12, 1:1 mm)" onclick="toggleFileMenu('dxf', event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
-                <div id="menu-dxf" class="hidden absolute left-0 mt-1 w-40 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1">
-                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="exportDXFFile(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exporter DXF</button>
-                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="document.getElementById('dxf-input').click(); closeFileMenus();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Importer DXF</button>
+                <button id="btn-dxf-menu" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Fichier : Ouvrir, Enregistrer, Enregistrer sous, DXF" onclick="toggleFileMenu('dxf', event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
+                <div id="menu-dxf" class="hidden absolute left-0 mt-1 w-64 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1">
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); openProject();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span class="flex-1">Ouvrir…</span><span class="text-[11px] text-gray-500 font-mono">Ctrl+O</span></button>
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); saveProject(false);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg><span class="flex-1">Enregistrer</span><span class="text-[11px] text-gray-500 font-mono">Ctrl+S</span></button>
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); saveProject(true);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg><span class="flex-1">Enregistrer sous…</span><span class="text-[11px] text-gray-500 font-mono">Ctrl+Maj+S</span></button>
+                    <div class="border-t border-gray-700 my-1"></div>
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); document.getElementById('dxf-input').click();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg><span class="flex-1">Importer DXF</span><span class="text-[11px] text-gray-500 font-mono"></span></button>
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); exportDXFFile();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg><span class="flex-1">Exporter DXF (AutoCAD)</span><span class="text-[11px] text-gray-500 font-mono"></span></button>
                 </div>
             </div>
+            <span id="file-name-label" class="text-xs text-gray-400 max-w-[11rem] truncate px-1 select-none" title="Plan en cours"></span>
             <input type="file" id="dxf-input" class="hidden" accept=".dxf" onchange="importDXFFile(event)">
+            <input type="file" id="project-input" class="hidden" accept=".mmc,.dxf,.momocad,.json" onchange="openProjectFromInput(event)">
             <button id="btn-preview" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-sky-300" title="Aperçu avant impression : mise en page sur fond blanc (CLIC fige la page, ENTRÉE imprime)" onclick="setMode('preview')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="16.5" cy="16.5" r="3.5"></circle><line x1="19" y1="19" x2="22" y2="22"></line></svg></button>
             <button id="btn-print-settings" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Paramètres : unité et décimales affichées, format de feuille, cartouche, type de fichier (PDF / JPEG / PNG)" onclick="openCartoucheModal()"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif;font-size:19px;line-height:1">⛯</span></button>
             <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression PDF (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
@@ -399,9 +405,12 @@
                 </ul>
             </div>
             <div>
-                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">💾 Fichiers DXF</h4>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">💾 Fichiers</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Menu Fichier (disquette) :</b> Exporter / Importer au format DXF R2000 (AC1015), à l'échelle 1:1 (1 unité = 1 mm). Format d'échange lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li>
+                    <li><b class="text-white">Ouvrir… (Ctrl+O) / Enregistrer (Ctrl+S) / Enregistrer sous… (Ctrl+Maj+S) :</b> dans le menu disquette. Le plan est enregistré dans un fichier <b>.mmc</b> (plan MomoCAD) qui contient tout : dessin, calques et leurs réglages, accrochages, cartouche, grille, fonds de carte (images comprises) et la vue en cours. Le nom du plan s'affiche à côté du menu, avec un <b>•</b> orange tant qu'il reste des modifications non enregistrées ; MomoCAD prévient avant de fermer la page ou d'ouvrir un autre plan.</li>
+                    <li><b class="text-white">Enregistrer en DXF :</b> dans « Enregistrer sous », choisissez le type <b>DXF AutoCAD (.dxf)</b> (ou tapez un nom finissant par <b>.dxf</b>). Ensuite Ctrl+S réécrit ce DXF. Le DXF garde la géométrie, les calques et leurs réglages, les textes, cotes et hachures, mais pas les fonds de carte, les cotes d'angle ni le cartouche : gardez aussi un .mmc pour ne rien perdre. <b>Ouvrir</b> accepte aussi les DXF (ils deviennent le plan en cours) et les anciens fichiers .momocad.</li>
+                    <li><b class="text-white">Chrome / Edge :</b> on choisit le dossier et le nom une fois (Enregistrer sous), ensuite <b>Ctrl+S</b> réécrit directement le même fichier, comme un vrai logiciel (le navigateur demande l'autorisation la première fois). <b>Firefox / Safari :</b> Enregistrer télécharge le fichier dans le dossier Téléchargements, et Ouvrir passe par le sélecteur de fichier.</li>
+                    <li><b class="text-white">DXF (même menu) :</b> Exporter / Importer au format DXF R2000 (AC1015), à l'échelle 1:1 (1 unité = 1 mm). Format d'échange lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li>
                     <li><b class="text-white">Mise en forme conservée :</b> couleur, épaisseur, type de ligne, et les réglages Texte et Hachure de chaque calque sont enregistrés dans le DXF et restaurés au rechargement. Les couleurs sont ramenées à l'index ACI le plus proche (palette DXF standard).</li>
                     <li><b class="text-white">Entités gérées :</b> lignes, polylignes (rectangles), cercles, arcs, textes et hachures. Les hachures sont exportées en vraies hachures AutoCAD (entités HATCH, îlots compris), modifiables dans AutoCAD et relues comme hachures à l'import. L'import gère l'ancien format de polyligne (POLYLINE/VERTEX) et le moderne (LWPOLYLINE). Les blocs, splines et hachures à contours courbes venant d'autres logiciels sont ignorés et signalés.</li>
                     <li><b class="text-white">Installer l'appli :</b> sur la version en ligne (GitHub), Chrome et Edge affichent un bouton vert « Installer l'appli » en haut à droite. MomoCAD s'ouvre alors dans sa propre fenêtre, avec son icône 📐 (une connexion Internet reste nécessaire). Sur iPhone/iPad : Partager → « Sur l'écran d'accueil ».</li>
@@ -552,6 +561,7 @@
         let currentPrintScale = PRINT_SCALES[printScaleIndex].label; // libellé affiché (ex. '2:1')
 
         let layers = [{ id: 'layer-0', name: '0 - Tracé', visible: true, color: '#ffffff', dash: 'solid', width: 0.5 }, { id: 'layer-1', name: '1 - Construction', visible: true, color: '#808080', dash: 'dashed', width: 0.5 }, { id: 'layer-2', name: '2 - Cotation', visible: true, color: '#ff7f00', dash: 'solid', width: 1 }];
+        const INITIAL_LAYERS = JSON.parse(JSON.stringify(layers));   // calques d'un plan vierge (ouverture d'un DXF)
         const DIM_LAYER_ID = 'layer-2'; // calque Cotation (orange) : cotes, texte, détail
         const TEXT_LAYER_ID = 'layer-2'; // texte + détail = même calque que cotation
         // --- Édition de texte INLINE (WYSIWYG sur le canvas) ---
@@ -2413,39 +2423,143 @@
             reader.readAsArrayBuffer(file);
         }
 
-        function saveToJSON() {
+        // =====================================================================
+        // FICHIER : Ouvrir / Enregistrer / Enregistrer sous
+        //  - .mmc : plan MomoCAD complet (JSON) ; .momocad / .json : anciens noms, toujours lisibles
+        //  - .dxf : format AutoCAD (géométrie, calques, hachures ; sans fonds de carte ni cartouche)
+        // Chrome / Edge : vrai fichier sur le disque (API File System Access), « Enregistrer » réécrit le même fichier.
+        // Autres navigateurs : Enregistrer = téléchargement, Ouvrir = sélecteur de fichier classique.
+        // =====================================================================
+        let fileHandle = null, fileName = '', savedRef = null;
+        const MMC_TYPE = { description: 'Plan MomoCAD (.mmc)', accept: { 'application/json': ['.mmc'] } };
+        const DXF_TYPE = { description: 'DXF AutoCAD (.dxf)', accept: { 'application/dxf': ['.dxf'] } };
+        const OPEN_TYPES = [{ description: 'Plans MomoCAD et DXF', accept: { 'application/json': ['.mmc', '.momocad', '.json'], 'application/dxf': ['.dxf'] } }];
+        const isDxfName = (n) => /\.dxf$/i.test(n || '');
+        function projectData() {
             const basemaps = {}; shapes.forEach(sh => { if (sh.type !== 'basemap') return; [sh.mapId, sh.mapId + '_cad'].forEach(k => { if (basemapStore[k]) basemaps[k] = basemapStore[k]; }); });
-            const data = { version: "1.2", scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes, cartouche: cartoucheData, basemaps };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
-            a.download = "plan_momo_" + new Date().getTime() + ".json"; a.click();
+            const c = screenToWorld(canvas.width / 2, canvas.height / 2);
+            return { app: 'MomoCAD', version: '1.3', scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes,
+                     cartouche: cartoucheData, basemaps, gridMm, view: { cx: c.x, cy: c.y, zoom: camera.zoom } };
         }
-
-        function loadFromJSON(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
+        function fileBytes(name) {
+            if (isDxfName(name)) return encodeCp1252(exportDXF().replace(/\r?\n/g, '\r\n'));
+            return new TextEncoder().encode(JSON.stringify(projectData()));
+        }
+        function isDirty() { return shapesHistory[historyStep] !== savedRef; }
+        function markSaved() { savedRef = shapesHistory[historyStep]; updateTitle(); }
+        let _lastTitle = '';
+        function updateTitle() {
+            const name = fileName || 'Sans titre', dirty = isDirty();
+            const t = (dirty ? '• ' : '') + name + ' — MomoCAD';
+            if (t === _lastTitle) return; _lastTitle = t;
+            document.title = t;
+            const el = document.getElementById('file-name-label');
+            if (el) { el.textContent = name.replace(/\.(mmc|momocad|json)$/i, '') + (dirty ? ' •' : ''); el.title = name + (dirty ? ' (modifications non enregistrées)' : ' (enregistré)'); el.classList.toggle('text-amber-300', dirty); el.classList.toggle('text-gray-400', !dirty); }
+        }
+        function ensureExt(n) { n = (n || 'plan').trim().replace(/[\\/:*?"<>|]/g, '_'); return /\.(mmc|dxf)$/i.test(n) ? n : n.replace(/\.(momocad|json)$/i, '') + '.mmc'; }
+        const baseName = (n) => (n || 'plan').replace(/\.(mmc|momocad|json|dxf)$/i, '');
+        function savedMsg(name, how) {
+            let m = how + ' : ' + name;
+            if (isDxfName(name)) {
+                const lost = [];
+                if (shapes.some(sh => sh.type === 'basemap')) lost.push('fonds de carte');
+                if (shapes.some(sh => sh.type === 'dim-angle')) lost.push('cotes d\'angle');
+                m += ' (format AutoCAD' + (lost.length ? ' — non inclus : ' + lost.join(', ') : '') + ' ; « Enregistrer sous » .mmc pour tout garder)';
+            }
+            return m;
+        }
+        async function saveProject(saveAs) {
+            if (mode === 'print' || mode === 'preview') setMode('select-box');
+            if (window.showSaveFilePicker) {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    /* l'unité d'affichage suit le réglage ⛯, pas le fichier (le dessin est toujours stocké en mm) */
-                    if (data.cartouche) cartoucheData = data.cartouche;
-                    if (data.basemaps) Object.assign(basemapStore, data.basemaps);
-                    if (data.layers) {
-                        layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id;
-                        // Compléter les champs de style manquants (anciens fichiers)
-                        layers.forEach(l => {
-                            if (!l.color) l.color = '#ffffff';
-                            if (!l.dash) l.dash = 'solid';
-                            if (l.width === undefined || l.width === null) l.width = 1;
-                        });
+                    if (!fileHandle || saveAs) {
+                        // .mmc proposé en premier ; garder DXF en premier si le plan en cours est un DXF
+                        const types = isDxfName(fileName) ? [DXF_TYPE, MMC_TYPE] : [MMC_TYPE, DXF_TYPE];
+                        fileHandle = await window.showSaveFilePicker({ suggestedName: isDxfName(fileName) ? baseName(fileName) + '.dxf' : ensureExt(baseName(fileName)), types });
                     }
-                    if (data.snapSettings) { snapSettings = Object.assign({ endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true }, data.snapSettings); document.getElementById('snap-end').checked = snapSettings.endpoint; document.getElementById('snap-mid').checked = snapSettings.midpoint; document.getElementById('snap-center').checked = snapSettings.center; document.getElementById('snap-inter').checked = snapSettings.intersection; document.getElementById('snap-perp').checked = snapSettings.perpendicular; }
-                    shapes = data.shapes || []; selectedShapes = []; shapesHistory = []; historyStep = -1; saveState(); updateLayerUI(); draw();
-                } catch (err) { console.error(err); alert('Erreur de lecture du JSON : ' + err.message); }
-                event.target.value = ''; // permet de recharger le même fichier
-            };
-            reader.readAsText(file);
+                    const w = await fileHandle.createWritable(); await w.write(fileBytes(fileHandle.name)); await w.close();
+                    fileName = fileHandle.name; markSaved();
+                    updateCommandMessageText(savedMsg(fileName, 'Enregistré')); return true;
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return false;
+                    console.error(e);
+                    if (!confirm("Impossible d'écrire le fichier (" + (e.message || e) + ").\nLe télécharger à la place ?")) return false;
+                }
+            }
+            // Repli : téléchargement (taper un nom finissant par .dxf pour AutoCAD)
+            let name = fileName;
+            if (!name || saveAs) { name = prompt('Nom du fichier (ajoutez .dxf pour un fichier AutoCAD, sinon .mmc) :', baseName(fileName) + (isDxfName(fileName) ? '.dxf' : '')); if (!name) return false; }
+            name = ensureExt(name);
+            const url = URL.createObjectURL(new Blob([fileBytes(name)], { type: isDxfName(name) ? 'application/dxf' : 'application/json' }));
+            const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            fileName = name; markSaved();
+            updateCommandMessageText(savedMsg(name, 'Enregistré (téléchargé)')); return true;
         }
+        async function openProject() {
+            if (isDirty() && !confirm("Le plan en cours a des modifications non enregistrées.\nLes abandonner et ouvrir un autre plan ?")) return;
+            if (window.showOpenFilePicker) {
+                try {
+                    const [h] = await window.showOpenFilePicker({ types: OPEN_TYPES, multiple: false });
+                    const f = await h.getFile();
+                    if (await loadFileObject(f, h.name)) fileHandle = h;
+                } catch (e) { if (!e || e.name !== 'AbortError') { console.error(e); alert("Impossible d'ouvrir le fichier : " + (e.message || e)); } }
+                return;
+            }
+            document.getElementById('project-input').click();
+        }
+        function openProjectFromInput(event) {
+            const file = event.target.files[0]; if (!file) return;
+            loadFileObject(file, file.name).then(ok => { if (ok) fileHandle = null; event.target.value = ''; });
+        }
+        async function loadFileObject(f, name) {
+            if (!isDxfName(name)) return loadProjectText(await f.text(), name);
+            // DXF ouvert comme un nouveau plan (Ctrl+S le réenregistre en DXF)
+            const buf = new Uint8Array(await f.arrayBuffer());
+            let txt; try { txt = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (_) { txt = new TextDecoder('windows-1252').decode(buf); }
+            if (mode === 'print' || mode === 'preview') setMode('select-box');
+            const keepLayers = layers;
+            layers = JSON.parse(JSON.stringify(INITIAL_LAYERS)); activeLayerId = layers[0].id;
+            let res;
+            try { res = importDXF(txt); } catch (err) { layers = keepLayers; alert('Erreur de lecture du DXF : ' + err.message); return false; }
+            if (!res.shapes.length) { layers = keepLayers; alert('Aucune entité compatible trouvée dans ce DXF.'); return false; }
+            shapes = res.shapes; selectedShapes = []; shapesHistory = []; historyStep = -1;
+            invalidateCache(); saveState(); updateLayerUI(); zoomToFitShapes(shapes);
+            fileName = name; markSaved(); draw();
+            updateCommandMessageText('Ouvert : ' + name + ' — ' + res.shapes.length + ' entité(s)' + (res.ignored ? ', ' + res.ignored + ' non gérée(s) ignorée(s)' : '') + '.');
+            return true;
+        }
+        function loadProjectText(text, name) {
+            let data;
+            try { data = JSON.parse(text); } catch (err) { alert("Ce fichier n'est pas un plan MomoCAD lisible (" + err.message + ")."); return false; }
+            if (!data || !Array.isArray(data.shapes)) { alert("Ce fichier n'est pas un plan MomoCAD."); return false; }
+            if (mode === 'print' || mode === 'preview') setMode('select-box');
+            /* l'unité d'affichage suit le réglage ⛯, pas le fichier (le dessin est toujours stocké en mm) */
+            if (data.cartouche) cartoucheData = data.cartouche;
+            if (data.basemaps) Object.assign(basemapStore, data.basemaps);
+            if (data.layers && data.layers.length) {
+                layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id;
+                // Compléter les champs de style manquants (anciens fichiers)
+                layers.forEach(l => {
+                    if (!l.color) l.color = '#ffffff';
+                    if (!l.dash) l.dash = 'solid';
+                    if (l.width === undefined || l.width === null) l.width = 1;
+                });
+            }
+            if (data.snapSettings) { snapSettings = Object.assign({ endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true }, data.snapSettings); ['end:endpoint', 'mid:midpoint', 'inter:intersection', 'perp:perpendicular', 'center:center'].forEach(p => { const [id, k] = p.split(':'); const el = document.getElementById('snap-' + id); if (el) el.checked = !!snapSettings[k]; }); }
+            if (data.gridMm > 0) { gridMm = data.gridMm; refreshGridField(); }
+            shapes = data.shapes; selectedShapes = []; shapesHistory = []; historyStep = -1;
+            invalidateCache(); saveState(); updateLayerUI();
+            if (data.view && data.view.zoom > 0) {
+                camera.zoom = data.view.zoom;
+                camera.x = canvas.width / 2 - data.view.cx * camera.zoom; camera.y = canvas.height / 2 - data.view.cy * camera.zoom;
+            } else if (shapes.length) zoomToFitShapes(shapes);
+            // anciens fichiers .momocad / .json : le prochain Enregistrer garde le même fichier, Enregistrer sous propose .mmc
+            fileName = name || ''; markSaved(); draw();
+            updateCommandMessageText('Ouvert : ' + (fileName || 'plan'));
+            return true;
+        }
+        window.addEventListener('beforeunload', (e) => { if (isDirty()) { e.preventDefault(); e.returnValue = ''; } });
 
         function getPrintRect() {
             // Zone image = surface intérieure du cadre (feuille moins 5 mm de marge), aux proportions du format.
@@ -3201,7 +3315,7 @@
 
             updatePropertiesPopup();
             updateCommandMessage();
-            updateGroupButtons();
+            updateGroupButtons(); updateTitle();
         }
 
         function updateCommandMessage() {
@@ -3664,6 +3778,11 @@
         }
 
         document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+                const k = e.key.toLowerCase();
+                if (k === 's') { e.preventDefault(); saveProject(e.shiftKey); return; }
+                if (k === 'o') { e.preventDefault(); openProject(); return; }
+            }
             if (document.getElementById('basemap-modal').style.display === 'flex') { if (e.key === 'Escape') closeBasemapModal(); return; }
             if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
                 if (e.key === 'Enter') {
@@ -3791,7 +3910,7 @@
         });
 
         window.onload = () => {
-            updateLayerUI(); resizeCanvas(); saveState();
+            updateLayerUI(); resizeCanvas(); saveState(); markSaved();
             refreshGridField();
             getLogoImg();
             const ta = document.getElementById('inline-editor');
