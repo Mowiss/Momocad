@@ -125,7 +125,7 @@
             </div>
             <input type="file" id="dxf-input" class="hidden" accept=".dxf" onchange="importDXFFile(event)">
             <button id="btn-preview" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-sky-300" title="Aperçu avant impression : mise en page sur fond blanc (CLIC fige la page, ENTRÉE imprime)" onclick="setMode('preview')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="16.5" cy="16.5" r="3.5"></circle><line x1="19" y1="19" x2="22" y2="22"></line></svg></button>
-            <button id="btn-print-settings" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Paramètres d'impression : format de feuille, cartouche, type de fichier (PDF / JPEG / PNG)" onclick="openCartoucheModal()"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif;font-size:19px;line-height:1">⛯</span></button>
+            <button id="btn-print-settings" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Paramètres : unité et décimales affichées, format de feuille, cartouche, type de fichier (PDF / JPEG / PNG)" onclick="openCartoucheModal()"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif;font-size:19px;line-height:1">⛯</span></button>
             <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression PDF (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
             <div class="w-px h-5 bg-gray-600 mx-1"></div>
             <button id="btn-help" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-300" title="Aide & Raccourcis" onclick="openHelpModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>
@@ -225,7 +225,17 @@
 
     <!-- Modales -->
     <div id="cartouche-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-600 z-50 w-[27rem]">
-        <h3 class="text-lg font-bold text-white mb-4"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif">⛯</span> Paramètres d'impression</h3>
+        <h3 class="text-lg font-bold text-white mb-4"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif">⛯</span> Paramètres</h3>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div><label class="block text-xs text-gray-400 mb-1">Unité</label>
+                <select id="ps-unit" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
+                    <option value="mm">Millimètre (mm)</option><option value="cm">Centimètre (cm)</option><option value="m">Mètre (m)</option>
+                </select></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Décimales affichées</label>
+                <select id="ps-decimals" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
+                    <option value="0">0 (12)</option><option value="1">1 (12,3)</option><option value="2">2 (12,34)</option><option value="3">3 (12,345)</option><option value="4">4 (12,3456)</option>
+                </select></div>
+        </div>
         <div class="grid grid-cols-2 gap-3 mb-4">
             <div><label class="block text-xs text-gray-400 mb-1">Format de feuille</label>
                 <select id="ps-paper" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
@@ -287,7 +297,7 @@
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖱️ Souris & Navigation</h4>
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Clic Molette (Maintenu) :</b> Se déplacer sur le plan (Panoramique).</li>
-                    <li><b class="text-white">Molette (Roulette) :</b> Zoomer / Dézoomer.</li>
+                    <li><b class="text-white">Molette (Roulette) :</b> Zoomer / Dézoomer, sans limite, centré sur le curseur.</li>
                     <li><b class="text-white">Maj (Shift) + Tracé :</b> Forcer un trait horizontal ou vertical (ponctuel).</li>
                     <li><b class="text-white">Clic + Maj (Shift) :</b> Ajouter/Retirer un élément de la sélection.</li>
                 </ul>
@@ -367,6 +377,7 @@
             <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖨️ Impression</h4>
                 <ul class="list-disc pl-6 space-y-1">
+                    <li><b class="text-white">Unité et décimales ⛯ :</b> choisissez l'unité (<b>mm</b>, <b>cm</b> ou <b>m</b>) et le nombre de décimales affichées (0 à 4). Elles s'appliquent aux coordonnées X / Y en bas de l'écran, aux cotes, aux longueurs des propriétés et de la barre de commande, et aux valeurs tapées au clavier (en mètres, « 2,5 » trace 2,5 m). Le dessin lui-même ne change pas : seule la lecture change. Les hauteurs de texte des calques et la grille restent en mm / cm.</li>
                     <li><b class="text-white">Paramètres ⛯ (à gauche d'Imprimer) :</b> format de feuille (A5, A4, A3, A2, A1, A0), fichier produit (<b>PDF</b>, image <b>JPEG</b> ou <b>PNG</b>), cartouche imprimé ou non, et contenu du cartouche (plan, client, dessinateur, logo). Ces réglages sont mémorisés sur ce poste.</li>
                     <li><b class="text-white">Aperçu :</b> affiche la feuille exactement comme elle sortira, sur fond blanc (cadre, cartouche, couleurs d'impression). La page suit la souris pour la mise en page ; <b>molette</b> = échelle, <b>ESPACE</b> = portrait/paysage, <b>CLIC</b> = figer ou libérer la page, <b>ENTRÉE</b> = produire le fichier, <b>ÉCHAP</b> = quitter.</li>
                     <li><b class="text-white">ESPACE :</b> bascule portrait / paysage.</li>
@@ -461,8 +472,25 @@
         try { Object.assign(cartoucheData, JSON.parse(localStorage.getItem('momocad-cartouche') || '{}')); } catch (e) {}
         // Formats de feuille (mm, portrait) et réglages d'impression
         const PAPER_SIZES = { A5: [148, 210], A4: [210, 297], A3: [297, 420], A2: [420, 594], A1: [594, 841], A0: [841, 1189] };
-        let printSettings = { paper: 'A4', cartouche: true, output: 'pdf' };
+        let printSettings = { paper: 'A4', cartouche: true, output: 'pdf', unit: 'mm', decimals: 0 };
         try { Object.assign(printSettings, JSON.parse(localStorage.getItem('momocad-print') || '{}')); } catch (e) {}
+        // Unité d'affichage (⛯) : le dessin reste en mm en interne (10 mm par carré de grille),
+        // seule l'unité de lecture et de saisie change (coordonnées, cotes, longueurs tapées).
+        const UNIT_MM = { mm: 1, cm: 10, m: 1000 };
+        function applyUnitSettings() {
+            currentUnit = UNIT_MM[printSettings.unit] ? printSettings.unit : 'mm';
+            unitsPerSquare = 10 / UNIT_MM[currentUnit];
+            const d = parseInt(printSettings.decimals, 10);
+            printSettings.decimals = (d >= 0 && d <= 4) ? d : 0;
+        }
+        applyUnitSettings();
+        // Longueur dans l'unité choisie, avec le nombre de décimales choisi (virgule française)
+        function fmtNum(v) {
+            const d = printSettings.decimals;
+            let r = Number(v.toFixed(d)); if (Object.is(r, -0)) r = 0;
+            return r.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+        }
+        function fmtLen(v) { return fmtNum(v) + ' ' + currentUnit; }
         if (!PAPER_SIZES[printSettings.paper]) printSettings.paper = 'A4';
         function pageDims() {
             const sz = PAPER_SIZES[printSettings.paper] || PAPER_SIZES.A4, land = printOrientation === 'landscape';
@@ -597,6 +625,8 @@
             document.getElementById('cartouche-modal').classList.remove('hidden');
             document.getElementById('ps-paper').value = printSettings.paper;
             document.getElementById('ps-output').value = printSettings.output;
+            document.getElementById('ps-unit').value = currentUnit;
+            document.getElementById('ps-decimals').value = String(printSettings.decimals);
             document.getElementById('ps-cartouche').checked = !!printSettings.cartouche;
             document.getElementById('ps-cartouche-fields').classList.toggle('opacity-40', !printSettings.cartouche);
             document.getElementById('cartouche-plan').value = cartoucheData.planName || "";
@@ -615,6 +645,9 @@
             printSettings.paper = document.getElementById('ps-paper').value;
             printSettings.output = document.getElementById('ps-output').value;
             printSettings.cartouche = document.getElementById('ps-cartouche').checked;
+            printSettings.unit = document.getElementById('ps-unit').value;
+            printSettings.decimals = parseInt(document.getElementById('ps-decimals').value, 10);
+            applyUnitSettings(); updateCursorCoords();
             try { localStorage.setItem('momocad-print', JSON.stringify(printSettings)); } catch (e) {}
             cartoucheData.planName = document.getElementById('cartouche-plan').value;
             cartoucheData.clientName = document.getElementById('cartouche-client').value;
@@ -841,7 +874,7 @@
 
         function findClosedRegion(px, py) {
             // tolérance de fermeture : ~1,5 px à l'écran (bornée), comme ce que l'œil voit "fermé"
-            const tol = Math.min(Math.max(1.5 / camera.zoom, 0.01), (1 / unitsPerSquare) * GRID_SIZE);
+            const tol = Math.min(Math.max(1.5 / camera.zoom, 0.01), mmToWorld(1));
             const segs = hatchBoundarySegments(tol);
             if (segs.length < 2) return null;
 
@@ -1108,10 +1141,7 @@
         function screenToWorld(sx, sy) { return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom }; }
         function worldToScreen(wx, wy) { return { x: wx * camera.zoom + camera.x, y: wy * camera.zoom + camera.y }; }
         function calculateRealDistance(pxDist) {
-            let real = (pxDist/GRID_SIZE)*unitsPerSquare;
-            if (currentUnit === 'm' && real < 1) return (real*100).toFixed(1) + " cm";
-            if (currentUnit === 'mm') return Math.round(real) + " mm";
-            return real.toFixed(2) + " " + currentUnit;
+            return fmtLen((pxDist/GRID_SIZE)*unitsPerSquare);
         }
 
         function getShapesBoundingBox(shapeArray) {
@@ -1620,8 +1650,8 @@
         // Conventions de conversion :
         //   - px monde -> mm : diviser par MM_TO_WORLD (= GRID_SIZE/unitsPerSquare, soit 5 si 10mm/carré)
         //   - L'axe Y est INVERSÉ entre le canvas (Y bas) et le DXF (Y haut).
-        function worldToMm(v) { return v / (GRID_SIZE / unitsPerSquare); }
-        function mmToWorld(v) { return v * (GRID_SIZE / unitsPerSquare); }
+        function worldToMm(v) { return v / (GRID_SIZE / mmPerSquareUnit()); }
+        function mmToWorld(v) { return v * (GRID_SIZE / mmPerSquareUnit()); }
         function layerDxfName(id) {
             const l = layers.find(x => x.id === id);
             // Nom de calque DXF : on garde le nom réel, seuls les caractères interdits par AutoCAD sont remplacés
@@ -2142,7 +2172,7 @@
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if (data.scale) { unitsPerSquare = data.scale.value; currentUnit = data.scale.unit; }
+                    /* l'unité d'affichage suit le réglage ⛯, pas le fichier (le dessin est toujours stocké en mm) */
                     if (data.cartouche) cartoucheData = data.cartouche;
                     if (data.layers) {
                         layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id;
@@ -2426,7 +2456,7 @@
         function drawHatch(targetCtx, s, col, dx, dy, lineScale) {
             const spacingMm = s.hatchSpacing || 3;          // espacement en mm
             const angleDeg = (s.hatchAngle !== undefined) ? s.hatchAngle : 45;
-            const spacingWorld = (spacingMm / unitsPerSquare) * GRID_SIZE;
+            const spacingWorld = mmToWorld(spacingMm);
             const pattern = layerHatch(s);
             // travailler sur une copie décalée si la forme est déplacée en preview (dx,dy)
             const shp = (dx || dy)
@@ -2513,7 +2543,7 @@
                 let l = (-camera.x)/camera.zoom, r = (canvas.width-camera.x)/camera.zoom, t = (-camera.y)/camera.zoom, b = (canvas.height-camera.y)/camera.zoom;
                 // pas de grille réglable (mm) ; si les carreaux font moins de 6 px à l'écran,
                 // on n'affiche qu'un trait sur 10 (puis sur 100…) pour garder une grille lisible
-                let step = gridMm * (GRID_SIZE / unitsPerSquare);
+                let step = mmToWorld(gridMm);
                 while (step * camera.zoom < 6) step *= 10;
                 const major = step * 10;
                 let sx = Math.floor(l/step)*step, sy = Math.floor(t/step)*step;
@@ -2736,8 +2766,8 @@
         }
         function updateCursorCoords() {
             const el = document.getElementById('cursor-coords'); if (!el) return;
-            const f = (v) => { const r = Math.round(v * 10) / 10; return (Object.is(r, -0) ? 0 : r).toLocaleString('fr-FR'); };
-            el.textContent = 'X ' + f(worldToMm(currentX)) + '   Y ' + f(-worldToMm(currentY)) + ' ' + currentUnit;
+            const k = UNIT_MM[currentUnit] || 1;
+            el.textContent = 'X ' + fmtNum(worldToMm(currentX) / k) + '   Y ' + fmtNum(-worldToMm(currentY) / k) + ' ' + currentUnit;
         }
 
         // Logo du cartouche, chargé une fois pour l'aperçu et les exports image
@@ -2945,7 +2975,7 @@
                 else if (s.type === 'poly') { let pLen = 0; for (let i = 0; i < s.points.length - 1; i++) { pLen += Math.hypot(s.points[i+1].x - s.points[i].x, s.points[i+1].y - s.points[i].y); } totalLength += pLen * distFactor; if (s.points.length > 2) { let area = 0; for (let i = 0; i < s.points.length; i++) { let j = (i + 1) % s.points.length; area += s.points[i].x * s.points[j].y; area -= s.points[j].x * s.points[i].y; } totalArea += Math.abs(area / 2) * areaFactor; } }
             });
             let html = '';
-            const fmt = (val) => { if (currentUnit === 'm' && val < 1) return (val * 100).toFixed(1) + ' cm'; if (currentUnit === 'mm') return Math.round(val) + ' mm'; return val.toFixed(2) + ' ' + currentUnit; }
+            const fmt = (val) => fmtLen(val);
             const fmtArea = (val) => fmtSurface(val);
             if (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'arc')) html += `<div class="flex justify-between items-center"><span>Rayon:</span> <span class="font-mono text-cyan-300 ml-4 font-bold">${fmt(radius)}</span></div>`;
             if (selectedShapes.length === 1 && selectedShapes[0].type === 'dim-angle') {
@@ -3430,7 +3460,8 @@
                 camera.zoom = base * PRINT_SCALES[printScaleIndex].factor;
             } else {
                 let zf = 1.1; if (e.deltaY < 0) camera.zoom *= zf; else camera.zoom /= zf;
-                camera.zoom = Math.max(0.01, Math.min(camera.zoom, 50));
+                // Zoom libre : simple garde-fou contre la dégénérescence numérique
+                camera.zoom = Math.max(1e-9, Math.min(camera.zoom, 1e9));
             }
             camera.x = sx - wp.x * camera.zoom; camera.y = sy - wp.y * camera.zoom; draw();
         });
