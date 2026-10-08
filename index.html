@@ -218,12 +218,38 @@
                     <button id="btn-toggle-grid" class="flex items-center justify-center text-blue-400 hover:text-white transition-colors focus:outline-none" title="Afficher/Masquer la grille de fond" onclick="toggleGrid()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
                     </button>
+                    <button id="btn-basemap" class="flex items-center justify-center text-emerald-400 hover:text-white transition-colors focus:outline-none" title="Fond de carte : choisir un lieu (plan ou satellite) et l'insérer à l'échelle dans un rond" onclick="openBasemapModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3c2.6 2.5 3.9 5.5 3.9 9s-1.3 6.5-3.9 9c-2.6-2.5-3.9-5.5-3.9-9S9.4 5.5 12 3z"></path></svg>
+                    </button>
                 </div>
             </div>
         </main>
     </div>
 
     <!-- Modales -->
+    <div id="basemap-modal" style="display:none;position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+        <div style="background:#1f2937;border:1px solid #4b5563;border-radius:10px;padding:16px;width:min(920px,94vw);box-shadow:0 20px 50px rgba(0,0,0,.5);color:#e5e7eb;font-family:inherit;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <h3 style="font-size:18px;font-weight:700;color:#fff;margin:0;">🌍 Fond de carte</h3>
+                <span style="font-size:12px;color:#9ca3af;">Cliquez sur la carte pour placer le centre</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+                <input id="bm-search" type="text" placeholder="Rechercher un lieu, une adresse…" autocomplete="off" style="flex:1;min-width:200px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:6px 10px;outline:none;">
+                <button type="button" onclick="bmSearch()" style="background:#4b5563;color:#fff;border:0;border-radius:6px;padding:6px 14px;cursor:pointer;">Chercher</button>
+                <select id="bm-provider" onchange="bmSetProvider(this.value)" title="Type de fond" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:6px 8px;outline:none;">
+                    <option value="plan">🗺️ Plan</option><option value="sat">🛰️ Satellite</option>
+                </select>
+            </div>
+            <div id="bm-map" style="width:100%;height:min(58vh,520px);border-radius:6px;background:#e5e7eb;overflow:hidden;"></div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:14px;">Rayon
+                    <input id="bm-radius" type="text" inputmode="decimal" autocomplete="off" value="100" style="width:80px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:4px 8px;text-align:right;outline:none;"> m</label>
+                <span id="bm-info" style="font-size:12px;color:#9ca3af;flex:1;"></span>
+                <button type="button" onclick="closeBasemapModal()" style="background:#4b5563;color:#fff;border:0;border-radius:6px;padding:8px 16px;cursor:pointer;">Annuler</button>
+                <button id="bm-ok" type="button" onclick="validateBasemap()" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px 16px;cursor:pointer;">Valider</button>
+            </div>
+        </div>
+    </div>
     <div id="cartouche-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-600 z-50 w-[27rem]">
         <h3 class="text-lg font-bold text-white mb-4"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif">⛯</span> Paramètres</h3>
         <div class="grid grid-cols-2 gap-3 mb-4">
@@ -345,6 +371,7 @@
                     <li><b class="text-white">Validation clavier :</b> après une saisie de valeur, <b>Entrée</b> valide et revient à la Sélection, <b>Espace</b> valide et garde l'outil actif.</li>
                     <li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Ou par dimensions : après le 1er coin, tapez la largeur ⬌ + <b>Espace</b>, puis la hauteur ⬍ + <b>Entrée</b>. Le sens suit la position de la souris.</li>
                     <li><b class="text-white">Arc :</b> centre, puis rayon/point de départ, puis point de fin. L'arc se trace du côté où va la souris (angle tapé négatif = autre sens).</li>
+                    <li><b class="text-white">Fond de carte 🌍 (bouton planète, en bas à droite à côté de la grille) :</b> ouvre une carte. Déplacez-vous (glisser, molette) ou tapez un lieu / une adresse puis <b>Chercher</b>. Cliquez sur la carte pour placer le <b>centre</b>, indiquez le <b>rayon en mètres</b> (le cercle bleu montre la zone) puis <b>Valider</b>. Le plan s'insère <b>à l'échelle</b> (1 m = 1 000 mm du dessin) dans un rond, sous tous les traits, au centre de l'écran. C'est un objet comme les autres : clic à l'intérieur pour le sélectionner, puis Déplacer, Pivoter, Copier, Supprimer ; son centre s'accroche. Agrandir/Réduire le fait sortir de l'échelle (signalé dans les propriétés). Il s'imprime et s'enregistre dans le fichier .json, mais n'est pas exporté en DXF. Deux fonds au choix : <b>🗺️ Plan</b> (données OpenStreetMap, rendu CARTO) ou <b>🛰️ Satellite</b> (Esri). Nécessite une connexion Internet ; la mention de la source est incrustée dans le rond.</li>
                     <li><b class="text-white">Hachures :</b> cliquez à l'intérieur de n'importe quelle zone fermée, même formée par des traits qui se croisent ou dépassent, des arcs ou des cercles. La plus petite zone autour du clic est hachurée, et les formes isolées à l'intérieur sont laissées en blanc (îlots). La surface s'affiche dans la barre de commande. La hachure est un objet à part, au contour invisible : elle se sélectionne en cliquant dedans, se déplace et se supprime comme les autres objets, et sa surface apparaît dans les propriétés. Re-cliquez dedans avec l'outil Hachures pour la retirer. Un petit écart (environ 1,5 pixel à l'écran) entre deux traits est toléré ; au-delà, zoomez ou fermez le contour.</li>
                     <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li>
                     <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li>
@@ -671,6 +698,177 @@
             const inp = document.getElementById('grid-mm'); if (inp) inp.value = String(+(gridMm / 10).toFixed(4)).replace('.', ',');
             draw();
         }
+        // =====================================================================
+        // FOND DE CARTE (OpenStreetMap)
+        // Un fond de carte est un objet { type:'basemap', x, y, r, rot, mapId } : image ronde à l'échelle
+        // (1 m sur le terrain = 1000 mm dans le dessin). L'image (JPEG) est rangée à part dans basemapStore
+        // pour que l'historique (annuler) reste léger.
+        // =====================================================================
+        let basemapStore = {};
+        const basemapImgCache = {};
+        let bmMap = null, bmMarker = null, bmCircle = null, bmCenter = null, bmLabel = '', bmBusy = false, bmLayer = null;
+        // Fournisseurs de tuiles. Les serveurs bénévoles tile.openstreetmap.org refusent les applis (403 « Access blocked »),
+        // on passe donc par CARTO (données OpenStreetMap) pour le plan et Esri pour la vue satellite.
+        const BM_PROVIDERS = {
+            plan: { url: (z, x, y) => 'https://' + 'abcd'[(x + y) % 4] + '.basemaps.cartocdn.com/rastertiles/voyager/' + z + '/' + x + '/' + y + '.png',
+                    leaflet: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', sub: 'abcd', maxZoom: 20,
+                    attrib: '&copy; contributeurs OpenStreetMap &copy; CARTO', stamp: '© OpenStreetMap © CARTO', bg: '#f2efe9' },
+            sat:  { url: (z, x, y) => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' + z + '/' + y + '/' + x,
+                    leaflet: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', sub: '', maxZoom: 19,
+                    attrib: 'Imagerie &copy; Esri, Maxar, Earthstar Geographics', stamp: '© Esri, Maxar', bg: '#1f2937' }
+        };
+        let bmProvider = 'plan';
+        try { const v = localStorage.getItem('momocad-basemap-provider'); if (BM_PROVIDERS[v]) bmProvider = v; } catch (e) {}
+        function bmSetProvider(v) {
+            if (!BM_PROVIDERS[v]) return; bmProvider = v;
+            try { localStorage.setItem('momocad-basemap-provider', v); } catch (e) {}
+            if (!bmMap) return;
+            if (bmLayer) bmMap.removeLayer(bmLayer);
+            const P = BM_PROVIDERS[v];
+            bmLayer = L.tileLayer(P.leaflet, { maxZoom: P.maxZoom, subdomains: P.sub || 'abc', attribution: P.attrib, crossOrigin: true }).addTo(bmMap);
+        }
+        function bmImg(id) {
+            const src = basemapStore[id]; if (!src) return null;
+            let im = basemapImgCache[id];
+            if (!im || im.src !== src) { im = new Image(); im.onload = () => draw(); im.src = src; basemapImgCache[id] = im; }
+            return (im.complete && im.naturalWidth) ? im : null;
+        }
+        function loadLeaflet() {
+            if (window.L && window.L.map) return Promise.resolve();
+            return new Promise((res, rej) => {
+                const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
+                const js = document.createElement('script'); js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                js.onload = () => res(); js.onerror = () => rej(new Error('Leaflet indisponible (connexion ?)'));
+                document.head.appendChild(js);
+            });
+        }
+        function bmRadius() { const v = parseFloat(String(document.getElementById('bm-radius').value).replace(',', '.')); return (v > 0) ? Math.min(v, 50000) : 0; }
+        function bmInfo(t) { document.getElementById('bm-info').textContent = t || ''; }
+        function bmSetCenter(ll) {
+            bmCenter = ll;
+            if (!bmMarker) bmMarker = L.circleMarker(ll, { radius: 5, color: '#ec4899', fillColor: '#ec4899', fillOpacity: 1 }).addTo(bmMap); else bmMarker.setLatLng(ll);
+            bmUpdateCircle();
+        }
+        function bmUpdateCircle() {
+            if (!bmMap || !bmCenter) return;
+            const r = bmRadius();
+            if (!bmCircle) bmCircle = L.circle(bmCenter, { radius: r || 1, color: '#2563eb', weight: 2, fillOpacity: 0.08 }).addTo(bmMap);
+            else { bmCircle.setLatLng(bmCenter); bmCircle.setRadius(r || 1); }
+            bmInfo((bmLabel ? bmLabel + ' — ' : '') + bmCenter.lat.toFixed(5) + ', ' + bmCenter.lng.toFixed(5));
+        }
+        async function openBasemapModal() {
+            closeLayerModal(); closeSnapModal(); closeCartoucheModal();
+            const m = document.getElementById('basemap-modal'); m.style.display = 'flex';
+            try { await loadLeaflet(); }
+            catch (err) { bmInfo('Impossible de charger la carte : ' + err.message); return; }
+            if (!bmMap) {
+                let v = null; try { v = JSON.parse(localStorage.getItem('momocad-basemap-view') || 'null'); } catch (e) {}
+                bmMap = L.map('bm-map').setView(v ? [v.lat, v.lng] : [46.6, 2.4], v ? v.z : 6);
+                bmSetProvider(bmProvider);
+                bmMap.on('click', (e) => { bmLabel = ''; bmSetCenter(e.latlng); });
+                bmMap.on('moveend', () => { const c = bmMap.getCenter(); try { localStorage.setItem('momocad-basemap-view', JSON.stringify({ lat: c.lat, lng: c.lng, z: bmMap.getZoom() })); } catch (e) {} });
+                document.getElementById('bm-radius').addEventListener('input', bmUpdateCircle);
+                document.getElementById('bm-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); bmSearch(); } });
+            }
+            document.getElementById('bm-provider').value = bmProvider;
+            setTimeout(() => bmMap.invalidateSize(), 50);
+            if (!bmCenter) bmInfo('Cliquez sur la carte pour choisir le centre du fond de carte.');
+        }
+        function closeBasemapModal() { document.getElementById('basemap-modal').style.display = 'none'; }
+        async function bmSearch() {
+            const q = document.getElementById('bm-search').value.trim(); if (!q || !bmMap) return;
+            bmInfo('Recherche…');
+            try {
+                let hit = null;
+                try {
+                    const c = bmMap.getCenter();
+                    const r = await fetch('https://photon.komoot.io/api/?limit=1&lang=fr&lat=' + c.lat.toFixed(4) + '&lon=' + c.lng.toFixed(4) + '&q=' + encodeURIComponent(q));
+                    if (r.ok) { const f = (await r.json()).features || [];
+                        if (f.length) { const pr = f[0].properties || {}; hit = { lat: f[0].geometry.coordinates[1], lon: f[0].geometry.coordinates[0],
+                            label: [pr.name, pr.street && pr.housenumber ? pr.housenumber + ' ' + pr.street : pr.street, pr.city, pr.country].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).slice(0, 2).join(', ') }; } }
+                } catch (e) {}
+                if (!hit) {
+                    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=fr&q=' + encodeURIComponent(q));
+                    const j = r.ok ? await r.json() : [];
+                    if (j.length) hit = { lat: +j[0].lat, lon: +j[0].lon, label: (j[0].display_name || q).split(',').slice(0, 2).join(',') };
+                }
+                if (!hit) { bmInfo('Lieu introuvable.'); return; }
+                const ll = L.latLng(hit.lat, hit.lon);
+                bmLabel = hit.label || q;
+                bmMap.setView(ll, 17); bmSetCenter(ll);
+                const rr = bmRadius(); if (rr) bmMap.fitBounds(bmCircle.getBounds(), { padding: [30, 30], maxZoom: 18 });
+            } catch (err) { bmInfo('Recherche impossible : ' + err.message); }
+        }
+        // Assemble les tuiles OSM autour du centre et renvoie une image carrée (diamètre = 2 × rayon).
+        async function buildBasemapImage(lat, lon, R, prov) {
+            const P = BM_PROVIDERS[prov] || BM_PROVIDERS.plan;
+            const cosl = Math.cos(lat * Math.PI / 180), M0 = 156543.03392 * cosl;  // m/px au zoom 0
+            let z = Math.floor(Math.log2(M0 * 1280 / (2 * R)));
+            z = Math.max(0, Math.min(P.maxZoom, z));
+            const n = Math.pow(2, z), mpp = M0 / n, D = 2 * R / mpp;               // diamètre en pixels de tuile
+            const k = Math.max(1, 512 / D), S = Math.round(D * k);                  // agrandit les très petits rayons
+            const cx = (lon + 180) / 360 * 256 * n;
+            const sl = Math.sin(lat * Math.PI / 180);
+            const cy = (0.5 - Math.log((1 + sl) / (1 - sl)) / (4 * Math.PI)) * 256 * n;
+            const x0 = cx - D / 2, y0 = cy - D / 2;
+            const jobs = [];
+            for (let tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + D) / 256); tx++)
+                for (let ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + D) / 256); ty++) {
+                    if (ty < 0 || ty >= n) continue;
+                    const wx = ((tx % n) + n) % n;
+                    jobs.push(new Promise(res => {
+                        const im = new Image(); im.crossOrigin = 'anonymous';
+                        const t = setTimeout(() => res(null), 20000);
+                        im.onload = () => { clearTimeout(t); res({ im, tx, ty }); };
+                        im.onerror = () => { clearTimeout(t); res(null); };
+                        im.src = P.url(z, wx, ty);
+                    }));
+                }
+            const tiles = await Promise.all(jobs);
+            const ok = tiles.filter(Boolean);
+            if (!ok.length) throw new Error('impossible de télécharger les tuiles de carte');
+            const cv = document.createElement('canvas'); cv.width = cv.height = S;
+            const c = cv.getContext('2d');
+            c.fillStyle = P.bg; c.fillRect(0, 0, S, S);
+            c.imageSmoothingQuality = 'high';
+            c.save(); c.scale(k, k);
+            for (const t of ok) c.drawImage(t.im, t.tx * 256 - x0, t.ty * 256 - y0, 256, 256);
+            c.restore();
+            // attribution OSM (obligatoire), en bas dans le rond
+            const fs = Math.max(9, Math.round(S * 0.028)), txt = P.stamp;
+            c.font = fs + 'px Arial'; const tw = c.measureText(txt).width;
+            c.fillStyle = 'rgba(255,255,255,0.75)'; c.fillRect(S / 2 - tw / 2 - fs * 0.3, S * 0.9 - fs, tw + fs * 0.6, fs * 1.3);
+            c.fillStyle = '#333'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillText(txt, S / 2, S * 0.9);
+            return { src: cv.toDataURL('image/jpeg', 0.88), missing: tiles.length - ok.length };
+        }
+        async function validateBasemap() {
+            if (bmBusy || !bmMap) return;
+            const R = bmRadius(); if (!R) { bmInfo('Indiquez un rayon en mètres.'); return; }
+            const ll = bmCenter || bmMap.getCenter();
+            const btn = document.getElementById('bm-ok'); bmBusy = true; btn.textContent = 'Chargement…'; btn.style.opacity = '0.6';
+            try {
+                const res = await buildBasemapImage(ll.lat, ll.lng, R, bmProvider);
+                const id = 'bm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+                basemapStore[id] = res.src;
+                const r = mmToWorld(R * 1000);
+                const c = screenToWorld(canvas.width / 2, canvas.height / 2);
+                const shp = { type: 'basemap', layerId: activeLayerId, x: c.x, y: c.y, r, rot: 0, mapId: id, lat: ll.lat, lon: ll.lng, radiusM: R, label: bmLabel || '', provider: bmProvider };
+                shapes.unshift(shp);
+                // cadrer le fond de carte
+                camera.zoom = Math.min(canvas.width, canvas.height) * 0.8 / (2 * r);
+                camera.x = canvas.width / 2 - c.x * camera.zoom; camera.y = canvas.height / 2 - c.y * camera.zoom;
+                selectedShapes = [shp]; saveState(); closeBasemapModal();
+                bmImg(id); draw();
+                updateCommandMessageText('FOND DE CARTE : rayon ' + R.toLocaleString('fr-FR') + ' m inséré à l\'échelle' + (res.missing ? ' (' + res.missing + ' tuile(s) manquante(s))' : '') + '.');
+            } catch (err) { bmInfo('Erreur : ' + err.message); }
+            finally { bmBusy = false; btn.textContent = 'Valider'; btn.style.opacity = ''; }
+        }
+        // Ordre de dessin : les fonds de carte d'abord, sous tout le reste
+        function shapesInDrawOrder() {
+            if (!shapes.some(s => s.type === 'basemap')) return shapes;
+            return shapes.filter(s => s.type === 'basemap').concat(shapes.filter(s => s.type !== 'basemap'));
+        }
+
         function toggleGrid() { showGrid = !showGrid; const btn = document.getElementById('btn-toggle-grid'); if(showGrid) { btn.classList.add('text-blue-400'); btn.classList.remove('text-gray-500'); } else { btn.classList.add('text-gray-500'); btn.classList.remove('text-blue-400'); } draw(); }
         function toggleOrtho() {
             orthoMode = !orthoMode;
@@ -1114,6 +1312,7 @@
             const rot = (x, y) => ({ x: (cos * (x - cx)) - (sin * (y - cy)) + cx, y: (sin * (x - cx)) + (cos * (y - cy)) + cy });
             if (s.type === 'line') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
             else if (s.type === 'circle') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; }
+            else if (s.type === 'basemap') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.rot = (s.rot || 0) + angleRad; }
             else if (s.type === 'arc') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.startAngle += angleRad; s.endAngle += angleRad; }
             else if (s.type === 'poly') { s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
             else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; }
@@ -1127,7 +1326,7 @@
         function applyScaleToShape(s, cx, cy, f) {
             const sc = (x, y) => ({ x: cx + (x - cx) * f, y: cy + (y - cy) * f });
             if (s.type === 'line') { let p1 = sc(s.x1, s.y1), p2 = sc(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
-            else if (s.type === 'circle') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
+            else if (s.type === 'circle' || s.type === 'basemap') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
             else if (s.type === 'arc') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
             else if (s.type === 'poly') { s.points.forEach(pt => { let p = sc(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
             else if (s.type === 'text') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.size = (s.size || 20) * f; }
@@ -1149,7 +1348,7 @@
             if (!shapeArray || shapeArray.length === 0) return null;
             shapeArray.forEach(s => {
                 if (s.type === 'line' || s.type === 'dim') { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); }
-                else if (s.type === 'circle' || s.type === 'arc') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); }
+                else if (s.type === 'circle' || s.type === 'arc' || s.type === 'basemap') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); }
                 else if (s.type === 'poly') { s.points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
                 else if (s.type === 'hatch') { s.loops[0].forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
                 else if (s.type === 'text') { minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x + 100); minY = Math.min(minY, s.y - s.size); maxY = Math.max(maxY, s.y); }
@@ -1188,7 +1387,7 @@
                     else if (s.type === 'poly') { for (let i=0; i<s.points.length; i++) { let p1=s.points[i], p2=s.points[(i+1)%s.points.length]; pts.push({x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2}); } }
                     else if (s.type === 'arc') { let mid = s.startAngle < s.endAngle ? (s.startAngle + s.endAngle)/2 : (s.startAngle + s.endAngle + 2*Math.PI)/2; pts.push({x: s.x + Math.cos(mid)*s.r, y: s.y + Math.sin(mid)*s.r}); }
                 }
-                if (snapSettings.center && (s.type === 'circle' || s.type === 'arc')) pts.push({x: s.x, y: s.y});
+                if (snapSettings.center && (s.type === 'circle' || s.type === 'arc' || s.type === 'basemap')) pts.push({x: s.x, y: s.y});
             }
             if (snapSettings.intersection) pts.push(...getAllIntersections());
 
@@ -1338,6 +1537,11 @@
                 const s = shapes[i]; if (s.type !== 'hatch') continue;
                 const l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue;
                 if (pointInHatch(s, wx, wy)) return s;
+            }
+            for (let i = shapes.length - 1; i >= 0; i--) {
+                const s = shapes[i]; if (s.type !== 'basemap') continue;
+                const l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue;
+                if (Math.hypot(wx - s.x, wy - s.y) <= s.r) return s;
             }
             return null;
         }
@@ -2160,7 +2364,8 @@
         }
 
         function saveToJSON() {
-            const data = { version: "1.2", scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes, cartouche: cartoucheData };
+            const basemaps = {}; shapes.forEach(sh => { if (sh.type === 'basemap' && basemapStore[sh.mapId]) basemaps[sh.mapId] = basemapStore[sh.mapId]; });
+            const data = { version: "1.2", scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes, cartouche: cartoucheData, basemaps };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
             const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
             a.download = "plan_momo_" + new Date().getTime() + ".json"; a.click();
@@ -2174,6 +2379,7 @@
                     const data = JSON.parse(e.target.result);
                     /* l'unité d'affichage suit le réglage ⛯, pas le fichier (le dessin est toujours stocké en mm) */
                     if (data.cartouche) cartoucheData = data.cartouche;
+                    if (data.basemaps) Object.assign(basemapStore, data.basemaps);
                     if (data.layers) {
                         layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id;
                         // Compléter les champs de style manquants (anciens fichiers)
@@ -2232,7 +2438,7 @@
             offCtx.translate((camera.x - winX) * SS, (camera.y - winY) * SS);
             offCtx.scale(offZoom, offZoom);
             dimensionTextsToDraw = []; screenTextsToDraw = [];
-            for (let s of shapes) {
+            for (let s of shapesInDrawOrder()) {
                 let layer = layers.find(l => l.id === (s.layerId || 'layer-0'));
                 if (layer && !layer.visible) continue;
                 drawSingleShape(offCtx, s, true, false, 0, 0, offZoom / fl);
@@ -2394,7 +2600,7 @@
             targetCtx.save();
             targetCtx.translate(camera.x, camera.y);
             targetCtx.scale(camera.zoom, camera.zoom);
-            for (let s of shapes) {
+            for (let s of shapesInDrawOrder()) {
                 let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
                 drawSingleShape(targetCtx, s, isPrinting, false, 0, 0, ls);
             }
@@ -2499,6 +2705,17 @@
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle, !!s.anticlockwise); targetCtx.stroke(); }
             else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
+            else if (s.type === 'basemap') {
+                const X = s.x + dx, Y = s.y + dy, img = bmImg(s.mapId);
+                targetCtx.save();
+                targetCtx.beginPath(); targetCtx.arc(X, Y, s.r, 0, 2 * Math.PI); targetCtx.clip();
+                if (img) { targetCtx.translate(X, Y); targetCtx.rotate(s.rot || 0); targetCtx.drawImage(img, -s.r, -s.r, 2 * s.r, 2 * s.r); }
+                else { targetCtx.fillStyle = '#d1d5db'; targetCtx.fill(); }
+                targetCtx.restore();
+                targetCtx.save(); targetCtx.setLineDash(sel ? [6 / lineScale, 4 / lineScale] : []);
+                targetCtx.strokeStyle = sel ? '#ec4899' : '#6b7280'; targetCtx.lineWidth = (sel ? 2 : 1) / lineScale;
+                targetCtx.beginPath(); targetCtx.arc(X, Y, s.r, 0, 2 * Math.PI); targetCtx.stroke(); targetCtx.restore();
+            }
             else if (s.type === 'hatch') {
                 drawHatch(targetCtx, s, sel ? '#ec4899' : col, dx, dy, lineScale);
                 if (sel) {
@@ -2559,7 +2776,7 @@
                 targetCtx.stroke();
             }
 
-            for (let s of shapes) {
+            for (let s of shapesInDrawOrder()) {
                 let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
                 let sel = !isPrinting && selectedShapes.includes(s), ddx = 0, ddy = 0;
                 if (sel) {
@@ -2987,6 +3204,13 @@
             }
             if (totalLength > 0) { let lbl = (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'poly')) ? 'Périmètre:' : 'Longueur:'; if (selectedShapes.length > 1) lbl = 'Long. totale:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-blue-300 ml-4 font-bold">${fmt(totalLength)}</span></div>`; }
             if (totalArea > 0) { let lbl = selectedShapes.length > 1 ? 'Aire totale:' : 'Aire:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-green-400 ml-4 font-bold">${fmtArea(totalArea)}</span></div>`; }
+            if (selectedShapes.length === 1 && selectedShapes[0].type === 'basemap') {
+                const b = selectedShapes[0], esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+                const realR = worldToMm(b.r) / 1000;
+                html += `<div class="flex justify-between items-center"><span>Fond de carte:</span> <span class="font-mono text-emerald-300 ml-4">R ${realR.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} m</span></div>`;
+                if (Math.abs(realR - b.radiusM) > 1e-6 * b.radiusM) html += `<div class="text-yellow-300 text-xs">Agrandi/réduit : n'est plus à l'échelle (d'origine ${b.radiusM.toLocaleString('fr-FR')} m)</div>`;
+                html += `<div class="text-gray-400 text-xs">${b.label ? esc(b.label) + ' — ' : ''}${b.lat.toFixed(5)}, ${b.lon.toFixed(5)}</div>`;
+            }
             if (html === '') html = '<div class="text-gray-500 italic">Aucune géométrie calculable</div>';
             content.innerHTML = html;
         }
@@ -3037,7 +3261,7 @@
                     selectedShapes = [];
                     newShapes.forEach(s => {
                         if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; }
-                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += dx; s.y += dy; }
+                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap') { s.x += dx; s.y += dy; }
                         else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); }
                         else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; }
                         else if (s.type === 'dim-angle') { s.vertex.x += dx; s.vertex.y += dy; s.p1.x += dx; s.p1.y += dy; s.p2.x += dx; s.p2.y += dy; }
@@ -3100,7 +3324,7 @@
                     selectedShapes.forEach(s => {
                         if (s.type === 'line') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; }
                         else if (s.type === 'dim') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; s.ox += ddx; s.oy += ddy; }
-                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') { s.x += ddx; s.y += ddy; }
+                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap') { s.x += ddx; s.y += ddy; }
                         else if (s.type === 'poly') s.points.forEach(p => { p.x += ddx; p.y += ddy; });
                         else if (s.type === 'dim-angle') { s.vertex.x += ddx; s.vertex.y += ddy; s.p1.x += ddx; s.p1.y += ddy; s.p2.x += ddx; s.p2.y += ddy; }
                         else if (s.type === 'detail') { s.tx += ddx; s.ty += ddy; s.lx += ddx; s.ly += ddy; }
@@ -3292,6 +3516,7 @@
                         else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'poly') b = s.points.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         else if (s.type === 'dim-angle') b = isPointInRect(s.vertex.x, s.vertex.y, startX, startY, currentX-startX, currentY-startY);
+                        else if (s.type === 'basemap') b = isPointInRect(s.x - s.r, s.y - s.r, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x + s.r, s.y + s.r, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'hatch') b = s.loops[0].every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         if (b && !selectedShapes.includes(s)) selectedShapes.push(s);
                     });
@@ -3370,6 +3595,7 @@
         }
 
         document.addEventListener('keydown', (e) => {
+            if (document.getElementById('basemap-modal').style.display === 'flex') { if (e.key === 'Escape') closeBasemapModal(); return; }
             if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
                 if (e.key === 'Enter') {
                     if (document.activeElement.id === 'text-content') applyText();
