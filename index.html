@@ -204,7 +204,12 @@
                 <button id="btn-arc" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Arc (Centre, Début, Fin)" onclick="setMode('arc')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 18 0"></path></svg></button>
                 <button id="btn-poly" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polygone" onclick="setMode('poly')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z"></path></svg></button>
                 <button id="btn-hatch" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Hachures (cliquer une forme fermée)" onclick="setMode('hatch')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"></rect><line x1="8" y1="3" x2="3" y2="8"></line><line x1="13" y1="3" x2="3" y2="13"></line><line x1="18" y1="3" x2="3" y2="18"></line><line x1="21" y1="6" x2="6" y2="21"></line><line x1="21" y1="11" x2="11" y2="21"></line><line x1="21" y1="16" x2="16" y2="21"></line></svg></button>
-                <button id="btn-topo" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Point topo : clic = point avec altitude (Z repris du point accroché ou du Z courant), puis tapez l'altitude + Entrée pour la corriger" onclick="setMode('topo')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="15" x2="11" y2="15"></line><line x1="7" y1="11" x2="7" y2="19"></line><circle cx="7" cy="15" r="1.6"></circle><text x="17" y="10" font-size="8" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle">Z</text></svg></button>
+            </div>
+
+            <!-- Bloc Topo / 3D (altitudes Z) — entre le dessin 2D et les cotations -->
+            <div class="tool-group grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-gray-600" title="Topographie / 3D">
+                <button id="btn-topo" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Point topo : clic = point (Z repris du point accroché), puis tapez l'altitude + Entrée. Modifier ensuite : sélection + Y" onclick="setMode('topo')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="16" x2="12" y2="16"></line><line x1="7" y1="11" x2="7" y2="21"></line><circle cx="7" cy="16" r="2"></circle><text x="17.5" y="11" font-size="12" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle">Z</text></svg></button>
+                <button id="btn-view3d" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Vue 3D : activer / désactiver (boussole N / E / S / O / Haut, vues animées)" onclick="toggle3D()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path><path d="M12 22V12"></path><path d="M21 7l-9 5-9-5"></path></svg></button>
             </div>
 
             <!-- Bloc Annotation (texte, détail, cotation) — repoussé en bas -->
@@ -255,8 +260,7 @@
                     <span id="command-text" class="text-gray-300 font-mono text-sm tracking-wide">Prêt</span>
                 </div>
                 <div class="flex items-center space-x-3">
- <label class="flex items-center gap-1 text-gray-400 font-mono text-xs mr-2" title="Z courant (m) : altitude donnée aux nouveaux points qui ne s'accrochent pas à un point déjà coté. Vide = pas d'altitude.">Z =
-                        <input id="z-courant" type="text" inputmode="decimal" autocomplete="off" placeholder="—" class="w-16 bg-gray-800 border border-gray-600 rounded px-1 py-0.5 text-gray-200 text-xs text-right focus:outline-none focus:border-blue-500" onchange="setZCourant(this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">m</label>
+
                     <span id="cursor-coords" class="text-gray-400 font-mono text-xs tabular-nums mr-2" title="Coordonnées du curseur (réelles / Lambert si le plan est géoréférencé), et altitude Z du point accroché ou du trait 3D survolé"></span>
                     <button id="btn-toggle-ortho" class="flex items-center justify-center text-gray-500 hover:text-white transition-colors focus:outline-none" title="Mode Ortho : trace uniquement horizontal/vertical (F8)" onclick="toggleOrtho()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 L5 19 L19 19"></path><path d="M5 12 L12 12 L12 19" stroke-dasharray="2 2"></path></svg>
@@ -276,7 +280,36 @@
         </main>
     </div>
 
-    <!-- Modales -->
+    <!-- Vue 3D -->
+    <div id="view3d" style="display:none;position:fixed;z-index:60;background:#111827;overflow:hidden;">
+        <div id="v3-host" style="position:absolute;inset:0;"></div>
+        <div id="v3-labels" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;font:600 11px Arial,sans-serif;color:#d9f99d;text-shadow:0 0 3px #000,0 0 2px #000;"></div>
+        <div style="position:absolute;left:10px;top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:#e5e7eb;">
+            <span style="background:rgba(31,41,55,.9);border:1px solid #4b5563;border-radius:6px;padding:4px 8px;display:flex;gap:10px;align-items:center;">
+                <label title="Exagération verticale : grossit les différences d'altitude pour mieux voir le relief">Hauteurs ×
+                    <select id="v3-exag" onchange="build3DScene(); render3D();" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:4px;">
+                        <option value="1">1</option><option value="2">2</option><option value="5" selected>5</option><option value="10">10</option><option value="20">20</option><option value="50">50</option></select></label>
+                <label style="cursor:pointer;" title="Surface du terrain triangulée entre les points cotés (MNT simplifié)"><input type="checkbox" id="v3-surf" checked onchange="build3DScene(); render3D();"> Surface</label>
+                <label style="cursor:pointer;"><input type="checkbox" id="v3-lab" checked onchange="render3D();"> Altitudes</label>
+                <label style="cursor:pointer;" title="Fonds de carte et fonds perso posés au sol"><input type="checkbox" id="v3-bg" checked onchange="build3DScene(); render3D();"> Fonds</label>
+            </span>
+        </div>
+        <svg id="v3-cube" width="150" height="150" viewBox="-75 -75 150 150" style="position:absolute;right:14px;top:10px;user-select:none;">
+            <g id="v3-ring">
+                <circle r="52" fill="none" stroke="#6b7280" stroke-width="13" opacity=".55"></circle>
+                <g font-family="Arial" font-weight="bold" font-size="15" fill="#f3f4f6" text-anchor="middle" dominant-baseline="central" style="cursor:pointer;">
+                    <text x="0" y="-52" onclick="view3D('N')">N</text><text x="52" y="0" onclick="view3D('E')">E</text>
+                    <text x="0" y="52" onclick="view3D('S')">S</text><text x="-52" y="0" onclick="view3D('O')">O</text>
+                </g>
+            </g>
+            <g style="cursor:pointer;" onclick="view3D('HAUT')"><rect x="-24" y="-17" width="48" height="34" rx="3" fill="#d1d5db" stroke="#6b7280"></rect>
+                <text x="0" y="1" font-family="Arial" font-weight="bold" font-size="12" fill="#111827" text-anchor="middle" dominant-baseline="central">HAUT</text></g>
+            <g style="cursor:pointer;" onclick="view3D('ISO')" title="Vue 3D par défaut"><path d="M-70 -56 l7 -7 l7 7 v8 h-14z" fill="#9ca3af"></path></g>
+            <g style="cursor:pointer;" onclick="spin3D(1)"><path d="M54 -66 a14 14 0 0 1 14 14" fill="none" stroke="#9ca3af" stroke-width="3"></path><path d="M64 -52 l4 6 l4 -6z" fill="#9ca3af"></path></g>
+            <g style="cursor:pointer;" onclick="spin3D(-1)"><path d="M68 54 a14 14 0 0 1 -14 14" fill="none" stroke="#9ca3af" stroke-width="3"></path><path d="M58 64 l-6 4 l6 4z" fill="#9ca3af"></path></g>
+        </svg>
+        <div id="v3-info" style="position:absolute;left:10px;bottom:8px;font-size:12px;color:#9ca3af;background:rgba(17,24,39,.7);padding:3px 8px;border-radius:4px;">Glisser : tourner · Clic droit ou molette enfoncée : déplacer · Molette : zoom · Boussole : vues animées · Échap : retour au plan</div>
+    </div>
     <div id="bgimg-modal" style="display:none;position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
         <div style="background:#1f2937;border:1px solid #4b5563;border-radius:10px;padding:16px;width:min(560px,94vw);color:#e5e7eb;box-shadow:0 20px 50px rgba(0,0,0,.5);font-size:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px;">
@@ -392,6 +425,7 @@
             <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-white">Paramétrer la sélection</h3><button class="text-gray-400 hover:text-white" onclick="closeSelectionParamModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
             <p class="text-sm text-gray-400 mb-2"><span id="selparam-count">0</span> objet(s). Assigner au calque :</p>
             <select id="selparam-layer" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-2 outline-none focus:border-blue-500 mb-4"></select>
+            <div id="selparam-z" class="hidden mb-4 border-t border-gray-600 pt-3 flex flex-col gap-2 text-sm text-gray-200"></div>
             <div class="flex justify-end gap-2">
                 <button class="px-3 py-1.5 rounded bg-gray-600 hover:bg-gray-500 text-white text-sm" onclick="closeSelectionParamModal()">Annuler</button>
                 <button class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm" onclick="applySelectionLayer()">Appliquer</button>
@@ -450,12 +484,13 @@
                 <ul class="list-disc pl-6 space-y-1 mb-3">
                     <li><b class="text-white">Le principe :</b> le plan reste vu de dessus, mais chaque point peut porter une altitude <b>Z</b> (en mètres, affichée avec 2 décimales) : extrémités des lignes, sommets des polylignes, centres des cercles et arcs, et <b>points topo</b>. Un point sans Z reste un point 2D.</li>
                     <li><b class="text-white">Lire X Y Z :</b> en bas à droite, le Z s'affiche dès que le curseur accroche ou survole un point coté ; sur un trait 3D, il est <b>interpolé</b> à l'endroit exact du curseur. Au croisement de deux traits d'altitudes différentes, les deux valeurs sont affichées (ex. Z 734,33 / 734,50).</li>
-                    <li><b class="text-white">Point topo (bouton croix « Z » ou Pt ⏎) :</b> cliquez pour poser un point. Son Z est repris du point accroché, sinon du <b>Z courant</b>. Tapez une altitude puis Entrée pour corriger le dernier point posé. Le point s'affiche comme une croix avec son altitude.</li>
-                    <li><b class="text-white">Z courant (champ « Z = » en bas) :</b> altitude donnée aux nouveaux points qui ne s'accrochent pas à un point déjà coté (lignes, polylignes, cercles, points topo). Vide = pas d'altitude. Un nouveau trait accroché à un point coté reprend toujours son Z.</li>
-                    <li><b class="text-white">Propriétés :</b> Z modifiables (départ / arrivée d'une ligne, Z d'un point topo et son matricule, Z de tous les sommets d'une polyligne). Pour une ligne cotée aux deux bouts : <b>dénivelée</b>, <b>pente %</b> et <b>longueur 3D</b>.</li>
+                    <li><b class="text-white">Point topo (bouton croix « Z » ou Pt ⏎) :</b> cliquez pour poser un point. Son Z est repris du point accroché ; sinon tapez son altitude puis Entrée (fonctionne aussi pour corriger le dernier point posé). Le point s'affiche comme une croix avec son altitude.</li>
+                    <li><b class="text-white">Où sont les outils :</b> dans le bloc <b>Topo / 3D</b> de la palette, entre le dessin 2D et les cotations. Le Z affiché en bas d'écran est une lecture seule.</li>
+                    <li><b class="text-white">Modifier un Z ou un matricule :</b> sélectionnez puis tapez <b>Y</b> (« Paramétrer la sélection ») : matricule et altitude d'un point topo, Z de plusieurs points d'un coup, Z départ / arrivée d'une ligne, Z d'un cercle ou d'un arc, Z de tous les sommets d'une polyligne. Champ vidé = altitude supprimée ; Entrée valide. Les propriétés affichent les Z et, pour une ligne cotée aux deux bouts, la <b>dénivelée</b>, la <b>pente %</b> et la <b>longueur 3D</b>.</li>
                     <li><b class="text-white">Plans de géomètre (DXF) :</b> les blocs de points avec un attribut d'altitude (ALT, ALTI, Z, NGF…) deviennent des points topo (matricule et code repris) ; les Z des lignes, polylignes 3D, points, cercles et arcs sont conservés. Les unités du fichier sont respectées (un DXF en mètres est converti), et seul l'espace objet est importé (pas le cartouche de mise en page).</li>
                     <li><b class="text-white">Coordonnées géoréférencées :</b> si le DXF est en Lambert (coordonnées de plusieurs millions de mètres), MomoCAD mémorise une origine et affiche les vraies coordonnées en bas d'écran ; l'export DXF les restitue à l'identique. Cela garde un affichage précis malgré les grands nombres.</li>
                     <li><b class="text-white">Export DXF 3D :</b> lignes avec leurs Z, polylignes 3D (ou élévation si tous les sommets ont le même Z), cercles et arcs à leur altitude, points topo en POINT 3D avec l'altitude écrite à côté. Lisible par AutoCAD et Covadis.</li>
+                    <li><b class="text-white">Vue 3D (bouton cube du bloc Topo / 3D, ou VU ⏎) :</b> le plan s'affiche en 3D par-dessus la zone de dessin. <b>Glisser</b> = tourner autour, <b>clic droit</b> (ou molette enfoncée) = déplacer, <b>molette</b> = zoom. La <b>boussole</b> en haut à droite tourne avec la vue : cliquez <b>N</b>, <b>E</b>, <b>S</b> ou <b>O</b> pour une vue de côté depuis cette direction, <b>HAUT</b> pour la vue de dessus (nord en haut), la maison pour revenir à la vue 3D de départ, et les flèches courbes pour pivoter d'un quart de tour : chaque changement de vue est animé. Options : <b>Hauteurs ×</b> (exagération verticale : les altitudes sont multipliées par ce chiffre à l'affichage, les longueurs à plat ne changent pas ; ×5 par défaut, indispensable sur un terrain presque plat ; ×1 = proportions réelles), <b>Surface</b> (terrain triangulé entre tous les points cotés, coloré du plus bas en bleu au plus haut en rouge), <b>Altitudes</b> (étiquettes des points topo), <b>Fonds</b> (fonds de carte et fonds perso posés au sol). Les objets sans altitude sont posés au niveau le plus bas. Re-cliquez le bouton cube (il reste allumé tant que la 3D est active), VU ⏎ ou Échap pour revenir au dessin. La première ouverture demande Internet (moteur 3D).</li>
                 </ul>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">⌨️ Raccourcis de commande</h4>
                 <p class="text-xs text-gray-400 mb-1 pl-2">Tapez les lettres (majuscules ou minuscules, sans cliquer nulle part) puis <b>Entrée</b> ⏎. La barre de commande montre ce que vous tapez et les commandes possibles ; Retour arrière corrige, Échap annule. Les objets déjà sélectionnés restent sélectionnés (pratique pour D ⏎ ou R ⏎).</p>
@@ -474,6 +509,7 @@
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Tx ⏎</td><td class="py-0.5">Écrire un texte</td></tr>
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">If ⏎</td><td class="py-0.5">Dessiner une infobulle (détail)</td></tr>
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Pt ⏎</td><td class="py-0.5">Poser un point topo (altitude Z)</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Vu ⏎</td><td class="py-0.5">Activer / désactiver la vue 3D</td></tr>
                 </tbody></table>
             </div>
             <div>
@@ -492,7 +528,7 @@
                     <li><b class="text-white">Texte :</b> champ vide (« auto ») = taille <b>variable</b>, constante à l'écran et sur la feuille, comme les cotes. Une valeur (ex. <b>2,5</b>) = <b>hauteur fixe en mm dans le dessin</b> : le texte grandit avec le zoom et suit l'échelle d'impression. S'applique aux textes, détails et valeurs de cote du calque.</li>
                     <li><b class="text-white">Hachure :</b> motif des hachures du calque : <b>///</b> (lignes), <b>XX</b> (croisée) ou <b>■</b> (plein).</li>
                     <li><b class="text-white">Échelle de hachure (Éch.) :</b> multiplie l'écartement des traits de hachure du calque : <b>1</b> = 3 mm (par défaut), <b>2</b> = 6 mm, <b>0,5</b> = 1,5 mm. S'applique à toutes les hachures du calque, à l'écran, à l'impression et dans le DXF. Sans effet sur le plein.</li>
-                    <li><b class="text-white">Paramétrer une sélection :</b> sélectionnez des objets puis tapez <b>Y</b> pour les changer de calque (<b>N</b> pour ignorer).</li>
+                    <li><b class="text-white">Paramétrer une sélection :</b> sélectionnez des objets puis tapez <b>Y</b> pour les changer de calque et, pour les objets topo, modifier leur Z et matricule (<b>N</b> pour ignorer).</li>
                     <li><b class="text-white">Calque Cotation :</b> cotes, textes et détails y sont déposés automatiquement.</li>
                 </ul>
             </div>
@@ -1223,16 +1259,218 @@
             else if (what === 'mat') { s.mat = String(value).trim(); }
             saveState(); draw();
         }
+        // =====================================================================
+        // VUE 3D (three.js, chargé à la demande) : orbite autour du plan, boussole façon AutoCAD avec vues animées
+        // Repère 3D en mètres : x = Est, y = Nord, z = altitude (exagérée), origine au centre du dessin.
+        // =====================================================================
+        const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        let threePromise = null, V3 = null;
+        function loadThree() {
+            if (window.THREE) return Promise.resolve(window.THREE);
+            if (!threePromise) threePromise = new Promise((res, rej) => {
+                const sc = document.createElement('script'); sc.src = THREE_URL;
+                sc.onload = () => res(window.THREE); sc.onerror = () => { threePromise = null; rej(new Error('moteur 3D indisponible (connexion ?)')); };
+                document.head.appendChild(sc);
+            });
+            return threePromise;
+        }
+        function place3D() {
+            const el = document.getElementById('view3d'), r = canvas.getBoundingClientRect();
+            Object.assign(el.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+            if (V3) { V3.renderer.setSize(r.width, r.height); V3.camera.aspect = r.width / Math.max(1, r.height); V3.camera.updateProjectionMatrix(); render3D(); }
+        }
+        async function open3D() {
+            const el = document.getElementById('view3d'); el.style.display = 'block'; place3D(); refresh3DButton();
+            try { await loadThree(); }
+            catch (err) { document.getElementById('v3-info').textContent = 'Impossible d\'ouvrir la vue 3D : ' + err.message; return; }
+            if (!V3) init3D();
+            place3D(); build3DScene(); fit3D(); render3D();
+        }
+        function close3D() { document.getElementById('view3d').style.display = 'none'; if (V3) V3.anim = null; refresh3DButton(); }
+        function toggle3D() { if (is3DOpen()) close3D(); else open3D(); }
+        function refresh3DButton() { const b = document.getElementById('btn-view3d'); if (b) b.classList.toggle('active', is3DOpen()); }
+        const is3DOpen = () => document.getElementById('view3d').style.display === 'block';
+        function init3D() {
+            const host = document.getElementById('v3-host');
+            const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.setClearColor(0x111827);
+            host.appendChild(renderer.domElement);
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1e6); camera.up.set(0, 0, 1);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+            const sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(-0.5, -0.8, 1.2); scene.add(sun);
+            V3 = { renderer, scene, camera, root: null, target: new THREE.Vector3(), az: Math.PI * 1.25, el: 0.6, dist: 100, anim: null, labels: [], R: 50 };
+            // souris : gauche = orbite, droit / molette enfoncée = déplacer, molette = zoom
+            const cv = renderer.domElement; let drag = null;
+            cv.addEventListener('contextmenu', e => e.preventDefault());
+            cv.addEventListener('pointerdown', e => { drag = { b: e.button, x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); V3.anim = null; });
+            cv.addEventListener('pointermove', e => {
+                if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+                if (drag.b === 0) { V3.az -= dx * 0.008; V3.el = Math.max(-0.2, Math.min(Math.PI / 2 - 0.002, V3.el + dy * 0.008)); }
+                else {
+                    const k = V3.dist * 0.0018, right = new THREE.Vector3(), up = new THREE.Vector3();
+                    camera.matrixWorld.extractBasis(right, up, new THREE.Vector3());
+                    V3.target.addScaledVector(right, -dx * k).addScaledVector(up, dy * k);
+                }
+                render3D();
+            });
+            cv.addEventListener('pointerup', () => { drag = null; });
+            cv.addEventListener('wheel', e => { e.preventDefault(); V3.dist *= e.deltaY < 0 ? 0.88 : 1.14; V3.dist = Math.max(V3.R * 0.01, Math.min(V3.R * 50, V3.dist)); render3D(); }, { passive: false });
+            window.addEventListener('resize', () => { if (is3DOpen()) place3D(); });
+        }
+        // Construction de la scène à partir du dessin
+        function build3DScene() {
+            if (!V3) return;
+            if (V3.root) { V3.scene.remove(V3.root); V3.root.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); }
+            const exag = parseFloat(document.getElementById('v3-exag').value) || 1;
+            const showSurf = document.getElementById('v3-surf').checked, showBg = document.getElementById('v3-bg').checked;
+            const root = new THREE.Group(); V3.root = root; V3.labels = [];
+            const vis = shapes.filter(s => { const l = layers.find(x => x.id === (s.layerId || 'layer-0')); return !l || l.visible !== false; });
+            // altitudes et étendue
+            const zs = [], P = (wx, wy) => ({ x: worldToMm(wx) / 1000, y: -worldToMm(wy) / 1000 });
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            const ext = (q) => { minX = Math.min(minX, q.x); maxX = Math.max(maxX, q.x); minY = Math.min(minY, q.y); maxY = Math.max(maxY, q.y); };
+            vis.forEach(s => shapeVertices(s).forEach(v => { const z = v.get(); if (hasZ(z)) zs.push(z / 1000); }));
+            const zmin = zs.length ? Math.min(...zs) : 0, zmax = zs.length ? Math.max(...zs) : 0;
+            const Zm = (zmm) => hasZ(zmm) ? (zmm / 1000 - zmin) * exag : 0;   // sans altitude : posé au niveau le plus bas
+            const pos = [], col = [], c3 = new THREE.Color();
+            const seg = (a, za, b, zb, color) => { pos.push(a.x, a.y, za, b.x, b.y, zb); c3.set(color); col.push(c3.r, c3.g, c3.b, c3.r, c3.g, c3.b); ext(a); ext(b); };
+            const ptsTopo = [];
+            for (const s of vis) {
+                const color = effectiveColor(s, false);
+                if (s.type === 'line') seg(P(s.x1, s.y1), Zm(s.z1), P(s.x2, s.y2), Zm(s.z2), color);
+                else if (s.type === 'poly') for (let i = 0; i < s.points.length; i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; seg(P(a.x, a.y), Zm(a.z), P(b.x, b.y), Zm(b.z), color); }
+                else if (s.type === 'circle' || s.type === 'arc') {
+                    let a0 = 0, a1 = 2 * Math.PI;
+                    if (s.type === 'arc') { a0 = s.startAngle; a1 = s.endAngle; if (a1 < a0) a1 += 2 * Math.PI; }
+                    const n = 48, z = Zm(s.z); let prev = null;
+                    for (let i = 0; i <= n; i++) { const t = a0 + (a1 - a0) * i / n, q = P(s.x + s.r * Math.cos(t), s.y + s.r * Math.sin(t)); if (prev) seg(prev, z, q, z, color); prev = q; }
+                }
+                else if (s.type === 'point') { const q = P(s.x, s.y); ext(q); ptsTopo.push({ q, z: Zm(s.z), zr: s.z, mat: s.mat, color }); }
+                else if (s.type === 'dim') { const g = dimGeom(s); if (g) seg(P(g.c1.x, g.c1.y), 0, P(g.c2.x, g.c2.y), 0, color); }
+            }
+            if (minX === Infinity) { minX = minY = -10; maxX = maxY = 10; }
+            const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+            V3.center = { x: cx, y: cy }; V3.R = Math.max(1, Math.hypot(maxX - minX, maxY - minY) / 2, (zmax - zmin) * exag / 2);
+            root.position.set(-cx, -cy, 0);   // dessin centré sur l'origine 3D
+            if (pos.length) {
+                const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+                root.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true })));
+            }
+            if (ptsTopo.length) {
+                const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(ptsTopo.flatMap(p => [p.q.x, p.q.y, p.z]), 3));
+                root.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xbef264, size: 6, sizeAttenuation: false })));
+                // petits fils verticaux jusqu'au sol pour lire la hauteur
+                const st = []; ptsTopo.forEach(p => { if (p.z > 0) st.push(p.q.x, p.q.y, 0, p.q.x, p.q.y, p.z); });
+                if (st.length) { const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(st, 3)); root.add(new THREE.LineSegments(g2, new THREE.LineBasicMaterial({ color: 0x4d7c0f, transparent: true, opacity: 0.6 }))); }
+                V3.labels = ptsTopo.filter(p => hasZ(p.zr)).slice(0, 400).map(p => ({ v: new THREE.Vector3(p.q.x - cx, p.q.y - cy, p.z), t: fmtZ(p.zr) }));
+            }
+            // surface triangulée (Delaunay) entre tous les points cotés
+            if (showSurf) {
+                const nodes = [];
+                vis.forEach(s => shapeVertices(s).forEach(v => { const z = v.get(); if (hasZ(z)) { const q = P(v.x, v.y); if (!nodes.some(n => Math.abs(n.x - q.x) < 1e-3 && Math.abs(n.y - q.y) < 1e-3)) nodes.push({ x: q.x, y: q.y, z: z / 1000 }); } }));
+                const tris = nodes.length >= 3 && nodes.length <= 6000 ? delaunay(nodes) : [];
+                if (tris.length) {
+                    const pp = [], cc = [];
+                    const ramp = (z) => { const t = zmax > zmin ? (z - zmin) / (zmax - zmin) : 0.5; return new THREE.Color().setHSL(0.62 - 0.62 * t, 0.65, 0.45); };
+                    tris.forEach(([a, b, c]) => [a, b, c].forEach(i => { const n = nodes[i], k = ramp(n.z); pp.push(n.x, n.y, (n.z - zmin) * exag); cc.push(k.r, k.g, k.b); }));
+                    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); g.computeVertexNormals();
+                    root.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: 0.85, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })));
+                    root.add(new THREE.LineSegments(new THREE.WireframeGeometry(g), new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })));
+                }
+            }
+            // fonds de carte / fonds perso au sol
+            if (showBg) vis.filter(isBg).forEach(s => {
+                const img = bmImg(s.mapId); if (!img) return;
+                const tex = new THREE.Texture(img); tex.needsUpdate = true;
+                const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: s.opacity === undefined ? 1 : s.opacity, side: THREE.DoubleSide, depthWrite: false });
+                const c = P(s.x, s.y); let m;
+                if (s.type === 'basemap') { const r = worldToMm(s.r) / 1000; m = new THREE.Mesh(new THREE.CircleGeometry(r, 96), mat); ext({ x: c.x - r, y: c.y - r }); ext({ x: c.x + r, y: c.y + r }); }
+                else m = new THREE.Mesh(new THREE.PlaneGeometry(worldToMm(s.w) / 1000, worldToMm(s.h) / 1000), mat);
+                m.position.set(c.x, c.y, -0.02 * V3.R / 50); m.rotation.z = -(s.rot || 0); m.renderOrder = -1; root.add(m);
+            });
+            V3.scene.add(root);
+            document.getElementById('v3-info').textContent = (zs.length ? 'Altitudes ' + zmin.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' → ' + zmax.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' m · hauteurs ×' + exag + ' · ' : 'Aucune altitude Z dans le plan · ') + 'Glisser : tourner · Clic droit : déplacer · Molette : zoom · bouton cube ou Échap : plan 2D';
+        }
+        // Triangulation de Delaunay (Bowyer-Watson), longs triangles de bord retirés
+        function delaunay(pts) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            pts.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
+            const d = Math.max(maxX - minX, maxY - minY) * 20 || 1, mx = (minX + maxX) / 2, my = (minY + maxY) / 2;
+            const P = pts.map(p => ({ x: p.x - mx, y: p.y - my }));
+            const n = P.length; P.push({ x: -d, y: -d }, { x: d, y: -d }, { x: 0, y: d });
+            const circ = (a, b, c) => {
+                const A = P[a], B = P[b], C = P[c], D = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
+                if (Math.abs(D) < 1e-12) return { x: 0, y: 0, r2: Infinity };
+                const a2 = A.x * A.x + A.y * A.y, b2 = B.x * B.x + B.y * B.y, c2 = C.x * C.x + C.y * C.y;
+                const x = (a2 * (B.y - C.y) + b2 * (C.y - A.y) + c2 * (A.y - B.y)) / D, y = (a2 * (C.x - B.x) + b2 * (A.x - C.x) + c2 * (B.x - A.x)) / D;
+                return { x, y, r2: (A.x - x) ** 2 + (A.y - y) ** 2 };
+            };
+            let tris = [[n, n + 1, n + 2, circ(n, n + 1, n + 2)]];
+            for (let i = 0; i < n; i++) {
+                const p = P[i], bad = [], keep = [];
+                tris.forEach(t => ((p.x - t[3].x) ** 2 + (p.y - t[3].y) ** 2 < t[3].r2 ? bad : keep).push(t));
+                const edges = new Map();
+                bad.forEach(t => [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]].forEach(([a, b]) => { const k = a < b ? a + ',' + b : b + ',' + a; edges.set(k, edges.has(k) ? null : [a, b]); }));
+                edges.forEach(e => { if (e) keep.push([e[0], e[1], i, circ(e[0], e[1], i)]); });
+                tris = keep;
+            }
+            tris = tris.filter(t => t[0] < n && t[1] < n && t[2] < n);
+            const len = (a, b) => Math.hypot(P[a].x - P[b].x, P[a].y - P[b].y);
+            const longest = tris.map(t => Math.max(len(t[0], t[1]), len(t[1], t[2]), len(t[2], t[0])));
+            const sorted = longest.slice().sort((u, v) => u - v), lim = (sorted[sorted.length >> 1] || 0) * 4;
+            return tris.filter((t, k) => longest[k] <= lim).map(t => [t[0], t[1], t[2]]);
+        }
+        function fit3D() { V3.target.set(0, 0, 0); V3.az = Math.PI * 1.25; V3.el = 0.6; V3.dist = V3.R * 2.6; }
+        function render3D() {
+            if (!V3 || !is3DOpen()) return;
+            const { camera, target } = V3, ce = Math.cos(V3.el);
+            camera.position.set(target.x + V3.dist * ce * Math.sin(V3.az), target.y + V3.dist * ce * Math.cos(V3.az), target.z + V3.dist * Math.sin(V3.el));
+            camera.near = V3.dist / 1000; camera.far = V3.dist * 100 + V3.R * 10; camera.updateProjectionMatrix();
+            camera.lookAt(target); V3.renderer.render(V3.scene, camera);
+            // boussole : N toujours vers le nord réel
+            const rr = V3.az * 180 / Math.PI - 180;
+            document.getElementById('v3-ring').setAttribute('transform', 'rotate(' + rr + ')');
+            document.querySelectorAll('#v3-ring text').forEach(t => t.setAttribute('transform', 'rotate(' + (-rr) + ' ' + t.getAttribute('x') + ' ' + t.getAttribute('y') + ')'));   // lettres toujours lisibles
+            // étiquettes d'altitude
+            const box = document.getElementById('v3-labels'), W = V3.renderer.domElement.clientWidth, H = V3.renderer.domElement.clientHeight;
+            if (!document.getElementById('v3-lab').checked) { box.innerHTML = ''; return; }
+            let html = '';
+            V3.labels.forEach(l => { const v = l.v.clone().project(camera); if (v.z > 1 || v.z < -1) return; const x = (v.x + 1) / 2 * W, y = (1 - v.y) / 2 * H; if (x < -40 || y < -20 || x > W + 40 || y > H + 20) return; html += '<span style="position:absolute;left:' + (x + 5).toFixed(0) + 'px;top:' + (y - 14).toFixed(0) + 'px">' + l.t + '</span>'; });
+            box.innerHTML = html;
+        }
+        // Vues prédéfinies, avec animation de retournement
+        function animate3D(az, el, ms) {
+            if (!V3) return;
+            let a0 = V3.az, d = ((az - a0) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;   // plus court chemin
+            const e0 = V3.el, t0 = performance.now(), dur = ms || 650;
+            V3.anim = (now) => {
+                let k = Math.min(1, (now - t0) / dur); k = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;   // easeInOut
+                V3.az = a0 + d * k; V3.el = e0 + (el - e0) * k;
+                render3D();
+                if (k < 1 && V3.anim) requestAnimationFrame(V3.anim); else V3.anim = null;
+            };
+            requestAnimationFrame(V3.anim);
+        }
+        function view3D(name) {
+            const D = Math.PI / 180, side = 0.0;
+            if (name === 'N') animate3D(0, side); else if (name === 'E') animate3D(90 * D, side);
+            else if (name === 'S') animate3D(180 * D, side); else if (name === 'O') animate3D(270 * D, side);
+            else if (name === 'HAUT') animate3D(180 * D, Math.PI / 2 - 0.002);
+            else { V3.target.set(0, 0, 0); V3.dist = V3.R * 2.6; animate3D(225 * D, 0.6); }
+        }
+        function spin3D(dir) { animate3D(V3.az + dir * Math.PI / 2, V3.el); }
         // Raccourcis de commande : lettres puis Entrée (comme AutoCAD)
         const CMD_ALIASES = {
             D: ['move', 'Déplacer'], R: ['rotate', 'Rotation'], C: ['trim', 'Couper (ajuster)'], P: ['extend', 'Prolonger'], DE: ['offset', 'Décaler'],
             DR: ['line', 'Droite'], QR: ['rect', 'Quadrilatère'], RO: ['circle', 'Rond (cercle)'], AR: ['arc', 'Arc'], PL: ['poly', 'Polygone'],
-            HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)'], PT: ['topo', 'Point topo']
+            HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)'], PT: ['topo', 'Point topo'], VU: ['view3d', 'Vue 3D']
         };
         let cmdBuffer = '';
         function runCmdAlias() {
             const a = CMD_ALIASES[cmdBuffer]; const typed = cmdBuffer; cmdBuffer = '';
             if (!a) { updateCommandMessageText('Commande inconnue : « ' + typed + ' ». Raccourcis : ' + Object.keys(CMD_ALIASES).join(', ') + ' (+ Entrée) — voir le guide.'); draw(); return; }
+            if (a[0] === 'view3d') { toggle3D(); return; }
             setMode(a[0]); draw();
         }
         // Déplacement d'une forme (toutes géométries)
@@ -1469,12 +1707,39 @@
             layers.forEach(l => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.name; sel.appendChild(o); });
             // pré-sélectionner le calque du 1er objet
             sel.value = selectedShapes[0].layerId || 'layer-0';
+            // Altitudes (et matricule d'un point topo) modifiables ici
+            const zb = document.getElementById('selparam-z'), one = selectedShapes.length === 1 ? selectedShapes[0] : null;
+            const row = (id, label, val, ph) => `<label class="flex items-center justify-between gap-2">${label}<span class="flex items-center gap-1"><input id="${id}" type="text" inputmode="decimal" value="${val}" placeholder="${ph || '—'}" class="w-28 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 text-right outline-none focus:border-blue-500"> m</span></label>`;
+            const zv = (z) => hasZ(z) ? fmtZ(z) : '';
+            let h = '';
+            const allPts = selectedShapes.every(x => x.type === 'point');
+            if (one && one.type === 'point') {
+                h = `<label class="flex items-center justify-between gap-2">Matricule<input id="sp-mat" type="text" value="${String(one.mat || '').replace(/"/g, '&quot;')}" class="w-36 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500"></label>` + row('sp-z', 'Altitude Z', zv(one.z));
+            } else if (allPts) h = row('sp-z', 'Altitude Z (tous)', '', 'inchangée');
+            else if (one && one.type === 'line') h = row('sp-z1', 'Z départ', zv(one.z1)) + row('sp-z2', 'Z arrivée', zv(one.z2));
+            else if (one && (one.type === 'circle' || one.type === 'arc')) h = row('sp-z', 'Altitude Z', zv(one.z));
+            else if (one && one.type === 'poly') { const zs = one.points.map(q => q.z); h = row('sp-zall', 'Z de tous les sommets', zs.every(z => hasZ(z) && z === zs[0]) ? fmtZ(zs[0]) : '', 'inchangé'); }
+            zb.innerHTML = h; zb.classList.toggle('hidden', !h);
+            zb.dataset.orig = JSON.stringify(['sp-mat', 'sp-z', 'sp-z1', 'sp-z2', 'sp-zall'].map(id => { const el = document.getElementById(id); return el ? el.value : null; }));
             document.getElementById('selparam-modal').classList.remove('hidden');
+            const first = zb.querySelector('#sp-z, #sp-z1, #sp-zall') || zb.querySelector('input'); if (first) setTimeout(() => { first.focus(); first.select(); }, 30);
         }
         function closeSelectionParamModal() { document.getElementById('selparam-modal').classList.add('hidden'); }
         function applySelectionLayer() {
             const id = document.getElementById('selparam-layer').value;
             selectedShapes.forEach(s => { s.layerId = id; });
+            // altitudes / matricule : seulement les champs modifiés ; champ vidé = altitude supprimée
+            const orig = JSON.parse(document.getElementById('selparam-z').dataset.orig || '[]');
+            const ids = ['sp-mat', 'sp-z', 'sp-z1', 'sp-z2', 'sp-zall'];
+            const val = (k) => { const el = document.getElementById(ids[k]); return el && el.value !== orig[k] ? el.value.trim() : null; };
+            const toZ = (t) => (t === '' || isNaN(parseFloat(t.replace(',', '.')))) ? undefined : parseFloat(t.replace(',', '.')) * 1000;
+            const setZ = (o, key, t) => { const z = toZ(t); if (z === undefined) delete o[key]; else o[key] = z; };
+            const one = selectedShapes.length === 1 ? selectedShapes[0] : null;
+            if (val(0) !== null && one) one.mat = val(0);
+            if (val(1) !== null) selectedShapes.forEach(x => { if (['point', 'circle', 'arc'].includes(x.type)) setZ(x, 'z', val(1)); });
+            if (val(2) !== null && one) setZ(one, 'z1', val(2));
+            if (val(3) !== null && one) setZ(one, 'z2', val(3));
+            if (val(4) !== null && one && one.type === 'poly') one.points.forEach(q => setZ(q, 'z', val(4)));
             closeSelectionParamModal();
             invalidateCache(); saveState(); draw();
         }
@@ -2420,6 +2685,7 @@
         }
 
         function setMode(newMode) {
+            if (typeof is3DOpen === 'function' && is3DOpen()) close3D();   // choisir un outil ramène au plan 2D
             mode = newMode; flashUntil = 0;   // un nouvel outil remplace le message temporaire
             moveBasePoint = null; isMovingObjects = false; isDrawing = false; moveTypedX = null;
             dimStep = 0; dimChainInfo = null; rotateCenter = null; isRotatingObjects = false; typedInput = "";
@@ -4133,7 +4399,7 @@
             else if (mode === 'topo') {
                 if (typedInput) msg = "POINT TOPO : altitude = " + typedInput + " m puis [Entrée].";
                 else if (lastTopo && shapes.includes(lastTopo)) msg = "POINT TOPO : posé" + (hasZ(lastTopo.z) ? " à Z " + fmtZ(lastTopo.z) + " m" : " sans altitude") + " — tapez l'altitude + [Entrée] pour la changer, ou cliquez le point suivant.";
-                else msg = "POINT TOPO : cliquez pour poser un point (Z repris du point accroché" + (hasZ(zCourant) ? ", sinon Z courant " + fmtZ(zCourant) + " m" : "") + ").";
+                else msg = "POINT TOPO : cliquez pour poser un point (Z repris du point accroché), puis tapez son altitude + [Entrée].";
             }
             else if (mode === 'calibrate') {
                 if (!calTarget) msg = "CALIBRER : cliquez sur le fond perso à mettre à l'échelle.";
@@ -4210,7 +4476,7 @@
             if (totalArea > 0) { let lbl = selectedShapes.length > 1 ? 'Aire totale:' : 'Aire:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-green-400 ml-4 font-bold">${fmtArea(totalArea)}</span></div>`; }
             if (selectedShapes.length === 1 && ['line', 'poly', 'circle', 'arc', 'point'].includes(selectedShapes[0].type)) {
                 const b = selectedShapes[0], esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-                const zin = (what, z, label) => `<div class="flex justify-between items-center mt-0.5"><span>${label}</span> <span class="ml-4 flex items-center gap-1"><input type="text" inputmode="decimal" value="${hasZ(z) ? fmtZ(z) : ''}" placeholder="—" class="w-20 bg-gray-800 border border-gray-600 rounded px-1 text-right text-lime-300 font-mono text-xs outline-none" onchange="editZ('${what}', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}"> m</span></div>`;
+                const zin = (what, z, label) => `<div class="flex justify-between items-center"><span>${label}</span> <span class="font-mono text-lime-300 ml-4">${hasZ(z) ? fmtZ(z) + ' m' : '—'}</span></div>`;
                 html += `<div class="border-t border-gray-600 mt-1 pt-1"></div>`;
                 if (b.type === 'line') {
                     html += zin('z1', b.z1, 'Z départ:') + zin('z2', b.z2, 'Z arrivée:');
@@ -4227,9 +4493,10 @@
                 } else if (b.type === 'point') {
                     html += `<div class="flex justify-between items-center"><span>Point topo:</span> <span class="font-mono text-lime-300 ml-4">X ${fmtNum(realX(b.x) / (UNIT_MM[currentUnit] || 1))}  Y ${fmtNum(realY(b.y) / (UNIT_MM[currentUnit] || 1))}</span></div>`;
                     html += zin('z', b.z, 'Altitude Z:');
-                    html += `<div class="flex justify-between items-center mt-0.5"><span>Matricule:</span> <input type="text" value="${esc(b.mat || '')}" class="ml-4 w-24 bg-gray-800 border border-gray-600 rounded px-1 text-xs outline-none text-gray-200" onchange="editZ('mat', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}"></div>`;
+                    html += `<div class="flex justify-between items-center"><span>Matricule:</span> <span class="ml-4 text-gray-200">${esc(b.mat || '—')}</span></div>`;
                     if (b.code) html += `<div class="flex justify-between items-center"><span>Code:</span> <span class="ml-4 text-gray-300">${esc(b.code)}</span></div>`;
                 } else html += zin('z', b.z, 'Altitude Z:');
+                html += `<div class="text-gray-500 text-xs mt-1">Modifier le Z${b.type === 'point' ? ' / matricule' : ''} : tapez <b>Y</b></div>`;
             }
             if (selectedShapes.length === 1 && selectedShapes[0].type === 'bgimage') {
                 const b = selectedShapes[0], esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -4664,6 +4931,7 @@
                 if (k === 's') { e.preventDefault(); saveProject(e.shiftKey); return; }
                 if (k === 'o') { e.preventDefault(); openProject(); return; }
             }
+            if (is3DOpen()) { if (e.key === 'Escape') close3D(); return; }
             if (document.getElementById('basemap-modal').style.display === 'flex') { if (e.key === 'Escape') closeBasemapModal(); return; }
             if (document.getElementById('crop-modal').style.display === 'flex') { if (e.key === 'Escape') closeCrop(); if (e.key === 'Enter') applyCrop(); return; }
             // un champ resté actif dans une fenêtre fermée (invisible) ne doit pas capter le clavier du dessin
@@ -4672,6 +4940,7 @@
                 if (e.key === 'Enter') {
                     if (document.activeElement.id === 'text-content') applyText();
                     if (document.activeElement.id === 'new-layer-name') addLayer();
+                    if (document.activeElement.closest && document.activeElement.closest('#selparam-modal')) { e.preventDefault(); applySelectionLayer(); return; }
                     // Détail : Entrée valide (Maj+Entrée = saut de ligne)
                     if (document.activeElement.id === 'detail-content' && !e.shiftKey) { e.preventDefault(); applyDetail(); }
                 }
