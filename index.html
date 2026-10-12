@@ -204,6 +204,7 @@
                 <button id="btn-arc" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Arc (Centre, Début, Fin)" onclick="setMode('arc')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 18 0"></path></svg></button>
                 <button id="btn-poly" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polygone" onclick="setMode('poly')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z"></path></svg></button>
                 <button id="btn-hatch" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Hachures (cliquer une forme fermée)" onclick="setMode('hatch')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"></rect><line x1="8" y1="3" x2="3" y2="8"></line><line x1="13" y1="3" x2="3" y2="13"></line><line x1="18" y1="3" x2="3" y2="18"></line><line x1="21" y1="6" x2="6" y2="21"></line><line x1="21" y1="11" x2="11" y2="21"></line><line x1="21" y1="16" x2="16" y2="21"></line></svg></button>
+                <button id="btn-topo" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Point topo : clic = point avec altitude (Z repris du point accroché ou du Z courant), puis tapez l'altitude + Entrée pour la corriger" onclick="setMode('topo')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="15" x2="11" y2="15"></line><line x1="7" y1="11" x2="7" y2="19"></line><circle cx="7" cy="15" r="1.6"></circle><text x="17" y="10" font-size="8" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle">Z</text></svg></button>
             </div>
 
             <!-- Bloc Annotation (texte, détail, cotation) — repoussé en bas -->
@@ -254,7 +255,9 @@
                     <span id="command-text" class="text-gray-300 font-mono text-sm tracking-wide">Prêt</span>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <span id="cursor-coords" class="text-gray-400 font-mono text-xs tabular-nums mr-2" title="Coordonnées du curseur par rapport à l'origine 0,0 (mm), identiques à AutoCAD"></span>
+ <label class="flex items-center gap-1 text-gray-400 font-mono text-xs mr-2" title="Z courant (m) : altitude donnée aux nouveaux points qui ne s'accrochent pas à un point déjà coté. Vide = pas d'altitude.">Z =
+                        <input id="z-courant" type="text" inputmode="decimal" autocomplete="off" placeholder="—" class="w-16 bg-gray-800 border border-gray-600 rounded px-1 py-0.5 text-gray-200 text-xs text-right focus:outline-none focus:border-blue-500" onchange="setZCourant(this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">m</label>
+                    <span id="cursor-coords" class="text-gray-400 font-mono text-xs tabular-nums mr-2" title="Coordonnées du curseur (réelles / Lambert si le plan est géoréférencé), et altitude Z du point accroché ou du trait 3D survolé"></span>
                     <button id="btn-toggle-ortho" class="flex items-center justify-center text-gray-500 hover:text-white transition-colors focus:outline-none" title="Mode Ortho : trace uniquement horizontal/vertical (F8)" onclick="toggleOrtho()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 L5 19 L19 19"></path><path d="M5 12 L12 12 L12 19" stroke-dasharray="2 2"></path></svg>
                     </button>
@@ -443,6 +446,17 @@
                 </ul>
             </div>
             <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🏔️ Topographie (altitudes Z)</h4>
+                <ul class="list-disc pl-6 space-y-1 mb-3">
+                    <li><b class="text-white">Le principe :</b> le plan reste vu de dessus, mais chaque point peut porter une altitude <b>Z</b> (en mètres, affichée avec 2 décimales) : extrémités des lignes, sommets des polylignes, centres des cercles et arcs, et <b>points topo</b>. Un point sans Z reste un point 2D.</li>
+                    <li><b class="text-white">Lire X Y Z :</b> en bas à droite, le Z s'affiche dès que le curseur accroche ou survole un point coté ; sur un trait 3D, il est <b>interpolé</b> à l'endroit exact du curseur. Au croisement de deux traits d'altitudes différentes, les deux valeurs sont affichées (ex. Z 734,33 / 734,50).</li>
+                    <li><b class="text-white">Point topo (bouton croix « Z » ou Pt ⏎) :</b> cliquez pour poser un point. Son Z est repris du point accroché, sinon du <b>Z courant</b>. Tapez une altitude puis Entrée pour corriger le dernier point posé. Le point s'affiche comme une croix avec son altitude.</li>
+                    <li><b class="text-white">Z courant (champ « Z = » en bas) :</b> altitude donnée aux nouveaux points qui ne s'accrochent pas à un point déjà coté (lignes, polylignes, cercles, points topo). Vide = pas d'altitude. Un nouveau trait accroché à un point coté reprend toujours son Z.</li>
+                    <li><b class="text-white">Propriétés :</b> Z modifiables (départ / arrivée d'une ligne, Z d'un point topo et son matricule, Z de tous les sommets d'une polyligne). Pour une ligne cotée aux deux bouts : <b>dénivelée</b>, <b>pente %</b> et <b>longueur 3D</b>.</li>
+                    <li><b class="text-white">Plans de géomètre (DXF) :</b> les blocs de points avec un attribut d'altitude (ALT, ALTI, Z, NGF…) deviennent des points topo (matricule et code repris) ; les Z des lignes, polylignes 3D, points, cercles et arcs sont conservés. Les unités du fichier sont respectées (un DXF en mètres est converti), et seul l'espace objet est importé (pas le cartouche de mise en page).</li>
+                    <li><b class="text-white">Coordonnées géoréférencées :</b> si le DXF est en Lambert (coordonnées de plusieurs millions de mètres), MomoCAD mémorise une origine et affiche les vraies coordonnées en bas d'écran ; l'export DXF les restitue à l'identique. Cela garde un affichage précis malgré les grands nombres.</li>
+                    <li><b class="text-white">Export DXF 3D :</b> lignes avec leurs Z, polylignes 3D (ou élévation si tous les sommets ont le même Z), cercles et arcs à leur altitude, points topo en POINT 3D avec l'altitude écrite à côté. Lisible par AutoCAD et Covadis.</li>
+                </ul>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">⌨️ Raccourcis de commande</h4>
                 <p class="text-xs text-gray-400 mb-1 pl-2">Tapez les lettres (majuscules ou minuscules, sans cliquer nulle part) puis <b>Entrée</b> ⏎. La barre de commande montre ce que vous tapez et les commandes possibles ; Retour arrière corrige, Échap annule. Les objets déjà sélectionnés restent sélectionnés (pratique pour D ⏎ ou R ⏎).</p>
                 <table class="text-sm ml-2 mb-3 w-[calc(100%-0.5rem)]"><thead><tr class="text-xs text-gray-400 text-left"><th class="pr-3 font-normal">Taper</th><th class="font-normal">Commande</th></tr></thead><tbody>
@@ -459,6 +473,7 @@
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Ha ⏎</td><td class="py-0.5">Hachurer une zone fermée</td></tr>
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Tx ⏎</td><td class="py-0.5">Écrire un texte</td></tr>
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">If ⏎</td><td class="py-0.5">Dessiner une infobulle (détail)</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Pt ⏎</td><td class="py-0.5">Poser un point topo (altitude Z)</td></tr>
                 </tbody></table>
             </div>
             <div>
@@ -1139,11 +1154,80 @@
                 : tick + '<text x="12" y="12" font-size="7.5" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle" dominant-baseline="central">1.23</text>';
             const b = document.getElementById('btn-dim-text'); if (b) b.title = 'Texte des cotes : ' + (dimTextAligned ? 'ALIGNÉ sur la ligne de cote' : 'toujours HORIZONTAL') + ' (clic pour basculer)';
         }
+        // =====================================================================
+        // 3D TOPO : chaque point peut porter une altitude Z (en mm dans le modèle, affichée en m NGF).
+        //  - line : z1, z2 ; poly : points[i].z ; circle / arc : z ; point topo : { type:'point', x, y, z, mat, code }
+        //  - geoOrigin : coordonnées réelles (Lambert…) = coordonnées locales + geoOrigin (mm, Y vers le haut),
+        //    pour garder une bonne précision d'affichage avec des coordonnées de plusieurs millions de mètres.
+        // =====================================================================
+        let geoOrigin = { x: 0, y: 0 };
+        let zCourant = null;            // altitude (mm) donnée aux nouveaux points sans Z, ou null
+        let lastTopo = null;            // dernier point topo posé (pour corriger son Z au clavier)
+        const fmtZ = (zmm) => (zmm / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const hasZ = (v) => typeof v === 'number' && isFinite(v);
+        const realX = (wx) => worldToMm(wx) + geoOrigin.x, realY = (wy) => -worldToMm(wy) + geoOrigin.y;
+        // Altitudes connues au point (x, y) : sommets, points topo, et Z interpolé le long des traits 3D
+        function zAt(x, y, tol, exclude) {
+            const out = [];
+            const add = (z) => { if (hasZ(z) && !out.some(q => Math.abs(q - z) < 0.5)) out.push(z); };
+            const onSeg = (ax, ay, az, bx, by, bz) => {
+                const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+                if (l2 === 0) { if (Math.hypot(x - ax, y - ay) <= tol) add(hasZ(az) ? az : bz); return; }
+                const t = ((x - ax) * dx + (y - ay) * dy) / l2; if (t < -1e-9 || t > 1 + 1e-9) return;
+                if (Math.hypot(x - (ax + t * dx), y - (ay + t * dy)) > tol) return;
+                if (hasZ(az) && hasZ(bz)) add(az + (bz - az) * Math.max(0, Math.min(1, t)));
+                else if (hasZ(az) && t < 1e-6) add(az); else if (hasZ(bz) && t > 1 - 1e-6) add(bz);
+                else if (hasZ(az) && Math.hypot(x - ax, y - ay) <= tol) add(az); else if (hasZ(bz) && Math.hypot(x - bx, y - by) <= tol) add(bz);
+            };
+            for (const s of shapes) {
+                if (s === exclude) continue;
+                const layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
+                if (s.type === 'point') { if (Math.hypot(x - s.x, y - s.y) <= tol) add(s.z); }
+                else if (s.type === 'line') onSeg(s.x1, s.y1, s.z1, s.x2, s.y2, s.z2);
+                else if (s.type === 'poly') for (let i = 0; i < s.points.length; i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; onSeg(a.x, a.y, a.z, b.x, b.y, b.z); }
+                else if ((s.type === 'circle' || s.type === 'arc') && hasZ(s.z)) { const d = Math.hypot(x - s.x, y - s.y); if (d <= tol || Math.abs(d - s.r) <= tol) add(s.z); }
+            }
+            return out;
+        }
+        // Nouveaux objets : chaque sommet sans Z reprend l'altitude du point sur lequel il s'accroche, sinon le « Z courant »
+        function shapeVertices(s) {
+            if (s.type === 'line') return [{ get: () => s.z1, set: (z) => s.z1 = z, x: s.x1, y: s.y1 }, { get: () => s.z2, set: (z) => s.z2 = z, x: s.x2, y: s.y2 }];
+            if (s.type === 'poly') return s.points.map(p => ({ get: () => p.z, set: (z) => p.z = z, x: p.x, y: p.y }));
+            if (s.type === 'circle' || s.type === 'arc' || s.type === 'point') return [{ get: () => s.z, set: (z) => s.z = z, x: s.x, y: s.y }];
+            return [];
+        }
+        function fillNewZ() {
+            const tol = 0.5;
+            for (const s of shapes) {
+                if (s.zk) continue; s.zk = 1;
+                shapeVertices(s).forEach(v => {
+                    if (hasZ(v.get())) return;
+                    const zs = zAt(v.x, v.y, tol, s);
+                    if (zs.length) v.set(zs[0]); else if (hasZ(zCourant)) v.set(zCourant);
+                });
+            }
+        }
+        function markZKnown(list) { (list || shapes).forEach(s => { s.zk = 1; }); }
+        function setZCourant(v) {
+            const t = String(v).trim().replace(',', '.');
+            zCourant = t === '' || isNaN(parseFloat(t)) ? null : parseFloat(t) * 1000;
+            const inp = document.getElementById('z-courant'); if (inp) inp.value = hasZ(zCourant) ? fmtZ(zCourant) : '';
+        }
+        // Modification d'un Z depuis les propriétés (valeur en m, vide = pas d'altitude)
+        function editZ(what, value) {
+            const s = selectedShapes[0]; if (!s) return;
+            const t = String(value).trim().replace(',', '.'), z = t === '' || isNaN(parseFloat(t)) ? undefined : parseFloat(t) * 1000;
+            const set = (o, k) => { if (z === undefined) delete o[k]; else o[k] = z; };
+            if (what === 'z1' || what === 'z2' || what === 'z') set(s, what);
+            else if (what === 'all' && s.type === 'poly') s.points.forEach(p => set(p, 'z'));
+            else if (what === 'mat') { s.mat = String(value).trim(); }
+            saveState(); draw();
+        }
         // Raccourcis de commande : lettres puis Entrée (comme AutoCAD)
         const CMD_ALIASES = {
             D: ['move', 'Déplacer'], R: ['rotate', 'Rotation'], C: ['trim', 'Couper (ajuster)'], P: ['extend', 'Prolonger'], DE: ['offset', 'Décaler'],
             DR: ['line', 'Droite'], QR: ['rect', 'Quadrilatère'], RO: ['circle', 'Rond (cercle)'], AR: ['arc', 'Arc'], PL: ['poly', 'Polygone'],
-            HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)']
+            HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)'], PT: ['topo', 'Point topo']
         };
         let cmdBuffer = '';
         function runCmdAlias() {
@@ -1155,7 +1239,7 @@
         function translateShape(s, ddx, ddy) {
             if (s.type === 'line') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; }
             else if (s.type === 'dim') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; s.ox += ddx; s.oy += ddy; }
-            else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap' || s.type === 'bgimage') { s.x += ddx; s.y += ddy; }
+            else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap' || s.type === 'bgimage' || s.type === 'point') { s.x += ddx; s.y += ddy; }
             else if (s.type === 'poly') s.points.forEach(p => { p.x += ddx; p.y += ddy; });
             else if (s.type === 'dim-angle') { s.vertex.x += ddx; s.vertex.y += ddy; s.p1.x += ddx; s.p1.y += ddy; s.p2.x += ddx; s.p2.y += ddy; }
             else if (s.type === 'detail') { s.tx += ddx; s.ty += ddy; s.lx += ddx; s.ly += ddy; }
@@ -1767,7 +1851,7 @@
             const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
             const rot = (x, y) => ({ x: (cos * (x - cx)) - (sin * (y - cy)) + cx, y: (sin * (x - cx)) + (cos * (y - cy)) + cy });
             if (s.type === 'line') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
-            else if (s.type === 'circle') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; }
+            else if (s.type === 'circle' || s.type === 'point') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; }
             else if (s.type === 'basemap' || s.type === 'bgimage') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.rot = (s.rot || 0) + angleRad; }
             else if (s.type === 'arc') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.startAngle += angleRad; s.endAngle += angleRad; }
             else if (s.type === 'poly') { s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
@@ -1790,6 +1874,7 @@
             if (s.type === 'line') { let p1 = sc(s.x1, s.y1), p2 = sc(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
             else if (s.type === 'circle' || s.type === 'basemap') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
             else if (s.type === 'bgimage') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.w *= Math.abs(f); s.h *= Math.abs(f); }
+            else if (s.type === 'point') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; }
             else if (s.type === 'arc') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
             else if (s.type === 'poly') { s.points.forEach(pt => { let p = sc(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
             else if (s.type === 'text') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.size = (s.size || 20) * f; }
@@ -1815,6 +1900,7 @@
                 else if (s.type === 'circle' || s.type === 'arc' || s.type === 'basemap') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); }
                 else if (s.type === 'poly') { s.points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
                 else if (s.type === 'hatch') { s.loops[0].forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
+                else if (s.type === 'point') { minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x); minY = Math.min(minY, s.y); maxY = Math.max(maxY, s.y); }
                 else if (s.type === 'text') { minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x + 100); minY = Math.min(minY, s.y - s.size); maxY = Math.max(maxY, s.y); }
             });
             if (minX === Infinity) return null;
@@ -1834,7 +1920,7 @@
                 if (snapSettings.endpoint) {
                     if (s.type === 'line' || s.type === 'dim') pts.push({x: s.x1, y: s.y1}, {x: s.x2, y: s.y2});
                     else if (s.type === 'poly') s.points.forEach(p => pts.push({x: p.x, y: p.y}));
-                    else if (s.type === 'text') pts.push({x: s.x, y: s.y});
+                    else if (s.type === 'text' || s.type === 'point') pts.push({x: s.x, y: s.y});
                     else if (s.type === 'arc') {
                         pts.push({x: s.x + Math.cos(s.startAngle)*s.r, y: s.y + Math.sin(s.startAngle)*s.r});
                         pts.push({x: s.x + Math.cos(s.endAngle)*s.r, y: s.y + Math.sin(s.endAngle)*s.r});
@@ -2026,6 +2112,7 @@
             let tol = 10/camera.zoom, p = { x: wx, y: wy };
             for (let i = shapes.length-1; i >= 0; i--) {
                 let s = shapes[i], l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue;
+                if (s.type === 'point') { if (Math.hypot(p.x - s.x, p.y - s.y) < tol) return s; continue; }
                 if (s.type === 'line') { let l2 = Math.pow(s.x2-s.x1,2)+Math.pow(s.y2-s.y1,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-s.x1)*(s.x2-s.x1)+(p.y-s.y1)*(s.y2-s.y1))/l2)); if (Math.hypot(p.x-(s.x1+t*(s.x2-s.x1)), p.y-(s.y1+t*(s.y2-s.y1))) < tol) return s; }
                 else if (s.type === 'dim') {
                     const g = dimGeom(s); if (!g) continue;
@@ -2312,6 +2399,7 @@
                 selectedShapes.forEach(s => {
                     if (s.points) s.points.forEach(p => { xs.push(p.x); ys.push(p.y); });
                     else if (s.type === 'line' || s.type === 'dim') { xs.push(s.x1, s.x2); ys.push(s.y1, s.y2); }
+                    else if (s.type === 'point') { xs.push(s.x); ys.push(s.y); }
                     else if (s.vertex) { xs.push(s.vertex.x); ys.push(s.vertex.y); }
                     else if (s.type === 'detail') { xs.push(s.lx, s.tx); ys.push(s.ly, s.ty); }
                     else if (s.loops) s.loops.forEach(l => l.forEach(p => { xs.push(p.x); ys.push(p.y); }));
@@ -2335,7 +2423,7 @@
             mode = newMode; flashUntil = 0;   // un nouvel outil remplace le message temporaire
             moveBasePoint = null; isMovingObjects = false; isDrawing = false; moveTypedX = null;
             dimStep = 0; dimChainInfo = null; rotateCenter = null; isRotatingObjects = false; typedInput = "";
-            calTarget = null; calP1 = null; calP2 = null;
+            calTarget = null; calP1 = null; calP2 = null; lastTopo = null;
             arcStep = 0; arcCenter = null; arcP1 = null;
             scaleCenter = null; scaleRefDist = 0; isScalingObjects = false;
             rectDimStep = 0; rectWidthVal = 0;
@@ -2491,8 +2579,9 @@
             let hnd = parseInt(M.handseed, 16);
             const H = () => (hnd++).toString(16).toUpperCase();
             const num = (v) => { const r = Math.round(v * 1e6) / 1e6; return (Object.is(r, -0) ? 0 : r).toString(); };
-            const X = (v) => worldToMm(v);
-            const Y = (v) => -worldToMm(v);           // l'axe Y est inversé entre l'écran et le DXF
+            const X = (v) => worldToMm(v) + geoOrigin.x;
+            const Y = (v) => -worldToMm(v) + geoOrigin.y;   // l'axe Y est inversé entre l'écran et le DXF ; + origine géoréférencée
+            const ZZ = (z) => hasZ(z) ? num(z) : 0;
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             const ext = (x, y) => { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; };
             const ltName = (dash) => dash === 'dashed' ? 'DASHED' : (dash === 'center' ? 'CENTER' : 'Continuous');
@@ -2522,10 +2611,10 @@
                 p(0, type); p(5, H()); p(330, M.msp); p(100, 'AcDbEntity');
                 p(8, dxfStr(layerDxfName(s.layerId || 'layer-0')));
             };
-            const line = (s, x1, y1, x2, y2) => {
+            const line = (s, x1, y1, x2, y2, z1, z2) => {
                 head('LINE', s); p(100, 'AcDbLine');
-                p(10, num(X(x1))); p(20, num(Y(y1))); p(30, 0);
-                p(11, num(X(x2))); p(21, num(Y(y2))); p(31, 0);
+                p(10, num(X(x1))); p(20, num(Y(y1))); p(30, ZZ(z1));
+                p(11, num(X(x2))); p(21, num(Y(y2))); p(31, ZZ(z2));
                 ext(X(x1), Y(y1)); ext(X(x2), Y(y2));
             };
             const text = (s, x, y, h, str, rotDeg) => {
@@ -2584,10 +2673,14 @@
                         text(s, cx + ox * ca - oy * sa, cy + ox * sa + oy * ca, h, str, a * 180 / Math.PI);
                     }
                 } else if (s.type === 'line') {
-                    line(s, s.x1, s.y1, s.x2, s.y2);
+                    line(s, s.x1, s.y1, s.x2, s.y2, s.z1, s.z2);
+                } else if (s.type === 'point') {
+                    // point topo : POINT 3D + altitude en texte (marqué pour ne pas être réimporté en double)
+                    head('POINT', s); p(100, 'AcDbPoint'); p(10, num(X(s.x))); p(20, num(Y(s.y))); p(30, ZZ(s.z)); ext(X(s.x), Y(s.y));
+                    if (hasZ(s.z)) { const h = layerTextH(s.layerId) || 1.5; text(s, X(s.x) + h * 0.6, Y(s.y) + h * 0.3, h, fmtZ(s.z), 0); p(1001, 'MOMOCAD'); p(1000, 'zlabel'); }
                 } else if (s.type === 'circle') {
                     head('CIRCLE', s); p(100, 'AcDbCircle');
-                    p(10, num(X(s.x))); p(20, num(Y(s.y))); p(30, 0); p(40, num(worldToMm(s.r)));
+                    p(10, num(X(s.x))); p(20, num(Y(s.y))); p(30, ZZ(s.z)); p(40, num(worldToMm(s.r)));
                     ext(X(s.x) - worldToMm(s.r), Y(s.y) - worldToMm(s.r)); ext(X(s.x) + worldToMm(s.r), Y(s.y) + worldToMm(s.r));
                     if (s.hatch) hatch(s);
                 } else if (s.type === 'arc') {
@@ -2595,11 +2688,24 @@
                     const a = -s.startAngle * 180 / Math.PI, b = -s.endAngle * 180 / Math.PI;
                     const start = s.anticlockwise ? a : b, end = s.anticlockwise ? b : a;
                     head('ARC', s); p(100, 'AcDbCircle');
-                    p(10, num(X(s.x))); p(20, num(Y(s.y))); p(30, 0); p(40, num(worldToMm(s.r)));
+                    p(10, num(X(s.x))); p(20, num(Y(s.y))); p(30, ZZ(s.z)); p(40, num(worldToMm(s.r)));
                     p(100, 'AcDbArc'); p(50, num(((start % 360) + 360) % 360)); p(51, num(((end % 360) + 360) % 360));
                     ext(X(s.x) - worldToMm(s.r), Y(s.y) - worldToMm(s.r)); ext(X(s.x) + worldToMm(s.r), Y(s.y) + worldToMm(s.r));
+                } else if (s.type === 'poly' && s.points.some(q => hasZ(q.z)) && !s.points.every(q => q.z === s.points[0].z)) {
+                    // altitudes différentes selon les sommets : vraie polyligne 3D
+                    const ph = H(), lay = dxfStr(layerDxfName(s.layerId || 'layer-0'));
+                    p(0, 'POLYLINE'); p(5, ph); p(330, M.msp); p(100, 'AcDbEntity'); p(8, lay);
+                    p(100, 'AcDb3dPolyline'); p(66, 1); p(10, 0); p(20, 0); p(30, 0); p(70, 9);
+                    for (const pt of s.points) {
+                        p(0, 'VERTEX'); p(5, H()); p(330, ph); p(100, 'AcDbEntity'); p(8, dxfStr(layerDxfName(s.layerId || 'layer-0')));
+                        p(100, 'AcDbVertex'); p(100, 'AcDb3dPolylineVertex'); p(10, num(X(pt.x))); p(20, num(Y(pt.y))); p(30, ZZ(pt.z)); p(70, 32);
+                        ext(X(pt.x), Y(pt.y));
+                    }
+                    p(0, 'SEQEND'); p(5, H()); p(330, ph); p(100, 'AcDbEntity'); p(8, lay);
+                    if (s.hatch) hatch(s);
                 } else if (s.type === 'poly') {
                     head('LWPOLYLINE', s); p(100, 'AcDbPolyline'); p(90, s.points.length); p(70, 1);
+                    if (hasZ(s.points[0].z)) p(38, num(s.points[0].z));
                     for (const pt of s.points) { p(10, num(X(pt.x))); p(20, num(Y(pt.y))); ext(X(pt.x), Y(pt.y)); }
                     if (s.hatch) hatch(s);
                 } else if (s.type === 'text') {
@@ -2689,14 +2795,40 @@
             }
 
             const num = (x) => parseFloat(x);
-            const X = (mm) => mmToWorld(num(mm));
-            const Y = (mm) => -mmToWorld(num(mm)); // ré-inversion Y
+            // Unités du fichier ($INSUNITS) : les plans de géomètre sont souvent en mètres
+            let uf = 1;
+            for (let k = 0; k < start; k++) if (pairs[k].code === 9 && pairs[k].val.trim() === '$INSUNITS') {
+                for (let j = k + 1; j < k + 4 && j < pairs.length; j++) if (pairs[j].code === 70) { uf = { 1: 25.4, 2: 304.8, 4: 1, 5: 10, 6: 1000, 14: 100 }[parseInt(pairs[j].val, 10)] || 1; break; }
+                break;
+            }
+            // Coordonnées géoréférencées (Lambert…) : on travaille près de 0 avec une origine mémorisée
+            if (!geoOrigin.x && !geoOrigin.y && !shapes.some(sh => !isBg(sh))) {
+                // médiane des coordonnées non nulles (les points de référence à 0,0 des hachures sont ignorés)
+                const xs = [], ys = [];
+                for (let k = start; k < pairs.length; k++) { const c = pairs[k].code, v = num(pairs[k].val) * uf; if (!isFinite(v) || Math.abs(v) < 1) continue; if (c === 10) xs.push(v); else if (c === 20) ys.push(v); }
+                const med = (a) => { if (!a.length) return 0; a.sort((u, w) => u - w); return a[a.length >> 1]; };
+                const mx = med(xs), my = med(ys);
+                if (Math.abs(mx) > 1e8 || Math.abs(my) > 1e8) geoOrigin = { x: Math.floor(mx / 1e6) * 1e6, y: Math.floor(my / 1e6) * 1e6 };   // au km près
+            }
+            const X = (v) => mmToWorld(num(v) * uf - geoOrigin.x);
+            const Y = (v) => -mmToWorld(num(v) * uf - geoOrigin.y); // ré-inversion Y
+            const L = (v) => mmToWorld(num(v) * uf);                  // longueurs (rayons, hauteurs de texte)
+            const Z = (v) => { const z = num(v) * uf; return (v !== undefined && isFinite(z) && z !== 0) ? z : undefined; };   // altitude en mm ; 0 = pas d'altitude
 
             i = start;
             while (i < pairs.length) {
                 if (pairs[i].code !== 0) { i++; continue; }
                 const ent = pairs[i].val.trim();
                 if (ent === 'ENDSEC' || ent === 'EOF') break;
+                // Entités de l'espace papier (mise en page, cartouche du géomètre) : ignorées, seul l'espace objet est importé
+                {
+                    let j = i + 1, paper = false;
+                    for (; j < pairs.length && pairs[j].code !== 0; j++) if (pairs[j].code === 67 && pairs[j].val.trim() === '1') paper = true;
+                    if (paper) {
+                        while (j < pairs.length && pairs[j].code === 0 && ['VERTEX', 'ATTRIB', 'SEQEND'].includes(pairs[j].val.trim())) { j++; while (j < pairs.length && pairs[j].code !== 0) j++; }
+                        i = j; continue;
+                    }
+                }
 
                 // ----- POLYLINE ancien format (R12) : sommets dans des VERTEX -----
                 if (ent === 'HATCH') {
@@ -2744,7 +2876,7 @@
                         if (pairs[j].code === 0 && pairs[j].val.trim() === 'VERTEX') {
                             const vg = {}; let k = j + 1;
                             for (; k < pairs.length && pairs[k].code !== 0; k++) vg[pairs[k].code] = pairs[k].val;
-                            if (vg[10] !== undefined && vg[20] !== undefined) pts.push({ x: X(vg[10]), y: Y(vg[20]) });
+                            if (vg[10] !== undefined && vg[20] !== undefined) { const q = { x: X(vg[10]), y: Y(vg[20]) }; const z = Z(vg[30]); if (z !== undefined) q.z = z; pts.push(q); }
                             j = k;
                         } else if (pairs[j].code === 0 && pairs[j].val.trim() === 'SEQEND') { j++; break; }
                         else if (pairs[j].code === 0) break;
@@ -2755,6 +2887,31 @@
                     i = j; continue;
                 }
 
+                // ----- Blocs : les points de géomètre (bloc avec un attribut d'altitude) deviennent des points topo -----
+                if (ent === 'INSERT' || ent === 'POINT') {
+                    const ig = {}; let j = i + 1;
+                    for (; j < pairs.length && pairs[j].code !== 0; j++) if (ig[pairs[j].code] === undefined) ig[pairs[j].code] = pairs[j].val;
+                    const att = {};
+                    if (ent === 'INSERT' && String(ig[66] || '').trim() === '1') {
+                        while (j < pairs.length && pairs[j].code === 0 && pairs[j].val.trim() === 'ATTRIB') {
+                            let tag = '', val = '', k = j + 1;
+                            for (; k < pairs.length && pairs[k].code !== 0; k++) { if (pairs[k].code === 2) tag = pairs[k].val.trim().toUpperCase(); if (pairs[k].code === 1) val = pairs[k].val.trim(); }
+                            if (tag) att[tag] = val; j = k;
+                        }
+                        if (j < pairs.length && pairs[j].code === 0 && pairs[j].val.trim() === 'SEQEND') { j++; while (j < pairs.length && pairs[j].code !== 0) j++; }
+                    }
+                    const altKey = ['ALT', 'ALTI', 'ALTITUDE', 'Z', 'NGF', 'COTE', 'NIVEAU', 'NIV'].find(t => att[t] !== undefined && !isNaN(parseFloat(String(att[t]).replace(',', '.'))));
+                    let z = altKey ? parseFloat(String(att[altKey]).replace(',', '.')) * 1000 : Z(ig[30]);
+                    const isTopo = ent === 'POINT' || altKey || /TOPO|POINT|PT/i.test(String(ig[2] || ''));
+                    if (isTopo && ig[10] !== undefined && ig[20] !== undefined) {
+                        const pt = { type: 'point', layerId: resolveImportLayer((ig[8] || '0').trim(), importedLayers), x: X(ig[10]), y: Y(ig[20]) };
+                        if (z !== undefined) pt.z = z;
+                        const mat = att.MAT || att.MATRICULE || att.NUM || att.NUMERO || att.NOM; if (mat) pt.mat = mat;
+                        const cod = att.COD || att.CODE; if (cod) pt.code = cod;
+                        newShapes.push(pt);
+                    } else ignored++;
+                    i = j; continue;
+                }
                 // Collecte tous les codes de l'entité jusqu'au prochain code 0
                 const g = {}; const gmulti = { 10:[], 20:[] };
                 let j = i + 1;
@@ -2779,40 +2936,46 @@
                 const _width = g[370] !== undefined ? lineweightToWidth(parseInt(g[370],10)) : 1;
 
                 if (ent === 'LINE') {
-                    newShapes.push({ type:'line', layerId,
+                    const ln = { type:'line', layerId,
                         x1: X(gmulti[10][0]), y1: Y(gmulti[20][0]),
                         x2: X(g[11]), y2: Y(g[21]),
-                        color:_color, dash:_dash, width:_width });
+                        color:_color, dash:_dash, width:_width };
+                    const z1 = Z(g[30]), z2 = Z(g[31]); if (z1 !== undefined || z2 !== undefined) { ln.z1 = z1 !== undefined ? z1 : 0; ln.z2 = z2 !== undefined ? z2 : 0; }
+                    newShapes.push(ln);
                 } else if (ent === 'CIRCLE') {
                     newShapes.push({ type:'circle', layerId,
                         x: X(gmulti[10][0]), y: Y(gmulti[20][0]),
-                        r: mmToWorld(num(g[40])),
+                        r: L(g[40]), z: Z(g[30]),
                         color:_color, dash:_dash, width:_width, hatch:false });
                 } else if (ent === 'ARC') {
                     // Ré-inversion des angles (cf. export)
-                    const cx = X(gmulti[10][0]), cy = Y(gmulti[20][0]), r = mmToWorld(num(g[40]));
+                    const cx = X(gmulti[10][0]), cy = Y(gmulti[20][0]), r = L(g[40]);
                     let a1 = num(g[50]) * Math.PI/180, a2 = num(g[51]) * Math.PI/180;
                     // dxf->monde : angle_monde = -angle_dxf, et on ré-échange start/end
-                    newShapes.push({ type:'arc', layerId, x:cx, y:cy, r:r,
+                    newShapes.push({ type:'arc', layerId, x:cx, y:cy, r:r, z: Z(g[30]),
                         startAngle: -a2, endAngle: -a1,
                         color:_color, dash:_dash, width:_width });
                 } else if (ent === 'LWPOLYLINE') {
                     const pts = [];
                     const n = Math.min(gmulti[10].length, gmulti[20].length);
-                    for (let q = 0; q < n; q++) pts.push({ x: X(gmulti[10][q]), y: Y(gmulti[20][q]) });
+                    const el = Z(g[38]);   // élévation de la polyligne
+                    for (let q = 0; q < n; q++) { const v = { x: X(gmulti[10][q]), y: Y(gmulti[20][q]) }; if (el !== undefined) v.z = el; pts.push(v); }
                     if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts,
                         color:_color, dash:_dash, width:_width, hatch:false });
+                } else if ((ent === 'TEXT' || ent === 'MTEXT') && String(g[1001] || '').trim() === 'MOMOCAD' && String(g[1000] || '').trim() === 'zlabel') {
+                    // étiquette d'altitude écrite par MomoCAD : déjà portée par le point topo
                 } else if (ent === 'TEXT' || ent === 'MTEXT') {
                     newShapes.push({ type:'text', layerId,
                         x: X(gmulti[10][0]), y: Y(gmulti[20][0]),
                         content: (g[1] || '').replace(/\\P/g,' ').replace(/[{}]/g,''),
-                        color:_color, size: g[40] ? mmToWorld(num(g[40])) : 20,
+                        color:_color, size: g[40] ? L(g[40]) : 20,
                         angle: g[50] ? -num(g[50])*Math.PI/180 : 0 });
                 } else {
                     ignored++;
                 }
                 i = j;
             }
+            newShapes.forEach(sh => { sh.zk = 1; if (sh.z === undefined) delete sh.z; });
             return { shapes: newShapes, ignored };
         }
 
@@ -2925,7 +3088,7 @@
             const basemaps = {}; shapes.forEach(sh => { if (!isBg(sh)) return; [sh.mapId, sh.mapId + '_cad'].forEach(k => { if (basemapStore[k]) basemaps[k] = basemapStore[k]; }); });
             const c = screenToWorld(canvas.width / 2, canvas.height / 2);
             return { app: 'MomoCAD', version: '1.3', scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes,
-                     cartouche: cartoucheData, basemaps, gridMm, view: { cx: c.x, cy: c.y, zoom: camera.zoom },
+                     cartouche: cartoucheData, basemaps, gridMm, geoOrigin, view: { cx: c.x, cy: c.y, zoom: camera.zoom },
                      // réglages d'affichage et d'impression du plan
                      settings: { unit: printSettings.unit, decimals: printSettings.decimals, dimText: dimTextAligned ? 'aligned' : 'horizontal',
                                  paper: printSettings.paper, output: printSettings.output, cartouche: !!printSettings.cartouche } };
@@ -3007,11 +3170,13 @@
             const buf = new Uint8Array(await f.arrayBuffer());
             let txt; try { txt = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (_) { txt = new TextDecoder('windows-1252').decode(buf); }
             if (mode === 'print' || mode === 'preview') setMode('select-box');
-            const keepLayers = layers;
+            const keepLayers = layers, keepShapes = shapes, keepOrigin = geoOrigin;
             layers = JSON.parse(JSON.stringify(INITIAL_LAYERS)); activeLayerId = layers[0].id;
+            shapes = []; geoOrigin = { x: 0, y: 0 };   // nouveau plan : l'origine se cale sur le DXF
             let res;
-            try { res = importDXF(txt); } catch (err) { layers = keepLayers; alert('Erreur de lecture du DXF : ' + err.message); return false; }
-            if (!res.shapes.length) { layers = keepLayers; alert('Aucune entité compatible trouvée dans ce DXF.'); return false; }
+            const restore = () => { layers = keepLayers; shapes = keepShapes; geoOrigin = keepOrigin; };
+            try { res = importDXF(txt); } catch (err) { restore(); alert('Erreur de lecture du DXF : ' + err.message); return false; }
+            if (!res.shapes.length) { restore(); alert('Aucune entité compatible trouvée dans ce DXF.'); return false; }
             shapes = res.shapes; selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI(); zoomToFitShapes(shapes);
             fileName = name; markSaved(); draw();
@@ -3049,7 +3214,8 @@
             }
             if (data.gridMm > 0) { gridMm = data.gridMm; try { localStorage.setItem('momocad-grid-mm', String(gridMm)); } catch (e) {} }
             refreshGridField(); updateCursorCoords();
-            shapes = data.shapes; selectedShapes = []; shapesHistory = []; historyStep = -1;
+            geoOrigin = (data.geoOrigin && isFinite(data.geoOrigin.x)) ? data.geoOrigin : { x: 0, y: 0 };
+            shapes = data.shapes; markZKnown(); selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI();
             if (data.view && data.view.zoom > 0) {
                 camera.zoom = data.view.zoom;
@@ -3232,7 +3398,7 @@
                 tctx.restore();
             }
             for (const d of screenTextsToDraw) {
-                const fs = annotTextPx(d.layerId, 14, unit, worldScale), k = fs / 14, lh = fs * 1.25;
+                const fs = annotTextPx(d.layerId, d.small ? 11 : 14, unit, worldScale), k = fs / 14, lh = fs * 1.25;
                 const p = W2S(d.wx, d.wy);
                 const col = (isPrinting && d.color === '#ffffff') ? '#000000' : d.color;
                 tctx.font = "bold " + fs + "px Arial";
@@ -3283,7 +3449,7 @@
 
         // --- HISTORIQUE & ÉTAT ---
         let shapesHistory = []; let historyStep = -1;
-        function saveState() { invalidateCache(); if (historyStep < shapesHistory.length - 1) shapesHistory = shapesHistory.slice(0, historyStep + 1); shapesHistory.push({ shapes: JSON.parse(JSON.stringify(shapes)), layers: JSON.parse(JSON.stringify(layers)), activeLayerId }); historyStep++; }
+        function saveState() { try { fillNewZ(); } catch (e) { console.error(e); } invalidateCache(); if (historyStep < shapesHistory.length - 1) shapesHistory = shapesHistory.slice(0, historyStep + 1); shapesHistory.push({ shapes: JSON.parse(JSON.stringify(shapes)), layers: JSON.parse(JSON.stringify(layers)), activeLayerId }); historyStep++; }
         function undo() { invalidateCache(); if (historyStep > 0) { historyStep--; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
         function redo() { invalidateCache(); if (historyStep < shapesHistory.length - 1) { historyStep++; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
 
@@ -3381,6 +3547,13 @@
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle, !!s.anticlockwise); targetCtx.stroke(); }
             else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
+            else if (s.type === 'point') {
+                const X = s.x + dx, Y = s.y + dy, t = 5 / lineScale;
+                targetCtx.setLineDash([]); targetCtx.lineWidth = (sel ? 2.5 : 1.5) / lineScale; targetCtx.strokeStyle = sel ? '#ec4899' : col;
+                targetCtx.beginPath(); targetCtx.moveTo(X - t, Y); targetCtx.lineTo(X + t, Y); targetCtx.moveTo(X, Y - t); targetCtx.lineTo(X, Y + t); targetCtx.stroke();
+                targetCtx.beginPath(); targetCtx.arc(X, Y, t * 0.45, 0, 2 * Math.PI); targetCtx.stroke();
+                if (hasZ(s.z)) screenTextsToDraw.push({ kind: 'text', layerId: s.layerId, wx: X + 7 / camera.zoom, wy: Y - 3 / camera.zoom, lines: [fmtZ(s.z)], color: sel ? '#ec4899' : col, small: true });
+            }
             else if (s.type === 'bgimage') {
                 const X = s.x + dx, Y = s.y + dy, img = bmImg(s.mapId);
                 targetCtx.save(); targetCtx.translate(X, Y); targetCtx.rotate(s.rot || 0);
@@ -3683,10 +3856,13 @@
             if (!inside) { ctx.fillStyle = '#9ca3af'; ctx.font = "10px Arial"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("0,0 hors écran", ox - 6, oy + 28); }
             ctx.restore();
         }
+        let currentZs = [];
         function updateCursorCoords() {
             const el = document.getElementById('cursor-coords'); if (!el) return;
             const k = UNIT_MM[currentUnit] || 1;
-            el.textContent = 'X ' + fmtNum(worldToMm(currentX) / k) + '   Y ' + fmtNum(-worldToMm(currentY) / k) + ' ' + currentUnit;
+            let t = 'X ' + fmtNum(realX(currentX) / k) + '   Y ' + fmtNum(realY(currentY) / k) + ' ' + currentUnit;
+            if (currentZs && currentZs.length) t += '   Z ' + currentZs.slice(0, 3).map(fmtZ).join(' / ') + (currentZs.length > 3 ? ' …' : '') + ' m';
+            el.textContent = t;
         }
 
         // ---------- Recadrage rapide du logo (carré) ----------
@@ -3954,6 +4130,11 @@
             else if (mode === 'circle') msg = isDrawing ? "CERCLE : Spécifiez le rayon (valeur + Entrée)." : "CERCLE : Spécifiez le centre.";
             else if (mode === 'arc') { if (arcStep === 0) msg = "ARC : Spécifiez le centre."; else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ."; else msg = "ARC : Spécifiez l'angle de fin (valeur + Entrée)."; }
             else if (mode === 'poly') msg = isDrawing ? "POLYGONE : Spécifiez le point suivant (double-clic pour fermer)." : "POLYGONE : Spécifiez le point de départ.";
+            else if (mode === 'topo') {
+                if (typedInput) msg = "POINT TOPO : altitude = " + typedInput + " m puis [Entrée].";
+                else if (lastTopo && shapes.includes(lastTopo)) msg = "POINT TOPO : posé" + (hasZ(lastTopo.z) ? " à Z " + fmtZ(lastTopo.z) + " m" : " sans altitude") + " — tapez l'altitude + [Entrée] pour la changer, ou cliquez le point suivant.";
+                else msg = "POINT TOPO : cliquez pour poser un point (Z repris du point accroché" + (hasZ(zCourant) ? ", sinon Z courant " + fmtZ(zCourant) + " m" : "") + ").";
+            }
             else if (mode === 'calibrate') {
                 if (!calTarget) msg = "CALIBRER : cliquez sur le fond perso à mettre à l'échelle.";
                 else if (!calP1) msg = "CALIBRER : 1er point d'une longueur connue sur l'image (ex. une cote, un bord de bâtiment).";
@@ -4027,6 +4208,29 @@
             }
             if (totalLength > 0) { let lbl = (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'poly')) ? 'Périmètre:' : 'Longueur:'; if (selectedShapes.length > 1) lbl = 'Long. totale:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-blue-300 ml-4 font-bold">${fmt(totalLength)}</span></div>`; }
             if (totalArea > 0) { let lbl = selectedShapes.length > 1 ? 'Aire totale:' : 'Aire:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-green-400 ml-4 font-bold">${fmtArea(totalArea)}</span></div>`; }
+            if (selectedShapes.length === 1 && ['line', 'poly', 'circle', 'arc', 'point'].includes(selectedShapes[0].type)) {
+                const b = selectedShapes[0], esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+                const zin = (what, z, label) => `<div class="flex justify-between items-center mt-0.5"><span>${label}</span> <span class="ml-4 flex items-center gap-1"><input type="text" inputmode="decimal" value="${hasZ(z) ? fmtZ(z) : ''}" placeholder="—" class="w-20 bg-gray-800 border border-gray-600 rounded px-1 text-right text-lime-300 font-mono text-xs outline-none" onchange="editZ('${what}', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}"> m</span></div>`;
+                html += `<div class="border-t border-gray-600 mt-1 pt-1"></div>`;
+                if (b.type === 'line') {
+                    html += zin('z1', b.z1, 'Z départ:') + zin('z2', b.z2, 'Z arrivée:');
+                    if (hasZ(b.z1) && hasZ(b.z2)) {
+                        const L = Math.hypot(b.x2 - b.x1, b.y2 - b.y1) * distFactor * (UNIT_MM[currentUnit] || 1), dz = b.z2 - b.z1;
+                        html += `<div class="flex justify-between items-center"><span>Dénivelée:</span> <span class="font-mono text-lime-300 ml-4">${dz >= 0 ? '+' : ''}${fmtZ(dz)} m</span></div>`;
+                        if (L > 0) html += `<div class="flex justify-between items-center"><span>Pente:</span> <span class="font-mono text-lime-300 ml-4 font-bold">${(dz / L * 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %</span></div>`;
+                        html += `<div class="flex justify-between items-center"><span>Longueur 3D:</span> <span class="font-mono text-lime-300 ml-4">${fmtLen(Math.hypot(L, dz) / (UNIT_MM[currentUnit] || 1))}</span></div>`;
+                    }
+                } else if (b.type === 'poly') {
+                    const zs = b.points.map(p => p.z).filter(hasZ);
+                    html += `<div class="flex justify-between items-center"><span>Z sommets:</span> <span class="font-mono text-lime-300 ml-4">${zs.length ? fmtZ(Math.min(...zs)) + (Math.max(...zs) !== Math.min(...zs) ? ' → ' + fmtZ(Math.max(...zs)) : '') + ' m (' + zs.length + '/' + b.points.length + ')' : '—'}</span></div>`;
+                    html += zin('all', zs.length && zs.every(z => z === zs[0]) && zs.length === b.points.length ? zs[0] : undefined, 'Z de tous:');
+                } else if (b.type === 'point') {
+                    html += `<div class="flex justify-between items-center"><span>Point topo:</span> <span class="font-mono text-lime-300 ml-4">X ${fmtNum(realX(b.x) / (UNIT_MM[currentUnit] || 1))}  Y ${fmtNum(realY(b.y) / (UNIT_MM[currentUnit] || 1))}</span></div>`;
+                    html += zin('z', b.z, 'Altitude Z:');
+                    html += `<div class="flex justify-between items-center mt-0.5"><span>Matricule:</span> <input type="text" value="${esc(b.mat || '')}" class="ml-4 w-24 bg-gray-800 border border-gray-600 rounded px-1 text-xs outline-none text-gray-200" onchange="editZ('mat', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}"></div>`;
+                    if (b.code) html += `<div class="flex justify-between items-center"><span>Code:</span> <span class="ml-4 text-gray-300">${esc(b.code)}</span></div>`;
+                } else html += zin('z', b.z, 'Altitude Z:');
+            }
             if (selectedShapes.length === 1 && selectedShapes[0].type === 'bgimage') {
                 const b = selectedShapes[0], esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
                 html += `<div class="flex justify-between items-center"><span>Fond perso:</span> <span class="text-sky-300 ml-4 truncate max-w-[10rem]" title="${esc(b.name || '')}">${esc(b.name || 'image')}</span></div>`;
@@ -4097,7 +4301,7 @@
                     selectedShapes = [];
                     newShapes.forEach(s => {
                         if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; }
-                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap' || s.type === 'bgimage') { s.x += dx; s.y += dy; }
+                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap' || s.type === 'bgimage' || s.type === 'point') { s.x += dx; s.y += dy; }
                         else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); }
                         else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; }
                         else if (s.type === 'dim-angle') { s.vertex.x += dx; s.vertex.y += dy; s.p1.x += dx; s.p1.y += dy; s.p2.x += dx; s.p2.y += dy; }
@@ -4192,6 +4396,13 @@
                 return;
             }
 
+            if (mode === 'topo') {
+                const sn = findSnap(wp.x, wp.y), pt = sn ? { x: sn.x, y: sn.y } : { x: wp.x, y: wp.y };
+                const zs = sn ? zAt(pt.x, pt.y, 0.5) : [];
+                const s0 = { type: 'point', layerId: activeLayerId, x: pt.x, y: pt.y, zk: 1 };
+                if (zs.length) s0.z = zs[0]; else if (hasZ(zCourant)) s0.z = zCourant;
+                shapes.push(s0); lastTopo = s0; typedInput = ''; saveState(); draw(); return;
+            }
             if (mode === 'calibrate') {
                 if (!calTarget) { const t = findShapeAt(wp.x, wp.y); if (t && t.type === 'bgimage') { calTarget = t; selectedShapes = [t]; } draw(); return; }
                 const sn = findSnap(wp.x, wp.y), pt = sn ? { x: sn.x, y: sn.y } : { x: wp.x, y: wp.y };
@@ -4314,6 +4525,9 @@
             shiftHeld = e.shiftKey;
             currentSnap = findSnap(wp.x, wp.y);
             updateTrackHover(currentSnap);
+            // altitude sous le curseur : au point accroché, sinon sur un trait 3D survolé (4 px)
+            currentZs = currentSnap ? zAt(currentSnap.x, currentSnap.y, 0.5) : [];
+            if (!currentZs.length) currentZs = zAt(wp.x, wp.y, 4 / camera.zoom);
             currentX = currentSnap ? currentSnap.x : wp.x;
             currentY = currentSnap ? currentSnap.y : wp.y;
             // Position réelle du pointeur (NON contrainte) pour le guide d'alignement
@@ -4364,6 +4578,7 @@
                         else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'poly') b = s.points.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         else if (s.type === 'dim-angle') b = isPointInRect(s.vertex.x, s.vertex.y, startX, startY, currentX-startX, currentY-startY);
+                        else if (s.type === 'point') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'bgimage') b = bgCorners(s).every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         else if (s.type === 'basemap') b = isPointInRect(s.x - s.r, s.y - s.r, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x + s.r, s.y + s.r, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'hatch') b = s.loops[0].every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
@@ -4513,6 +4728,12 @@
                     updateCommandMessageText('DÉPLACÉ de ΔX ' + fmtLen(mx) + ' · ΔY ' + fmtLen(my) + '.');
                     draw(); return;
                 }
+            }
+            // Point topo : altitude tapée puis Entrée (s'applique au dernier point posé)
+            if (mode === 'topo' && !e.ctrlKey && lastTopo && shapes.includes(lastTopo)) {
+                if (/^[0-9.,\-]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; }
+                if (e.key === 'Backspace' && typedInput) { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; }
+                if (e.key === 'Enter' && typedInput) { e.preventDefault(); const v = parseFloat(typedInput); if (!isNaN(v)) { lastTopo.z = v * 1000; saveState(); } typedInput = ''; draw(); return; }
             }
             // Calibrer : distance réelle tapée puis Entrée
             if (mode === 'calibrate' && calP2 && !e.ctrlKey) {
