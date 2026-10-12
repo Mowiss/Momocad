@@ -516,7 +516,7 @@
                     <li><b class="text-white">Étiquette de pente (bouton flèche % ou Pe ⏎) :</b> 2 clics sur des points cotés, des traits 3D ou n'importe où sur la surface : une flèche indique le sens de la descente, avec la pente en % et la <b>différence de niveau Δh</b> (ex. « 4,33 % · Δh 0,26 m »). Elle garde les altitudes du moment où elle est posée.</li>
                     <li><b class="text-white">Profil en long (Pr ⏎) :</b> cliquez les points de l'axe puis <b>Entrée</b> (ou double-clic). La fenêtre montre le terrain (vert, tiré de la surface) et les croisements avec les traits 3D et les points topo à moins de 50 cm de l'axe (orange). Tableau : un point tous les <b>N mètres</b> (pas au choix), les sommets de l'axe et les croisements, avec la pente entre points réguliers. <b>Copier (Excel)</b>, <b>Exporter CSV</b>, ou <b>Dessiner dans le plan</b> : le profil est tracé 10 m sous le dessin (calque « Profil en long »), distances à l'échelle. <b>Hauteurs ×</b> (×5 par défaut) fixe l'exagération du graphique comme du dessin : échelle des hauteurs = échelle des longueurs × ce chiffre (×1 = proportions réelles), avec plan de comparaison et cotes. L'axe reste dessiné en trait mixte.</li>
                     <li><b class="text-white">Courbes de niveau (Cn ⏎) :</b> équidistance au choix (5 cm à 5 m) et une maîtresse toutes les N courbes, avec l'altitude écrite dessus. Elles vont sur les calques « Courbes de niveau » et « Courbes maîtresses », portent leur Z (export DXF 3D) et sont remplacées si vous les régénérez.</li>
-                    <li><b class="text-white">Dessiner une plateforme projet :</b> tracez une polyligne <b>fermée</b>, sélectionnez-la, tapez <b>Y</b> et donnez la même altitude à tous ses sommets. Pour une <b>plateforme ronde</b>, tracez un cercle et donnez-lui son altitude avec <b>Y</b> (un cercle venant d'un DXF de géomètre ou calé sur un point coté reste un simple cercle tant que vous ne lui donnez pas son Z avec Y). Une polyligne fermée dont tous les sommets ont le même Z est reconnue comme <b>plateforme</b> : elle ne fait plus partie du terrain naturel (pas de « pyramides » vers ses coins), elle apparaît en 3D comme une dalle avec ses talus, et les Cubatures la prennent directement comme emprise avec sa cote déjà remplie. Les contours 2D des DXF de géomètre (simple élévation) ne sont pas pris pour des plateformes, sauf si vous leur redonnez un Z avec Y. <b>Chaque plateforme a ses propres talus</b> : dans la fenêtre <b>Y</b> (case « Talus jusqu'au terrain », pentes de remblai et de déblai en H/V) ou à l'étape Talus des Cubatures quand elle est l'emprise. Les réglages sont enregistrés dans la plateforme (fichier .mmc) et la vue 3D se met à jour aussitôt ; une nouvelle plateforme reprend les derniers réglages choisis. Les propriétés de la plateforme affichent ses talus. <b>En plan</b>, les talus sont dessinés automatiquement autour de la plateforme : <b>pied de talus</b> (ligne où le talus rejoint le terrain) et <b>peigne</b> de traits alternés longs / courts partant du haut du talus (de la plateforme pour un remblai, du pied pour un déblai), avec des angles arrondis aux coins saillants et des traits qui s'arrêtent sur la bissectrice dans les angles rentrants (pas de chevauchement). Ils suivent la plateforme quand on la modifie, s'impriment avec le plan et partent dans l'export DXF (traits 3D). Là où le terrain n'est pas connu (hors des points cotés), aucun talus n'est dessiné.</li>
+                    <li><b class="text-white">Dessiner une plateforme projet :</b> tracez une polyligne <b>fermée</b>, sélectionnez-la, tapez <b>Y</b> et donnez la même altitude à tous ses sommets. Pour une <b>plateforme ronde</b>, tracez un cercle et donnez-lui son altitude avec <b>Y</b> (un cercle venant d'un DXF de géomètre ou calé sur un point coté reste un simple cercle tant que vous ne lui donnez pas son Z avec Y). Une polyligne fermée dont tous les sommets ont le même Z est reconnue comme <b>plateforme</b> : elle ne fait plus partie du terrain naturel (pas de « pyramides » vers ses coins), elle apparaît en 3D comme une dalle avec ses talus, et les Cubatures la prennent directement comme emprise avec sa cote déjà remplie. Les contours 2D des DXF de géomètre (simple élévation) ne sont pas pris pour des plateformes, sauf si vous leur redonnez un Z avec Y. <b>Chaque plateforme a ses propres talus</b> : dans la fenêtre <b>Y</b> (case « Talus jusqu'au terrain », pentes de remblai et de déblai en H/V) ou à l'étape Talus des Cubatures quand elle est l'emprise. Les réglages sont enregistrés dans la plateforme (fichier .mmc) et la vue 3D se met à jour aussitôt ; une nouvelle plateforme reprend les derniers réglages choisis. Les propriétés de la plateforme affichent ses talus. <b>En plan</b>, les talus sont dessinés automatiquement autour de la plateforme : <b>pied de talus</b> (ligne où le talus rejoint le terrain) et <b>peigne</b> de traits alternés longs / courts partant du haut du talus (de la plateforme pour un remblai, du pied pour un déblai), avec des angles arrondis aux coins saillants et des traits qui s'arrêtent sur la bissectrice dans les angles rentrants (pas de chevauchement). Ils suivent la plateforme quand on la modifie, s'impriment avec le plan et partent dans l'export DXF (traits 3D). Là où le terrain n'est pas connu (hors des points cotés), aucun talus n'est dessiné. <b>Points topo nez / pied</b> : chaque talus porte quelques points cotés en <b>nez</b> (haut du talus) et en <b>pied</b> (bas), à chaque angle (sur la bissectrice) et tous les <b>N mètres</b> le long des côtés (10 m par défaut ; 0 = angles seulement ; pour un cercle, au moins 4). Réglage dans la fenêtre <b>Y</b> de la plateforme (« Points nez / pied », case + espacement). Ils suivent la plateforme, s'impriment, partent dans le DXF (POINT 3D + altitude) et dans l'export du <b>semis CSV</b> avec les matricules PF1-N1, PF1-P1… et les codes NEZ / PIED. Ils ne modifient pas le terrain naturel.</li>
                     <li><b class="text-white">Cubatures (bouton ou Cu ⏎) : assistant en 4 étapes</b> (cliquez une étape pour y revenir). <b>1. Emprise</b> : objet fermé sélectionné, ou « Choisir sur le plan » puis clic dans la zone (polyligne fermée, hachure ou cercle). <b>2. Projet</b> : plateforme horizontale à une cote (la cote moyenne du terrain dans l'emprise est proposée : c'est la cote d'équilibre sans talus), ou surface projet tirée des calques cochés. <b>3. Talus</b> : talus de remblai et de déblai en H/V (3/2 = 3 m à l'horizontale pour 2 m de haut), qui partent du bord de la plateforme jusqu'au terrain. <b>4. Résultats</b> : déblai, remblai et solde en gros, puis le détail plateforme / talus / total avec les surfaces ; « Copier (Excel) » et « Tracer sur le plan » (limite déblai / remblai et limite des talus, chacune sur son calque). Plateforme : calcul exact triangle par triangle ; talus : petites mailles. Volumes géométriques en place, sans foisonnement ; un avertissement s'affiche si le terrain ou les talus dépassent la zone couverte par les points cotés.</li>
                     <li><b class="text-white">Semis de points (menu disquette) :</b> <b>Importer un semis (CSV / TXT)</b> : une ligne par point, <b>MAT;X;Y;Z;CODE</b> ou <b>X;Y;Z</b>, en mètres ; séparateurs ; , tabulation ou espace, virgule ou point décimal ; lignes d'en-tête ignorées. Les points arrivent sur le calque « Semis de points ». <b>Exporter les points topo (CSV)</b> : MAT;X;Y;Z;CODE en coordonnées réelles, lisible par Excel.</li>
                 </ul>
@@ -1904,7 +1904,7 @@
         // ---------- Talus autour de l'emprise (plateforme horizontale) ----------
         // pente notée « H/V » (ex. 3/2 = 3 m à l'horizontale pour 2 m de hauteur) -> k = H / V
         // talus propres à chaque plateforme (sinon réglage courant de l'assistant)
-        function platTalus(pl) { const t = pl && pl.talus; return { on: t ? t.on !== false : cubState.talus, kR: (t && t.kR) || cubState.kR, kD: (t && t.kD) || cubState.kD }; }
+        function platTalus(pl) { const t = pl && pl.talus; return { on: t ? t.on !== false : cubState.talus, kR: (t && t.kR) || cubState.kR, kD: (t && t.kD) || cubState.kD, pts: !(t && t.pts === false), esp: t && isFinite(parseFloat(t.esp)) ? Math.max(0, parseFloat(t.esp)) : 10 }; }
         // Talus d'une plateforme en plan : crête, pied de talus et peigne (traits longs / courts depuis le haut du talus)
         const TALUS_CACHE = new WeakMap();
         function talusGeom(pl) {
@@ -1931,23 +1931,47 @@
                 }
             }
             const TN = (c, u, d) => tinZ(c.x + u.x * d, c.y + u.y * d, tin);
-            const ticks = [], toe = []; let k = 0;
-            rays.forEach(({ c, u }) => {
-                const t0 = TN(c, u, e); if (!hasZ(t0)) { toe.push({ x: c.x, y: c.y, z: zp }); return; }
+            // descend (ou monte) le long d'un rayon jusqu'au terrain ; la cote projet suit la distance réelle à la plateforme
+            const march = (c, u, useMed) => {
+                const t0 = TN(c, u, e); if (!hasZ(t0)) return null;
                 // au-delà de la bissectrice d'un angle rentrant, le point est plus près d'un autre bord : le rayon s'arrête là
-                const med = (d) => distToPoly(c.x + u.x * d, c.y + u.y * d, P) < d * 0.995 - e;
-                const rem = t0 < zp, f = (d) => { if (med(d)) return null; const z = TN(c, u, d); if (!hasZ(z)) return null; return rem ? zp - worldToMm(d) / kR - z : z - (zp + worldToMm(d) / kD); };
+                const med = (d) => useMed && distToPoly(c.x + u.x * d, c.y + u.y * d, P) < d * 0.995 - e;
+                const dz = (d) => useMed ? worldToMm(d) : worldToMm(distToPoly(c.x + u.x * d, c.y + u.y * d, P));
+                const rem = t0 < zp, zDes = (d) => rem ? zp - dz(d) / kR : zp + dz(d) / kD;
+                const f = (d) => { if (med(d)) return null; const z = TN(c, u, d); if (!hasZ(z)) return null; return rem ? zDes(d) - z : z - zDes(d); };
                 let d0 = 0, d1 = null, cut = false;
                 for (let d = stepD; d <= maxD; d += stepD) { const v = f(d); if (v === null) { cut = med(d); break; } if (v <= 0) { d1 = d; break; } d0 = d; }
                 let D = d0;
                 if (d1 !== null) { for (let it = 0; it < 12; it++) { const m = (d0 + d1) / 2, v = f(m); if (v !== null && v > 0) d0 = m; else d1 = m; } D = (d0 + d1) / 2; }
                 else if (cut) { let a0 = d0, a1 = d0 + stepD; for (let it = 0; it < 12; it++) { const m = (a0 + a1) / 2; if (med(m)) a1 = m; else a0 = m; } D = a0; }
-                const T = { x: c.x + u.x * D, y: c.y + u.y * D, z: rem ? zp - worldToMm(D) / kR : zp + worldToMm(D) / kD }, C = { x: c.x, y: c.y, z: zp };
+                return { D, cut, rem, T: { x: c.x + u.x * D, y: c.y + u.y * D, z: zDes(D) }, C: { x: c.x, y: c.y, z: zp } };
+            };
+            const ticks = [], toe = []; let k = 0;
+            rays.forEach(({ c, u }) => {
+                const M = march(c, u, true); if (!M) { toe.push({ x: c.x, y: c.y, z: zp }); return; }
+                const { D, cut, rem, T, C } = M;
                 if (!cut) toe.push(T);   // rayon arrêté dans un angle rentrant : pas un point du pied
                 if (D > mmToWorld(5)) { const top = rem ? C : T, bot = rem ? T : C, h = (k++ % 2) ? 0.5 : 1;
                     ticks.push([top, { x: top.x + (bot.x - top.x) * h, y: top.y + (bot.y - top.y) * h, z: top.z + (bot.z - top.z) * h }]); }
             });
-            const g = { toe, ticks };
+            // quelques points topo en nez (haut) et pied (bas) de talus : angles + intermédiaires tous les « esp » mètres
+            const marks = [];
+            if (t.pts) {
+                const add = (c, u) => { const L = Math.hypot(u.x, u.y); if (L < 1e-9) return; const M = march(c, { x: u.x / L, y: u.y / L }, false);
+                    if (!M || M.D < mmToWorld(5)) return; marks.push(M.rem ? { nez: M.C, pied: M.T } : { nez: M.T, pied: M.C }); };
+                const espW = mmToWorld(t.esp * 1000);
+                if (pl.type === 'circle') {
+                    const N = t.esp > 0 ? Math.max(4, Math.round(2 * Math.PI * pl.r / espW)) : 4;
+                    for (let j = 0; j < N; j++) { const an = 2 * Math.PI * j / N; add({ x: pl.x + pl.r * Math.cos(an), y: pl.y + pl.r * Math.sin(an) }, { x: Math.cos(an), y: Math.sin(an) }); }
+                } else for (let i = 0; i < n; i++) {
+                    const a = P[i], b = P[(i + 1) % n], c2 = P[(i + 2) % n], L = Math.hypot(b.x - a.x, b.y - a.y); if (L < 1e-9) continue;
+                    const m1 = nrm(a, b), u1 = { x: m1.x * sg, y: m1.y * sg }, m2 = nrm(b, c2), u2 = { x: m2.x * sg, y: m2.y * sg };
+                    const cnt = t.esp > 0 ? Math.max(0, Math.round(L / espW) - 1) : 0;
+                    for (let j = 1; j <= cnt; j++) { const q = j / (cnt + 1); add({ x: a.x + (b.x - a.x) * q, y: a.y + (b.y - a.y) * q }, u1); }
+                    add({ x: b.x, y: b.y }, { x: u1.x + u2.x, y: u1.y + u2.y });   // angle : sur la bissectrice
+                }
+            }
+            const g = { toe, ticks, marks };
             TALUS_CACHE.set(pl, { key, tin, g }); return g;
         }
         function drawTalus2D(ctx, pl, col, dx, dy, lineScale) {
@@ -1955,6 +1979,11 @@
             ctx.save(); ctx.setLineDash([]); ctx.strokeStyle = col; ctx.lineWidth = 1 / lineScale;
             ctx.beginPath(); G.toe.forEach((q, i) => i ? ctx.lineTo(q.x + dx, q.y + dy) : ctx.moveTo(q.x + dx, q.y + dy)); ctx.closePath(); ctx.stroke();
             ctx.lineWidth = 0.7 / lineScale; ctx.beginPath(); G.ticks.forEach(([a, b]) => { ctx.moveTo(a.x + dx, a.y + dy); ctx.lineTo(b.x + dx, b.y + dy); }); ctx.stroke();
+            // points topo nez / pied : croix + altitude
+            const tk = 4 / lineScale; ctx.lineWidth = 1.2 / lineScale; ctx.beginPath();
+            G.marks.forEach(m => [m.nez, m.pied].forEach(q => { const X = q.x + dx, Y = q.y + dy; ctx.moveTo(X - tk, Y); ctx.lineTo(X + tk, Y); ctx.moveTo(X, Y - tk); ctx.lineTo(X, Y + tk);
+                screenTextsToDraw.push({ kind: 'text', layerId: pl.layerId, wx: X + 6 / camera.zoom, wy: Y - 3 / camera.zoom, lines: [fmtZ(q.z)], color: col, small: true }); }));
+            ctx.stroke();
             ctx.restore();
         }
         function refresh3D() { if (typeof is3DOpen === 'function' && is3DOpen()) { build3DScene(); render3D(); } }
@@ -2025,7 +2054,7 @@
             const pl = cubEmprise && cubEmprise.shape;
             if (q('cb-kr') && isPlateforme(pl)) {
                 const nt = { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, o = platTalus(pl);
-                if (!pl.talus || o.on !== nt.on || o.kR !== nt.kR || o.kD !== nt.kD) { pl.talus = nt; saveState(); refresh3D(); }
+                if (!pl.talus || o.on !== nt.on || o.kR !== nt.kR || o.kD !== nt.kD) { pl.talus = Object.assign({}, pl.talus, nt); saveState(); refresh3D(); }
             }
         }
         function cubGo(step) { saveCubState(); const err = cubCheck(Math.min(step, 4)); if (err && step > cubState.step) { const e = document.getElementById('cb-err'); if (e) e.textContent = err; return; } cubState.step = step; renderCubStep(); }
@@ -2178,6 +2207,9 @@
         }
         function exportSemis() {
             const pts = shapes.filter(s => s.type === 'point');
+            // points de talus (nez / pied) des plateformes
+            shapes.filter(isPlateforme).forEach((pl, k) => { const G = talusGeom(pl); if (G) G.marks.forEach((m, j) => {
+                pts.push({ x: m.nez.x, y: m.nez.y, z: m.nez.z, mat: 'PF' + (k + 1) + '-N' + (j + 1), code: 'NEZ' }, { x: m.pied.x, y: m.pied.y, z: m.pied.z, mat: 'PF' + (k + 1) + '-P' + (j + 1), code: 'PIED' }); }); });
             if (!pts.length) { alert('Aucun point topo dans le plan.'); return; }
             const f3 = (v) => nfr(v, 3).replace(/\s/g, '').replace(/ /g, '');
             const csv = 'MAT;X;Y;Z;CODE\n' + pts.map((p, i) => [p.mat || ('P' + (i + 1)), f3(realX(p.x) / 1000), f3(realY(p.y) / 1000), hasZ(p.z) ? f3(p.z / 1000) : '', p.code || ''].join(';')).join('\n');
@@ -2493,7 +2525,9 @@
                     return `<div class="border-t border-gray-600 pt-2 mt-1 text-xs text-gray-400">Plateforme (${what}) :</div>
                         <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="sp-tal" ${t.on ? 'checked' : ''}> Talus jusqu'au terrain</label>
                         <label class="flex items-center justify-between gap-2">Talus de <span class="text-blue-300">remblai</span> (H/V) ${sel('sp-kr', t.kR)}</label>
-                        <label class="flex items-center justify-between gap-2">Talus de <span class="text-red-300">déblai</span> (H/V) ${sel('sp-kd', t.kD)}</label>`;
+                        <label class="flex items-center justify-between gap-2">Talus de <span class="text-red-300">déblai</span> (H/V) ${sel('sp-kd', t.kD)}</label>
+                        <label class="flex items-center justify-between gap-2"><span class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="sp-tpts" ${t.pts ? 'checked' : ''}> Points nez / pied</span><span class="flex items-center gap-1">tous les <input id="sp-tesp" type="text" inputmode="decimal" value="${String(t.esp).replace('.', ',')}" class="w-14 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 text-right"> m</span></label>
+                        <div class="text-xs text-gray-500">Points aux angles, plus des points intermédiaires tous les N mètres (0 = angles seulement).</div>`;
         }
         function closeSelectionParamModal() { document.getElementById('selparam-modal').classList.add('hidden'); }
         function applySelectionLayer() {
@@ -2512,8 +2546,9 @@
             if (val(3) !== null && one) setZ(one, 'z2', val(3));
             if (val(4) !== null && one && one.type === 'poly') { one.points.forEach(q => setZ(q, 'z', val(4))); delete one.elev; }   // Z saisi : devient une plateforme si fermée
             const tb = document.getElementById('sp-tal');
-            if (tb && one) { const t = platTalus(one), nt = { on: tb.checked, kR: document.getElementById('sp-kr').value, kD: document.getElementById('sp-kd').value };
-                if (one.talus || t.on !== nt.on || t.kR !== nt.kR || t.kD !== nt.kD) one.talus = nt; }
+            if (tb && one) { const t = platTalus(one), ev = parseFloat(String(document.getElementById('sp-tesp').value).replace(',', '.'));
+                const nt = { on: tb.checked, kR: document.getElementById('sp-kr').value, kD: document.getElementById('sp-kd').value, pts: document.getElementById('sp-tpts').checked, esp: isFinite(ev) && ev >= 0 ? ev : t.esp };
+                if (one.talus || t.on !== nt.on || t.kR !== nt.kR || t.kD !== nt.kD || t.pts !== nt.pts || t.esp !== nt.esp) one.talus = Object.assign({}, one.talus, nt); }
             closeSelectionParamModal();
             invalidateCache(); saveState(); draw(); refresh3D();
         }
@@ -3662,6 +3697,11 @@
                 const TG = isPlateforme(s) ? talusGeom(s) : null; if (!TG) return;
                 const tl = (a, b) => { line(s, a.x, a.y, b.x, b.y, a.z, b.z); p(1001, 'MOMOCAD'); p(1000, 'talus'); };
                 TG.toe.forEach((a, i) => tl(a, TG.toe[(i + 1) % TG.toe.length])); TG.ticks.forEach(([a, b]) => tl(a, b));
+                const h = layerTextH(s.layerId) || 1.5;
+                TG.marks.forEach(m => [m.nez, m.pied].forEach(q => {
+                    head('POINT', s); p(100, 'AcDbPoint'); p(10, num(X(q.x))); p(20, num(Y(q.y))); p(30, ZZ(q.z)); p(1001, 'MOMOCAD'); p(1000, 'talus');
+                    text(s, X(q.x) + h * 0.6, Y(q.y) + h * 0.3, h, fmtZ(q.z), 0); p(1001, 'MOMOCAD'); p(1000, 'zlabel');
+                }));
             };
             const text = (s, x, y, h, str, rotDeg) => {
                 head('TEXT', s); p(100, 'AcDbText');
@@ -3944,6 +3984,7 @@
                 if (ent === 'INSERT' || ent === 'POINT') {
                     const ig = {}; let j = i + 1;
                     for (; j < pairs.length && pairs[j].code !== 0; j++) if (ig[pairs[j].code] === undefined) ig[pairs[j].code] = pairs[j].val;
+                    if (ent === 'POINT' && String(ig[1000] || '').trim() === 'talus') { i = j; continue; }   // point de talus MomoCAD : recalculé depuis la plateforme
                     const att = {};
                     if (ent === 'INSERT' && String(ig[66] || '').trim() === '1') {
                         while (j < pairs.length && pairs[j].code === 0 && pairs[j].val.trim() === 'ATTRIB') {
