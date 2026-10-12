@@ -83,6 +83,9 @@
     .bm-switch:checked { background: #10b981; }
     .bm-switch:checked::after { left: 18px; }
     .bm-switch:disabled { opacity: .4; cursor: not-allowed; }
+    .snap-btn { width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid #4b5563; background: #374151; color: #6b7280; }
+    .snap-btn:hover { background: #4b5563; color: #d1d5db; }
+    .snap-btn.on { color: #facc15; border-color: #a16207; background: #3f3a1e; }
 </style>
 </head>
 <body class="flex flex-col h-screen relative">
@@ -104,18 +107,29 @@
             </h1>
             
             <div class="tool-group flex items-center space-x-1 mr-4">
-                <button id="btn-undo" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Annuler (Ctrl+Z)" onclick="undo()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg></button>
-                <button id="btn-redo" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Rétablir (Ctrl+Y)" onclick="redo()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg></button>
+                <button id="btn-undo" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Annuler (Ctrl+Z)" onclick="undo()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg></button>
+                <button id="btn-redo" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Rétablir (Ctrl+Y)" onclick="redo()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg></button>
             </div>
 
             <div class="tool-group flex items-center space-x-2 px-2 mr-4">
                 <div class="flex items-center space-x-1" title="Calque actif">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                    <select id="active-layer-select" class="bg-gray-700 text-white border border-gray-600 rounded px-1 py-1 text-sm outline-none w-24 truncate" onchange="changeActiveLayer()"></select>
+                    <select id="active-layer-select" class="h-9 bg-gray-700 text-white border border-gray-600 rounded px-1 text-sm outline-none w-24 truncate" onchange="changeActiveLayer()"></select>
                 </div>
-                <button class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Gérer les calques" onclick="openLayerModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
-                <div class="w-px h-5 bg-gray-600 mx-1"></div>
-                <button id="btn-snap-settings" class="tool-btn w-8 h-8 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-yellow-500" title="Paramètres d'accrochage" onclick="openSnapModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7"></path><circle cx="12" cy="12" r="1" fill="currentColor"></circle></svg></button>
+                <button class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600" title="Gérer les calques" onclick="openLayerModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
+
+            
+            </div>
+
+            <div class="tool-group flex items-center gap-1 px-3 mr-4" title="Accroches (cliquer pour activer / désactiver)">
+                <span class="text-[10px] uppercase tracking-wide text-gray-500 mr-1.5 select-none">Accroches</span>
+                <button id="snapbtn-endpoint" type="button" class="snap-btn" title="Extrémité (et origine 0,0)" onclick="toggleSnap('endpoint')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg></button>
+                <button id="snapbtn-midpoint" type="button" class="snap-btn" title="Milieu" onclick="toggleSnap('midpoint')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 5 20 19 4 19"></polygon></svg></button>
+                <button id="snapbtn-center" type="button" class="snap-btn" title="Centre" onclick="toggleSnap('center')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="10" x2="12" y2="14"></line><line x1="10" y1="12" x2="14" y2="12"></line></svg></button>
+                <button id="snapbtn-intersection" type="button" class="snap-btn" title="Intersection" onclick="toggleSnap('intersection')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg></button>
+                <button id="snapbtn-perpendicular" type="button" class="snap-btn" title="Perpendiculaire" onclick="toggleSnap('perpendicular')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 5 5 19 19 19"></polyline><polyline points="5 13 11 13 11 19"></polyline></svg></button>
+                <button id="snapbtn-track" type="button" class="snap-btn" title="Ortho projeté : restez une demi-seconde sur un point d'accroche (il passe au violet), puis déplacez la souris à l'horizontale ou à la verticale : une ligne est projetée et accroche les croisements avec les autres formes" onclick="toggleSnap('track')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2.5" fill="currentColor"></circle><line x1="10" y1="17" x2="21" y2="17" stroke-dasharray="2 2.5"></line><line x1="7" y1="14" x2="7" y2="3" stroke-dasharray="2 2.5"></line></svg></button>
+                <button id="snapbtn-grid" type="button" class="snap-btn" title="Grille : accroche aux croisements de la grille (si elle est affichée)" onclick="toggleSnap('grid')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line><line x1="8" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="16" y2="21"></line><circle cx="16" cy="8" r="2.2" fill="currentColor"></circle></svg></button>
             </div>
 
             <div class="tool-group hidden items-center space-x-3 px-3">
@@ -244,21 +258,50 @@
                     <button id="btn-toggle-ortho" class="flex items-center justify-center text-gray-500 hover:text-white transition-colors focus:outline-none" title="Mode Ortho : trace uniquement horizontal/vertical (F8)" onclick="toggleOrtho()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 L5 19 L19 19"></path><path d="M5 12 L12 12 L12 19" stroke-dasharray="2 2"></path></svg>
                     </button>
-                    <label class="flex items-center gap-1 text-gray-400 font-mono text-xs" title="Taille d'un carreau de la grille, dans l'unité du plan (réglage ⛯). Quand les carreaux deviennent trop petits à l'écran, seuls les multiples de 10 sont affichés.">◻ =
-                        <input id="grid-mm" type="text" inputmode="decimal" autocomplete="off" class="w-12 bg-gray-800 border border-gray-600 rounded px-1 py-0.5 text-gray-200 text-xs text-right focus:outline-none focus:border-blue-500" onchange="setGridCm(this.value)" onkeydown="if(event.key==='Enter'){this.blur();}"><span id="grid-unit">cm</span>
-                    </label>
                     <button id="btn-toggle-grid" class="flex items-center justify-center text-blue-400 hover:text-white transition-colors focus:outline-none" title="Afficher/Masquer la grille de fond" onclick="toggleGrid()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
                     </button>
                     <button id="btn-basemap" class="flex items-center justify-center text-emerald-400 hover:text-white transition-colors focus:outline-none" title="Fond de carte : choisir un lieu en vue satellite (cadastre en option) et l'insérer à l'échelle dans un rond" onclick="openBasemapModal()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3c2.6 2.5 3.9 5.5 3.9 9s-1.3 6.5-3.9 9c-2.6-2.5-3.9-5.5-3.9-9S9.4 5.5 12 3z"></path></svg>
                     </button>
+                    <button id="btn-bgimage" class="flex items-center justify-center text-sky-300 hover:text-white transition-colors focus:outline-none" title="Fond perso : importer un PDF, une image JPEG ou PNG (plan, photo aérienne, scan…) puis le caler à l'échelle" onclick="document.getElementById('bgimage-input').click()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 17l-5-5-9 8"></path></svg>
+                    </button>
+                    <input type="file" id="bgimage-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onchange="loadBgFile(this)">
                 </div>
             </div>
         </main>
     </div>
 
     <!-- Modales -->
+    <div id="bgimg-modal" style="display:none;position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+        <div style="background:#1f2937;border:1px solid #4b5563;border-radius:10px;padding:16px;width:min(560px,94vw);color:#e5e7eb;box-shadow:0 20px 50px rgba(0,0,0,.5);font-size:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px;">
+                <h3 style="font-size:17px;font-weight:700;color:#fff;margin:0;">🖼️ Fond perso</h3>
+                <span id="bg-name" style="font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;"></span>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+                <canvas id="bg-preview" width="220" height="220" style="background:#fff;border-radius:6px;max-width:100%;"></canvas>
+                <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px;">
+                    <div id="bg-page-row" style="display:none;align-items:center;gap:8px;">Page
+                        <input id="bg-page" type="number" min="1" value="1" style="width:64px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:3px 6px;" onchange="bgRenderPreview()">
+                        <span id="bg-pages" style="color:#9ca3af;"></span></div>
+                    <div style="color:#9ca3af;font-size:12px;">Mise à l'échelle</div>
+                    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="radio" name="bg-scale" value="cal" checked style="margin-top:3px;">
+                        <span><b>Calibrer sur le plan</b><br><span style="color:#9ca3af;font-size:12px;">après insertion : 2 clics sur une longueur connue + sa valeur réelle</span></span></label>
+                    <label id="bg-ech-row" style="display:none;gap:8px;align-items:center;cursor:pointer;"><input type="radio" name="bg-scale" value="ech">
+                        <span><b>Échelle du PDF</b> 1 : <input id="bg-ech" type="text" inputmode="decimal" value="200" style="width:70px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:3px 6px;" onfocus="document.querySelector('input[name=bg-scale][value=ech]').checked=true"></span></label>
+                    <label style="display:flex;gap:8px;align-items:center;cursor:pointer;"><input type="radio" name="bg-scale" value="larg">
+                        <span><b>Largeur réelle</b> <input id="bg-larg" type="text" inputmode="decimal" placeholder="ex. 25" style="width:70px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:3px 6px;" onfocus="document.querySelector('input[name=bg-scale][value=larg]').checked=true"> <span id="bg-larg-unit"></span></span></label>
+                    <div id="bg-info" style="color:#9ca3af;font-size:12px;min-height:16px;"></div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+                <button type="button" onclick="closeBgModal()" style="background:#4b5563;color:#fff;border:0;border-radius:6px;padding:7px 14px;cursor:pointer;">Annuler</button>
+                <button id="bg-ok" type="button" onclick="insertBgImage()" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:7px 14px;cursor:pointer;">Insérer</button>
+            </div>
+        </div>
+    </div>
     <div id="crop-modal" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
         <div style="background:#1f2937;border:1px solid #4b5563;border-radius:10px;padding:16px;color:#e5e7eb;box-shadow:0 20px 50px rgba(0,0,0,.5);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:16px;">
@@ -299,14 +342,20 @@
         <h3 class="text-lg font-bold text-white mb-4"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif">⛯</span> Paramètres</h3>
         <div class="grid grid-cols-2 gap-3 mb-4">
             <div><label class="block text-xs text-gray-400 mb-1">Unité</label>
-                <select id="ps-unit" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
+                <select id="ps-unit" onchange="psUnitChanged()" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
                     <option value="mm">Millimètre (mm)</option><option value="cm">Centimètre (cm)</option><option value="m">Mètre (m)</option>
                 </select></div>
             <div><label class="block text-xs text-gray-400 mb-1">Décimales affichées</label>
-                <select id="ps-decimals" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
-                    <option value="0">0 (12)</option><option value="1">1 (12,3)</option><option value="2">2 (12,34)</option><option value="3">3 (12,345)</option><option value="4">4 (12,3456)</option>
-                </select></div>
+                <input type="hidden" id="ps-decimals" value="0">
+                <div class="flex items-stretch gap-1">
+                    <button type="button" class="px-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-mono text-xs" title="Une décimale de moins" onclick="psDecimals(-1)">-0.0</button>
+                    <span id="ps-dec-example" class="flex-1 text-center bg-gray-900 border border-gray-600 rounded px-2 py-1 font-mono text-white"></span>
+                    <button type="button" class="px-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-mono text-xs" title="Une décimale de plus" onclick="psDecimals(1)">+0.00</button>
+                </div></div>
         </div>
+        <div class="mb-4 -mt-1"><label class="block text-xs text-gray-400 mb-1">Carreau de la grille (dans l'unité du plan)</label>
+            <div class="flex items-center gap-2 text-sm text-gray-200">◻ = <input id="ps-grid" type="text" inputmode="decimal" autocomplete="off" class="w-24 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none text-right"> <span id="ps-grid-unit">cm</span>
+            <span class="text-xs text-gray-500">(trop petits à l'écran : un trait sur 10)</span></div></div>
         <div class="grid grid-cols-2 gap-3 mb-4">
             <div><label class="block text-xs text-gray-400 mb-1">Format de feuille</label>
                 <select id="ps-paper" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none">
@@ -388,15 +437,36 @@
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">📐 Modes d'aide au tracé (bas-droite)</h4>
                 <ul class="list-disc pl-6 space-y-1">
                     <li><b class="text-white">Mode Ortho (icône ⊥) :</b> Activable en bas-droite ou par F8. Force toutes les lignes et polylignes à être horizontales ou verticales. Un guide pointillé bleu relie le bout du segment au pointeur pour visualiser l'alignement.</li>
-                    <li><b class="text-white">Grille :</b> Affiche/masque le quadrillage de fond. Le champ <b>◻ =</b> à côté règle la taille d'un carreau, <b>dans l'unité du plan</b> choisie dans ⛯ (1 cm par défaut : « 10 » en mm, « 1 » en cm, « 0,01 » en m ; mémorisée sur ce poste). Quand les carreaux deviennent trop petits à l'écran, seul un trait sur 10 est affiché.</li>
+                    <li><b class="text-white">Grille :</b> Affiche/masque le quadrillage de fond. La taille d'un carreau se règle dans <b>⛯ Paramètres</b> (« Carreau de la grille »), <b>dans l'unité du plan</b> choisie juste au-dessus (1 cm par défaut : « 10 » en mm, « 1 » en cm, « 0,01 » en m ; mémorisée sur ce poste). Quand les carreaux deviennent trop petits à l'écran, seul un trait sur 10 est affiché.</li>
                     <li><b class="text-white">Origine 0,0 (repère X/Y) :</b> comme dans AutoCAD, le repère rouge (X, vers la droite) et vert (Y, vers le haut) marque le point 0,0. Quand l'origine sort de l'écran, il se range en bas à gauche. Le point 0,0 est accrochable (accroche Extrémités).</li>
                     <li><b class="text-white">Coordonnées :</b> en bas à droite, X et Y du curseur par rapport à l'origine. Ce sont les mêmes coordonnées que dans AutoCAD après export DXF.</li>
                 </ul>
             </div>
             <div>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">⌨️ Raccourcis de commande</h4>
+                <p class="text-xs text-gray-400 mb-1 pl-2">Tapez les lettres (majuscules ou minuscules, sans cliquer nulle part) puis <b>Entrée</b> ⏎. La barre de commande montre ce que vous tapez et les commandes possibles ; Retour arrière corrige, Échap annule. Les objets déjà sélectionnés restent sélectionnés (pratique pour D ⏎ ou R ⏎).</p>
+                <table class="text-sm ml-2 mb-3 w-[calc(100%-0.5rem)]"><thead><tr class="text-xs text-gray-400 text-left"><th class="pr-3 font-normal">Taper</th><th class="font-normal">Commande</th></tr></thead><tbody>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">D ⏎</td><td class="py-0.5">Déplacer</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">R ⏎</td><td class="py-0.5">Rotation</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">C ⏎</td><td class="py-0.5">Couper (ajuster)</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">P ⏎</td><td class="py-0.5">Prolonger</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">De ⏎</td><td class="py-0.5">Décaler</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Dr ⏎</td><td class="py-0.5">Dessiner une droite</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Qr ⏎</td><td class="py-0.5">Dessiner un quadrilatère</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Ro ⏎</td><td class="py-0.5">Dessiner un rond</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Ar ⏎</td><td class="py-0.5">Dessiner un arc</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Pl ⏎</td><td class="py-0.5">Dessiner un polygone</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Ha ⏎</td><td class="py-0.5">Hachurer une zone fermée</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Tx ⏎</td><td class="py-0.5">Écrire un texte</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">If ⏎</td><td class="py-0.5">Dessiner une infobulle (détail)</td></tr>
+                </tbody></table>
+            </div>
+            <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🧲 Points d'accrochage</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Extrémités, Milieux, Centres, Intersections :</b> activables/désactivables dans le panneau d'accrochage (icône aimant). Marqueur jaune carré.</li>
+                    <li><b class="text-white">Barre « Accroches » (en-tête, à droite des calques) :</b> un bouton par type, allumé = actif : Extrémité ▢, Milieu △, Centre ⊙, Intersection ✕, Perpendiculaire ⊥, Ortho projeté, Grille #. Les choix sont mémorisés sur ce poste et dans le .mmc. Marqueur jaune carré pour les accroches d'objet.</li>
+                    <li><b class="text-white">Ortho projeté (désactivé par défaut) :</b> restez environ une demi-seconde sur un point d'accroche : il passe de l'<b>orange</b> au <b>violet</b> (point acquis, jusqu'à 3). Déplacez ensuite la souris à l'horizontale ou à la verticale de ce point : une ligne pointillée violette est projetée et le curseur s'accroche (✕ violet) aux <b>croisements</b> de cette ligne avec les lignes, polylignes, cercles et arcs, ainsi qu'au croisement des lignes de deux points acquis ; sinon il glisse le long de la ligne (petit rond violet). Re-survoler un point violet le retire ; Échap les retire tous.</li>
+                    <li><b class="text-white">Grille (désactivé par défaut) :</b> les croisements du quadrillage affiché deviennent des points d'accroche (✕ bleu). Sans effet si la grille est masquée ; les accroches d'objet restent prioritaires.</li>
                     <li><b class="text-white">Perpendiculaire (⊥ cyan) :</b> pendant le tracé d'une ligne ou polyligne, accroche au pied de la perpendiculaire depuis le point de départ vers la forme survolée (ligne, polyligne, cercle, arc). Incompatible avec le mode Ortho.</li>
                 </ul>
             </div>
@@ -418,7 +488,8 @@
                     <li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Ou par dimensions : après le 1er coin, tapez la largeur ⬌ + <b>Espace</b>, puis la hauteur ⬍ + <b>Entrée</b>. Le sens suit la position de la souris.</li>
                     <li><b class="text-white">Arc :</b> centre, puis rayon/point de départ, puis point de fin. L'arc se trace du côté où va la souris (angle tapé négatif = autre sens).</li>
                     <li><b class="text-white">Fond de carte 🌍 (bouton planète, en bas à droite à côté de la grille) :</b> ouvre une carte. Déplacez-vous (glisser, molette) ou tapez un lieu / une adresse puis <b>Chercher</b>. Cliquez sur la carte pour placer le <b>centre</b>, indiquez le <b>rayon en mètres</b> (le cercle bleu montre la zone) puis <b>Valider</b>. Le plan s'insère <b>à l'échelle</b> (1 m = 1 000 mm du dessin) dans un rond, sous tous les traits, au centre de l'écran. Si le plan contient déjà un dessin, la vue ne bouge pas (le dessin reste au-dessus de la carte) : dézoomez pour voir toute la carte. Sur un plan vierge, la vue se cadre sur la carte. C'est un objet comme les autres : clic à l'intérieur pour le sélectionner, puis Déplacer, Pivoter, Copier, Supprimer ; son centre s'accroche. Agrandir/Réduire le fait sortir de l'échelle (signalé dans les propriétés). Il s'imprime et s'enregistre dans le fichier .json, mais n'est pas exporté en DXF. Le fond est une <b>vue satellite</b> (Esri). L'interrupteur <b>Cadastre</b> superpose les parcelles (IGN / DGFiP, France uniquement) ; une fois le fond posé, le même interrupteur se trouve dans ses propriétés pour afficher ou masquer le cadastre à tout moment. <b>Opacité :</b> sélectionnez le fond, tapez une valeur puis <b>%</b>, ex. <b>40%</b>. C'est une valeur absolue : 100 % = complètement affiché, 0 % = invisible (seul le contour reste). Nécessite une connexion Internet. La mention des sources (Esri, IGN), obligatoire, n'apparaît plus sur le dessin : elle est imprimée en petit en bas à gauche de la feuille.</li>
-                    <li><b class="text-white">Hachures :</b> cliquez à l'intérieur de n'importe quelle zone fermée, même formée par des traits qui se croisent ou dépassent, des arcs ou des cercles. La plus petite zone autour du clic est hachurée, et les formes isolées à l'intérieur sont laissées en blanc (îlots). La surface s'affiche dans la barre de commande. La hachure est un objet à part, au contour invisible : elle se sélectionne en cliquant dedans, se déplace et se supprime comme les autres objets, et sa surface apparaît dans les propriétés. Re-cliquez dedans avec l'outil Hachures pour la retirer. Un petit écart (environ 1,5 pixel à l'écran) entre deux traits est toléré ; au-delà, zoomez ou fermez le contour.</li>
+                    <li><b class="text-white">Fond perso 🖼️ (à droite du bouton planète) :</b> importe un <b>PDF</b> (choix de la page), une image <b>JPEG</b> ou <b>PNG</b> : plan de géomètre, scan, photo aérienne… Trois façons de le mettre à l'échelle : <b>Calibrer sur le plan</b> (après insertion, cliquez 2 points d'une longueur connue sur l'image, tapez sa valeur réelle puis Entrée), <b>Échelle du PDF</b> (ex. 1:200 : la taille réelle est calculée depuis le format de la page), ou <b>Largeur réelle</b> de l'image. Il se place sous le dessin, comme un fond de carte : sélection par clic dedans, déplacer, pivoter, opacité <b>XX%</b>, et bouton <b>📏 Calibrer l'échelle</b> dans ses propriétés pour le recaler à tout moment. Ses 4 coins s'accrochent. Il s'imprime et s'enregistre dans le .mmc (pas dans le DXF). <b>Calibrer, pas à pas :</b> la barre de commande guide chaque étape — 1) cliquez le début d'une longueur connue sur l'image, 2) cliquez sa fin (une ligne bleue relie les 2 points), 3) tapez la longueur réelle au clavier dans l'unité du plan (ex. <b>12,5</b>), 4) <b>Entrée</b>. L'image est agrandie ou réduite autour du 1er point.</li>
+                                        <li><b class="text-white">Hachures :</b> cliquez à l'intérieur de n'importe quelle zone fermée, même formée par des traits qui se croisent ou dépassent, des arcs ou des cercles. La plus petite zone autour du clic est hachurée, et les formes isolées à l'intérieur sont laissées en blanc (îlots). La surface s'affiche dans la barre de commande. La hachure est un objet à part, au contour invisible : elle se sélectionne en cliquant dedans, se déplace et se supprime comme les autres objets, et sa surface apparaît dans les propriétés. Re-cliquez dedans avec l'outil Hachures pour la retirer. Un petit écart (environ 1,5 pixel à l'écran) entre deux traits est toléré ; au-delà, zoomez ou fermez le contour.</li>
                     <li><b class="text-white">Déplacer :</b> dès qu'un objet est sélectionné (outil Sélection), tapez directement <b>ΔX</b> <b>Espace</b> <b>ΔY</b> <b>Entrée</b> : la barre de commande le propose. Avec l'outil Déplacer : cliquez un point de base et un point de destination. Ou tapez au clavier <b>ΔX</b>, <b>Espace</b>, <b>ΔY</b>, puis <b>Entrée</b> ou <b>Espace</b> : déplacement exact dans l'unité du plan (Y positif vers le haut, valeurs négatives acceptées ; Entrée directement après ΔX = déplacement horizontal seul). L'aperçu suit la saisie.</li>
                     <li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li>
                     <li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li>
@@ -458,8 +529,8 @@
             <div>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">🖨️ Impression</h4>
                 <ul class="list-disc pl-6 space-y-1">
-                    <li><b class="text-white">Unité et décimales ⛯ :</b> choisissez l'unité (<b>mm</b>, <b>cm</b> ou <b>m</b>) et le nombre de décimales affichées (0 à 4). Elles s'appliquent aux coordonnées X / Y en bas de l'écran, aux cotes, aux longueurs des propriétés et de la barre de commande, et aux valeurs tapées au clavier (en mètres, « 2,5 » trace 2,5 m). Le dessin lui-même ne change pas : seule la lecture change. Le champ de grille ◻ suit aussi l'unité. Les hauteurs de texte des calques restent en mm.</li>
-                    <li><b class="text-white">Paramètres ⛯ (à gauche d'Imprimer) :</b> format de feuille (A5, A4, A3, A2, A1, A0), fichier produit (<b>PDF</b>, image <b>JPEG</b> ou <b>PNG</b>), cartouche imprimé ou non, et contenu du cartouche (plan, client, dessinateur, logo). Ces réglages sont mémorisés sur ce poste. Le cartouche est compact (70 × 20 mm) avec une case logo carrée. À l'import du logo, une fenêtre de <b>recadrage</b> s'ouvre : glissez le carré, tirez un coin ou utilisez la molette pour sa taille, puis <b>Recadrer</b> (ou <b>Image entière</b> pour garder tout le logo, centré sur fond blanc).</li>
+                    <li><b class="text-white">Unité et décimales ⛯ :</b> choisissez l'unité (<b>mm</b>, <b>cm</b> ou <b>m</b>) et le nombre de décimales affichées (0 à 4) avec les boutons <b>-0.0</b> (une de moins) et <b>+0.00</b> (une de plus) ; l'exemple entre les deux montre le résultat. Elles s'appliquent aux coordonnées X / Y en bas de l'écran, aux cotes, aux longueurs des propriétés et de la barre de commande, et aux valeurs tapées au clavier (en mètres, « 2,5 » trace 2,5 m). Le dessin lui-même ne change pas : seule la lecture change. Le carreau de grille suit aussi l'unité. Les hauteurs de texte des calques restent en mm.</li>
+                    <li><b class="text-white">Paramètres ⛯ (à gauche d'Imprimer) :</b> format de feuille (A5, A4, A3, A2, A1, A0), fichier produit (<b>PDF</b>, image <b>JPEG</b> ou <b>PNG</b>), cartouche imprimé ou non, et contenu du cartouche (plan, client, dessinateur, logo). Ces réglages sont mémorisés sur ce poste. Le cartouche est compact (70 × 20 mm) avec une case logo carrée. À l'import du logo, une fenêtre de <b>recadrage</b> s'ouvre : glissez le carré, tirez un coin ou utilisez la molette pour sa taille, puis <b>Recadrer</b> (ou <b>Image entière</b> pour garder tout le logo, centré sur fond blanc). <b>Tous ces réglages</b> (unité, décimales, carreau de grille, feuille, fichier, cartouche et son contenu, logo compris) sont <b>mémorisés sur ce poste</b> : on les retrouve en rouvrant MomoCAD. Ouvrir un .mmc applique les réglages enregistrés dans ce plan.</li>
                     <li><b class="text-white">Aperçu :</b> affiche la feuille exactement comme elle sortira, sur fond blanc (cadre, cartouche, couleurs d'impression). La page suit la souris pour la mise en page ; <b>molette</b> = échelle, <b>ESPACE</b> = portrait/paysage, <b>CLIC</b> = figer ou libérer la page, <b>ENTRÉE</b> = produire le fichier, <b>ÉCHAP</b> = quitter.</li>
                     <li><b class="text-white">ESPACE :</b> bascule portrait / paysage.</li>
                     <li><b class="text-white">Molette :</b> change l'échelle. Liste complète disponible :
@@ -669,7 +740,11 @@
             draw();
         }
         let activeLayerId = 'layer-0';
-        let snapSettings = { endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true };
+        const SNAP_DEFAULTS = { endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true, track: false, grid: false };
+        let snapSettings = Object.assign({}, SNAP_DEFAULTS);
+        try { Object.assign(snapSettings, JSON.parse(localStorage.getItem('momocad-snap') || '{}')); } catch (e) {}
+        // Ortho projeté : points acquis (violets) et lignes de projection actives
+        let trackPts = [], trackLines = [], trackHover = null;
         let cachedSnapPoints = null;
         function invalidateCache() { cachedSnapPoints = null; }
 
@@ -714,7 +789,8 @@
             document.getElementById('ps-paper').value = printSettings.paper;
             document.getElementById('ps-output').value = printSettings.output;
             document.getElementById('ps-unit').value = currentUnit;
-            document.getElementById('ps-decimals').value = String(printSettings.decimals);
+            document.getElementById('ps-decimals').value = String(printSettings.decimals); psDecimals(0);
+            refreshGridField();
             document.getElementById('ps-cartouche').checked = !!printSettings.cartouche;
             document.getElementById('ps-cartouche-fields').classList.toggle('opacity-40', !printSettings.cartouche);
             document.getElementById('cartouche-plan').value = cartoucheData.planName || "";
@@ -735,7 +811,8 @@
             printSettings.cartouche = document.getElementById('ps-cartouche').checked;
             printSettings.unit = document.getElementById('ps-unit').value;
             printSettings.decimals = parseInt(document.getElementById('ps-decimals').value, 10);
-            applyUnitSettings(); updateCursorCoords(); refreshGridField();
+            applyUnitSettings(); updateCursorCoords();
+            setGridCm(document.getElementById('ps-grid').value);   // dans la nouvelle unité ; mémorisé sur ce poste
             try { localStorage.setItem('momocad-print', JSON.stringify(printSettings)); } catch (e) {}
             cartoucheData.planName = document.getElementById('cartouche-plan').value;
             cartoucheData.clientName = document.getElementById('cartouche-client').value;
@@ -747,12 +824,35 @@
             if (mode === 'print' || mode === 'preview') { const c0 = previewPin || { x: currentX_screen, y: currentY_screen }; applyPrintScale(c0.x, c0.y); }
             draw();
         }
-        function toggleSnapSetting(type) { const idMap = { endpoint: 'end', midpoint: 'mid', intersection: 'inter', perpendicular: 'perp', center: 'center' }; snapSettings[type] = document.getElementById('snap-' + (idMap[type] || type)).checked; invalidateCache(); draw(); }
+        function refreshSnapButtons() {
+            Object.keys(SNAP_DEFAULTS).forEach(k => { const b = document.getElementById('snapbtn-' + k); if (b) b.classList.toggle('on', !!snapSettings[k]); });
+        }
+        function toggleSnap(type) {
+            snapSettings[type] = !snapSettings[type];
+            if (type === 'track' && !snapSettings.track) { trackPts = []; trackLines = []; }
+            try { localStorage.setItem('momocad-snap', JSON.stringify(snapSettings)); } catch (e) {}
+            refreshSnapButtons(); invalidateCache(); draw();
+        }
+        function toggleSnapSetting(type) { toggleSnap(type); }
         // Champ « ◻ = » affiché dans l'unité du plan (la grille est stockée en mm)
         function refreshGridField() {
             const k = UNIT_MM[currentUnit] || 1;
-            const inp = document.getElementById('grid-mm'); if (inp) inp.value = String(+(gridMm / k).toFixed(6)).replace('.', ',');
-            const u = document.getElementById('grid-unit'); if (u) u.textContent = currentUnit;
+            const inp = document.getElementById('ps-grid'); if (inp) { inp.value = String(+(gridMm / k).toFixed(6)).replace('.', ','); inp.dataset.unit = currentUnit; }
+            const u = document.getElementById('ps-grid-unit'); if (u) u.textContent = currentUnit;
+        }
+        // Décimales dans ⛯ : boutons -0.0 / +0.00 et exemple de lecture
+        function psDecimals(delta) {
+            const h = document.getElementById('ps-decimals');
+            const d = Math.max(0, Math.min(4, (parseInt(h.value, 10) || 0) + (delta || 0)));
+            h.value = String(d);
+            document.getElementById('ps-dec-example').textContent = (1234.5678).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' ' + document.getElementById('ps-unit').value;
+        }
+        // Changement d'unité dans ⛯ : on convertit la valeur affichée du carreau (même taille réelle)
+        function psUnitChanged() {
+            const inp = document.getElementById('ps-grid'), nu = document.getElementById('ps-unit').value;
+            const v = parseFloat(String(inp.value).replace(',', '.')), ou = inp.dataset.unit || currentUnit;
+            if (v > 0 && UNIT_MM[ou] && UNIT_MM[nu]) inp.value = String(+(v * UNIT_MM[ou] / UNIT_MM[nu]).toFixed(6)).replace('.', ',');
+            inp.dataset.unit = nu; document.getElementById('ps-grid-unit').textContent = nu; psDecimals(0);
         }
         function setGridCm(v) {
             const g = parseFloat(String(v).replace(',', '.'));
@@ -1039,11 +1139,23 @@
                 : tick + '<text x="12" y="12" font-size="7.5" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle" dominant-baseline="central">1.23</text>';
             const b = document.getElementById('btn-dim-text'); if (b) b.title = 'Texte des cotes : ' + (dimTextAligned ? 'ALIGNÉ sur la ligne de cote' : 'toujours HORIZONTAL') + ' (clic pour basculer)';
         }
+        // Raccourcis de commande : lettres puis Entrée (comme AutoCAD)
+        const CMD_ALIASES = {
+            D: ['move', 'Déplacer'], R: ['rotate', 'Rotation'], C: ['trim', 'Couper (ajuster)'], P: ['extend', 'Prolonger'], DE: ['offset', 'Décaler'],
+            DR: ['line', 'Droite'], QR: ['rect', 'Quadrilatère'], RO: ['circle', 'Rond (cercle)'], AR: ['arc', 'Arc'], PL: ['poly', 'Polygone'],
+            HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)']
+        };
+        let cmdBuffer = '';
+        function runCmdAlias() {
+            const a = CMD_ALIASES[cmdBuffer]; const typed = cmdBuffer; cmdBuffer = '';
+            if (!a) { updateCommandMessageText('Commande inconnue : « ' + typed + ' ». Raccourcis : ' + Object.keys(CMD_ALIASES).join(', ') + ' (+ Entrée) — voir le guide.'); draw(); return; }
+            setMode(a[0]); draw();
+        }
         // Déplacement d'une forme (toutes géométries)
         function translateShape(s, ddx, ddy) {
             if (s.type === 'line') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; }
             else if (s.type === 'dim') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; s.ox += ddx; s.oy += ddy; }
-            else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap') { s.x += ddx; s.y += ddy; }
+            else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap' || s.type === 'bgimage') { s.x += ddx; s.y += ddy; }
             else if (s.type === 'poly') s.points.forEach(p => { p.x += ddx; p.y += ddy; });
             else if (s.type === 'dim-angle') { s.vertex.x += ddx; s.vertex.y += ddy; s.p1.x += ddx; s.p1.y += ddy; s.p2.x += ddx; s.p2.y += ddy; }
             else if (s.type === 'detail') { s.tx += ddx; s.ty += ddy; s.lx += ddx; s.ly += ddy; }
@@ -1059,6 +1171,146 @@
             return { dx: u2w(vx), dy: -u2w(vy) };
         }
         // Ordre de dessin : les fonds de carte d'abord, sous tout le reste
+        // =====================================================================
+        // FOND PERSO (PDF, JPEG, PNG) : objet { type:'bgimage', x, y (centre), w, h, rot, mapId, opacity, name }
+        // L'image est rangée dans basemapStore comme les fonds de carte (enregistrée dans le .mmc).
+        // =====================================================================
+        const isBg = (s) => s && (s.type === 'basemap' || s.type === 'bgimage');
+        let bgSrc = null;   // { kind:'pdf', doc, name } | { kind:'img', img, dataUrl, name }
+        const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+        let pdfjsPromise = null;
+        function loadPdfJs() {
+            if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+            if (!pdfjsPromise) pdfjsPromise = new Promise((res, rej) => {
+                const sc = document.createElement('script'); sc.src = PDFJS_URL + 'pdf.min.js';
+                sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_URL + 'pdf.worker.min.js'; res(window.pdfjsLib); };
+                sc.onerror = () => { pdfjsPromise = null; rej(new Error('lecteur PDF indisponible (connexion ?)')); };
+                document.head.appendChild(sc);
+            });
+            return pdfjsPromise;
+        }
+        function bgInfo(t) { document.getElementById('bg-info').textContent = t || ''; }
+        async function loadBgFile(input) {
+            const f = input.files && input.files[0]; input.value = ''; if (!f) return;
+            const isPdf = /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
+            document.getElementById('bg-name').textContent = f.name;
+            document.getElementById('bg-page-row').style.display = isPdf ? 'flex' : 'none';
+            document.getElementById('bg-ech-row').style.display = isPdf ? 'flex' : 'none';
+            document.getElementById('bg-larg-unit').textContent = currentUnit;
+            document.querySelector('input[name=bg-scale][value=cal]').checked = true;
+            document.getElementById('bgimg-modal').style.display = 'flex';
+            const pv = document.getElementById('bg-preview'); pv.getContext('2d').clearRect(0, 0, pv.width, pv.height);
+            bgSrc = null; bgInfo('Lecture…');
+            try {
+                if (isPdf) {
+                    const lib = await loadPdfJs();
+                    const doc = await lib.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise;
+                    bgSrc = { kind: 'pdf', doc, name: f.name };
+                    const pg = document.getElementById('bg-page'); pg.max = doc.numPages; pg.value = 1;
+                    document.getElementById('bg-pages').textContent = '/ ' + doc.numPages;
+                } else {
+                    const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+                    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('image illisible')); im.src = dataUrl; });
+                    bgSrc = { kind: 'img', img, dataUrl, name: f.name };
+                }
+                await bgRenderPreview();
+            } catch (err) { console.error(err); bgInfo('Erreur : ' + (err.message || err)); }
+        }
+        // Rend une page PDF sur un canvas (fond blanc) ; maxPx = plus grand côté visé
+        async function renderPdfPage(n, maxPx) {
+            const page = await bgSrc.doc.getPage(n), v1 = page.getViewport({ scale: 1 });
+            const sc = Math.min(maxPx / Math.max(v1.width, v1.height), 300 / 72);
+            const vp = page.getViewport({ scale: sc });
+            const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+            const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height);
+            await page.render({ canvasContext: c, viewport: vp }).promise;
+            return { cv, mmW: v1.width * 25.4 / 72, mmH: v1.height * 25.4 / 72 };
+        }
+        async function bgRenderPreview() {
+            if (!bgSrc) return;
+            const pv = document.getElementById('bg-preview'), c = pv.getContext('2d');
+            let src, iw, ih, info = '';
+            if (bgSrc.kind === 'pdf') {
+                const n = Math.max(1, Math.min(bgSrc.doc.numPages, parseInt(document.getElementById('bg-page').value, 10) || 1));
+                const r = await renderPdfPage(n, 440); src = r.cv; iw = r.cv.width; ih = r.cv.height;
+                info = 'Page ' + n + ' : ' + Math.round(r.mmW) + ' × ' + Math.round(r.mmH) + ' mm';
+            } else { src = bgSrc.img; iw = src.naturalWidth; ih = src.naturalHeight; info = iw + ' × ' + ih + ' px'; }
+            const k = Math.min(pv.width / iw, pv.height / ih);
+            c.clearRect(0, 0, pv.width, pv.height);
+            c.drawImage(src, (pv.width - iw * k) / 2, (pv.height - ih * k) / 2, iw * k, ih * k);
+            bgInfo(info);
+        }
+        function closeBgModal() {
+            document.getElementById('bgimg-modal').style.display = 'none'; bgSrc = null;
+            if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // rendre le clavier au dessin
+        }
+        async function insertBgImage() {
+            if (!bgSrc) return;
+            const how = document.querySelector('input[name=bg-scale]:checked').value;
+            const num = (id) => parseFloat(String(document.getElementById(id).value).replace(',', '.'));
+            if (how === 'ech' && !(num('bg-ech') > 0)) { bgInfo("Indiquez l'échelle du PDF (ex. 200 pour 1:200)."); return; }
+            if (how === 'larg' && !(num('bg-larg') > 0)) { bgInfo('Indiquez la largeur réelle.'); return; }
+            const btn = document.getElementById('bg-ok'); btn.textContent = 'Préparation…'; btn.disabled = true;
+            try {
+                let dataUrl, iw, ih, mmW = 0;
+                if (bgSrc.kind === 'pdf') {
+                    const n = Math.max(1, Math.min(bgSrc.doc.numPages, parseInt(document.getElementById('bg-page').value, 10) || 1));
+                    const r = await renderPdfPage(n, 4200);
+                    dataUrl = r.cv.toDataURL('image/jpeg', 0.9); iw = r.cv.width; ih = r.cv.height; mmW = r.mmW;
+                } else {
+                    const im = bgSrc.img; iw = im.naturalWidth; ih = im.naturalHeight; dataUrl = bgSrc.dataUrl;
+                    if (Math.max(iw, ih) > 6000) {   // très grande image : réduite pour garder le plan léger
+                        const k = 6000 / Math.max(iw, ih), cv = document.createElement('canvas');
+                        cv.width = Math.round(iw * k); cv.height = Math.round(ih * k);
+                        const c = cv.getContext('2d'); c.drawImage(im, 0, 0, cv.width, cv.height);
+                        dataUrl = /png/i.test(dataUrl.slice(0, 30)) ? cv.toDataURL('image/png') : cv.toDataURL('image/jpeg', 0.9);
+                        iw = cv.width; ih = cv.height;
+                    }
+                }
+                let w;
+                if (how === 'ech') w = mmToWorld(mmW * num('bg-ech'));
+                else if (how === 'larg') w = (num('bg-larg') / unitsPerSquare) * GRID_SIZE;
+                else w = (canvas.width * 0.8) / camera.zoom;
+                const h = w * ih / iw;
+                const id = 'bg' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+                basemapStore[id] = dataUrl;
+                const c = screenToWorld(canvas.width / 2, canvas.height / 2);
+                const shp = { type: 'bgimage', layerId: activeLayerId, x: c.x, y: c.y, w, h, rot: 0, mapId: id, opacity: 1, name: bgSrc.name };
+                const hadDrawing = shapes.some(x => !isBg(x));
+                shapes.unshift(shp);
+                if (!hadDrawing && how !== 'cal') {
+                    camera.zoom = Math.min(canvas.width / w, canvas.height / h) * 0.85;
+                    camera.x = canvas.width / 2 - c.x * camera.zoom; camera.y = canvas.height / 2 - c.y * camera.zoom;
+                }
+                saveState(); closeBgModal(); bmImg(id);
+                if (how === 'cal') { selectedShapes = [shp]; setMode('calibrate'); calTarget = shp; }
+                else { selectedShapes = [shp]; updateCommandMessageText('FOND PERSO inséré à l\'échelle, sous le dessin. Tapez 50% pour l\'éclaircir.'); }
+                draw();
+            } catch (err) { console.error(err); bgInfo('Erreur : ' + (err.message || err)); }
+            finally { btn.textContent = 'Insérer'; btn.disabled = false; }
+        }
+        // ---------- Calibrer : 2 points sur l'image + distance réelle ----------
+        let calTarget = null, calP1 = null, calP2 = null;
+        function bgLocal(s, wx, wy) { const a = -(s.rot || 0), dx = wx - s.x, dy = wy - s.y; return { x: dx * Math.cos(a) - dy * Math.sin(a), y: dx * Math.sin(a) + dy * Math.cos(a) }; }
+        function bgCorners(s) {
+            const c = Math.cos(s.rot || 0), sn = Math.sin(s.rot || 0);
+            return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => ({ x: s.x + u * s.w / 2 * c - v * s.h / 2 * sn, y: s.y + u * s.w / 2 * sn + v * s.h / 2 * c }));
+        }
+        function applyCalibration(val) {
+            const d = Math.hypot(calP2.x - calP1.x, calP2.y - calP1.y);
+            if (!(val > 0) || d < 1e-9 || !calTarget) return;
+            const f = ((val / unitsPerSquare) * GRID_SIZE) / d;
+            applyScaleToShape(calTarget, calP1.x, calP1.y, f);
+            saveState();
+            const t = calTarget; calTarget = null; calP1 = calP2 = null; typedInput = '';
+            setMode('select-box'); selectedShapes = [t];
+            updateCommandMessageText('FOND PERSO calibré : ' + fmtLen(val) + ' entre les 2 points (×' + f.toLocaleString('fr-FR', { maximumFractionDigits: 4 }) + '). Tapez 50% pour l\'éclaircir.');
+            draw();
+        }
+        function startCalibrate() {
+            const t = selectedShapes.find(x => x.type === 'bgimage'); if (!t) return;
+            setMode('calibrate'); calTarget = t; selectedShapes = [t]; draw();
+        }
         // Mention des sources, imprimée discrètement en bas à gauche de la feuille (obligatoire : Esri, licence Etalab)
         function basemapCredit() {
             const vis = shapes.filter(s => s.type === 'basemap' && (s.opacity === undefined || s.opacity > 0) && !(layers.find(l => l.id === (s.layerId || 'layer-0')) || {}).visible === false);
@@ -1066,8 +1318,8 @@
             return 'Fond : imagerie © Esri, Maxar' + (vis.some(s => s.cadastre) ? ' · cadastre © IGN / DGFiP' : '');
         }
         function shapesInDrawOrder() {
-            if (!shapes.some(s => s.type === 'basemap')) return shapes;
-            return shapes.filter(s => s.type === 'basemap').concat(shapes.filter(s => s.type !== 'basemap'));
+            if (!shapes.some(isBg)) return shapes;
+            return shapes.filter(isBg).concat(shapes.filter(s => !isBg(s)));
         }
 
         function toggleGrid() { showGrid = !showGrid; const btn = document.getElementById('btn-toggle-grid'); if(showGrid) { btn.classList.add('text-blue-400'); btn.classList.remove('text-gray-500'); } else { btn.classList.add('text-gray-500'); btn.classList.remove('text-blue-400'); } draw(); }
@@ -1516,7 +1768,7 @@
             const rot = (x, y) => ({ x: (cos * (x - cx)) - (sin * (y - cy)) + cx, y: (sin * (x - cx)) + (cos * (y - cy)) + cy });
             if (s.type === 'line') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
             else if (s.type === 'circle') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; }
-            else if (s.type === 'basemap') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.rot = (s.rot || 0) + angleRad; }
+            else if (s.type === 'basemap' || s.type === 'bgimage') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.rot = (s.rot || 0) + angleRad; }
             else if (s.type === 'arc') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.startAngle += angleRad; s.endAngle += angleRad; }
             else if (s.type === 'poly') { s.points.forEach(pt => { let p = rot(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
             else if (s.type === 'text') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.angle = (s.angle || 0) + angleRad; }
@@ -1537,6 +1789,7 @@
             const sc = (x, y) => ({ x: cx + (x - cx) * f, y: cy + (y - cy) * f });
             if (s.type === 'line') { let p1 = sc(s.x1, s.y1), p2 = sc(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
             else if (s.type === 'circle' || s.type === 'basemap') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
+            else if (s.type === 'bgimage') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.w *= Math.abs(f); s.h *= Math.abs(f); }
             else if (s.type === 'arc') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
             else if (s.type === 'poly') { s.points.forEach(pt => { let p = sc(pt.x, pt.y); pt.x = p.x; pt.y = p.y; }); }
             else if (s.type === 'text') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.size = (s.size || 20) * f; }
@@ -1558,6 +1811,7 @@
             if (!shapeArray || shapeArray.length === 0) return null;
             shapeArray.forEach(s => {
                 if (s.type === 'line' || s.type === 'dim') { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); }
+                else if (s.type === 'bgimage') { bgCorners(s).forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
                 else if (s.type === 'circle' || s.type === 'arc' || s.type === 'basemap') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); }
                 else if (s.type === 'poly') { s.points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
                 else if (s.type === 'hatch') { s.loops[0].forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
@@ -1598,6 +1852,7 @@
                     else if (s.type === 'arc') { let mid = s.startAngle < s.endAngle ? (s.startAngle + s.endAngle)/2 : (s.startAngle + s.endAngle + 2*Math.PI)/2; pts.push({x: s.x + Math.cos(mid)*s.r, y: s.y + Math.sin(mid)*s.r}); }
                 }
                 if (snapSettings.center && (s.type === 'circle' || s.type === 'arc' || s.type === 'basemap')) pts.push({x: s.x, y: s.y});
+                if (snapSettings.endpoint && s.type === 'bgimage') pts.push(...bgCorners(s));
             }
             if (snapSettings.intersection) pts.push(...getAllIntersections());
 
@@ -1650,7 +1905,73 @@
                     }
                 }
             }
-            return best;
+            if (best) return best;
+            const cxs = wx * camera.zoom + camera.x, cys = wy * camera.zoom + camera.y;
+            // --- ORTHO PROJETÉ : lignes H / V depuis les points acquis, accroche aux croisements ---
+            trackLines = [];
+            if (snapSettings.track && trackPts.length) {
+                const band = 8 / camera.zoom;
+                trackPts.forEach(p => {
+                    if (Math.abs(wy - p.y) < band) trackLines.push({ h: true, v: p.y, from: p });
+                    if (Math.abs(wx - p.x) < band) trackLines.push({ h: false, v: p.x, from: p });
+                });
+                if (trackLines.length) {
+                    let tb = null, tbd = snapRadiusPx;
+                    const consider = (x, y) => { const d = Math.hypot(x * camera.zoom + camera.x - cxs, y * camera.zoom + camera.y - cys); if (d < tbd) { tbd = d; tb = { x, y, track: true }; } };
+                    trackLines.forEach(L => trackIntersections(L).forEach(q => consider(q.x, q.y)));
+                    // croisement de deux lignes de projection (une H et une V)
+                    trackPts.forEach(a => trackPts.forEach(b => { if (a !== b) consider(b.x, a.y); }));
+                    if (tb) { tb.lines = trackLines; return tb; }
+                }
+            }
+            // --- GRILLE : croisements du quadrillage affiché ---
+            if (snapSettings.grid && showGrid) {
+                let step = mmToWorld(gridMm); while (step * camera.zoom < 6) step *= 10;
+                const gx = Math.round(wx / step) * step, gy = Math.round(wy / step) * step;
+                const d = Math.hypot(gx * camera.zoom + camera.x - cxs, gy * camera.zoom + camera.y - cys);
+                if (d < Math.min(snapRadiusPx, step * camera.zoom * 0.45)) return { x: gx, y: gy, grid: true, lines: trackLines };
+            }
+            // à défaut : alignement sur la ligne projetée la plus proche
+            if (trackLines.length) {
+                const L = trackLines[0];
+                return L.h ? { x: wx, y: L.v, track: true, align: true, lines: trackLines } : { x: L.v, y: wy, track: true, align: true, lines: trackLines };
+            }
+            return null;
+        }
+        // Croisements d'une ligne de projection (infinie, H ou V) avec les formes visibles
+        function trackIntersections(L) {
+            const out = [];
+            const seg = (ax, ay, bx, by) => {
+                if (L.h) { if ((ay - L.v) * (by - L.v) > 0 || ay === by) return; const t = (L.v - ay) / (by - ay); out.push({ x: ax + t * (bx - ax), y: L.v }); }
+                else { if ((ax - L.v) * (bx - L.v) > 0 || ax === bx) return; const t = (L.v - ax) / (bx - ax); out.push({ x: L.v, y: ay + t * (by - ay) }); }
+            };
+            const circ = (cx, cy, r, arc) => {
+                const d = L.h ? L.v - cy : L.v - cx; if (Math.abs(d) > r) return;
+                const k = Math.sqrt(r * r - d * d);
+                [k, -k].forEach(o => { const p = L.h ? { x: cx + o, y: L.v } : { x: L.v, y: cy + o }; if (!arc || isAngleBetween(Math.atan2(p.y - cy, p.x - cx), arc.startAngle, arc.endAngle)) out.push(p); });
+            };
+            for (const s of shapes) {
+                const layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
+                if (s.type === 'line') seg(s.x1, s.y1, s.x2, s.y2);
+                else if (s.type === 'poly') for (let i = 0; i < s.points.length; i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; seg(a.x, a.y, b.x, b.y); }
+                else if (s.type === 'circle') circ(s.x, s.y, s.r, null);
+                else if (s.type === 'arc') circ(s.x, s.y, s.r, s);
+            }
+            return out;
+        }
+        // Acquisition d'un point pour l'ortho projeté : rester ~0,5 s sur un point d'accroche (re-survoler = le retirer)
+        function updateTrackHover(snap) {
+            if (!snapSettings.track) return;
+            const isObj = snap && !snap.track && !snap.grid && !snap.perp;
+            if (!isObj) { if (trackHover) { clearTimeout(trackHover.t); trackHover = null; } return; }
+            const key = snap.x.toFixed(6) + ',' + snap.y.toFixed(6);
+            if (trackHover && trackHover.key === key) return;
+            if (trackHover) clearTimeout(trackHover.t);
+            trackHover = { key, t: setTimeout(() => {
+                const i = trackPts.findIndex(p => Math.abs(p.x - snap.x) < 1e-6 && Math.abs(p.y - snap.y) < 1e-6);
+                if (i >= 0) trackPts.splice(i, 1); else { trackPts.push({ x: snap.x, y: snap.y }); if (trackPts.length > 3) trackPts.shift(); }
+                trackHover = null; draw();
+            }, 500) };
         }
 
         // Pied de la perpendiculaire depuis 'origin' vers la forme la plus proche du curseur.
@@ -1747,7 +2068,8 @@
                 if (pointInHatch(s, wx, wy)) return s;
             }
             for (let i = shapes.length - 1; i >= 0; i--) {
-                const s = shapes[i]; if (s.type !== 'basemap') continue;
+                const s = shapes[i]; if (s.type === 'bgimage') { const l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue; const q = bgLocal(s, wx, wy); if (Math.abs(q.x) <= s.w / 2 && Math.abs(q.y) <= s.h / 2) return s; continue; }
+                if (s.type !== 'basemap') continue;
                 const l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue;
                 if (Math.hypot(wx - s.x, wy - s.y) <= s.r) return s;
             }
@@ -2010,9 +2332,10 @@
         }
 
         function setMode(newMode) {
-            mode = newMode;
+            mode = newMode; flashUntil = 0;   // un nouvel outil remplace le message temporaire
             moveBasePoint = null; isMovingObjects = false; isDrawing = false; moveTypedX = null;
             dimStep = 0; dimChainInfo = null; rotateCenter = null; isRotatingObjects = false; typedInput = "";
+            calTarget = null; calP1 = null; calP2 = null;
             arcStep = 0; arcCenter = null; arcP1 = null;
             scaleCenter = null; scaleRefDist = 0; isScalingObjects = false;
             rectDimStep = 0; rectWidthVal = 0;
@@ -2599,7 +2922,7 @@
         const OPEN_TYPES = [{ description: 'Plans MomoCAD et DXF', accept: { 'application/json': ['.mmc', '.momocad', '.json'], 'application/dxf': ['.dxf'] } }];
         const isDxfName = (n) => /\.dxf$/i.test(n || '');
         function projectData() {
-            const basemaps = {}; shapes.forEach(sh => { if (sh.type !== 'basemap') return; [sh.mapId, sh.mapId + '_cad'].forEach(k => { if (basemapStore[k]) basemaps[k] = basemapStore[k]; }); });
+            const basemaps = {}; shapes.forEach(sh => { if (!isBg(sh)) return; [sh.mapId, sh.mapId + '_cad'].forEach(k => { if (basemapStore[k]) basemaps[k] = basemapStore[k]; }); });
             const c = screenToWorld(canvas.width / 2, canvas.height / 2);
             return { app: 'MomoCAD', version: '1.3', scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes,
                      cartouche: cartoucheData, basemaps, gridMm, view: { cx: c.x, cy: c.y, zoom: camera.zoom },
@@ -2628,7 +2951,7 @@
             let m = how + ' : ' + name;
             if (isDxfName(name)) {
                 const lost = [];
-                if (shapes.some(sh => sh.type === 'basemap')) lost.push('fonds de carte');
+                if (shapes.some(isBg)) lost.push('fonds de carte / fonds perso');
                 if (shapes.some(sh => sh.type === 'dim-angle')) lost.push('cotes d\'angle');
                 m += ' (format AutoCAD' + (lost.length ? ' — non inclus : ' + lost.join(', ') : '') + ' ; « Enregistrer sous » .mmc pour tout garder)';
             }
@@ -2701,7 +3024,7 @@
             if (!data || !Array.isArray(data.shapes)) { alert("Ce fichier n'est pas un plan MomoCAD."); return false; }
             if (mode === 'print' || mode === 'preview') setMode('select-box');
             /* l'unité d'affichage suit le réglage ⛯, pas le fichier (le dessin est toujours stocké en mm) */
-            if (data.cartouche) cartoucheData = data.cartouche;
+            if (data.cartouche) { cartoucheData = data.cartouche; saveCartoucheData(); getLogoImg(); }
             if (data.basemaps) Object.assign(basemapStore, data.basemaps);
             if (data.layers && data.layers.length) {
                 layers = data.layers; activeLayerId = data.activeLayerId || layers[0].id;
@@ -2712,7 +3035,7 @@
                     if (l.width === undefined || l.width === null) l.width = 1;
                 });
             }
-            if (data.snapSettings) { snapSettings = Object.assign({ endpoint: true, midpoint: true, center: true, intersection: true, perpendicular: true }, data.snapSettings); ['end:endpoint', 'mid:midpoint', 'inter:intersection', 'perp:perpendicular', 'center:center'].forEach(p => { const [id, k] = p.split(':'); const el = document.getElementById('snap-' + id); if (el) el.checked = !!snapSettings[k]; }); }
+            if (data.snapSettings) { snapSettings = Object.assign({}, SNAP_DEFAULTS, data.snapSettings); refreshSnapButtons(); try { localStorage.setItem('momocad-snap', JSON.stringify(snapSettings)); } catch (e) {} ['end:endpoint', 'mid:midpoint', 'inter:intersection', 'perp:perpendicular', 'center:center'].forEach(p => { const [id, k] = p.split(':'); const el = document.getElementById('snap-' + id); if (el) el.checked = !!snapSettings[k]; }); }
             if (data.settings) {
                 const st = data.settings;
                 if (UNIT_MM[st.unit]) printSettings.unit = st.unit;
@@ -2724,7 +3047,7 @@
                 applyUnitSettings(); refreshDimTextButton();
                 try { localStorage.setItem('momocad-print', JSON.stringify(printSettings)); localStorage.setItem('momocad-dim-text', dimTextAligned ? 'aligned' : 'horizontal'); } catch (e) {}
             }
-            if (data.gridMm > 0) { gridMm = data.gridMm; }
+            if (data.gridMm > 0) { gridMm = data.gridMm; try { localStorage.setItem('momocad-grid-mm', String(gridMm)); } catch (e) {} }
             refreshGridField(); updateCursorCoords();
             shapes = data.shapes; selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI();
@@ -3058,6 +3381,16 @@
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle, !!s.anticlockwise); targetCtx.stroke(); }
             else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
+            else if (s.type === 'bgimage') {
+                const X = s.x + dx, Y = s.y + dy, img = bmImg(s.mapId);
+                targetCtx.save(); targetCtx.translate(X, Y); targetCtx.rotate(s.rot || 0);
+                if (img) { targetCtx.globalAlpha *= (s.opacity === undefined ? 1 : Math.max(0, Math.min(1, s.opacity))); targetCtx.drawImage(img, -s.w / 2, -s.h / 2, s.w, s.h); }
+                else { targetCtx.fillStyle = '#d1d5db'; targetCtx.fillRect(-s.w / 2, -s.h / 2, s.w, s.h); }
+                targetCtx.globalAlpha = 1; targetCtx.setLineDash(sel ? [6 / lineScale, 4 / lineScale] : []);
+                targetCtx.strokeStyle = sel ? '#ec4899' : '#6b7280'; targetCtx.lineWidth = (sel ? 2 : 1) / lineScale;
+                if (sel || !isPrinting) targetCtx.strokeRect(-s.w / 2, -s.h / 2, s.w, s.h);
+                targetCtx.restore();
+            }
             else if (s.type === 'basemap') {
                 const X = s.x + dx, Y = s.y + dy, img = bmImg(s.mapId);
                 targetCtx.save();
@@ -3191,6 +3524,12 @@
                     }
                 }
                 else if (mode === 'poly' && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let p of currentPolygon.slice(1)) targetCtx.lineTo(p.x, p.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; let t=5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x-t, currentPolygon[0].y-t, t*2, t*2); }
+                else if (mode === 'calibrate' && calP1) {
+                    const p2 = calP2 || { x: currentX, y: currentY };
+                    targetCtx.strokeStyle = '#38bdf8'; targetCtx.lineWidth = 2 / camera.zoom; targetCtx.setLineDash([6 / camera.zoom, 4 / camera.zoom]);
+                    targetCtx.beginPath(); targetCtx.moveTo(calP1.x, calP1.y); targetCtx.lineTo(p2.x, p2.y); targetCtx.stroke(); targetCtx.setLineDash([]);
+                    [calP1, p2].forEach(q => { targetCtx.beginPath(); targetCtx.arc(q.x, q.y, 4 / camera.zoom, 0, 2 * Math.PI); targetCtx.fillStyle = '#38bdf8'; targetCtx.fill(); });
+                }
                 else if (isDimMode() && dimStep === 1) {
                     // Pré-trait du 2e point : contraint H/V si Ortho actif (cohérent avec le clic).
                     let pcx = currentX, pcy = currentY;
@@ -3267,9 +3606,33 @@
                 if (offsetPreviewShape) { targetCtx.globalAlpha = 0.5; drawSingleShape(targetCtx, offsetPreviewShape, false, false, 0, 0); targetCtx.globalAlpha = 1.0; }
             }
 
+            // Ortho projeté : points acquis (violets) et lignes projetées
+            if (isUIEnabled && snapSettings.track && trackPts.length) {
+                const t = 4 / camera.zoom, vl = screenToWorld(0, 0), vr = screenToWorld(canvas.width, canvas.height);
+                targetCtx.save(); targetCtx.strokeStyle = '#a855f7'; targetCtx.lineWidth = 2 / camera.zoom; targetCtx.setLineDash([]);
+                trackPts.forEach(p => { targetCtx.beginPath(); targetCtx.moveTo(p.x - t, p.y); targetCtx.lineTo(p.x + t, p.y); targetCtx.moveTo(p.x, p.y - t); targetCtx.lineTo(p.x, p.y + t); targetCtx.stroke(); targetCtx.strokeRect(p.x - t, p.y - t, 2 * t, 2 * t); });
+                if (currentSnap && currentSnap.lines && currentSnap.lines.length) {
+                    targetCtx.lineWidth = 1 / camera.zoom; targetCtx.setLineDash([6 / camera.zoom, 5 / camera.zoom]); targetCtx.beginPath();
+                    currentSnap.lines.forEach(L => { if (L.h) { targetCtx.moveTo(vl.x, L.v); targetCtx.lineTo(vr.x, L.v); } else { targetCtx.moveTo(L.v, vl.y); targetCtx.lineTo(L.v, vr.y); } });
+                    targetCtx.stroke();
+                }
+                targetCtx.restore();
+            }
             if (currentSnap && isUIEnabled) {
                 let t = 5/camera.zoom;
-                if (currentSnap.perp) {
+                if (currentSnap.track || currentSnap.grid) {
+                    targetCtx.save(); targetCtx.setLineDash([]); targetCtx.lineWidth = 2 / camera.zoom;
+                    targetCtx.strokeStyle = currentSnap.grid ? '#38bdf8' : '#a855f7';
+                    targetCtx.beginPath();
+                    if (currentSnap.align) { targetCtx.arc(currentSnap.x, currentSnap.y, t * 0.6, 0, 2 * Math.PI); }
+                    else { targetCtx.moveTo(currentSnap.x - t, currentSnap.y - t); targetCtx.lineTo(currentSnap.x + t, currentSnap.y + t); targetCtx.moveTo(currentSnap.x + t, currentSnap.y - t); targetCtx.lineTo(currentSnap.x - t, currentSnap.y + t); }
+                    targetCtx.stroke(); targetCtx.restore();
+                }
+                else if (trackHover && snapSettings.track) {   // point en cours d'acquisition : orange
+                    targetCtx.strokeStyle = '#f97316'; targetCtx.lineWidth = 2/camera.zoom; targetCtx.setLineDash([]);
+                    targetCtx.strokeRect(currentSnap.x - t, currentSnap.y - t, t*2, t*2);
+                }
+                else if (currentSnap.perp) {
                     // Symbole perpendiculaire : petit angle droit (⊥)
                     targetCtx.strokeStyle = '#22d3ee'; targetCtx.lineWidth = 2/camera.zoom;
                     targetCtx.setLineDash([]);
@@ -3579,8 +3942,8 @@
         function updateCommandMessage() {
             let msg = "Prêt.";
             if (mode === 'select-box' && selectedShapes.length > 0 && moveTypedX !== null) msg = "DÉPLACER : ΔX = " + fmtLen(moveTypedX) + "  →  ΔY = " + (typedInput || "…") + " " + currentUnit + " puis [Entrée] ou [Espace].";
-            else if (mode === 'select-box' && selectedShapes.length > 0 && typedInput.length > 0) msg = "DÉPLACER : ΔX = " + typedInput + " " + currentUnit + " puis [Espace] pour ΔY (ou [Entrée] = horizontal seul)" + (selectedShapes.some(s => s.type === 'basemap') ? " — ou [%] : opacité " + typedInput + " %." : ".");
-            else if (mode === 'select-box' && selectedShapes.length > 0) msg = `${selectedShapes.length} objet(s) sélectionné(s). — Déplacer : tapez ΔX [Espace] ΔY [Entrée] (${currentUnit})` + (selectedShapes.some(s => s.type === 'basemap') ? " | Opacité : XX%" : "") + " | Paramétrer ? [Y/N]";
+            else if (mode === 'select-box' && selectedShapes.length > 0 && typedInput.length > 0) msg = "DÉPLACER : ΔX = " + typedInput + " " + currentUnit + " puis [Espace] pour ΔY (ou [Entrée] = horizontal seul)" + (selectedShapes.some(isBg) ? " — ou [%] : opacité " + typedInput + " %." : ".");
+            else if (mode === 'select-box' && selectedShapes.length > 0) msg = `${selectedShapes.length} objet(s) sélectionné(s). — Déplacer : tapez ΔX [Espace] ΔY [Entrée] (${currentUnit})` + (selectedShapes.some(isBg) ? " | Opacité : XX%" : "") + " | Paramétrer ? [Y/N]";
             else if (mode === 'select-box') msg = selectedShapes.length > 0 ? `${selectedShapes.length} objet(s) sélectionné(s). — Paramétrer la sélection ? [Y/N]` : "SÉLECTION : Cliquez sur un objet ou dessinez une zone.";
             else if (mode === 'line') msg = isDrawing ? "LIGNE : Spécifiez le point suivant (distance + Entrée)." : "LIGNE : Spécifiez le premier point.";
             else if (mode === 'rect') {
@@ -3591,6 +3954,12 @@
             else if (mode === 'circle') msg = isDrawing ? "CERCLE : Spécifiez le rayon (valeur + Entrée)." : "CERCLE : Spécifiez le centre.";
             else if (mode === 'arc') { if (arcStep === 0) msg = "ARC : Spécifiez le centre."; else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ."; else msg = "ARC : Spécifiez l'angle de fin (valeur + Entrée)."; }
             else if (mode === 'poly') msg = isDrawing ? "POLYGONE : Spécifiez le point suivant (double-clic pour fermer)." : "POLYGONE : Spécifiez le point de départ.";
+            else if (mode === 'calibrate') {
+                if (!calTarget) msg = "CALIBRER : cliquez sur le fond perso à mettre à l'échelle.";
+                else if (!calP1) msg = "CALIBRER : 1er point d'une longueur connue sur l'image (ex. une cote, un bord de bâtiment).";
+                else if (!calP2) msg = "CALIBRER : 2e point de la longueur connue.";
+                else msg = "CALIBRER : distance réelle entre les 2 points = " + (typedInput || "…") + " " + currentUnit + " puis [Entrée].";
+            }
             else if (isDimMode()) {
                 const nm = (mode === 'dim-ortho' ? 'COTE ORTHO' : 'COTE LIBRE') + ' [' + DIM_CHAIN_LABEL[dimChain] + ']';
                 if (dimStep === 0) msg = typedInput ? nm + " : type " + typedInput + " (" + ({ '0': 'simple', '1': 'cumulée', '2': 'successive' }[typedInput] || '?') + ") — VALIDEZ avec [Espace] ou [Entrée] pour appliquer ce mode."
@@ -3624,6 +3993,7 @@
             else if (mode === 'print') msg = "IMPRESSION " + printSettings.paper + " → " + (printSettings.output === 'pdf' ? 'PDF' : printSettings.output.toUpperCase()) + " : ESPACE (pivoter) | MOLETTE (échelle) | CLIC (générer) | réglages : bouton ⛯.";
             else if (mode === 'preview') msg = "APERÇU " + (previewPin ? "(page figée)" : "(la page suit la souris)") + " : MOLETTE (échelle) | ESPACE (pivoter) | CLIC (" + (previewPin ? "libérer" : "figer") + " la page) | ENTRÉE (imprimer) | ÉCHAP (quitter).";
             if (flashMsg && Date.now() < flashUntil) msg = flashMsg;
+            if (cmdBuffer) { const a = CMD_ALIASES[cmdBuffer]; msg = 'COMMANDE : ' + cmdBuffer + '  →  ' + (a ? a[1] + ' — [Entrée] pour lancer' : Object.keys(CMD_ALIASES).filter(x => x.startsWith(cmdBuffer)).map(x => x + ' = ' + CMD_ALIASES[x][1]).join(' · ') || 'inconnue'); }
             const el = document.getElementById('command-text');
             if (el) el.textContent = msg;
         }
@@ -3657,6 +4027,13 @@
             }
             if (totalLength > 0) { let lbl = (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'poly')) ? 'Périmètre:' : 'Longueur:'; if (selectedShapes.length > 1) lbl = 'Long. totale:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-blue-300 ml-4 font-bold">${fmt(totalLength)}</span></div>`; }
             if (totalArea > 0) { let lbl = selectedShapes.length > 1 ? 'Aire totale:' : 'Aire:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-green-400 ml-4 font-bold">${fmtArea(totalArea)}</span></div>`; }
+            if (selectedShapes.length === 1 && selectedShapes[0].type === 'bgimage') {
+                const b = selectedShapes[0], esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+                html += `<div class="flex justify-between items-center"><span>Fond perso:</span> <span class="text-sky-300 ml-4 truncate max-w-[10rem]" title="${esc(b.name || '')}">${esc(b.name || 'image')}</span></div>`;
+                html += `<div class="flex justify-between items-center"><span>Taille:</span> <span class="font-mono text-sky-300 ml-4">${fmtLen(b.w * distFactor)} × ${fmtLen(b.h * distFactor)}</span></div>`;
+                html += `<div class="flex justify-between items-center"><span>Opacité:</span> <span class="font-mono text-sky-300 ml-4">${Math.round((b.opacity === undefined ? 1 : b.opacity) * 100)} %</span></div>`;
+                html += `<button class="mt-2 w-full px-2 py-1 rounded bg-sky-700 hover:bg-sky-600 text-white text-xs" onclick="startCalibrate()">📏 Calibrer l'échelle (2 clics + distance)</button>`;
+            }
             if (selectedShapes.length === 1 && selectedShapes[0].type === 'basemap') {
                 const b = selectedShapes[0], esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
                 const realR = worldToMm(b.r) / 1000;
@@ -3675,6 +4052,9 @@
         // EVENTS
         // =====================================================================
         canvas.addEventListener('mousedown', (e) => {
+            // cliquer dans le dessin rend le clavier au dessin (sauf l'éditeur de texte en cours)
+            const ae = document.activeElement;
+            if (ae && ae !== document.body && ae.id !== 'inline-editor' && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'BUTTON')) ae.blur();
             const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top;
             if (e.button === 1) { e.preventDefault(); isPanning = true; lastPanX = sx; lastPanY = sy; canvas.style.cursor = 'grabbing'; return; }
             if (mode === 'print') { performPrint(sx, sy); return; }
@@ -3717,7 +4097,7 @@
                     selectedShapes = [];
                     newShapes.forEach(s => {
                         if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; }
-                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap') { s.x += dx; s.y += dy; }
+                        else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap' || s.type === 'bgimage') { s.x += dx; s.y += dy; }
                         else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); }
                         else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; }
                         else if (s.type === 'dim-angle') { s.vertex.x += dx; s.vertex.y += dy; s.p1.x += dx; s.p1.y += dy; s.p2.x += dx; s.p2.y += dy; }
@@ -3812,6 +4192,13 @@
                 return;
             }
 
+            if (mode === 'calibrate') {
+                if (!calTarget) { const t = findShapeAt(wp.x, wp.y); if (t && t.type === 'bgimage') { calTarget = t; selectedShapes = [t]; } draw(); return; }
+                const sn = findSnap(wp.x, wp.y), pt = sn ? { x: sn.x, y: sn.y } : { x: wp.x, y: wp.y };
+                if (!calP1) { calP1 = pt; isDrawing = true; }
+                else if (!calP2) { calP2 = pt; typedInput = ''; }
+                draw(); return;
+            }
             if (isDimMode()) {
                 let sn = findSnap(wp.x, wp.y), pt = sn ? {x:sn.x, y:sn.y} : {x:wp.x, y:wp.y};
                 if (dimStep === 0) { dimP1 = pt; dimStep = 1; isDrawing = true; typedInput = ""; draw(); }
@@ -3926,6 +4313,7 @@
             let wp = screenToWorld(sx, sy);
             shiftHeld = e.shiftKey;
             currentSnap = findSnap(wp.x, wp.y);
+            updateTrackHover(currentSnap);
             currentX = currentSnap ? currentSnap.x : wp.x;
             currentY = currentSnap ? currentSnap.y : wp.y;
             // Position réelle du pointeur (NON contrainte) pour le guide d'alignement
@@ -3976,6 +4364,7 @@
                         else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'poly') b = s.points.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         else if (s.type === 'dim-angle') b = isPointInRect(s.vertex.x, s.vertex.y, startX, startY, currentX-startX, currentY-startY);
+                        else if (s.type === 'bgimage') b = bgCorners(s).every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         else if (s.type === 'basemap') b = isPointInRect(s.x - s.r, s.y - s.r, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x + s.r, s.y + s.r, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'hatch') b = s.loops[0].every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         if (b && !selectedShapes.includes(s)) selectedShapes.push(s);
@@ -4062,6 +4451,8 @@
             }
             if (document.getElementById('basemap-modal').style.display === 'flex') { if (e.key === 'Escape') closeBasemapModal(); return; }
             if (document.getElementById('crop-modal').style.display === 'flex') { if (e.key === 'Escape') closeCrop(); if (e.key === 'Enter') applyCrop(); return; }
+            // un champ resté actif dans une fenêtre fermée (invisible) ne doit pas capter le clavier du dessin
+            if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') && document.activeElement.offsetParent === null && document.activeElement.type !== 'hidden') document.activeElement.blur();
             if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
                 if (e.key === 'Enter') {
                     if (document.activeElement.id === 'text-content') applyText();
@@ -4073,6 +4464,17 @@
                 return;
             }
             if (e.key === 'F8') { e.preventDefault(); toggleOrtho(); return; }
+            // Raccourcis de commande : lettres tapées puis Entrée (D = déplacer, DR = droite, HA = hachure…)
+            if (!e.ctrlKey && !e.altKey && !e.metaKey && mode !== 'print' && mode !== 'preview') {
+                const k = e.key.length === 1 ? e.key.toUpperCase() : '';
+                const yn = mode === 'select-box' && selectedShapes.length > 0 && !cmdBuffer && (k === 'Y' || k === 'N');   // Paramétrer la sélection [Y/N]
+                if (/^[A-Z]$/.test(k) && !yn && !(isScaleMode() && k === 'X') && cmdBuffer.length < 3) { e.preventDefault(); cmdBuffer += k; draw(); return; }
+                if (cmdBuffer) {
+                    if (e.key === 'Enter') { e.preventDefault(); runCmdAlias(); return; }
+                    if (e.key === 'Backspace') { e.preventDefault(); cmdBuffer = cmdBuffer.slice(0, -1); draw(); return; }
+                    if (e.key === 'Escape') { e.preventDefault(); cmdBuffer = ''; draw(); return; }
+                }
+            }
             if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
             if (e.ctrlKey && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
             if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copySelection(); return; }
@@ -4084,12 +4486,12 @@
                 if (e.key === 'n' || e.key === 'N') { e.preventDefault(); return; }
             }
             // Opacité d'un fond de carte sélectionné : taper 50% (valeur absolue, 100 % = opaque, 0 % = invisible)
-            if (mode === 'select-box' && !isDrawing && !e.ctrlKey && moveTypedX === null && selectedShapes.some(s => s.type === 'basemap')) {
+            if (mode === 'select-box' && !isDrawing && !e.ctrlKey && moveTypedX === null && selectedShapes.some(isBg)) {
                 if (e.key === '%' && typedInput.length > 0 && !isNaN(parseInt(typedInput, 10))) {
                     e.preventDefault();
                     const v = Math.max(0, Math.min(100, parseInt(typedInput, 10)));
-                    selectedShapes.forEach(s => { if (s.type === 'basemap') s.opacity = v / 100; });
-                    typedInput = ""; saveState(); updateCommandMessageText('FOND DE CARTE : opacité ' + v + ' %.'); draw(); return;
+                    selectedShapes.forEach(s => { if (isBg(s)) s.opacity = v / 100; });
+                    typedInput = ""; saveState(); updateCommandMessageText('FOND : opacité ' + v + ' %.'); draw(); return;
                 }
             }
             // Déplacer : ΔX [Espace] ΔY [Entrée ou Espace], dans l'unité du plan (Y vers le haut).
@@ -4112,6 +4514,13 @@
                     draw(); return;
                 }
             }
+            // Calibrer : distance réelle tapée puis Entrée
+            if (mode === 'calibrate' && calP2 && !e.ctrlKey) {
+                if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; }
+                if (e.key === 'Backspace') { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; }
+                if ((e.key === 'Enter' || e.key === ' ') && typedInput) { e.preventDefault(); applyCalibration(parseFloat(typedInput)); return; }
+            }
+            if (document.getElementById('bgimg-modal').style.display === 'flex') { if (e.key === 'Escape') closeBgModal(); return; }
             // Cotes : choix du type (0 simple, 1 cumulée, 2 successive) puis Espace/Entrée ; fin de chaîne avec Entrée/Espace
             if (isDimMode() && !e.ctrlKey) {
                 if (dimStep === 0) {
@@ -4159,6 +4568,7 @@
                 isDrawing = false; arcStep = 0; currentPolygon = []; isMovingObjects = false; moveBasePoint = null;
                 rectDimStep = 0; rectWidthVal = 0;
                 detailStep = 0; detailTarget = null; detailLabelPos = null; closeDetailModal();
+                trackPts = []; trackLines = [];
                 dimStep = 0; dimChainInfo = null; selectedShapes = []; isRotatingObjects = false; rotateCenter = null;
                 scaleCenter = null; scaleRefDist = 0; isScalingObjects = false;
                 dimAngleStep = 0; dimAngleLine1 = null; dimAngleLine2 = null; dimAngleIntersect = null;
@@ -4201,7 +4611,8 @@
         });
 
         window.onload = () => {
-            updateLayerUI(); resizeCanvas(); saveState(); markSaved(); refreshDimTextButton();
+            updateLayerUI(); resizeCanvas(); saveState(); markSaved(); refreshDimTextButton(); refreshSnapButtons();
+            Object.entries(CMD_ALIASES).forEach(([k, [m]]) => { const b = document.getElementById('btn-' + m); if (b && !/\(raccourci/.test(b.title)) b.title += ' (raccourci : ' + k + ' + Entrée)'; });
             // Double-clic sur un .mmc / .dxf (appli installée avec manifest.json) : ouverture directe
             if ('launchQueue' in window) {
                 window.launchQueue.setConsumer(async (params) => {
