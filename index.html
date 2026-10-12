@@ -156,10 +156,13 @@
             <!-- Menu DXF -->
             <div class="relative inline-block">
                 <button id="btn-dxf-menu" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-blue-400" title="Fichier : Ouvrir, Enregistrer, Enregistrer sous, DXF" onclick="toggleFileMenu('dxf', event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
-                <div id="menu-dxf" class="hidden absolute left-0 mt-1 w-64 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1">
+                <div id="menu-dxf" class="hidden absolute left-0 mt-1 w-80 bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1">
                     <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); openProject();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span class="flex-1">Ouvrir…</span><span class="text-[11px] text-gray-500 font-mono">Ctrl+O</span></button>
                     <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); saveProject(false);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg><span class="flex-1">Enregistrer</span><span class="text-[11px] text-gray-500 font-mono">Ctrl+S</span></button>
                     <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); saveProject(true);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg><span class="flex-1">Enregistrer sous…</span><span class="text-[11px] text-gray-500 font-mono">Ctrl+Maj+S</span></button>
+                    <div class="border-t border-gray-700 my-1"></div>
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); document.getElementById('semis-input').click();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="9" y2="12"></line><line x1="7" y1="10" x2="7" y2="14"></line><line x1="15" y1="7" x2="19" y2="7"></line><line x1="17" y1="5" x2="17" y2="9"></line><line x1="13" y1="17" x2="17" y2="17"></line><line x1="15" y1="15" x2="15" y2="19"></line></svg><span class="flex-1">Importer un semis de points (CSV / TXT)</span></button>
+                    <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); exportSemis();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg><span class="flex-1">Exporter les points topo (CSV)</span></button>
                     <div class="border-t border-gray-700 my-1"></div>
                     <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); document.getElementById('dxf-input').click();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg><span class="flex-1">Importer DXF</span><span class="text-[11px] text-gray-500 font-mono"></span></button>
                     <button class="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2" onclick="closeFileMenus(); exportDXFFile();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg><span class="flex-1">Exporter DXF (AutoCAD)</span><span class="text-[11px] text-gray-500 font-mono"></span></button>
@@ -167,7 +170,9 @@
             </div>
             <span id="file-name-label" class="text-xs text-gray-400 max-w-[11rem] truncate px-1 select-none" title="Plan en cours"></span>
             <input type="file" id="dxf-input" class="hidden" accept=".dxf" onchange="importDXFFile(event)">
+            <input type="file" id="semis-input" class="hidden" accept=".csv,.txt,.xyz,.dat,text/csv,text/plain" onchange="importSemisFile(this)">
             <input type="file" id="project-input" class="hidden" accept=".mmc,.dxf,.momocad,.json" onchange="openProjectFromInput(event)">
+            <button id="btn-metre" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-emerald-300 font-bold text-lg" title="Métré : longueurs, surfaces et nombres par calque (pour les devis)" onclick="openMetre()">Σ</button>
             <button id="btn-preview" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-sky-300" title="Aperçu avant impression : mise en page sur fond blanc (CLIC fige la page, ENTRÉE imprime)" onclick="setMode('preview')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="16.5" cy="16.5" r="3.5"></circle><line x1="19" y1="19" x2="22" y2="22"></line></svg></button>
             <button id="btn-print-settings" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-gray-200" title="Paramètres : unité et décimales affichées, format de feuille, cartouche, type de fichier (PDF / JPEG / PNG)" onclick="openCartoucheModal()"><span style="font-family:'Segoe UI Symbol','Segoe UI Emoji','FreeSans','DejaVu Sans',sans-serif;font-size:19px;line-height:1">⛯</span></button>
             <button id="btn-print" class="tool-btn w-9 h-9 flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-white" title="Mode Impression PDF (ESPACE pour pivoter)" onclick="setMode('print')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
@@ -210,6 +215,10 @@
             <div class="tool-group grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-gray-600" title="Topographie / 3D">
                 <button id="btn-topo" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Point topo : clic = point (Z repris du point accroché), puis tapez l'altitude + Entrée. Modifier ensuite : sélection + Y" onclick="setMode('topo')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="16" x2="12" y2="16"></line><line x1="7" y1="11" x2="7" y2="21"></line><circle cx="7" cy="16" r="2"></circle><text x="17.5" y="11" font-size="12" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle">Z</text></svg></button>
                 <button id="btn-view3d" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Vue 3D : activer / désactiver (boussole N / E / S / O / Haut, vues animées)" onclick="toggle3D()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path><path d="M12 22V12"></path><path d="M21 7l-9 5-9-5"></path></svg></button>
+                <button id="btn-slope" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Étiquette de pente : 2 clics sur des points cotés ou sur la surface du terrain → flèche vers le bas et pente en %" onclick="setMode('slope')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="19" y2="16"></line><polyline points="13 17 19 16 17 10"></polyline><text x="6" y="22" font-size="8" font-family="Arial" font-weight="bold" fill="currentColor" stroke="none">%</text></svg></button>
+                <button id="btn-profile" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Profil en long : cliquez les points de l'axe, Entrée ou double-clic pour terminer" onclick="setMode('profile')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 17 7 11 11 14 16 7 22 10"></polyline><line x1="2" y1="21" x2="22" y2="21" stroke-dasharray="2 2"></line></svg></button>
+                <button id="btn-contours" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Courbes de niveau depuis la surface du terrain" onclick="openContoursDialog()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18c4-6 8 2 12-4 2-3 4-3 6-2"></path><path d="M3 13c3-5 7 0 10-4 2-3 5-3 8-2"></path><path d="M3 8c3-3 6-1 9-3"></path></svg></button>
+                <button id="btn-cubature" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-lime-300" title="Cubatures : déblai / remblai dans une emprise (polyligne fermée ou hachure sélectionnée)" onclick="openCubatureDialog()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l9-5 9 5-9 5z"></path><path d="M3 15v-4l9-5 9 5v4"></path><line x1="12" y1="20" x2="12" y2="10"></line></svg></button>
             </div>
 
             <!-- Bloc Annotation (texte, détail, cotation) — repoussé en bas -->
@@ -280,6 +289,17 @@
         </main>
     </div>
 
+    <!-- Fenêtre des outils topo / devis (profil en long, courbes, cubatures, métré) -->
+    <div id="topo-modal" style="display:none;position:fixed;inset:0;z-index:74;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+        <div style="background:#1f2937;border:1px solid #4b5563;border-radius:10px;padding:16px;width:min(980px,96vw);max-height:92vh;display:flex;flex-direction:column;color:#e5e7eb;box-shadow:0 20px 50px rgba(0,0,0,.5);font-size:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px;">
+                <h3 id="tm-title" style="font-size:17px;font-weight:700;color:#fff;margin:0;"></h3>
+                <button type="button" onclick="closeTopoModal()" style="background:none;border:0;color:#9ca3af;font-size:22px;cursor:pointer;line-height:1;">×</button>
+            </div>
+            <div id="tm-body" style="overflow:auto;flex:1;"></div>
+            <div id="tm-actions" style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;flex-wrap:wrap;"></div>
+        </div>
+    </div>
     <!-- Vue 3D -->
     <div id="view3d" style="display:none;position:fixed;z-index:60;background:#111827;overflow:hidden;">
         <div id="v3-host" style="position:absolute;inset:0;"></div>
@@ -491,6 +511,17 @@
                     <li><b class="text-white">Coordonnées géoréférencées :</b> si le DXF est en Lambert (coordonnées de plusieurs millions de mètres), MomoCAD mémorise une origine et affiche les vraies coordonnées en bas d'écran ; l'export DXF les restitue à l'identique. Cela garde un affichage précis malgré les grands nombres.</li>
                     <li><b class="text-white">Export DXF 3D :</b> lignes avec leurs Z, polylignes 3D (ou élévation si tous les sommets ont le même Z), cercles et arcs à leur altitude, points topo en POINT 3D avec l'altitude écrite à côté. Lisible par AutoCAD et Covadis.</li>
                     <li><b class="text-white">Vue 3D (bouton cube du bloc Topo / 3D, ou VU ⏎) :</b> le plan s'affiche en 3D par-dessus la zone de dessin. <b>Glisser</b> = tourner autour, <b>clic droit</b> (ou molette enfoncée) = déplacer, <b>molette</b> = zoom. La <b>boussole</b> en haut à droite tourne avec la vue : cliquez <b>N</b>, <b>E</b>, <b>S</b> ou <b>O</b> pour une vue de côté depuis cette direction, <b>HAUT</b> pour la vue de dessus (nord en haut), la maison pour revenir à la vue 3D de départ, et les flèches courbes pour pivoter d'un quart de tour : chaque changement de vue est animé. Options : <b>Hauteurs ×</b> (exagération verticale : les altitudes sont multipliées par ce chiffre à l'affichage, les longueurs à plat ne changent pas ; ×5 par défaut, indispensable sur un terrain presque plat ; ×1 = proportions réelles), <b>Surface</b> (terrain triangulé entre tous les points cotés, coloré du plus bas en bleu au plus haut en rouge), <b>Altitudes</b> (étiquettes des points topo), <b>Fonds</b> (fonds de carte et fonds perso posés au sol). Les objets sans altitude sont posés au niveau le plus bas. Re-cliquez le bouton cube (il reste allumé tant que la 3D est active), VU ⏎ ou Échap pour revenir au dessin. La première ouverture demande Internet (moteur 3D).</li>
+                    <li><b class="text-white">Surface du terrain (MNT) :</b> tous les sommets cotés (points topo, extrémités de lignes, sommets de polylignes) sont reliés en triangles. Cette surface sert à la vue 3D, aux pentes, au profil en long, aux courbes de niveau et aux cubatures ; elle se recalcule à chaque modification. Les grands triangles du bord (trop allongés) sont écartés.</li>
+                    <li><b class="text-white">Étiquette de pente (bouton flèche % ou Pe ⏎) :</b> 2 clics sur des points cotés, des traits 3D ou n'importe où sur la surface : une flèche indique le sens de la descente, avec la pente en % et la <b>différence de niveau Δh</b> (ex. « 4,33 % · Δh 0,26 m »). Elle garde les altitudes du moment où elle est posée.</li>
+                    <li><b class="text-white">Profil en long (Pr ⏎) :</b> cliquez les points de l'axe puis <b>Entrée</b> (ou double-clic). La fenêtre montre le terrain (vert, tiré de la surface) et les croisements avec les traits 3D et les points topo à moins de 50 cm de l'axe (orange). Tableau : un point tous les <b>N mètres</b> (pas au choix), les sommets de l'axe et les croisements, avec la pente entre points réguliers. <b>Copier (Excel)</b>, <b>Exporter CSV</b>, ou <b>Dessiner dans le plan</b> : le profil est tracé 10 m sous le dessin (calque « Profil en long »), distances à l'échelle. <b>Hauteurs ×</b> (×5 par défaut) fixe l'exagération du graphique comme du dessin : échelle des hauteurs = échelle des longueurs × ce chiffre (×1 = proportions réelles), avec plan de comparaison et cotes. L'axe reste dessiné en trait mixte.</li>
+                    <li><b class="text-white">Courbes de niveau (Cn ⏎) :</b> équidistance au choix (5 cm à 5 m) et une maîtresse toutes les N courbes, avec l'altitude écrite dessus. Elles vont sur les calques « Courbes de niveau » et « Courbes maîtresses », portent leur Z (export DXF 3D) et sont remplacées si vous les régénérez.</li>
+                    <li><b class="text-white">Cubatures (Cu ⏎) :</b> <b>emprise</b> = objet fermé sélectionné, ou bouton « Choisir sur le plan » puis clic à l'intérieur de la zone (polyligne fermée, hachure ou cercle ; la plus petite zone contenant le clic). L'emprise et les réglages restent mémorisés d'un calcul à l'autre ; Entrée dans la cote lance le calcul. Contre une plateforme, le calcul est <b>exact</b> (triangle par triangle du terrain, découpé par l'emprise et par le plan de la plateforme) et instantané ; « Tracer la limite déblai / remblai » dessine la ligne où le terrain croise la plateforme. Projet : <b>plateforme à une cote</b>, ou <b>surface projet</b> = objets cotés des calques cochés (le terrain naturel est alors fait des autres calques). Résultat : surface, <b>déblai</b>, <b>remblai</b>, solde, surfaces et épaisseurs moyennes en déblai / remblai, cote moyenne du terrain et <b>cote d'équilibre</b> ; à copier dans Excel. Volumes géométriques, sans foisonnement ni épaisseur de structure.</li>
+                    <li><b class="text-white">Semis de points (menu disquette) :</b> <b>Importer un semis (CSV / TXT)</b> : une ligne par point, <b>MAT;X;Y;Z;CODE</b> ou <b>X;Y;Z</b>, en mètres ; séparateurs ; , tabulation ou espace, virgule ou point décimal ; lignes d'en-tête ignorées. Les points arrivent sur le calque « Semis de points ». <b>Exporter les points topo (CSV)</b> : MAT;X;Y;Z;CODE en coordonnées réelles, lisible par Excel.</li>
+                </ul>
+                <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">Σ Métré (devis)</h4>
+                <ul class="list-disc pl-6 space-y-1 mb-3">
+                    <li><b class="text-white">Bouton Σ (en-tête) ou Me ⏎ :</b> tableau par calque du <b>linéaire</b> (m : lignes, polylignes, arcs, cercles), de la <b>surface hachurée</b> (m²), de la <b>surface des contours fermés</b> (m²), du nombre de <b>points topo</b> et d'<b>objets</b>, avec le total. Sur tout le plan ou seulement la sélection. <b>Copier (Excel)</b> pour coller directement dans un devis, ou <b>Exporter CSV</b>. Toujours en m / m², quelle que soit l'unité du plan. Rangez vos ouvrages par calque (bordures, enrobé, réseau EP…) pour obtenir un métré directement exploitable.</li>
+                    <li><b class="text-white">Polylignes ouvertes :</b> les polylignes ouvertes des DXF (bordures, réseaux, limites) restent ouvertes : pas de trait de fermeture, longueur exacte, et elles repartent ouvertes à l'export DXF.</li>
                 </ul>
                 <h4 class="text-blue-300 font-bold mb-1 border-l-2 border-blue-500 pl-2">⌨️ Raccourcis de commande</h4>
                 <p class="text-xs text-gray-400 mb-1 pl-2">Tapez les lettres (majuscules ou minuscules, sans cliquer nulle part) puis <b>Entrée</b> ⏎. La barre de commande montre ce que vous tapez et les commandes possibles ; Retour arrière corrige, Échap annule. Les objets déjà sélectionnés restent sélectionnés (pratique pour D ⏎ ou R ⏎).</p>
@@ -510,6 +541,11 @@
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">If ⏎</td><td class="py-0.5">Dessiner une infobulle (détail)</td></tr>
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Pt ⏎</td><td class="py-0.5">Poser un point topo (altitude Z)</td></tr>
 <tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Vu ⏎</td><td class="py-0.5">Activer / désactiver la vue 3D</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Pe ⏎</td><td class="py-0.5">Étiquette de pente</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Pr ⏎</td><td class="py-0.5">Profil en long</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Cn ⏎</td><td class="py-0.5">Courbes de niveau</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Cu ⏎</td><td class="py-0.5">Cubatures (emprise sélectionnée)</td></tr>
+<tr class="border-t border-gray-700"><td class="py-0.5 pr-3 font-mono text-amber-300 font-bold">Me ⏎</td><td class="py-0.5">Métré</td></tr>
                 </tbody></table>
             </div>
             <div>
@@ -797,7 +833,7 @@
         // Ortho projeté : points acquis (violets) et lignes de projection actives
         let trackPts = [], trackLines = [], trackHover = null;
         let cachedSnapPoints = null;
-        function invalidateCache() { cachedSnapPoints = null; }
+        function invalidateCache() { cachedSnapPoints = null; tinCache = null; }
 
         // --- UI MODALES ---
         function openTextModal(wx, wy, sx, sy) { pendingTextPos = {wx, wy}; const m = document.getElementById('text-input-modal'); m.style.left = Math.min(sx + 10, window.innerWidth - 280) + 'px'; m.style.top = Math.min(sy + 10, window.innerHeight - 150) + 'px'; m.classList.remove('hidden'); document.getElementById('text-content').value = ""; document.getElementById('text-content').focus(); }
@@ -1220,7 +1256,7 @@
                 const layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
                 if (s.type === 'point') { if (Math.hypot(x - s.x, y - s.y) <= tol) add(s.z); }
                 else if (s.type === 'line') onSeg(s.x1, s.y1, s.z1, s.x2, s.y2, s.z2);
-                else if (s.type === 'poly') for (let i = 0; i < s.points.length; i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; onSeg(a.x, a.y, a.z, b.x, b.y, b.z); }
+                else if (s.type === 'poly') for (let i = 0; i < polyEdges(s); i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; onSeg(a.x, a.y, a.z, b.x, b.y, b.z); }
                 else if ((s.type === 'circle' || s.type === 'arc') && hasZ(s.z)) { const d = Math.hypot(x - s.x, y - s.y); if (d <= tol || Math.abs(d - s.r) <= tol) add(s.z); }
             }
             return out;
@@ -1339,7 +1375,7 @@
             for (const s of vis) {
                 const color = effectiveColor(s, false);
                 if (s.type === 'line') seg(P(s.x1, s.y1), Zm(s.z1), P(s.x2, s.y2), Zm(s.z2), color);
-                else if (s.type === 'poly') for (let i = 0; i < s.points.length; i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; seg(P(a.x, a.y), Zm(a.z), P(b.x, b.y), Zm(b.z), color); }
+                else if (s.type === 'poly') for (let i = 0; i < polyEdges(s); i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; seg(P(a.x, a.y), Zm(a.z), P(b.x, b.y), Zm(b.z), color); }
                 else if (s.type === 'circle' || s.type === 'arc') {
                     let a0 = 0, a1 = 2 * Math.PI;
                     if (s.type === 'arc') { a0 = s.startAngle; a1 = s.endAngle; if (a1 < a0) a1 += 2 * Math.PI; }
@@ -1367,9 +1403,8 @@
             }
             // surface triangulée (Delaunay) entre tous les points cotés
             if (showSurf) {
-                const nodes = [];
-                vis.forEach(s => shapeVertices(s).forEach(v => { const z = v.get(); if (hasZ(z)) { const q = P(v.x, v.y); if (!nodes.some(n => Math.abs(n.x - q.x) < 1e-3 && Math.abs(n.y - q.y) < 1e-3)) nodes.push({ x: q.x, y: q.y, z: z / 1000 }); } }));
-                const tris = nodes.length >= 3 && nodes.length <= 6000 ? delaunay(nodes) : [];
+                const tin = getTIN();
+                const nodes = tin ? tin.nodes.map(n => { const q = P(n.x, n.y); return { x: q.x, y: q.y, z: n.z / 1000 }; }) : [], tris = tin ? tin.tris : [];
                 if (tris.length) {
                     const pp = [], cc = [];
                     const ramp = (z) => { const t = zmax > zmin ? (z - zmin) / (zmax - zmin) : 0.5; return new THREE.Color().setHSL(0.62 - 0.62 * t, 0.65, 0.45); };
@@ -1464,18 +1499,504 @@
         const CMD_ALIASES = {
             D: ['move', 'Déplacer'], R: ['rotate', 'Rotation'], C: ['trim', 'Couper (ajuster)'], P: ['extend', 'Prolonger'], DE: ['offset', 'Décaler'],
             DR: ['line', 'Droite'], QR: ['rect', 'Quadrilatère'], RO: ['circle', 'Rond (cercle)'], AR: ['arc', 'Arc'], PL: ['poly', 'Polygone'],
-            HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)'], PT: ['topo', 'Point topo'], VU: ['view3d', 'Vue 3D']
+            HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)'], PT: ['topo', 'Point topo'], VU: ['view3d', 'Vue 3D'], PE: ['slope', 'Étiquette de pente'], PR: ['profile', 'Profil en long'], CN: ['contours', 'Courbes de niveau'], CU: ['cubature', 'Cubatures'], ME: ['metre', 'Métré']
         };
         let cmdBuffer = '';
         function runCmdAlias() {
             const a = CMD_ALIASES[cmdBuffer]; const typed = cmdBuffer; cmdBuffer = '';
             if (!a) { updateCommandMessageText('Commande inconnue : « ' + typed + ' ». Raccourcis : ' + Object.keys(CMD_ALIASES).join(', ') + ' (+ Entrée) — voir le guide.'); draw(); return; }
             if (a[0] === 'view3d') { toggle3D(); return; }
+            if (a[0] === 'contours') { openContoursDialog(); return; }
+            if (a[0] === 'cubature') { openCubatureDialog(); return; }
+            if (a[0] === 'metre') { openMetre(); return; }
             setMode(a[0]); draw();
         }
+        // =====================================================================
+        // MNT (surface du terrain) : triangulation de tous les sommets cotés, réutilisée par la vue 3D,
+        // les pentes, le profil en long, les courbes de niveau et les cubatures.
+        // Les objets générés (courbes, profils dessinés) portent s.gen et ne servent pas à la construire.
+        // =====================================================================
+        let tinCache = null;
+        function tinNodes(filter) {
+            const nodes = [], seen = new Set();
+            for (const s of shapes) {
+                if (s.gen) continue;
+                const l = layers.find(x => x.id === (s.layerId || 'layer-0')); if (l && l.visible === false) continue;
+                if (filter && !filter(s)) continue;
+                shapeVertices(s).forEach(v => { const z = v.get(); if (!hasZ(z)) return; const k = Math.round(v.x * 10) + ',' + Math.round(v.y * 10); if (seen.has(k)) return; seen.add(k); nodes.push({ x: v.x, y: v.y, z }); });
+            }
+            return nodes;
+        }
+        function buildTIN(nodes) {
+            if (nodes.length < 3 || nodes.length > 8000) return null;
+            const tris = delaunay(nodes);
+            if (!tris.length) return null;
+            // index en grille pour retrouver vite le triangle sous un point
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            nodes.forEach(n => { minX = Math.min(minX, n.x); minY = Math.min(minY, n.y); maxX = Math.max(maxX, n.x); maxY = Math.max(maxY, n.y); });
+            const G = Math.max(4, Math.min(200, Math.round(Math.sqrt(tris.length)))), cw = (maxX - minX) / G || 1, ch = (maxY - minY) / G || 1, cells = new Map();
+            tris.forEach((t, k) => {
+                const xs = t.map(i => nodes[i].x), ys = t.map(i => nodes[i].y);
+                const i0 = Math.floor((Math.min(...xs) - minX) / cw), i1 = Math.floor((Math.max(...xs) - minX) / cw), j0 = Math.floor((Math.min(...ys) - minY) / ch), j1 = Math.floor((Math.max(...ys) - minY) / ch);
+                for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const key = i + ',' + j; if (!cells.has(key)) cells.set(key, []); cells.get(key).push(k); }
+            });
+            return { nodes, tris, minX, minY, maxX, maxY, cw, ch, cells };
+        }
+        function getTIN() { if (!tinCache) tinCache = buildTIN(tinNodes()) || { empty: true }; return tinCache.empty ? null : tinCache; }
+        // Altitude (mm) du MNT au point (x, y) monde, ou undefined hors surface
+        function tinZ(x, y, tin) {
+            tin = tin || getTIN(); if (!tin) return undefined;
+            const cell = tin.cells.get(Math.floor((x - tin.minX) / tin.cw) + ',' + Math.floor((y - tin.minY) / tin.ch)); if (!cell) return undefined;
+            for (const k of cell) {
+                const [a, b, c] = tin.tris[k].map(i => tin.nodes[i]);
+                const d = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y); if (Math.abs(d) < 1e-12) continue;
+                const l1 = ((b.y - c.y) * (x - c.x) + (c.x - b.x) * (y - c.y)) / d, l2 = ((c.y - a.y) * (x - c.x) + (a.x - c.x) * (y - c.y)) / d, l3 = 1 - l1 - l2;
+                if (l1 >= -1e-9 && l2 >= -1e-9 && l3 >= -1e-9) return l1 * a.z + l2 * b.z + l3 * c.z;
+            }
+            return undefined;
+        }
+        // Altitude au point : objet coté exact d'abord, sinon surface du terrain
+        function zHere(x, y) { const zs = zAt(x, y, 0.5); if (zs.length) return zs[0]; return tinZ(x, y); }
+
+        // ---------- Étiquette de pente : 2 clics, flèche vers le bas, pente en % ----------
+        let slopeP1 = null;
+        function makeSlope(p1, p2) {
+            const z1 = zHere(p1.x, p1.y), z2 = zHere(p2.x, p2.y);
+            if (!hasZ(z1) || !hasZ(z2)) return null;
+            return { type: 'slope', layerId: DIM_LAYER_ID, x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, z1, z2, zk: 1 };
+        }
+        // « 4,33 % · Δh 0,26 m » : pente et différence de niveau entre les 2 points
+        function slopeLabel(s) { return nfr(Math.abs(slopePct(s)), 2) + ' % · Δh ' + fmtZ(Math.abs(s.z2 - s.z1)) + ' m'; }
+        function slopePct(s) { const L = worldToMm(Math.hypot(s.x2 - s.x1, s.y2 - s.y1)); return L > 0 ? (s.z2 - s.z1) / L * 100 : 0; }
+        function drawSlopeShape(targetCtx, s, col, dx, dy, lineScale) {
+            // la flèche descend : du point le plus haut vers le plus bas
+            let a = { x: s.x1 + dx, y: s.y1 + dy }, b = { x: s.x2 + dx, y: s.y2 + dy }; if (s.z2 > s.z1) [a, b] = [b, a];
+            const L = Math.hypot(b.x - a.x, b.y - a.y); if (L < 1e-9) return;
+            const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L, h = 9 / lineScale;
+            targetCtx.setLineDash([]); targetCtx.beginPath(); targetCtx.moveTo(a.x, a.y); targetCtx.lineTo(b.x, b.y); targetCtx.stroke();
+            targetCtx.beginPath(); targetCtx.moveTo(b.x, b.y); targetCtx.lineTo(b.x - ux * h - uy * h * 0.4, b.y - uy * h + ux * h * 0.4); targetCtx.lineTo(b.x - ux * h + uy * h * 0.4, b.y - uy * h - ux * h * 0.4); targetCtx.closePath(); targetCtx.fillStyle = targetCtx.strokeStyle; targetCtx.fill();
+            dimensionTextsToDraw.push({ text: slopeLabel(s), worldX: (a.x + b.x) / 2, worldY: (a.y + b.y) / 2, color: col, layerId: s.layerId || DIM_LAYER_ID, angle: Math.atan2(uy, ux), al: true });
+        }
+        // ---------- Fenêtre commune ----------
+        function openTopoModal(title, bodyHtml, actions) {
+            document.getElementById('tm-title').textContent = title;
+            document.getElementById('tm-body').innerHTML = bodyHtml;
+            const a = document.getElementById('tm-actions'); a.innerHTML = '';
+            (actions || []).forEach(([label, fn, primary]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = fn;
+                b.style.cssText = 'border:0;border-radius:6px;padding:7px 14px;cursor:pointer;color:#fff;background:' + (primary ? '#2563eb' : '#4b5563'); a.appendChild(b); });
+            document.getElementById('topo-modal').style.display = 'flex';
+        }
+        function closeTopoModal() { document.getElementById('topo-modal').style.display = 'none'; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+        const nfr = (v, d) => v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+        const mOf = (w) => worldToMm(w) / 1000;               // longueur monde -> m
+        function downloadText(name, text, type) {
+            const url = URL.createObjectURL(new Blob(['﻿' + text], { type: type || 'text/csv;charset=utf-8' }));
+            const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }
+        function copyText(text) { (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => updateCommandMessageText('Copié : collez-le dans Excel (Ctrl+V).'), () => { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); updateCommandMessageText('Copié : collez-le dans Excel (Ctrl+V).'); }); }
+        function ensureLayer(name, color, dash, width) {
+            let l = layers.find(x => x.name === name); if (l) return l.id;
+            l = { id: generateId(), name, visible: true, color, dash: dash || 'solid', width: width || 1, textH: '', hatch: 'lines', hatchScale: 1 }; layers.push(l); updateLayerUI(); return l.id;
+        }
+
+        // =====================================================================
+        // PROFIL EN LONG : axe en polyligne → altitudes du terrain tout le long (surface) + croisements des traits 3D
+        // =====================================================================
+        let profileAxis = [], lastProfile = null;
+        function finishProfileAxis() {
+            if (profileAxis.length < 2) { updateCommandMessageText("PROFIL : il faut au moins 2 points d'axe."); return; }
+            const axis = profileAxis.slice(); profileAxis = []; isDrawing = false;
+            const axShape = { type: 'poly', layerId: DIM_LAYER_ID, points: axis.map(p => ({ x: p.x, y: p.y })), open: true, dash: 'center', gen: 'axis', zk: 1 };
+            shapes.push(axShape); saveState(); draw();
+            lastProfile = computeProfile(axis); showProfile(lastProfile);
+        }
+        function computeProfile(axis) {
+            const tin = getTIN(), samples = [], marks = [];
+            let total = 0; const segs = [];
+            for (let i = 0; i < axis.length - 1; i++) { const a = axis[i], b = axis[i + 1], L = Math.hypot(b.x - a.x, b.y - a.y); segs.push({ a, b, L, d0: total }); total += L; }
+            const step = Math.max(total / 600, mmToWorld(50));   // ~600 échantillons, au moins tous les 5 cm
+            segs.forEach((sg, k) => {
+                const n = Math.max(1, Math.ceil(sg.L / step));
+                for (let i = 0; i <= n; i++) { if (i === 0 && k > 0) continue; const t = i / n, x = sg.a.x + (sg.b.x - sg.a.x) * t, y = sg.a.y + (sg.b.y - sg.a.y) * t; samples.push({ d: mOf(sg.d0 + sg.L * t), z: tin ? tinZ(x, y, tin) : undefined }); }
+                // croisements avec les traits 3D et points topo proches de l'axe
+                for (const s of shapes) {
+                    if (s.gen) continue; const l = layers.find(x => x.id === (s.layerId || 'layer-0')); if (l && l.visible === false) continue;
+                    const cross = (p, q, zp, zq, label) => {
+                        const d = (sg.b.x - sg.a.x) * (q.y - p.y) - (sg.b.y - sg.a.y) * (q.x - p.x); if (Math.abs(d) < 1e-12) return;
+                        const t = ((p.x - sg.a.x) * (q.y - p.y) - (p.y - sg.a.y) * (q.x - p.x)) / d, u = ((p.x - sg.a.x) * (sg.b.y - sg.a.y) - (p.y - sg.a.y) * (sg.b.x - sg.a.x)) / d;
+                        if (t < 0 || t > 1 || u < 0 || u > 1 || !hasZ(zp) || !hasZ(zq)) return;
+                        marks.push({ d: mOf(sg.d0 + sg.L * t), z: zp + (zq - zp) * u, label });
+                    };
+                    const nm = (layers.find(x => x.id === (s.layerId || 'layer-0')) || {}).name || '';
+                    if (s.type === 'line') cross({ x: s.x1, y: s.y1 }, { x: s.x2, y: s.y2 }, s.z1, s.z2, nm);
+                    else if (s.type === 'poly') for (let i = 0; i < polyEdges(s); i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; cross(a, b, a.z, b.z, nm); }
+                    else if (s.type === 'point' && hasZ(s.z)) {
+                        const dx = sg.b.x - sg.a.x, dy = sg.b.y - sg.a.y, t = ((s.x - sg.a.x) * dx + (s.y - sg.a.y) * dy) / (sg.L * sg.L);
+                        if (t >= 0 && t <= 1 && Math.hypot(s.x - (sg.a.x + t * dx), s.y - (sg.a.y + t * dy)) <= mmToWorld(500)) marks.push({ d: mOf(sg.d0 + sg.L * t), z: s.z, label: s.mat || 'point' });
+                    }
+                }
+            });
+            // sommets de l'axe
+            const verts = [0]; segs.forEach(sg => verts.push(mOf(sg.d0 + sg.L)));
+            marks.sort((a, b) => a.d - b.d);
+            return { axis, length: mOf(total), samples, marks, verts };
+        }
+        function profileTable(pr, pas) {
+            // points du tableau : tous les « pas » mètres + sommets de l'axe + croisements
+            const rows = [], zAtD = (d) => { const s = pr.samples; for (let i = 0; i < s.length - 1; i++) if (d >= s[i].d && d <= s[i + 1].d) { if (!hasZ(s[i].z) || !hasZ(s[i + 1].z)) return undefined; const t = (d - s[i].d) / ((s[i + 1].d - s[i].d) || 1); return s[i].z + (s[i + 1].z - s[i].z) * t; } return undefined; };
+            for (let d = 0; d <= pr.length + 1e-9; d += pas) rows.push({ d, z: zAtD(d), t: 'PK' });
+            if (Math.abs(rows[rows.length - 1].d - pr.length) > 1e-6) rows.push({ d: pr.length, z: zAtD(pr.length), t: 'Fin' });
+            pr.verts.slice(1, -1).forEach(d => rows.push({ d, z: zAtD(d), t: 'Sommet axe' }));
+            pr.marks.forEach(m => rows.push({ d: m.d, z: m.z, t: m.label || 'croisement' }));
+            rows.sort((a, b) => a.d - b.d);
+            // doublons à la même distance (1 cm) : on garde le premier
+            return rows.filter((r, i) => i === 0 || r.d - rows[i - 1].d > 0.01 || r.t !== rows[i - 1].t && !(r.t === 'Sommet axe' && rows[i - 1].t === 'PK'));
+        }
+        function drawProfileChart(cv, pr, exag) {
+            const c = cv.getContext('2d'), W = cv.width, H = cv.height, padL = 64, padR = 16, padT = 16, padB = 34;
+            c.fillStyle = '#111827'; c.fillRect(0, 0, W, H);
+            const zs = pr.samples.map(s => s.z).concat(pr.marks.map(m => m.z)).filter(hasZ).map(z => z / 1000);
+            if (!zs.length) { c.fillStyle = '#9ca3af'; c.font = '14px Arial'; c.fillText("Aucune altitude le long de l'axe (pas de surface ni de trait 3D croisé).", 20, H / 2); return; }
+            // échelle des hauteurs = échelle des longueurs × exagération (pas d'étirement automatique)
+            exag = exag || 5;
+            const pxM = (W - padL - padR) / pr.length, pxZ = pxM * exag, zmid = (Math.min(...zs) + Math.max(...zs)) / 2, half = (H - padT - padB) / 2 / pxZ;
+            let zmin = zmid - half, zmax = zmid + half;
+            if (Math.max(...zs) > zmax || Math.min(...zs) < zmin) { zmin = Math.min(...zs) - 0.1; zmax = Math.max(...zs) + 0.1; }   // relief trop fort pour l'exagération : on fait tenir
+            const X = (d) => padL + d * pxM, Y = (z) => H - padB - (z - zmin) / (zmax - zmin) * (H - padT - padB);
+            // grille
+            c.strokeStyle = '#374151'; c.lineWidth = 1; c.fillStyle = '#9ca3af'; c.font = '11px Arial';
+            const zStep = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 20, 50].find(v => (zmax - zmin) / v <= 8) || 100;
+            for (let z = Math.ceil(zmin / zStep) * zStep; z <= zmax; z += zStep) { c.beginPath(); c.moveTo(padL, Y(z)); c.lineTo(W - padR, Y(z)); c.stroke(); c.textAlign = 'right'; c.fillText(nfr(z, 2), padL - 6, Y(z) + 4); }
+            const dStep = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500, 1000].find(v => pr.length / v <= 12) || 2000;
+            for (let d = 0; d <= pr.length; d += dStep) { c.beginPath(); c.moveTo(X(d), padT); c.lineTo(X(d), H - padB); c.stroke(); c.textAlign = 'center'; c.fillText(nfr(d, 0) + ' m', X(d), H - padB + 16); }
+            // sommets de l'axe
+            c.strokeStyle = '#6b7280'; c.setLineDash([4, 4]); pr.verts.forEach(d => { c.beginPath(); c.moveTo(X(d), padT); c.lineTo(X(d), H - padB); c.stroke(); }); c.setLineDash([]);
+            // terrain
+            c.strokeStyle = '#a3e635'; c.lineWidth = 2; c.beginPath(); let pen = false;
+            pr.samples.forEach(s => { if (!hasZ(s.z)) { pen = false; return; } const x = X(s.d), y = Y(s.z / 1000); if (pen) c.lineTo(x, y); else c.moveTo(x, y); pen = true; }); c.stroke();
+            // croisements
+            c.fillStyle = '#f59e0b'; pr.marks.forEach(m => { c.beginPath(); c.arc(X(m.d), Y(m.z / 1000), 3.5, 0, 2 * Math.PI); c.fill(); });
+            c.fillStyle = '#e5e7eb'; c.textAlign = 'left'; c.font = 'bold 12px Arial';
+            c.fillText('Longueur ' + nfr(pr.length, 2) + ' m · altitudes ' + nfr(Math.min(...zs), 2) + ' → ' + nfr(Math.max(...zs), 2) + ' m · hauteurs ×' + exag, padL + 6, padT + 14);
+        }
+        function showProfile(pr) {
+            const pas = pr.length > 200 ? 20 : pr.length > 50 ? 10 : pr.length > 10 ? 5 : 1;
+            const body = `<canvas id="pf-canvas" width="940" height="320" style="width:100%;border-radius:6px;"></canvas>
+                <div style="display:flex;gap:14px;align-items:center;margin:10px 0;flex-wrap:wrap;">
+                    <label>Pas du tableau <select id="pf-pas" onchange="refreshProfileTable()" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:4px;">${[1, 2, 5, 10, 20, 25, 50].map(v => `<option value="${v}"${v === pas ? ' selected' : ''}>${v} m</option>`).join('')}</select></label>
+                    <label title="Exagération des hauteurs : échelle verticale = échelle horizontale × ce chiffre (graphique et profil dessiné)">Hauteurs × <select id="pf-exag" onchange="drawProfileChart(document.getElementById('pf-canvas'), lastProfile, parseFloat(this.value))" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:4px;">${[1, 2, 5, 10, 20].map(v => `<option value="${v}"${v === 5 ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
+                    <span style="color:#9ca3af;font-size:12px;">Vert : terrain (surface) · orange : croisements avec les traits 3D et points topo proches</span></div>
+                <div id="pf-table" style="max-height:220px;overflow:auto;"></div>`;
+            openTopoModal('📈 Profil en long', body, [['Copier (Excel)', () => copyText(profileTSV()), false], ['Exporter CSV', () => downloadText('profil_en_long.csv', profileTSV().replace(/\t/g, ';')), false], ['Dessiner dans le plan', () => insertProfileDrawing(), true]]);
+            drawProfileChart(document.getElementById('pf-canvas'), pr, 5); refreshProfileTable();
+        }
+        function profileRows() { return profileTable(lastProfile, parseFloat(document.getElementById('pf-pas').value) || 10); }
+        function refreshProfileTable() {
+            const rows = profileRows();
+            document.getElementById('pf-table').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="color:#9ca3af;text-align:right;"><th style="text-align:left;padding:3px 6px;">Repère</th><th style="padding:3px 6px;">Distance (m)</th><th style="padding:3px 6px;">Altitude (m)</th><th style="padding:3px 6px;">Pente vers le suivant</th></tr></thead><tbody>' +
+                rows.map((r, i) => { const reg = (t) => t === 'PK' || t === 'Sommet axe' || t === 'Fin'; const n = reg(r.t) ? rows.slice(i + 1).find(q => reg(q.t)) : null; const pc = n && hasZ(r.z) && hasZ(n.z) && n.d > r.d + 0.01 ? nfr((n.z - r.z) / 10 / (n.d - r.d), 2) + ' %' : ''; return `<tr style="border-top:1px solid #374151;text-align:right;"><td style="text-align:left;padding:2px 6px;">${r.t}</td><td style="padding:2px 6px;">${nfr(r.d, 2)}</td><td style="padding:2px 6px;color:#bef264;">${hasZ(r.z) ? fmtZ(r.z) : '—'}</td><td style="padding:2px 6px;">${pc}</td></tr>`; }).join('') + '</tbody></table>';
+        }
+        function profileTSV() { return 'Repère\tDistance (m)\tAltitude (m)\n' + profileRows().map(r => [r.t, nfr(r.d, 2), hasZ(r.z) ? fmtZ(r.z) : ''].join('\t')).join('\n'); }
+        // Dessin du profil dans le plan, sous le dessin : distances à l'échelle, hauteurs exagérées
+        function insertProfileDrawing() {
+            const pr = lastProfile; if (!pr) return;
+            const exag = parseFloat(document.getElementById('pf-exag').value) || 5, rows = profileRows();
+            const zs = pr.samples.map(s => s.z).filter(hasZ); if (!zs.length) { updateCommandMessageText('PROFIL : rien à dessiner (aucune altitude).'); return; }
+            const zref = Math.floor(Math.min(...zs) / 1000) * 1000 - 1000;   // plan de comparaison (m entier, 1 m sous le point bas)
+            const bb = getShapesBoundingBox(shapes.filter(x => !isBg(x))) || { minX: 0, maxY: 0 };
+            const ox = bb.minX, oy = bb.maxY + mmToWorld(10000);   // 10 m sous le dessin
+            const W = (d) => ox + mmToWorld(d * 1000), Hh = (z) => oy - mmToWorld((z - zref) * exag);
+            const lay = ensureLayer('Profil en long', '#a3e635'), add = (o) => shapes.push(Object.assign({ layerId: lay, gen: 'profile', zk: 1 }, o));
+            const pts = []; pr.samples.forEach(s => { if (hasZ(s.z)) pts.push({ x: W(s.d), y: Hh(s.z) }); });
+            add({ type: 'poly', points: pts, open: true, hatch: false });
+            add({ type: 'line', x1: W(0), y1: oy, x2: W(pr.length), y2: oy });
+            add({ type: 'text', x: W(0), y: oy + mmToWorld(1200), content: 'PC ' + fmtZ(zref) + ' m — hauteurs ×' + exag, size: mmToWorld(400) });
+            rows.forEach(r => { if (!hasZ(r.z)) return; add({ type: 'line', x1: W(r.d), y1: oy, x2: W(r.d), y2: Hh(r.z), dash: 'dashed' }); add({ type: 'text', x: W(r.d) + mmToWorld(100), y: oy - mmToWorld(200), content: fmtZ(r.z) + '\n' + nfr(r.d, 2) + ' m', size: mmToWorld(250), angle: -Math.PI / 2 }); });
+            saveState(); closeTopoModal(); zoomToFitShapes(shapes.filter(x => x.gen === 'profile')); draw();
+            updateCommandMessageText('PROFIL dessiné sous le plan (calque « Profil en long »), hauteurs ×' + exag + '.');
+        }
+
+        // =====================================================================
+        // COURBES DE NIVEAU : intersection de la surface avec des plans horizontaux réguliers
+        // =====================================================================
+        function openContoursDialog() {
+            const tin = getTIN();
+            if (!tin) { openTopoModal('〰️ Courbes de niveau', '<p>Il faut au moins 3 points cotés (points topo, sommets avec Z) pour construire la surface du terrain.</p>', [['Fermer', closeTopoModal, true]]); return; }
+            const zs = tin.nodes.map(n => n.z / 1000), body = `<p style="margin-bottom:10px;color:#9ca3af;">Surface : ${tin.nodes.length} points cotés, altitudes ${nfr(Math.min(...zs), 2)} → ${nfr(Math.max(...zs), 2)} m.</p>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+                <label>Équidistance <select id="ct-eq" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:4px;">${[0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5].map(v => `<option value="${v}"${v === 0.1 ? ' selected' : ''}>${nfr(v, 2)} m</option>`).join('')}</select></label>
+                <label>Maîtresse toutes les <select id="ct-ma" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:4px;">${[2, 4, 5, 10].map(v => `<option value="${v}"${v === 5 ? ' selected' : ''}>${v}</option>`).join('')}</select> courbes</label>
+                <label style="cursor:pointer;"><input type="checkbox" id="ct-lab" checked> Altitude écrite sur les maîtresses</label></div>
+                <p style="margin-top:10px;color:#9ca3af;font-size:12px;">Les courbes sont rangées sur les calques « Courbes de niveau » et « Courbes maîtresses » ; les anciennes courbes générées sont remplacées.</p>`;
+            openTopoModal('〰️ Courbes de niveau', body, [['Annuler', closeTopoModal, false], ['Générer', generateContours, true]]);
+        }
+        function contourLevels(tin, eqmm) {
+            const zs = tin.nodes.map(n => n.z), lo = Math.ceil(Math.min(...zs) / eqmm) * eqmm, hi = Math.max(...zs), out = [];
+            for (let z = lo; z <= hi + 1e-6 && out.length < 2000; z += eqmm) out.push(Math.round(z * 1000) / 1000);
+            return out;
+        }
+        function contourPolylines(tin, level) {
+            // segments par triangle, puis chaînage bout à bout
+            const segs = [], key = (p) => Math.round(p.x * 100) + ',' + Math.round(p.y * 100);
+            tin.tris.forEach(t => {
+                const v = t.map(i => tin.nodes[i]), pts = [];
+                for (let e = 0; e < 3; e++) { const a = v[e], b = v[(e + 1) % 3]; if ((a.z - level) * (b.z - level) < 0 || (a.z === level && b.z !== level)) { const k = (level - a.z) / (b.z - a.z); pts.push({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }); } }
+                if (pts.length === 2 && key(pts[0]) !== key(pts[1])) segs.push(pts);
+            });
+            const ends = new Map(); segs.forEach((sg, i) => sg.forEach((p, j) => { const k = key(p); if (!ends.has(k)) ends.set(k, []); ends.get(k).push([i, j]); }));
+            const used = new Array(segs.length).fill(false), lines = [];
+            const walk = (line, p) => { for (;;) { const nx = (ends.get(key(p)) || []).find(([i]) => !used[i]); if (!nx) break; used[nx[0]] = true; p = segs[nx[0]][1 - nx[1]]; line.push(p); } };
+            segs.forEach((sg, i) => { if (used[i]) return; used[i] = true; const fwd = [sg[0], sg[1]]; walk(fwd, sg[1]); const back = [sg[0]]; walk(back, sg[0]); lines.push(back.reverse().concat(fwd.slice(1))); });
+            return lines;
+        }
+        function generateContours() {
+            const tin = getTIN(); if (!tin) return;
+            const eq = parseFloat(document.getElementById('ct-eq').value) * 1000, ma = parseInt(document.getElementById('ct-ma').value, 10) || 5, lab = document.getElementById('ct-lab').checked;
+            shapes = shapes.filter(x => x.gen !== 'contour');
+            const lN = ensureLayer('Courbes de niveau', '#a16207'), lM = ensureLayer('Courbes maîtresses', '#ca8a04', 'solid', 1.6);
+            let nb = 0;
+            contourLevels(tin, eq).forEach(level => {
+                const master = Math.abs(Math.round(level / eq) % ma) === 0;
+                contourPolylines(tin, level).forEach(pl => {
+                    if (pl.length < 2) return;
+                    const closed = pl.length > 3 && Math.hypot(pl[0].x - pl[pl.length - 1].x, pl[0].y - pl[pl.length - 1].y) < 1e-6;
+                    const pts = (closed ? pl.slice(0, -1) : pl).map(p => ({ x: p.x, y: p.y, z: level }));
+                    shapes.push({ type: 'poly', layerId: master ? lM : lN, points: pts, open: !closed, hatch: false, gen: 'contour', zk: 1 }); nb++;
+                    if (master && lab && pts.length > 2) { const m = pts[Math.floor(pts.length / 2)], n2 = pts[Math.floor(pts.length / 2) + 1] || pts[0]; shapes.push({ type: 'text', layerId: lM, x: m.x, y: m.y, content: fmtZ(level), size: 20, angle: Math.atan2(n2.y - m.y, n2.x - m.x), gen: 'contour', zk: 1 }); }
+                });
+            });
+            saveState(); closeTopoModal(); updateLayerUI(); draw();
+            updateCommandMessageText('COURBES DE NIVEAU : ' + nb + ' courbes, équidistance ' + nfr(eq / 1000, 2) + ' m.');
+        }
+
+        // =====================================================================
+        // CUBATURES : déblai / remblai dans une emprise, terrain (MNT) contre plateforme ou surface projet
+        // =====================================================================
+        // Emprise : objet fermé sélectionné, ou choisi sur le plan depuis la fenêtre
+        let cubEmprise = null, cubState = { mode: 'plat', cote: '', proj: [] };
+        function empriseOf(s) {
+            if (!s) return null;
+            if (s.type === 'poly' && !s.open && s.points.length >= 3) return s.points.map(p => ({ x: p.x, y: p.y }));
+            if (s.type === 'hatch') return s.loops[0].map(p => ({ x: p.x, y: p.y }));
+            if (s.type === 'circle') { const out = []; for (let i = 0; i < 96; i++) { const a = i / 96 * 2 * Math.PI; out.push({ x: s.x + s.r * Math.cos(a), y: s.y + s.r * Math.sin(a) }); } return out; }
+            return null;
+        }
+        function selectedEmprise() { for (const s of selectedShapes) { const e = empriseOf(s); if (e) return { pts: e, shape: s }; } return null; }
+        // clic dans une zone fermée : la plus petite polyligne fermée / hachure / cercle qui contient le point
+        function pickEmpriseAt(wx, wy) {
+            let best = null, bestA = Infinity;
+            for (const s of shapes) {
+                if (s.gen || isBg(s)) continue; const l = layers.find(x => x.id === (s.layerId || 'layer-0')); if (l && l.visible === false) continue;
+                const e = empriseOf(s); if (!e || !pointInPolygon(wx, wy, e)) continue;
+                const a = Math.abs(polyArea(e)); if (a < bestA) { bestA = a; best = { pts: e, shape: s }; }
+            }
+            return best;
+        }
+        function openCubatureDialog() {
+            const selE = selectedEmprise(); if (selE) cubEmprise = selE;   // une sélection fermée l'emporte
+            if (cubEmprise) { const e = shapes.includes(cubEmprise.shape) ? empriseOf(cubEmprise.shape) : null; cubEmprise = e ? { pts: e, shape: cubEmprise.shape } : null; }   // emprise modifiée ou supprimée
+            const emp = cubEmprise, st = cubState;
+            const layerOpts = layers.map(l => `<label style="display:inline-flex;gap:4px;margin-right:12px;cursor:pointer;"><input type="checkbox" class="cb-proj" value="${l.id}" ${st.proj.includes(l.id) ? 'checked' : ''}> ${l.name.replace(/</g, '&lt;')}</label>`).join('');
+            const body = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;"><b>Emprise :</b>
+                    <span style="color:${emp ? '#bef264' : '#fca5a5'};">${emp ? nfr(Math.abs(polyArea(emp.pts)) * Math.pow(mOf(1), 2), 2) + ' m²' : 'aucune'}</span>
+                    <button type="button" onclick="pickCubEmprise()" style="background:#4b5563;color:#fff;border:0;border-radius:6px;padding:4px 10px;cursor:pointer;">${emp ? 'Changer' : 'Choisir'} sur le plan (clic dans la zone)</button></div>
+                <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;cursor:pointer;"><input type="radio" name="cb-mode" value="plat" ${st.mode === 'plat' ? 'checked' : ''}> Plateforme horizontale à la cote <input id="cb-cote" type="text" inputmode="decimal" value="${st.cote}" placeholder="ex. 734,40" style="width:90px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:4px;padding:2px 6px;" onfocus="document.querySelector('input[name=cb-mode][value=plat]').checked=true" onkeydown="if(event.key==='Enter'){runCubature();}"> m</label>
+                <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="radio" name="cb-mode" value="calques" ${st.mode === 'calques' ? 'checked' : ''} style="margin-top:3px;"> <span>Surface projet = objets cotés de ces calques (le terrain naturel = les autres calques) :<br>${layerOpts}</span></label>
+                <div id="cb-res" style="margin-top:14px;"></div>`;
+            openTopoModal('⛏️ Cubatures déblai / remblai', body, [['Fermer', closeTopoModal, false], ['Tracer la limite déblai / remblai', drawCubZeroLine, false], ['Copier (Excel)', () => { if (window.__cubTSV) copyText(window.__cubTSV); }, false], ['Calculer', runCubature, true]]);
+            if (emp) { selectedShapes = [emp.shape]; draw(); }
+            setTimeout(() => { const c = document.getElementById('cb-cote'); if (c && st.mode === 'plat') c.focus(); }, 30);
+        }
+        function saveCubState() {
+            const m = document.querySelector('input[name=cb-mode]:checked'); if (!m) return;
+            cubState = { mode: m.value, cote: document.getElementById('cb-cote').value, proj: [...document.querySelectorAll('.cb-proj:checked')].map(c => c.value) };
+        }
+        function pickCubEmprise() { saveCubState(); closeTopoModal(); setMode('cubpick'); }
+        function polyArea(pts) { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p.x * q.y - q.x * p.y; } return a / 2; }
+        function polyCentroid(pts) { let a = 0, cx = 0, cy = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length], f = p.x * q.y - q.x * p.y; a += f; cx += (p.x + q.x) * f; cy += (p.y + q.y) * f; } a /= 2; return a ? { x: cx / (6 * a), y: cy / (6 * a), a } : { x: pts[0].x, y: pts[0].y, a: 0 }; }
+        // découpe d'un polygone par un demi-plan f(p) >= 0 (f linéaire) — Sutherland-Hodgman
+        function clipHalf(poly, f) {
+            const out = [];
+            for (let i = 0; i < poly.length; i++) {
+                const a = poly[i], b = poly[(i + 1) % poly.length], fa = f(a), fb = f(b);
+                if (fa >= 0) out.push(a);
+                if ((fa >= 0) !== (fb >= 0)) { const t = fa / (fa - fb); out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }); }
+            }
+            return out;
+        }
+        // Calcul EXACT contre une plateforme : par triangle du terrain, découpé par l'emprise puis par le plan de la plateforme
+        function cubaturePlateforme(tn, emp, zp) {
+            let rem = 0, deb = 0, sRem = 0, sDeb = 0, sCov = 0, zInt = 0;
+            for (const t of tn.tris) {
+                let [A, B, C] = t.map(i => tn.nodes[i]);
+                if ((B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x) < 0) [B, C] = [C, B];   // sens trigonométrique
+                // rejet rapide si le triangle est hors de la boîte de l'emprise
+                let q = emp;
+                for (const [P, Q] of [[A, B], [B, C], [C, A]]) { q = clipHalf(q, (p) => (Q.x - P.x) * (p.y - P.y) - (Q.y - P.y) * (p.x - P.x)); if (q.length < 3) break; }
+                if (q.length < 3) continue;
+                // plan du terrain sur ce triangle : z = a x + b y + c
+                const det = (B.x - A.x) * (C.y - A.y) - (C.x - A.x) * (B.y - A.y); if (Math.abs(det) < 1e-12) continue;
+                const a = ((B.z - A.z) * (C.y - A.y) - (C.z - A.z) * (B.y - A.y)) / det, b = ((C.z - A.z) * (B.x - A.x) - (B.z - A.z) * (C.x - A.x)) / det, c = A.z - a * A.x - b * A.y;
+                const zt = (p) => a * p.x + b * p.y + c, d = (p) => zp - zt(p);
+                const g = polyCentroid(q); sCov += Math.abs(g.a); zInt += Math.abs(g.a) * zt(g);
+                const qp = clipHalf(q, d), qm = clipHalf(q, (p) => -d(p));
+                if (qp.length >= 3) { const k = polyCentroid(qp); rem += Math.abs(k.a) * d(k); sRem += Math.abs(k.a); }
+                if (qm.length >= 3) { const k = polyCentroid(qm); deb += Math.abs(k.a) * -d(k); sDeb += Math.abs(k.a); }
+            }
+            const k2 = Math.pow(mOf(1), 2);   // monde² -> m² ; Z en mm -> m
+            return { rem: rem * k2 / 1000, deb: deb * k2 / 1000, sRem: sRem * k2, sDeb: sDeb * k2, sCov: sCov * k2, zMoy: sCov ? zInt / sCov : undefined };
+        }
+        // Terrain contre surface projet : mailles, parcours ligne par ligne (balayage) dans l'emprise
+        function cubatureSurfaces(tn, pj, emp) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity; emp.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
+            const cell = Math.max(Math.sqrt(Math.abs(polyArea(emp)) / 60000), mmToWorld(20)), cA = cell * cell;
+            let rem = 0, deb = 0, sRem = 0, sDeb = 0, sCov = 0, zInt = 0;
+            for (let y = minY + cell / 2; y < maxY; y += cell) {
+                const xs = []; for (let i = 0; i < emp.length; i++) { const a = emp[i], b = emp[(i + 1) % emp.length]; if ((a.y > y) !== (b.y > y)) xs.push(a.x + (y - a.y) / (b.y - a.y) * (b.x - a.x)); }
+                xs.sort((u, v) => u - v);
+                for (let k = 0; k + 1 < xs.length; k += 2) for (let x = minX + cell / 2 + Math.ceil((xs[k] - minX - cell / 2) / cell) * cell; x < xs[k + 1]; x += cell) {
+                    const zt = tinZ(x, y, tn), zq = tinZ(x, y, pj); if (!hasZ(zt) || !hasZ(zq)) continue;
+                    sCov += cA; zInt += cA * zt; const d = zq - zt; if (d > 0) { rem += d * cA; sRem += cA; } else { deb += -d * cA; sDeb += cA; }
+                }
+            }
+            const k2 = Math.pow(mOf(1), 2);
+            return { rem: rem * k2 / 1000, deb: deb * k2 / 1000, sRem: sRem * k2, sDeb: sDeb * k2, sCov: sCov * k2, zMoy: sCov ? zInt / sCov : undefined, cell: mOf(cell) };
+        }
+        function runCubature() {
+            saveCubState();
+            const res = document.getElementById('cb-res'), emp = cubEmprise;
+            if (!emp) { res.innerHTML = '<p style="color:#fca5a5;">Choisissez d\'abord l\'emprise (bouton ci-dessus, puis clic dans la zone).</p>'; return; }
+            const projLayers = new Set(cubState.proj);
+            const tn = buildTIN(tinNodes(s => cubState.mode === 'plat' || !projLayers.has(s.layerId || 'layer-0')));
+            if (!tn) { res.innerHTML = '<p style="color:#fca5a5;">Pas assez de points cotés pour le terrain naturel.</p>'; return; }
+            const t0 = performance.now(); let r, zp;
+            if (cubState.mode === 'plat') {
+                const v = parseFloat(String(cubState.cote).replace(',', '.')); if (isNaN(v)) { res.innerHTML = '<p style="color:#fca5a5;">Indiquez la cote de la plateforme.</p>'; return; }
+                zp = v * 1000; r = cubaturePlateforme(tn, emp.pts, zp);
+            } else {
+                if (!projLayers.size) { res.innerHTML = '<p style="color:#fca5a5;">Cochez au moins un calque projet.</p>'; return; }
+                const pj = buildTIN(tinNodes(s => projLayers.has(s.layerId || 'layer-0'))); if (!pj) { res.innerHTML = '<p style="color:#fca5a5;">Pas assez de points cotés sur les calques projet.</p>'; return; }
+                r = cubatureSurfaces(tn, pj, emp.pts);
+            }
+            const sEmp = Math.abs(polyArea(emp.pts)) * Math.pow(mOf(1), 2), ms = Math.round(performance.now() - t0);
+            const rows = [['Surface de l\'emprise', nfr(sEmp, 2) + ' m²'], ['Surface calculée (couverte par le terrain)', nfr(r.sCov, 2) + ' m²' + (r.sCov < sEmp * 0.98 ? '  ⚠️ ' + nfr(100 * r.sCov / sEmp, 0) + ' % de l\'emprise' : '')],
+                ['Déblai', nfr(r.deb, 2) + ' m³'], ['Remblai', nfr(r.rem, 2) + ' m³'], ['Solde (remblai − déblai)', nfr(r.rem - r.deb, 2) + ' m³'],
+                ['Surface en déblai / en remblai', nfr(r.sDeb, 2) + ' m² / ' + nfr(r.sRem, 2) + ' m²'],
+                ['Épaisseur moyenne déblai / remblai', (r.sDeb ? nfr(r.deb / r.sDeb, 2) : '0') + ' m / ' + (r.sRem ? nfr(r.rem / r.sRem, 2) : '0') + ' m'],
+                ['Cote moyenne du terrain', hasZ(r.zMoy) ? nfr(r.zMoy / 1000, 3) + ' m' : '—']];
+            if (cubState.mode === 'plat' && hasZ(r.zMoy)) rows.push(['Cote d\'équilibre (déblai = remblai)', nfr(r.zMoy / 1000, 3) + ' m']);
+            res.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:14px;">' + rows.map(([a, b], i) => `<tr style="border-top:1px solid #374151;"><td style="padding:5px 8px;">${a}</td><td style="padding:5px 8px;text-align:right;font-weight:${i === 2 || i === 3 ? 700 : 400};color:${i === 2 ? '#fca5a5' : i === 3 ? '#93c5fd' : '#e5e7eb'};">${b}</td></tr>`).join('') + '</table>'
+                + `<p style="color:#9ca3af;font-size:12px;margin-top:6px;">${cubState.mode === 'plat' ? 'Calcul exact sur les ' + tn.tris.length + ' triangles du terrain' : 'Calcul par mailles de ' + nfr(r.cell, 2) + ' m'} (${ms} ms). Volumes géométriques, sans foisonnement ni épaisseur de structure.</p>`;
+            window.__cubTSV = rows.map(r2 => r2.join('\t')).join('\n'); window.__cubZ = zp;
+        }
+        // Ligne de 0 : là où le terrain croise la plateforme (courbe à la cote du projet, dans l'emprise)
+        function drawCubZeroLine() {
+            saveCubState(); const emp = cubEmprise, v = parseFloat(String(cubState.cote).replace(',', '.'));
+            if (!emp || cubState.mode !== 'plat' || isNaN(v)) { document.getElementById('cb-res').insertAdjacentHTML('afterbegin', '<p style="color:#fca5a5;">La limite déblai / remblai se trace pour une plateforme : choisissez l\'emprise et la cote.</p>'); return; }
+            const tn = getTIN(); if (!tn) return;
+            shapes = shapes.filter(x => x.gen !== 'cubzero');
+            const lay = ensureLayer('Limite déblai remblai', '#f472b6', 'dashed', 1.4); let nb = 0;
+            contourPolylines(tn, v * 1000).forEach(pl => {
+                let cur = [];
+                const flush = () => { if (cur.length >= 2) { shapes.push({ type: 'poly', layerId: lay, points: cur.map(p => ({ x: p.x, y: p.y, z: v * 1000 })), open: true, hatch: false, gen: 'cubzero', zk: 1 }); nb++; } cur = []; };
+                pl.forEach(p => { if (pointInPolygon(p.x, p.y, emp.pts)) cur.push(p); else flush(); }); flush();
+            });
+            saveState(); updateLayerUI(); draw();
+            document.getElementById('cb-res').insertAdjacentHTML('afterbegin', `<p style="color:#f9a8d4;">Limite déblai / remblai tracée (${nb} tronçon(s), calque « Limite déblai remblai »).</p>`);
+        }
+
+        // =====================================================================
+        // SEMIS DE POINTS : import CSV / TXT (MAT;X;Y;Z;CODE ou X;Y;Z) et export
+        // =====================================================================
+        function importSemisFile(input) {
+            const f = input.files && input.files[0]; input.value = ''; if (!f) return;
+            f.text().then(txt => {
+                const lines = txt.split(/\r\n|\r|\n/).map(l => l.trim()).filter(Boolean);
+                const num = (t) => { const v = parseFloat(String(t).replace(',', '.')); return isFinite(v) && /^[-+]?\d+([.,]\d+)?$/.test(String(t).trim()) ? v : NaN; };
+                const pts = [];
+                lines.forEach(l => {
+                    let f2 = l.includes(';') ? l.split(';') : l.includes('\t') ? l.split('\t') : (l.split(',').length >= 3 && /\d\.\d/.test(l)) ? l.split(',') : l.split(/\s+/);
+                    f2 = f2.map(t => t.trim().replace(/^"|"$/g, ''));
+                    const n = f2.map(num);
+                    let mat = '', x, y, z, code = '';
+                    if (isNaN(n[0]) && n.length >= 4 && !isNaN(n[1]) && !isNaN(n[2])) { mat = f2[0]; x = n[1]; y = n[2]; z = n[3]; code = f2[4] || ''; }
+                    else if (n.length >= 4 && !isNaN(n[0]) && !isNaN(n[1]) && !isNaN(n[2]) && !isNaN(n[3]) && Number.isInteger(n[0]) && Math.abs(n[0]) < 1e6 && (Math.abs(n[1]) >= 1000 || Math.abs(n[2]) >= 1000)) { mat = f2[0]; x = n[1]; y = n[2]; z = n[3]; code = f2[4] || ''; }
+                    else if (n.length >= 2 && !isNaN(n[0]) && !isNaN(n[1])) { x = n[0]; y = n[1]; z = n[2]; code = isNaN(n[3]) ? (f2[3] || '') : ''; }
+                    else return;   // ligne d'en-tête ou illisible
+                    pts.push({ mat, x: x * 1000, y: y * 1000, z: isNaN(z) || z === undefined ? undefined : z * 1000, code });
+                });
+                if (!pts.length) { alert('Aucun point lisible. Format attendu par ligne : MAT;X;Y;Z;CODE ou X;Y;Z (en mètres).'); return; }
+                if (!geoOrigin.x && !geoOrigin.y && !shapes.some(sh => !isBg(sh))) {
+                    const xs = pts.map(p => p.x).sort((a, b) => a - b), ys = pts.map(p => p.y).sort((a, b) => a - b), mx = xs[xs.length >> 1], my = ys[ys.length >> 1];
+                    if (Math.abs(mx) > 1e8 || Math.abs(my) > 1e8) geoOrigin = { x: Math.floor(mx / 1e6) * 1e6, y: Math.floor(my / 1e6) * 1e6 };
+                }
+                const lay = ensureLayer('Semis de points', '#bef264'), added = [];
+                pts.forEach(p => { const s0 = { type: 'point', layerId: lay, x: mmToWorld(p.x - geoOrigin.x), y: -mmToWorld(p.y - geoOrigin.y), zk: 1 }; if (hasZ(p.z)) s0.z = p.z; if (p.mat) s0.mat = p.mat; if (p.code) s0.code = p.code; shapes.push(s0); added.push(s0); });
+                saveState(); updateLayerUI(); zoomToFitShapes(added); draw();
+                updateCommandMessageText('SEMIS : ' + added.length + ' points importés (calque « Semis de points »), dont ' + added.filter(p => hasZ(p.z)).length + ' avec altitude.');
+            });
+        }
+        function exportSemis() {
+            const pts = shapes.filter(s => s.type === 'point');
+            if (!pts.length) { alert('Aucun point topo dans le plan.'); return; }
+            const f3 = (v) => nfr(v, 3).replace(/\s/g, '').replace(/ /g, '');
+            const csv = 'MAT;X;Y;Z;CODE\n' + pts.map((p, i) => [p.mat || ('P' + (i + 1)), f3(realX(p.x) / 1000), f3(realY(p.y) / 1000), hasZ(p.z) ? f3(p.z / 1000) : '', p.code || ''].join(';')).join('\n');
+            downloadText((fileName ? baseName(fileName) : 'plan') + '_points.csv', csv);
+            updateCommandMessageText('SEMIS : ' + pts.length + ' points exportés (MAT;X;Y;Z;CODE, en mètres).');
+        }
+
+        // =====================================================================
+        // MÉTRÉ : longueurs, surfaces et nombres par calque (tout le plan ou la sélection)
+        // =====================================================================
+        function shapeLengthM(s) {
+            if (s.type === 'line') return mOf(Math.hypot(s.x2 - s.x1, s.y2 - s.y1));
+            if (s.type === 'poly') { let L = 0; for (let i = 0; i < polyEdges(s); i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; L += Math.hypot(b.x - a.x, b.y - a.y); } return mOf(L); }
+            if (s.type === 'circle') return mOf(2 * Math.PI * s.r);
+            if (s.type === 'arc') { let d = s.endAngle - s.startAngle; if (d < 0) d += 2 * Math.PI; return mOf(s.r * d); }
+            return 0;
+        }
+        function shapeAreaM2(s) {
+            const k = Math.pow(mOf(1), 2);
+            if (s.type === 'hatch') return hatchArea(s) * k;
+            if (s.type === 'poly' && !s.open && s.points.length >= 3) return Math.abs(polyArea(s.points)) * k;
+            if (s.type === 'circle') return Math.PI * s.r * s.r * k;
+            return 0;
+        }
+        function metreData(onlySel) {
+            const src = (onlySel ? selectedShapes : shapes).filter(s => !s.gen && !isBg(s));
+            const rows = new Map();
+            src.forEach(s => {
+                const id = s.layerId || 'layer-0'; if (!rows.has(id)) rows.set(id, { lin: 0, hach: 0, ferm: 0, pts: 0, obj: 0 });
+                const r = rows.get(id); r.obj++;
+                if (s.type === 'point') r.pts++;
+                else if (s.type === 'hatch' || (s.type === 'poly' && s.hatch) || (s.type === 'circle' && s.hatch)) { r.hach += shapeAreaM2(s); if (s.type !== 'hatch') r.lin += shapeLengthM(s); }
+                else { r.lin += shapeLengthM(s); r.ferm += shapeAreaM2(s); }
+            });
+            return [...rows.entries()].map(([id, r]) => Object.assign({ name: (layers.find(l => l.id === id) || {}).name || id }, r));
+        }
+        function openMetre() {
+            const sel = selectedShapes.length > 0;
+            const body = `<div style="display:flex;gap:16px;margin-bottom:10px;"><label style="cursor:pointer;"><input type="radio" name="mt-scope" value="all" ${sel ? '' : 'checked'} onchange="renderMetre()"> Tout le plan</label>
+                <label style="cursor:pointer;${sel ? '' : 'opacity:.5;'}"><input type="radio" name="mt-scope" value="sel" ${sel ? 'checked' : 'disabled'} onchange="renderMetre()"> Sélection (${selectedShapes.length} objet(s))</label></div><div id="mt-table"></div>
+                <p style="color:#9ca3af;font-size:12px;margin-top:8px;">Linéaire : lignes, polylignes, arcs et cercles (en m). Surface hachurée : hachures et formes hachurées (m²). Surface des contours fermés : polylignes fermées et cercles non hachurés (m²). Les fonds, courbes et profils générés ne sont pas comptés.</p>`;
+            openTopoModal('Σ Métré', body, [['Copier (Excel)', () => copyText(metreTSV()), false], ['Exporter CSV', () => downloadText((fileName ? baseName(fileName) : 'plan') + '_metre.csv', metreTSV().replace(/\t/g, ';')), true]]);
+            renderMetre();
+        }
+        function metreRowsNow() { const sc = document.querySelector('input[name=mt-scope]:checked'); return metreData(sc && sc.value === 'sel'); }
+        function renderMetre() {
+            const rows = metreRowsNow(), tot = rows.reduce((t, r) => ({ lin: t.lin + r.lin, hach: t.hach + r.hach, ferm: t.ferm + r.ferm, pts: t.pts + r.pts, obj: t.obj + r.obj }), { lin: 0, hach: 0, ferm: 0, pts: 0, obj: 0 });
+            const td = (v, c) => `<td style="padding:4px 8px;text-align:right;${c ? 'color:' + c + ';' : ''}">${v}</td>`;
+            document.getElementById('mt-table').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="color:#9ca3af;text-align:right;"><th style="text-align:left;padding:4px 8px;">Calque</th><th style="padding:4px 8px;">Linéaire (m)</th><th style="padding:4px 8px;">Surface hachurée (m²)</th><th style="padding:4px 8px;">Contours fermés (m²)</th><th style="padding:4px 8px;">Points topo</th><th style="padding:4px 8px;">Objets</th></tr></thead><tbody>'
+                + rows.map(r => `<tr style="border-top:1px solid #374151;"><td style="padding:4px 8px;">${r.name.replace(/</g, '&lt;')}</td>${td(r.lin ? nfr(r.lin, 2) : '—', '#bef264')}${td(r.hach ? nfr(r.hach, 2) : '—', '#93c5fd')}${td(r.ferm ? nfr(r.ferm, 2) : '—')}${td(r.pts || '—')}${td(r.obj)}</tr>`).join('')
+                + `<tr style="border-top:2px solid #6b7280;font-weight:700;"><td style="padding:4px 8px;">Total</td>${td(nfr(tot.lin, 2), '#bef264')}${td(nfr(tot.hach, 2), '#93c5fd')}${td(nfr(tot.ferm, 2))}${td(tot.pts)}${td(tot.obj)}</tr></tbody></table>`;
+        }
+        function metreTSV() { return 'Calque\tLinéaire (m)\tSurface hachurée (m²)\tContours fermés (m²)\tPoints topo\tObjets\n' + metreRowsNow().map(r => [r.name, nfr(r.lin, 2), nfr(r.hach, 2), nfr(r.ferm, 2), r.pts, r.obj].join('\t')).join('\n'); }
+
+        // Polyligne ouverte (s.open = true, ex. bordure importée d'un DXF) : pas de segment de fermeture
+        const polyEdges = (s) => s.open ? Math.max(0, s.points.length - 1) : s.points.length;
         // Déplacement d'une forme (toutes géométries)
         function translateShape(s, ddx, ddy) {
-            if (s.type === 'line') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; }
+            if (s.type === 'line' || s.type === 'slope') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; }
             else if (s.type === 'dim') { s.x1 += ddx; s.y1 += ddy; s.x2 += ddx; s.y2 += ddy; s.ox += ddx; s.oy += ddy; }
             else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap' || s.type === 'bgimage' || s.type === 'point') { s.x += ddx; s.y += ddy; }
             else if (s.type === 'poly') s.points.forEach(p => { p.x += ddx; p.y += ddy; });
@@ -1851,7 +2372,7 @@
                 if (s.type === 'line') add(s.x1, s.y1, s.x2, s.y2);
                 else if (s.type === 'poly' && s.points && s.points.length >= 2) {
                     const n = s.points.length;
-                    for (let i = 0; i < (n >= 3 ? n : n - 1); i++) { const a = s.points[i], b = s.points[(i + 1) % n]; add(a.x, a.y, b.x, b.y); }
+                    for (let i = 0; i < (n >= 3 && !s.open ? n : n - 1); i++) { const a = s.points[i], b = s.points[(i + 1) % n]; add(a.x, a.y, b.x, b.y); }
                 } else if (s.type === 'circle' || s.type === 'arc') {
                     // cercles et arcs découpés en petits segments (écart < 0,05 % du rayon)
                     let a0 = 0, sweep = 2 * Math.PI;
@@ -2093,7 +2614,7 @@
 
         function getSegments(s) {
             if (s.type === 'line' || s.type === 'dim') return [{ x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 }];
-            if (s.type === 'poly') { let segs = []; for (let i = 0; i < s.points.length; i++) { let p1 = s.points[i], p2 = s.points[(i + 1) % s.points.length]; segs.push({ x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y }); } return segs; }
+            if (s.type === 'poly') { let segs = []; for (let i = 0; i < polyEdges(s); i++) { let p1 = s.points[i], p2 = s.points[(i + 1) % s.points.length]; segs.push({ x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y }); } return segs; }
             return [];
         }
 
@@ -2115,7 +2636,7 @@
         function applyRotationToShape(s, cx, cy, angleRad) {
             const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
             const rot = (x, y) => ({ x: (cos * (x - cx)) - (sin * (y - cy)) + cx, y: (sin * (x - cx)) + (cos * (y - cy)) + cy });
-            if (s.type === 'line') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
+            if (s.type === 'line' || s.type === 'slope') { let p1 = rot(s.x1, s.y1), p2 = rot(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
             else if (s.type === 'circle' || s.type === 'point') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; }
             else if (s.type === 'basemap' || s.type === 'bgimage') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.rot = (s.rot || 0) + angleRad; }
             else if (s.type === 'arc') { let p = rot(s.x, s.y); s.x = p.x; s.y = p.y; s.startAngle += angleRad; s.endAngle += angleRad; }
@@ -2136,7 +2657,7 @@
         // Mise à l'échelle d'une forme autour d'un centre (cx,cy) par un facteur.
         function applyScaleToShape(s, cx, cy, f) {
             const sc = (x, y) => ({ x: cx + (x - cx) * f, y: cy + (y - cy) * f });
-            if (s.type === 'line') { let p1 = sc(s.x1, s.y1), p2 = sc(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
+            if (s.type === 'line' || s.type === 'slope') { let p1 = sc(s.x1, s.y1), p2 = sc(s.x2, s.y2); s.x1 = p1.x; s.y1 = p1.y; s.x2 = p2.x; s.y2 = p2.y; }
             else if (s.type === 'circle' || s.type === 'basemap') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.r *= f; }
             else if (s.type === 'bgimage') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; s.w *= Math.abs(f); s.h *= Math.abs(f); }
             else if (s.type === 'point') { let p = sc(s.x, s.y); s.x = p.x; s.y = p.y; }
@@ -2160,7 +2681,7 @@
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             if (!shapeArray || shapeArray.length === 0) return null;
             shapeArray.forEach(s => {
-                if (s.type === 'line' || s.type === 'dim') { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); }
+                if (s.type === 'line' || s.type === 'dim' || s.type === 'slope') { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); }
                 else if (s.type === 'bgimage') { bgCorners(s).forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
                 else if (s.type === 'circle' || s.type === 'arc' || s.type === 'basemap') { minX = Math.min(minX, s.x - s.r); maxX = Math.max(maxX, s.x + s.r); minY = Math.min(minY, s.y - s.r); maxY = Math.max(maxY, s.y + s.r); }
                 else if (s.type === 'poly') { s.points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }); }
@@ -2199,7 +2720,7 @@
                 }
                 if (snapSettings.midpoint) {
                     if (s.type === 'line' || s.type === 'dim') pts.push({x: (s.x1+s.x2)/2, y: (s.y1+s.y2)/2});
-                    else if (s.type === 'poly') { for (let i=0; i<s.points.length; i++) { let p1=s.points[i], p2=s.points[(i+1)%s.points.length]; pts.push({x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2}); } }
+                    else if (s.type === 'poly') { for (let i=0; i<polyEdges(s); i++) { let p1=s.points[i], p2=s.points[(i+1)%s.points.length]; pts.push({x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2}); } }
                     else if (s.type === 'arc') { let mid = s.startAngle < s.endAngle ? (s.startAngle + s.endAngle)/2 : (s.startAngle + s.endAngle + 2*Math.PI)/2; pts.push({x: s.x + Math.cos(mid)*s.r, y: s.y + Math.sin(mid)*s.r}); }
                 }
                 if (snapSettings.center && (s.type === 'circle' || s.type === 'arc' || s.type === 'basemap')) pts.push({x: s.x, y: s.y});
@@ -2304,7 +2825,7 @@
             for (const s of shapes) {
                 const layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
                 if (s.type === 'line') seg(s.x1, s.y1, s.x2, s.y2);
-                else if (s.type === 'poly') for (let i = 0; i < s.points.length; i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; seg(a.x, a.y, b.x, b.y); }
+                else if (s.type === 'poly') for (let i = 0; i < polyEdges(s); i++) { const a = s.points[i], b = s.points[(i + 1) % s.points.length]; seg(a.x, a.y, b.x, b.y); }
                 else if (s.type === 'circle') circ(s.x, s.y, s.r, null);
                 else if (s.type === 'arc') circ(s.x, s.y, s.r, s);
             }
@@ -2348,7 +2869,7 @@
                 if (layer && !layer.visible) continue;
                 if (s.type === 'line' || s.type === 'dim') footOnSeg(s.x1, s.y1, s.x2, s.y2);
                 else if (s.type === 'poly') {
-                    for (let i = 0; i < s.points.length; i++) {
+                    for (let i = 0; i < polyEdges(s); i++) {
                         const p1 = s.points[i], p2 = s.points[(i+1) % s.points.length];
                         footOnSeg(p1.x, p1.y, p2.x, p2.y);
                     }
@@ -2378,6 +2899,7 @@
             for (let i = shapes.length-1; i >= 0; i--) {
                 let s = shapes[i], l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue;
                 if (s.type === 'point') { if (Math.hypot(p.x - s.x, p.y - s.y) < tol) return s; continue; }
+                if (s.type === 'slope') { const l2 = (s.x2 - s.x1) ** 2 + (s.y2 - s.y1) ** 2; if (l2 === 0) continue; const t = Math.max(0, Math.min(1, ((p.x - s.x1) * (s.x2 - s.x1) + (p.y - s.y1) * (s.y2 - s.y1)) / l2)); if (Math.hypot(p.x - (s.x1 + t * (s.x2 - s.x1)), p.y - (s.y1 + t * (s.y2 - s.y1))) < tol) return s; continue; }
                 if (s.type === 'line') { let l2 = Math.pow(s.x2-s.x1,2)+Math.pow(s.y2-s.y1,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-s.x1)*(s.x2-s.x1)+(p.y-s.y1)*(s.y2-s.y1))/l2)); if (Math.hypot(p.x-(s.x1+t*(s.x2-s.x1)), p.y-(s.y1+t*(s.y2-s.y1))) < tol) return s; }
                 else if (s.type === 'dim') {
                     const g = dimGeom(s); if (!g) continue;
@@ -2387,7 +2909,7 @@
                 }
                 else if (s.type === 'circle') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) return s; }
                 else if (s.type === 'arc') { let d = Math.hypot(p.x-s.x, p.y-s.y); if (Math.abs(d-s.r) < tol) { let a = Math.atan2(p.y-s.y, p.x-s.x); if (isAngleBetween(a, s.startAngle, s.endAngle)) return s; } }
-                else if (s.type === 'poly') { for(let j=0; j<s.points.length; j++){ let p1 = s.points[j], p2 = s.points[(j+1)%s.points.length]; let l2 = Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-p1.x)*(p2.x-p1.x)+(p.y-p1.y)*(p2.y-p1.y))/l2)); if (Math.hypot(p.x-(p1.x+t*(p2.x-p1.x)), p.y-(p1.y+t*(p2.y-p1.y))) < tol) return s; } }
+                else if (s.type === 'poly') { for(let j=0; j<polyEdges(s); j++){ let p1 = s.points[j], p2 = s.points[(j+1)%s.points.length]; let l2 = Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-p1.x)*(p2.x-p1.x)+(p.y-p1.y)*(p2.y-p1.y))/l2)); if (Math.hypot(p.x-(p1.x+t*(p2.x-p1.x)), p.y-(p1.y+t*(p2.y-p1.y))) < tol) return s; } }
                 else if (s.type === 'text') {
                     const px = annotTextPx(s.layerId, 14, 1, camera.zoom), fs = px / camera.zoom;
                     ctx.font = "bold " + px + "px Arial"; const tl = (s.content || '').split('\n'); let w = 0; tl.forEach(t => w = Math.max(w, ctx.measureText(t).width)); w /= camera.zoom;
@@ -2455,7 +2977,7 @@
                 }
             } else if (target.type === 'poly') {
                 let segs = [];
-                for (let i=0; i < target.points.length; i++) { let p1 = target.points[i], p2 = target.points[(i+1)%target.points.length]; segs.push({ type: 'line', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, color: target.color, dash: target.dash, width: target.width, layerId: target.layerId }); }
+                for (let i=0; i < polyEdges(target); i++) { let p1 = target.points[i], p2 = target.points[(i+1)%target.points.length]; segs.push({ type: 'line', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, color: target.color, dash: target.dash, width: target.width, layerId: target.layerId }); }
                 shapes = shapes.filter(s => s !== target); shapes.push(...segs); trimShapeAt(mx, my);
             } else if (target.type === 'arc') {
                 let angles = [target.startAngle, target.endAngle];
@@ -2663,7 +3185,7 @@
                 let xs = [], ys = [];
                 selectedShapes.forEach(s => {
                     if (s.points) s.points.forEach(p => { xs.push(p.x); ys.push(p.y); });
-                    else if (s.type === 'line' || s.type === 'dim') { xs.push(s.x1, s.x2); ys.push(s.y1, s.y2); }
+                    else if (s.type === 'line' || s.type === 'dim' || s.type === 'slope') { xs.push(s.x1, s.x2); ys.push(s.y1, s.y2); }
                     else if (s.type === 'point') { xs.push(s.x); ys.push(s.y); }
                     else if (s.vertex) { xs.push(s.vertex.x); ys.push(s.vertex.y); }
                     else if (s.type === 'detail') { xs.push(s.lx, s.tx); ys.push(s.ly, s.ty); }
@@ -2689,7 +3211,7 @@
             mode = newMode; flashUntil = 0;   // un nouvel outil remplace le message temporaire
             moveBasePoint = null; isMovingObjects = false; isDrawing = false; moveTypedX = null;
             dimStep = 0; dimChainInfo = null; rotateCenter = null; isRotatingObjects = false; typedInput = "";
-            calTarget = null; calP1 = null; calP2 = null; lastTopo = null;
+            calTarget = null; calP1 = null; calP2 = null; lastTopo = null; slopeP1 = null; profileAxis = [];
             arcStep = 0; arcCenter = null; arcP1 = null;
             scaleCenter = null; scaleRefDist = 0; isScalingObjects = false;
             rectDimStep = 0; rectWidthVal = 0;
@@ -2940,6 +3462,10 @@
                     }
                 } else if (s.type === 'line') {
                     line(s, s.x1, s.y1, s.x2, s.y2, s.z1, s.z2);
+                } else if (s.type === 'slope') {
+                    line(s, s.x1, s.y1, s.x2, s.y2, s.z1, s.z2);
+                    const h = layerTextH(s.layerId || DIM_LAYER_ID) || 2.5;
+                    text(s, (X(s.x1) + X(s.x2)) / 2, (Y(s.y1) + Y(s.y2)) / 2 + h * 0.4, h, slopeLabel(s), 0);
                 } else if (s.type === 'point') {
                     // point topo : POINT 3D + altitude en texte (marqué pour ne pas être réimporté en double)
                     head('POINT', s); p(100, 'AcDbPoint'); p(10, num(X(s.x))); p(20, num(Y(s.y))); p(30, ZZ(s.z)); ext(X(s.x), Y(s.y));
@@ -2961,7 +3487,7 @@
                     // altitudes différentes selon les sommets : vraie polyligne 3D
                     const ph = H(), lay = dxfStr(layerDxfName(s.layerId || 'layer-0'));
                     p(0, 'POLYLINE'); p(5, ph); p(330, M.msp); p(100, 'AcDbEntity'); p(8, lay);
-                    p(100, 'AcDb3dPolyline'); p(66, 1); p(10, 0); p(20, 0); p(30, 0); p(70, 9);
+                    p(100, 'AcDb3dPolyline'); p(66, 1); p(10, 0); p(20, 0); p(30, 0); p(70, s.open ? 8 : 9);
                     for (const pt of s.points) {
                         p(0, 'VERTEX'); p(5, H()); p(330, ph); p(100, 'AcDbEntity'); p(8, dxfStr(layerDxfName(s.layerId || 'layer-0')));
                         p(100, 'AcDbVertex'); p(100, 'AcDb3dPolylineVertex'); p(10, num(X(pt.x))); p(20, num(Y(pt.y))); p(30, ZZ(pt.z)); p(70, 32);
@@ -2970,7 +3496,7 @@
                     p(0, 'SEQEND'); p(5, H()); p(330, ph); p(100, 'AcDbEntity'); p(8, lay);
                     if (s.hatch) hatch(s);
                 } else if (s.type === 'poly') {
-                    head('LWPOLYLINE', s); p(100, 'AcDbPolyline'); p(90, s.points.length); p(70, 1);
+                    head('LWPOLYLINE', s); p(100, 'AcDbPolyline'); p(90, s.points.length); p(70, s.open ? 0 : 1);
                     if (hasZ(s.points[0].z)) p(38, num(s.points[0].z));
                     for (const pt of s.points) { p(10, num(X(pt.x))); p(20, num(Y(pt.y))); ext(X(pt.x), Y(pt.y)); }
                     if (s.hatch) hatch(s);
@@ -3148,7 +3674,7 @@
                         else if (pairs[j].code === 0) break;
                         else j++;
                     }
-                    if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts, color:pcolor, dash:pdash, width:pwidth, hatch:false });
+                    if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts, color:pcolor, dash:pdash, width:pwidth, hatch:false, open: !closed || pts.length < 3 });
                     else ignored++;
                     i = j; continue;
                 }
@@ -3226,8 +3752,9 @@
                     const n = Math.min(gmulti[10].length, gmulti[20].length);
                     const el = Z(g[38]);   // élévation de la polyligne
                     for (let q = 0; q < n; q++) { const v = { x: X(gmulti[10][q]), y: Y(gmulti[20][q]) }; if (el !== undefined) v.z = el; pts.push(v); }
+                    const lwClosed = (parseInt(g[70] || '0', 10) & 1) === 1;
                     if (pts.length >= 2) newShapes.push({ type:'poly', layerId, points:pts,
-                        color:_color, dash:_dash, width:_width, hatch:false });
+                        color:_color, dash:_dash, width:_width, hatch:false, open: !lwClosed || pts.length < 3 });
                 } else if ((ent === 'TEXT' || ent === 'MTEXT') && String(g[1001] || '').trim() === 'MOMOCAD' && String(g[1000] || '').trim() === 'zlabel') {
                     // étiquette d'altitude écrite par MomoCAD : déjà portée par le point topo
                 } else if (ent === 'TEXT' || ent === 'MTEXT') {
@@ -3651,7 +4178,7 @@
                 tctx.font = "bold " + fs + "px Arial";
                 const m = tctx.measureText(d.text);
                 tctx.save(); tctx.translate(p.x, p.y);
-                if (dimTextAligned && d.angle !== undefined) {
+                if ((dimTextAligned || d.al) && d.angle !== undefined) {
                     // aligné sur la ligne de cote, mais jamais à l'envers
                     let a = d.angle; while (a > Math.PI / 2 + 1e-9) a -= Math.PI; while (a <= -Math.PI / 2 + 1e-9) a += Math.PI;
                     tctx.rotate(a);
@@ -3812,7 +4339,7 @@
             if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); }
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle, !!s.anticlockwise); targetCtx.stroke(); }
-            else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); targetCtx.closePath(); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
+            else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); if (!s.open) targetCtx.closePath(); targetCtx.stroke(); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); }
             else if (s.type === 'point') {
                 const X = s.x + dx, Y = s.y + dy, t = 5 / lineScale;
                 targetCtx.setLineDash([]); targetCtx.lineWidth = (sel ? 2.5 : 1.5) / lineScale; targetCtx.strokeStyle = sel ? '#ec4899' : col;
@@ -3866,6 +4393,7 @@
                 screenTextsToDraw.push({ kind:'detail', layerId: s.layerId, wx: lx, wy: ly, tx: tx, ty: ty, lines:(s.content||'').split('\n'), color: sel ? '#ec4899' : col, sizePx: (s.size||20), isPrinting });
             }
             else if (s.type === 'dim') { drawDimShape(targetCtx, s, col, dx, dy, lineScale); }
+            else if (s.type === 'slope') { drawSlopeShape(targetCtx, s, sel ? '#ec4899' : col, dx, dy, lineScale); }
             targetCtx.setLineDash([]);
         }
 
@@ -3963,6 +4491,15 @@
                     }
                 }
                 else if (mode === 'poly' && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let p of currentPolygon.slice(1)) targetCtx.lineTo(p.x, p.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; let t=5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x-t, currentPolygon[0].y-t, t*2, t*2); }
+                else if (mode === 'profile' && profileAxis.length) {
+                    targetCtx.strokeStyle = '#a3e635'; targetCtx.lineWidth = 2 / camera.zoom; targetCtx.setLineDash([10 / camera.zoom, 4 / camera.zoom, 2 / camera.zoom, 4 / camera.zoom]);
+                    targetCtx.beginPath(); targetCtx.moveTo(profileAxis[0].x, profileAxis[0].y); profileAxis.slice(1).forEach(q => targetCtx.lineTo(q.x, q.y)); targetCtx.lineTo(currentX, currentY); targetCtx.stroke(); targetCtx.setLineDash([]);
+                }
+                else if (mode === 'slope' && slopeP1) {
+                    const pv = makeSlope(slopeP1, { x: currentX, y: currentY });
+                    if (pv) { targetCtx.strokeStyle = '#f59e0b'; targetCtx.lineWidth = 1.5 / camera.zoom; drawSlopeShape(targetCtx, pv, '#f59e0b', 0, 0, camera.zoom); }
+                    else { targetCtx.strokeStyle = '#f59e0b'; targetCtx.setLineDash([5 / camera.zoom, 5 / camera.zoom]); targetCtx.beginPath(); targetCtx.moveTo(slopeP1.x, slopeP1.y); targetCtx.lineTo(currentX, currentY); targetCtx.stroke(); targetCtx.setLineDash([]); }
+                }
                 else if (mode === 'calibrate' && calP1) {
                     const p2 = calP2 || { x: currentX, y: currentY };
                     targetCtx.strokeStyle = '#38bdf8'; targetCtx.lineWidth = 2 / camera.zoom; targetCtx.setLineDash([6 / camera.zoom, 4 / camera.zoom]);
@@ -4396,6 +4933,9 @@
             else if (mode === 'circle') msg = isDrawing ? "CERCLE : Spécifiez le rayon (valeur + Entrée)." : "CERCLE : Spécifiez le centre.";
             else if (mode === 'arc') { if (arcStep === 0) msg = "ARC : Spécifiez le centre."; else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ."; else msg = "ARC : Spécifiez l'angle de fin (valeur + Entrée)."; }
             else if (mode === 'poly') msg = isDrawing ? "POLYGONE : Spécifiez le point suivant (double-clic pour fermer)." : "POLYGONE : Spécifiez le point de départ.";
+            else if (mode === 'cubpick') msg = "CUBATURES : cliquez à l'intérieur de l'emprise (polyligne fermée, hachure ou cercle). Échap pour annuler.";
+            else if (mode === 'profile') msg = profileAxis.length ? "PROFIL EN LONG : point suivant de l'axe — [Entrée] ou double-clic pour calculer (" + profileAxis.length + " point(s))." : "PROFIL EN LONG : 1er point de l'axe.";
+            else if (mode === 'slope') msg = slopeP1 ? "PENTE : 2e point (la flèche indique le sens de la descente)." : "PENTE : 1er point (sur un point coté, un trait 3D ou la surface du terrain).";
             else if (mode === 'topo') {
                 if (typedInput) msg = "POINT TOPO : altitude = " + typedInput + " m puis [Entrée].";
                 else if (lastTopo && shapes.includes(lastTopo)) msg = "POINT TOPO : posé" + (hasZ(lastTopo.z) ? " à Z " + fmtZ(lastTopo.z) + " m" : " sans altitude") + " — tapez l'altitude + [Entrée] pour la changer, ou cliquez le point suivant.";
@@ -4459,7 +4999,7 @@
                 else if (s.type === 'circle') { let r = s.r * distFactor; radius = r; totalLength += 2 * Math.PI * r; totalArea += Math.PI * r * r; }
                 else if (s.type === 'arc') { let r = s.r * distFactor; radius = r; let dAngle = s.endAngle - s.startAngle; if (dAngle < 0) dAngle += 2 * Math.PI; totalLength += r * dAngle; }
                 else if (s.type === 'hatch') { totalArea += hatchArea(s) * areaFactor; }
-                else if (s.type === 'poly') { let pLen = 0; for (let i = 0; i < s.points.length - 1; i++) { pLen += Math.hypot(s.points[i+1].x - s.points[i].x, s.points[i+1].y - s.points[i].y); } totalLength += pLen * distFactor; if (s.points.length > 2) { let area = 0; for (let i = 0; i < s.points.length; i++) { let j = (i + 1) % s.points.length; area += s.points[i].x * s.points[j].y; area -= s.points[j].x * s.points[i].y; } totalArea += Math.abs(area / 2) * areaFactor; } }
+                else if (s.type === 'poly') { let pLen = 0; for (let i = 0; i < polyEdges(s); i++) { const q = s.points[(i + 1) % s.points.length]; pLen += Math.hypot(q.x - s.points[i].x, q.y - s.points[i].y); } totalLength += pLen * distFactor; if (!s.open && s.points.length > 2) { let area = 0; for (let i = 0; i < s.points.length; i++) { let j = (i + 1) % s.points.length; area += s.points[i].x * s.points[j].y; area -= s.points[j].x * s.points[i].y; } totalArea += Math.abs(area / 2) * areaFactor; } }
             });
             let html = '';
             const fmt = (val) => fmtLen(val);
@@ -4472,7 +5012,7 @@
                 let diff = Math.abs(a2 - a1); if (diff > Math.PI) diff = 2*Math.PI - diff;
                 html += `<div class="flex justify-between items-center"><span>Angle:</span> <span class="font-mono text-orange-300 ml-4 font-bold">${(diff*180/Math.PI).toFixed(2)}°</span></div>`;
             }
-            if (totalLength > 0) { let lbl = (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || selectedShapes[0].type === 'poly')) ? 'Périmètre:' : 'Longueur:'; if (selectedShapes.length > 1) lbl = 'Long. totale:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-blue-300 ml-4 font-bold">${fmt(totalLength)}</span></div>`; }
+            if (totalLength > 0) { let lbl = (selectedShapes.length === 1 && (selectedShapes[0].type === 'circle' || (selectedShapes[0].type === 'poly' && !selectedShapes[0].open))) ? 'Périmètre:' : 'Longueur:'; if (selectedShapes.length > 1) lbl = 'Long. totale:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-blue-300 ml-4 font-bold">${fmt(totalLength)}</span></div>`; }
             if (totalArea > 0) { let lbl = selectedShapes.length > 1 ? 'Aire totale:' : 'Aire:'; html += `<div class="flex justify-between items-center"><span>${lbl}</span> <span class="font-mono text-green-400 ml-4 font-bold">${fmtArea(totalArea)}</span></div>`; }
             if (selectedShapes.length === 1 && ['line', 'poly', 'circle', 'arc', 'point'].includes(selectedShapes[0].type)) {
                 const b = selectedShapes[0], esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -4567,7 +5107,7 @@
                     newShapes.forEach(s => { if (s.groupId) { if (!gmap[s.groupId]) gmap[s.groupId] = 'grp-' + Date.now() + '-' + Math.floor(Math.random()*100000); s.groupId = gmap[s.groupId]; } });
                     selectedShapes = [];
                     newShapes.forEach(s => {
-                        if (s.type === 'line') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; }
+                        if (s.type === 'line' || s.type === 'slope') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; }
                         else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc' || s.type === 'basemap' || s.type === 'bgimage' || s.type === 'point') { s.x += dx; s.y += dy; }
                         else if (s.type === 'poly') { s.points.forEach(p => { p.x += dx; p.y += dy; }); }
                         else if (s.type === 'dim') { s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; s.ox += dx; s.oy += dy; }
@@ -4663,6 +5203,24 @@
                 return;
             }
 
+            if (mode === 'cubpick') {
+                const e2 = pickEmpriseAt(wp.x, wp.y);
+                if (!e2) { updateCommandMessageText("CUBATURES : cliquez à l'intérieur d'une polyligne fermée, d'une hachure ou d'un cercle."); draw(); return; }
+                cubEmprise = e2; setMode('select-box'); openCubatureDialog(); return;
+            }
+            if (mode === 'profile') {
+                const sn = findSnap(wp.x, wp.y), pt = sn ? { x: sn.x, y: sn.y } : { x: wp.x, y: wp.y };
+                profileAxis.push(pt); isDrawing = true; draw(); return;
+            }
+            if (mode === 'slope') {
+                const sn = findSnap(wp.x, wp.y), pt = sn ? { x: sn.x, y: sn.y } : { x: wp.x, y: wp.y };
+                if (!slopeP1) { if (!hasZ(zHere(pt.x, pt.y))) { updateCommandMessageText("PENTE : pas d'altitude ici (ni point coté, ni surface du terrain)."); draw(); return; } slopeP1 = pt; isDrawing = true; draw(); return; }
+                const s0 = makeSlope(slopeP1, pt);
+                if (!s0) { updateCommandMessageText("PENTE : pas d'altitude au 2e point (ni point coté, ni surface du terrain)."); draw(); return; }
+                shapes.push(s0); saveState(); slopeP1 = null; isDrawing = false;
+                updateCommandMessageText('PENTE : ' + slopePct(s0).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' % (Δz ' + fmtZ(s0.z2 - s0.z1) + ' m). Cliquez une nouvelle pente ou Échap.');
+                draw(); return;
+            }
             if (mode === 'topo') {
                 const sn = findSnap(wp.x, wp.y), pt = sn ? { x: sn.x, y: sn.y } : { x: wp.x, y: wp.y };
                 const zs = sn ? zAt(pt.x, pt.y, 0.5) : [];
@@ -4841,7 +5399,7 @@
                     shapes.forEach(s => {
                         let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (!layer?.visible) return;
                         let b = false;
-                        if (s.type === 'line' || s.type === 'dim') b = isPointInRect(s.x1, s.y1, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x2, s.y2, startX, startY, currentX-startX, currentY-startY);
+                        if (s.type === 'line' || s.type === 'dim' || s.type === 'slope') b = isPointInRect(s.x1, s.y1, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x2, s.y2, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'circle' || s.type === 'text' || s.type === 'arc') b = isPointInRect(s.x, s.y, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'poly') b = s.points.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         else if (s.type === 'dim-angle') b = isPointInRect(s.vertex.x, s.vertex.y, startX, startY, currentX-startX, currentY-startY);
@@ -4932,6 +5490,7 @@
                 if (k === 'o') { e.preventDefault(); openProject(); return; }
             }
             if (is3DOpen()) { if (e.key === 'Escape') close3D(); return; }
+            if (document.getElementById('topo-modal').style.display === 'flex') { if (e.key === 'Escape') closeTopoModal(); return; }
             if (document.getElementById('basemap-modal').style.display === 'flex') { if (e.key === 'Escape') closeBasemapModal(); return; }
             if (document.getElementById('crop-modal').style.display === 'flex') { if (e.key === 'Escape') closeCrop(); if (e.key === 'Enter') applyCrop(); return; }
             // un champ resté actif dans une fenêtre fermée (invisible) ne doit pas capter le clavier du dessin
@@ -4998,6 +5557,8 @@
                     draw(); return;
                 }
             }
+            // Profil en long : Entrée termine l'axe
+            if (mode === 'profile' && (e.key === 'Enter' || e.key === ' ') && profileAxis.length) { e.preventDefault(); finishProfileAxis(); return; }
             // Point topo : altitude tapée puis Entrée (s'applique au dernier point posé)
             if (mode === 'topo' && !e.ctrlKey && lastTopo && shapes.includes(lastTopo)) {
                 if (/^[0-9.,\-]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); draw(); return; }
@@ -5072,6 +5633,7 @@
         });
 
         canvas.addEventListener('dblclick', (e) => {
+            if (mode === 'profile' && profileAxis.length >= 2) { profileAxis.pop(); finishProfileAxis(); return; }   // le double-clic a ajouté un point en double
             if (mode === 'poly' && isDrawing && currentPolygon.length > 2) {
                 shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
                 isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); draw();
