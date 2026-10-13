@@ -102,6 +102,9 @@
 .ps-seg button { min-width:44px; padding:6px 12px; border-radius:6px; color:#d1d5db; font-weight:600; font-size:13px; transition:background .15s,color .15s; }
 .ps-seg button:hover { background:#374151; }
 .ps-seg button.on { background:#2563eb; color:#fff; }
+.ps-bm-grid { display:grid; grid-template-columns:repeat(4,1fr); width:100%; }
+.ps-bm-grid button { display:flex; flex-direction:column; align-items:center; padding:8px 4px; }
+.ps-bm-grid small { font-weight:400; font-size:11px; opacity:.75; }
 .ps-paper-grid { display:grid; grid-template-columns:repeat(3,1fr); width:100%; }
 .ps-paper-grid button { display:flex; flex-direction:column; align-items:center; padding:7px 4px; }
 .ps-paper-grid small { font-size:10px; font-weight:400; opacity:.75; }
@@ -289,6 +292,9 @@
                     <button id="btn-arc" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Arc (Centre, Début, Fin)" onclick="setMode('arc')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 18 0"></path></svg></button>
                     <button id="btn-poly" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polygone" onclick="setMode('poly')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z"></path></svg></button>
                     <button id="btn-hatch" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Hachures (cliquer une forme fermée)" onclick="setMode('hatch')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"></rect><line x1="8" y1="3" x2="3" y2="8"></line><line x1="13" y1="3" x2="3" y2="13"></line><line x1="18" y1="3" x2="3" y2="18"></line><line x1="21" y1="6" x2="6" y2="21"></line><line x1="21" y1="11" x2="11" y2="21"></line><line x1="21" y1="16" x2="16" y2="21"></line></svg></button>
+                    <button id="btn-pline" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-teal-400" title="Polyligne : cliquez les sommets (longueur au clavier possible) ; Entrée, Échap ou double-clic = terminer (ouverte), clic sur le 1er point = fermer (PLI ⏎)" onclick="setMode('pline')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 19l5-11 6 7 7-11"/><rect x="1.8" y="17.8" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="19.8" y="2.8" width="2.6" height="2.6" fill="currentColor" stroke="none"/></svg></button>
+                    <button id="btn-pen" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-cyan-300" title="Plume (courbes de Bézier, comme Photoshop) : clic = point anguleux, cliquer-glisser = point courbe (tire les poignées) ; Entrée, Échap ou double-clic = terminer, clic sur le 1er point = fermer (PU ⏎)" onclick="setMode('pen')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l6 7-3.2 9H9.2L6 10z"/><path d="M12 3v8"/><circle cx="12" cy="12.5" r="1.6"/><path d="M9 21.5h6"/></svg></button>
+                    <button id="btn-mirror" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-amber-300" title="Copie miroir : sélectionnez, puis 2 clics pour tracer l'axe ; Entrée = copie miroir (garde l'original), Suppr = miroir sans l'original, Échap = annuler (MI ⏎)" onclick="startMirror()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2v20" stroke-dasharray="2.5 2"/><path d="M9 6L3 18h6z"/><path d="M15 6l6 12h-6z" opacity=".55"/></svg></button>
                     <div class="pal-sep col-span-3" aria-hidden="true"></div>
                     <button id="btn-solid-box" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-violet-400" title="Pavé : rectangle (2 coins) puis hauteur (PA ⏎)" onclick="startSolidTool('box')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></button>
                     <button id="btn-solid-cyl" class="tool-btn w-[34px] h-[34px] flex items-center justify-center bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 text-violet-400" title="Cylindre : centre, rayon puis hauteur (CY ⏎)" onclick="startSolidTool('cyl')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.6 3.1 2.8 7 2.8s7-1.2 7-2.8V6"/></svg></button>
@@ -458,6 +464,7 @@
             <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
                 <input id="bm-search" type="text" placeholder="Rechercher un lieu, une adresse…" autocomplete="off" style="flex:1;min-width:200px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:6px 10px;outline:none;">
                 <button type="button" onclick="bmSearch()" style="background:#4b5563;color:#fff;border:0;border-radius:6px;padding:6px 14px;cursor:pointer;">Chercher</button>
+                <select id="bm-base" title="Type de carte (les autres calques se règlent dans ⛯ Paramètres › Fond de plan)" onchange="bmSetBaseModal(this.value)" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:6px 8px;outline:none;"><option value="sat">Satellite</option><option value="ortho">Photo IGN</option><option value="plan">Plan</option><option value="planign">Plan IGN</option></select>
                 <label title="Afficher le plan cadastral (parcelles, IGN / DGFiP)" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-size:14px;padding:0 4px;">
                     <input id="bm-cadastre" type="checkbox" class="bm-switch" onchange="bmSetCadastre(this.checked)"> Cadastre</label>
             </div>
@@ -482,6 +489,7 @@
                 <button type="button" class="ps-tab" data-tab="plan" onclick="psTab('plan')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V3h18"/><path d="M7 21v-3M11 21v-5M15 21v-3M19 21v-5"/></svg>Plan</button>
                 <button type="button" class="ps-tab" data-tab="print" onclick="psTab('print')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Impression</button>
                 <button type="button" class="ps-tab" data-tab="cart" onclick="psTab('cart')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="12" rx="1"/><line x1="8" y1="7" x2="8" y2="19"/><line x1="8" y1="11" x2="22" y2="11"/><line x1="8" y1="15" x2="22" y2="15"/></svg>Cartouche</button>
+                <button type="button" class="ps-tab" data-tab="fond" onclick="psTab('fond')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.5 3.9 5.5 3.9 9s-1.3 6.5-3.9 9c-2.6-2.5-3.9-5.5-3.9-9S9.4 5.5 12 3z"/></svg>Fond de plan</button>
             </nav>
             <div class="flex-1 overflow-y-auto custom-scrollbar p-5 text-sm text-gray-200 min-h-[25rem]">
                 <!-- PLAN -->
@@ -530,6 +538,22 @@
                             <div id="ps-sheet-label" class="ps-sub mt-1 text-center"></div>
                         </div>
                     </div>
+                </section>
+                <!-- FOND DE PLAN -->
+                <section class="ps-panel" data-panel="fond">
+                    <div class="ps-h mb-2">Type de carte</div>
+                    <div class="ps-seg ps-bm-grid" data-for="ps-bmbase">
+                        <button type="button" data-v="sat"><b>Satellite</b><small>Esri, monde</small></button><button type="button" data-v="ortho"><b>Photo IGN</b><small>orthophoto, France</small></button><button type="button" data-v="plan"><b>Plan</b><small>rues Esri / OSM</small></button><button type="button" data-v="planign"><b>Plan IGN</b><small>carte IGN, France</small></button>
+                    </div>
+                    <select id="ps-bmbase" class="hidden"><option value="sat">Satellite</option><option value="ortho">Photo IGN</option><option value="plan">Plan</option><option value="planign">Plan IGN</option></select>
+                    <div class="ps-h mt-5">Calques superposés</div>
+                    <div class="ps-sub mb-1">Téléchargés avec chaque nouveau fond (le cadastre l'est toujours). Ensuite, chaque fond posé a ses interrupteurs dans ses propriétés ; un calque non téléchargé l'est à la demande.</div>
+                    <div class="ps-row"><div><div class="ps-h">Cadastre</div><div class="ps-sub">Parcelles et bâti — IGN / DGFiP, France.</div></div><label class="ps-switch"><input type="checkbox" id="ps-ov-cad"><span></span></label></div>
+                    <div class="ps-row"><div><div class="ps-h">Limites de communes</div><div class="ps-sub">Communes et départements — Admin Express IGN.</div></div><label class="ps-switch"><input type="checkbox" id="ps-ov-communes"><span></span></label></div>
+                    <div class="ps-row"><div><div class="ps-h">Pentes</div><div class="ps-sub">Classes de pente du relief — IGN.</div></div><label class="ps-switch"><input type="checkbox" id="ps-ov-pentes"><span></span></label></div>
+                    <div class="ps-row"><div><div class="ps-h">Courbes de niveau</div><div class="ps-sub">Altimétrie IGN, équidistance selon le zoom.</div></div><label class="ps-switch"><input type="checkbox" id="ps-ov-courbes"><span></span></label></div>
+                    <div class="ps-row"><div><div class="ps-h">Hydrographie</div><div class="ps-sub">Cours d'eau, canaux, plans d'eau — IGN.</div></div><label class="ps-switch"><input type="checkbox" id="ps-ov-hydro"><span></span></label></div>
+                    <div class="ps-row"><div><div class="ps-h">Routes</div><div class="ps-sub">Réseau routier — IGN.</div></div><label class="ps-switch"><input type="checkbox" id="ps-ov-routes"><span></span></label></div>
                 </section>
                 <!-- CARTOUCHE -->
                 <section class="ps-panel" data-panel="cart">
@@ -599,7 +623,7 @@
         </div>
         <div class="flex flex-1 min-h-0">
             <nav class="w-56 shrink-0 bg-gray-900/60 border-r border-gray-700 p-2 flex flex-col gap-0.5 overflow-y-auto custom-scrollbar"><button type="button" class="hg-tab" data-ch="start" onclick="helpChapter('start')"><span class="hg-ico">🚀</span>Bien démarrer</button><button type="button" class="hg-tab" data-ch="draw" onclick="helpChapter('draw')"><span class="hg-ico">✏️</span>Dessiner & modifier</button><button type="button" class="hg-tab" data-ch="layers" onclick="helpChapter('layers')"><span class="hg-ico">🎨</span>Calques & annotation</button><button type="button" class="hg-tab" data-ch="topo" onclick="helpChapter('topo')"><span class="hg-ico">🏔️</span>Topographie</button><button type="button" class="hg-tab" data-ch="earth" onclick="helpChapter('earth')"><span class="hg-ico">🚜</span>Terrassement & devis</button><button type="button" class="hg-tab" data-ch="bg" onclick="helpChapter('bg')"><span class="hg-ico">🌍</span>Fonds de plan</button><button type="button" class="hg-tab" data-ch="files" onclick="helpChapter('files')"><span class="hg-ico">💾</span>Fichiers</button><button type="button" class="hg-tab" data-ch="print" onclick="helpChapter('print')"><span class="hg-ico">🖨️</span>Impression & paramètres</button><button type="button" class="hg-tab" data-ch="keys" onclick="helpChapter('keys')"><span class="hg-ico">⌨️</span>Raccourcis</button></nav>
-            <div id="help-body" class="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 text-sm text-gray-300"><section class="hg-ch" data-ch="start"><h2 class="hg-title"><span>🚀</span> Bien démarrer</h2><ul class="hg-list"><li><b class="text-white">Dessiner :</b> choisissez un outil dans la palette de gauche (ou tapez son raccourci, ex. <b>Dr ⏎</b> pour une droite), cliquez les points, tapez une longueur au clavier puis <b>Entrée</b> pour être précis.</li><li><b class="text-white">Palettes d'outils :</b>à gauche, les outils sont rangés en palettes titrées : <b>Modif</b> (sélection, déplacer, rotation, couper, prolonger, décaler, agrandir, réduire, étirer, verrouiller, éclater, arrondir), <b>Dessin</b> (droite, rectangle, cercle, arc, polygone, hachure, puis en violet les outils 3D : pavé, cylindre, cône, sphère, extruder, percer), <b>Topo</b> (point topo, pente, profil, courbes, cubatures, fond de carte) et <b>Nomo.</b> (textes et cotes). Cliquez un titre pour <b>réduire / déplier</b> sa palette ; l'état est mémorisé. Une palette réduite qui contient l'outil actif a son titre en bleu.</li><li><b class="text-white">Régler le plan :</b> bouton <b>⛯</b> en haut à droite : unité (mm / cm / m), décimales, grille, format d'impression et cartouche.</li><li><b class="text-white">Enregistrer :</b> <b>Ctrl+S</b> enregistre en .mmc (fichier MomoCAD complet) ; le DXF sert à échanger avec AutoCAD.</li><li><b class="text-white">Imprimer :</b> bouton imprimante, molette pour l'échelle, clic pour produire le PDF.</li><li><b class="text-white">Perdu ?</b> <b>Échap</b> annule la commande en cours, <b>Ctrl+Z</b> annule la dernière action, et la recherche en haut de ce guide retrouve n'importe quelle fonction.</li></ul><h3 class="hg-sub">Souris & navigation</h3><ul class="hg-list"><li><b class="text-white">Rosace X Y Z (en haut à droite, en plan comme en 3D)</b>Change de vue en <b>orthogonal</b>, avec une rotation animée ; la vue en cours est <b>cerclée de jaune</b>. Cliquez : <b>Z</b> = dessus (le plan, seule vue où l'on dessine), <b>-z</b> = dessous, <b>Y</b> = face (depuis le sud), <b>X</b> = droite (depuis l'est), <b>-y</b> = arrière, <b>-x</b> = gauche, <b>ISO</b> = vue isométrique. En plan, les autres vues montrent tout en fil de fer à ses altitudes (lignes 3D, plateformes, volumes, maillages, terrain en vert léger) : molette = zoom, clic molette = déplacer ; ce sont des vues de <b>consultation</b> (choisir un outil ramène au plan). Dans la vue 3D, la même rosace oriente la caméra et suit la vue quand on la fait tourner à la souris.</li><li><b class="text-white">Clic Molette (Maintenu) :</b> Se déplacer sur le plan (Panoramique).</li><li><b class="text-white">Molette (Roulette) :</b> Zoomer / Dézoomer, sans limite, centré sur le curseur.</li><li><b class="text-white">Maj (Shift) + Tracé :</b> Forcer un trait horizontal ou vertical (ponctuel).</li><li><b class="text-white">Clic + Maj (Shift) :</b> Ajouter/Retirer un élément de la sélection.</li></ul><h3 class="hg-sub">Aides au tracé (en bas à droite)</h3><ul class="hg-list"><li><b class="text-white">Mode Ortho (icône ⊥) :</b> Activable en bas-droite ou par F8. Force toutes les lignes et polylignes à être horizontales ou verticales. Un guide pointillé bleu relie le bout du segment au pointeur pour visualiser l'alignement.</li><li><b class="text-white">Grille :</b> Affiche/masque le quadrillage de fond. La taille d'un carreau se règle dans <b>⛯ Paramètres</b> (« Carreau de la grille »), <b>dans l'unité du plan</b> choisie juste au-dessus (1 cm par défaut : « 10 » en mm, « 1 » en cm, « 0,01 » en m ; mémorisée sur ce poste). Quand les carreaux deviennent trop petits à l'écran, seul un trait sur 10 est affiché.</li><li><b class="text-white">Origine 0,0 (repère X/Y) :</b> comme dans AutoCAD, le repère rouge (X, vers la droite) et vert (Y, vers le haut) marque le point 0,0. Quand l'origine sort de l'écran, il se range en bas à gauche. Le point 0,0 est accrochable (accroche Extrémités).</li><li><b class="text-white">Coordonnées :</b> en bas à droite, X et Y du curseur par rapport à l'origine. Ce sont les mêmes coordonnées que dans AutoCAD après export DXF.</li></ul></section><section class="hg-ch" data-ch="draw"><h2 class="hg-title"><span>✏️</span> Dessiner & modifier</h2><h3 class="hg-sub">Outils</h3><ul class="hg-list"><li><b class="text-white">Validation clavier :</b> après une saisie de valeur, <b>Entrée</b> valide et revient à la Sélection, <b>Espace</b> valide et garde l'outil actif.</li><li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Ou par dimensions : après le 1er coin, tapez la largeur ⬌ + <b>Espace</b>, puis la hauteur ⬍ + <b>Entrée</b>. Le sens suit la position de la souris.</li><li><b class="text-white">Arc :</b> centre, puis rayon/point de départ, puis point de fin. L'arc se trace du côté où va la souris (angle tapé négatif = autre sens).</li><li><b class="text-white">Hachures :</b> cliquez à l'intérieur de n'importe quelle zone fermée, même formée par des traits qui se croisent ou dépassent, des arcs ou des cercles. La plus petite zone autour du clic est hachurée, et les formes isolées à l'intérieur sont laissées en blanc (îlots). La surface s'affiche dans la barre de commande. La hachure est un objet à part, au contour invisible : elle se sélectionne en cliquant dedans, se déplace et se supprime comme les autres objets, et sa surface apparaît dans les propriétés. Re-cliquez dedans avec l'outil Hachures pour la retirer. Un petit écart (environ 1,5 pixel à l'écran) entre deux traits est toléré ; au-delà, zoomez ou fermez le contour.</li><li><b class="text-white">Déplacer :</b> dès qu'un objet est sélectionné (outil Sélection), tapez directement <b>ΔX</b> <b>Espace</b> <b>ΔY</b> <b>Entrée</b> : la barre de commande le propose. Avec l'outil Déplacer : cliquez un point de base et un point de destination. Ou tapez au clavier <b>ΔX</b>, <b>Espace</b>, <b>ΔY</b>, puis <b>Entrée</b> ou <b>Espace</b> : déplacement exact dans l'unité du plan (Y positif vers le haut, valeurs négatives acceptées ; Entrée directement après ΔX = déplacement horizontal seul). L'aperçu suit la saisie.</li><li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li><li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li><li><b class="text-white">Décaler (Offset) :</b> Tapez la distance désirée, puis cliquez sur l'objet.</li><li><b class="text-white">Agrandir / Réduire :</b> sélectionnez, puis choisissez Agrandir ou Réduire. Tapez un facteur puis <b>Entrée</b> (ex. <b>2</b> : ×2 avec Agrandir, ÷2 avec Réduire). L'échelle se fait autour du centre de la sélection. Ou en graphique : <b>clic 1</b> = point de base, <b>clic 2</b> = facteur (distance 2 / distance 1), avec aperçu en direct.</li><li><b class="text-white">Verrouiller (cadenas fermé) :</b>réunit la sélection en un <b>bloc</b> : un clic sur un de ses objets sélectionne tout le bloc.</li><li><b class="text-white">Éclater (cadenas ouvert, EC ⏎) :</b>l'inverse de Verrouiller : défait le bloc sélectionné (bloc verrouillé ou bloc posé depuis le catalogue). Sur des objets libres, Éclater décompose les rectangles et polylignes en <b>droites</b> (altitudes des sommets conservées).</li><li><b class="text-white">Catalogue de blocs (bouton « Catalogue de blocs » à droite des accroches, ou BL ⏎)</b>Onglets <b>🛁 Sanitaires</b> (WC, lavabo, bac à douche, baignoire, évier, vasque), <b>🛋️ Mobilier</b> (tables, chaise, lits, canapé, bureau, armoire) et <b>🌳 Végétation</b> (arbre, conifère, buisson, arbuste, haie), à taille réelle. Cliquez un bloc : il suit la souris en <b>transparence</b> comme un tampon. <b>Maj + molette</b> = agrandir / réduire, <b>Ctrl + molette</b> = tourner de 15°, molette seule = zoom normal. <b>Clic</b> = poser (on peut en poser plusieurs), Échap pour finir. Le bloc posé est un groupe (un clic le sélectionne en entier ; Défusionner pour le modifier).</li><li><b class="text-white">Ajouter ses blocs</b>Dans le catalogue, <b>+ Bloc DXF</b> ajoute le dessin d'un DXF (lignes, polylignes, cercles, arcs) dans l'onglet ouvert, à sa taille réelle, centré. Il est mémorisé sur ce poste ; survolez-le puis ✕ pour le retirer.</li><li><b class="text-white">Étirer (ET ⏎) :</b>comme dans AutoCAD : cliquez les 2 coins d'une <b>fenêtre</b> qui entoure les sommets à déplacer, puis le <b>point de base</b>, puis la <b>destination</b> (ou tapez une distance dans la direction de la souris + Entrée ; Maj = horizontal / vertical). Les sommets dans la fenêtre bougent, les autres restent : un rectangle s'allonge, une ligne pivote sur son autre extrémité ; cercles, arcs, textes et points se déplacent si leur centre est dans la fenêtre. Aperçu en direct.</li><li><b class="text-white">Arrondir (RA ⏎) :</b>cliquez la <b>1re droite</b> puis la <b>2e</b> (du côté à garder), tapez le rayon <b>R</b> puis <b>Entrée</b> : les deux droites sont raccourcies ou prolongées jusqu'aux points de tangence et un <b>arc</b> les raccorde. Entrée seule reprend le dernier rayon ; <b>0</b> = angle vif (les droites se rejoignent). Pour un rectangle ou une polyligne, éclatez-la d'abord.</li></ul><h3 class="hg-sub">Points d'accrochage</h3><ul class="hg-list"><li><b class="text-white">Barre « Accroches » (en-tête, à droite des calques) :</b> un bouton par type, allumé = actif : Extrémité ▢, Milieu △, Centre ⊙, Intersection ✕, Perpendiculaire ⊥, Ortho projeté, Grille #. Les choix sont mémorisés sur ce poste et dans le .mmc. Marqueur jaune carré pour les accroches d'objet.</li><li><b class="text-white">Ortho projeté (désactivé par défaut) :</b> restez environ une demi-seconde sur un point d'accroche : il passe de l'<b>orange</b> au <b>violet</b> (point acquis, jusqu'à 3). Déplacez ensuite la souris à l'horizontale ou à la verticale de ce point : une ligne pointillée violette est projetée et le curseur s'accroche (✕ violet) aux <b>croisements</b> de cette ligne avec les lignes, polylignes, cercles et arcs, ainsi qu'au croisement des lignes de deux points acquis ; sinon il glisse le long de la ligne (petit rond violet). Re-survoler un point violet le retire ; Échap les retire tous.</li><li><b class="text-white">Grille (désactivé par défaut) :</b> les croisements du quadrillage affiché deviennent des points d'accroche (✕ bleu). Sans effet si la grille est masquée ; les accroches d'objet restent prioritaires.</li><li><b class="text-white">Perpendiculaire (⊥ cyan) :</b> pendant le tracé d'une ligne ou polyligne, accroche au pied de la perpendiculaire depuis le point de départ vers la forme survolée (ligne, polyligne, cercle, arc). Incompatible avec le mode Ortho.</li></ul></section><section class="hg-ch" data-ch="layers"><h2 class="hg-title"><span>🎨</span> Calques & annotation</h2><h3 class="hg-sub">Calques</h3><ul class="hg-list"><li><b class="text-white">3 calques :</b> 0 - Tracé (blanc, continu), 1 - Construction (gris, tireté), 2 - Cotation (orange). Dans le gestionnaire de calques, chaque calque a sa couleur, son type de trait, son épaisseur, et deux réglages :</li><li><b class="text-white">Ligne avec texte (-T-) :</b>dans le gestionnaire de calques, type de ligne <b>-T-</b> puis tapez le texte dans la colonne <b>Libellé</b> (grisée tant que le type n'est pas -T-) (ex. <b>PVC120</b>) : toutes les lignes, polylignes, cercles et arcs du calque s'affichent <b>---PVC120---PVC120---</b>, texte toujours lisible et aligné sur le trait. Pour un objet en particulier, sélectionnez-le et tapez <b>Y</b> : « Texte de la ligne » remplace celui du calque (ex. EU Ø160). Imprimé tel quel ; exporté en DXF comme un tireté simple.</li><li><b class="text-white">Texte :</b> champ vide (« auto ») = taille <b>variable</b>, constante à l'écran et sur la feuille, comme les cotes. Une valeur (ex. <b>2,5</b>) = <b>hauteur fixe en mm dans le dessin</b> : le texte grandit avec le zoom et suit l'échelle d'impression. S'applique aux textes, détails et valeurs de cote du calque.</li><li><b class="text-white">Hachure :</b> motif des hachures du calque : <b>///</b> (lignes), <b>XX</b> (croisée) ou <b>■</b> (plein).</li><li><b class="text-white">Échelle de hachure (Éch.) :</b> multiplie l'écartement des traits de hachure du calque : <b>1</b> = 3 mm (par défaut), <b>2</b> = 6 mm, <b>0,5</b> = 1,5 mm. S'applique à toutes les hachures du calque, à l'écran, à l'impression et dans le DXF. Sans effet sur le plein.</li><li><b class="text-white">Paramétrer une sélection :</b> sélectionnez des objets puis tapez <b>Y</b> pour les changer de calque et, pour les objets topo, modifier leur Z et matricule (<b>N</b> pour ignorer).</li><li><b class="text-white">Calque Cotation :</b> cotes, textes et détails y sont déposés automatiquement.</li></ul><h3 class="hg-sub">Textes et cotes</h3><ul class="hg-list"><li><b class="text-white">Texte :</b> cliquez puis tapez directement sur le plan. <b>Maj+Entrée</b> = retour à la ligne, <b>Entrée</b> ou <b>Échap</b> = valider.</li><li><b class="text-white">Détail :</b> clic 1 = point désigné, clic 2 = position de l'étiquette, puis tapez le texte. Texte encadré relié par une flèche.</li><li><b class="text-white">Cote ortho (H/V) :</b> ne mesure que l'horizontale ou la verticale. 3 clics : 1er point, 2e point, position de la ligne. La ligne au-dessus ou en dessous donne une cote horizontale, à gauche ou à droite une cote verticale.</li><li><b class="text-white">Cote libre :</b> mesure la vraie distance entre les 2 points, ligne de cote parallèle à eux (avec Ortho F8 / Maj, le 2e point se cale à l'horizontale ou la verticale).</li><li><b class="text-white">Cotes cumulées / successives :</b> outil de cote actif, tapez <b>1</b> (cumulée), <b>2</b> (successive) ou <b>0</b> (simple), puis <b>Espace</b> ou <b>Entrée</b> ; le mode reste choisi jusqu'au prochain changement. <b>Cumulée</b> : clics 1, 2 puis 3 (hauteur de la ligne) ; chaque clic suivant (4, 5…) ajoute une cote mesurée depuis le point 1, sa ligne décalée du même écart que la première, comme un empilement. <b>Successive</b> : clics 1, 2, 3 ; chaque clic suivant ajoute une cote depuis le dernier point, sur la même ligne (cotes bout à bout). <b>Entrée</b>, <b>Espace</b> ou <b>Échap</b> termine la série.</li><li><b class="text-white">Texte des cotes (bouton « 1.23 » sur une ligne verticale) :</b> bascule entre texte <b>aligné</b> sur la ligne de cote (jamais à l'envers) et texte <b>toujours horizontal</b>. S'applique à toutes les cotes, à l'impression et au DXF ; enregistré dans le plan.</li><li><b class="text-white">Cotation angulaire :</b> Clic 1 = D1, Clic 2 = D2, Clic 3 = pose de l'arc. Sélection en cliquant sur la valeur °.</li><li>Textes, détails et cotes vont sur le calque <b>Cotation</b> (orange) et gardent une taille lisible constante quel que soit le zoom.</li></ul></section><section class="hg-ch" data-ch="topo"><h2 class="hg-title"><span>🏔️</span> Topographie</h2><h3 class="hg-sub">Altitudes et points</h3><ul class="hg-list"><li><b class="text-white">Le principe :</b> le plan reste vu de dessus, mais chaque point peut porter une altitude <b>Z</b> (en mètres, affichée avec 2 décimales) : extrémités des lignes, sommets des polylignes, centres des cercles et arcs, et <b>points topo</b>. Un point sans Z reste un point 2D.</li><li><b class="text-white">Lire X Y Z :</b> en bas à droite, le Z s'affiche dès que le curseur accroche ou survole un point coté ; sur un trait 3D, il est <b>interpolé</b> à l'endroit exact du curseur. Au croisement de deux traits d'altitudes différentes, les deux valeurs sont affichées (ex. Z 734,33 / 734,50).</li><li><b class="text-white">Point topo (bouton croix « Z » ou Pt ⏎) :</b> cliquez pour poser un point. Son Z est repris du point accroché ; sinon tapez son altitude puis Entrée (fonctionne aussi pour corriger le dernier point posé). Le point s'affiche comme une croix avec son altitude.</li><li><b class="text-white">Où sont les outils :</b> dans le bloc <b>Topo / 3D</b> de la palette, entre le dessin 2D et les cotations. Le Z affiché en bas d'écran est une lecture seule.</li><li><b class="text-white">Modifier un Z ou un matricule :</b> sélectionnez puis tapez <b>Y</b> (« Paramétrer la sélection ») : matricule et altitude d'un point topo, Z de plusieurs points d'un coup, Z départ / arrivée d'une ligne, Z d'un cercle ou d'un arc, Z de tous les sommets d'une polyligne. Champ vidé = altitude supprimée ; Entrée valide. Les propriétés affichent les Z et, pour une ligne cotée aux deux bouts, la <b>dénivelée</b>, la <b>pente %</b> et la <b>longueur 3D</b>.</li></ul><h3 class="hg-sub">Plans de géomètre et échanges</h3><ul class="hg-list"><li><b class="text-white">Plans de géomètre (DXF) :</b> les blocs de points avec un attribut d'altitude (ALT, ALTI, Z, NGF…) deviennent des points topo (matricule et code repris) ; les Z des lignes, polylignes 3D, points, cercles et arcs sont conservés. Les unités du fichier sont respectées (un DXF en mètres est converti), et seul l'espace objet est importé (pas le cartouche de mise en page).</li><li><b class="text-white">Coordonnées géoréférencées :</b> si le DXF est en Lambert (coordonnées de plusieurs millions de mètres), MomoCAD mémorise une origine et affiche les vraies coordonnées en bas d'écran ; l'export DXF les restitue à l'identique. Cela garde un affichage précis malgré les grands nombres.</li><li><b class="text-white">Export DXF 3D :</b> lignes avec leurs Z, polylignes 3D (ou élévation si tous les sommets ont le même Z), cercles et arcs à leur altitude, points topo en POINT 3D avec l'altitude écrite à côté. Lisible par AutoCAD et Covadis.</li><li><b class="text-white">Semis de points (menu disquette) :</b> <b>Importer un semis (CSV / TXT)</b> : une ligne par point, <b>MAT;X;Y;Z;CODE</b> ou <b>X;Y;Z</b>, en mètres ; séparateurs ; , tabulation ou espace, virgule ou point décimal ; lignes d'en-tête ignorées. Les points arrivent sur le calque « Semis de points ». <b>Exporter les points topo (CSV)</b> : MAT;X;Y;Z;CODE en coordonnées réelles, lisible par Excel.</li></ul><h3 class="hg-sub">Analyser le terrain</h3><ul class="hg-list"><li><b class="text-white">Ouvrir la vue 3D</b>Bouton <b>œil 3D</b> en bas à droite (à droite du fond perso), ou <b>VU ⏎</b>. L'œil est <b>ouvert</b> quand la 3D est affichée, fermé sinon. Re-cliquez l'œil, VU ⏎ ou Échap pour revenir au dessin. La première ouverture demande Internet (moteur 3D). La bande du bas (commande, coordonnées, œil 3D) reste visible sous la vue 3D.</li><li><b class="text-white">Solides 3D (palette Dessin, en violet)</b><b>Pavé</b> (PA ⏎) : 2 coins comme un rectangle ; <b>Cylindre</b> (CY ⏎) et <b>Cône</b> (CO ⏎) : centre puis rayon ; <b>Sphère</b> (SP ⏎) : centre puis rayon. La fenêtre <b>Y</b> s'ouvre aussitôt pour taper la <b>hauteur</b> (en m) ; l'<b>altitude de la base</b> est reprise du point accroché ou du terrain (modifiable dans Y). En plan, un pavé montre ses diagonales, un cylindre une croix, un cône ses rayons et une sphère son équateur ; en 3D ils sont modélisés en volume, à la couleur du calque. Ils se déplacent, pivotent et se copient comme les formes 2D. Ils ne comptent ni comme terrain ni comme plateforme ; le DXF n'en garde que le contour.</li><li><b class="text-white">Extruder (EX ⏎)</b>Transforme une forme fermée dessinée (rectangle, polyligne fermée, cercle) en <b>volume</b> : sélectionnez-la puis Extruder (ou Extruder puis cliquez dedans), la fenêtre <b>Y</b> demande la hauteur. Une polyligne devient un prisme à sa forme, un cercle un cylindre.</li><li><b class="text-white">Percer / découper (PC ⏎)</b>Cliquez le <b>volume</b> (pavé, extrusion, cylindre), puis une <b>forme fermée</b> dessinée entièrement à l'intérieur (cercle, rectangle, polyligne) : elle devient un <b>trou traversant</b> (perçage, réservation, fourreau). On peut enchaîner plusieurs trous ; Échap pour finir. Les trous suivent le volume quand on le déplace, le pivote ou l'agrandit.</li><li><b class="text-white">Se déplacer en 3D</b><b>Glisser</b> = tourner, <b>clic droit</b> (ou molette enfoncée) = déplacer, <b>molette</b> = zoom. La <b>rosace X Y Z</b> en haut à droite donne les vues de dessus, dessous, face, côtés, arrière et ISO, avec un retournement animé ; la vue en cours y est cerclée de jaune.</li><li><b class="text-white">Aberration ×</b>Exagération verticale de la vue 3D : multiplie les différences d'altitude pour mieux voir un relief presque plat. <b>×1 par défaut</b> = proportions réelles ; en ×5, les talus paraissent 5 fois plus raides.</li><li><b class="text-white">Options d'affichage</b><b>Surface</b> (terrain coloré du plus bas en bleu au plus haut en rouge), <b>Altitudes</b> (étiquettes des points), <b>Fonds</b> (cartes et images au sol), <b>Plateformes + talus</b>. Les objets sans altitude sont posés au niveau le plus bas.</li><li><b class="text-white">Surface du terrain (MNT) :</b> tous les sommets cotés (points topo, extrémités de lignes, sommets de polylignes) sont reliés en triangles. Cette surface sert à la vue 3D, aux pentes, au profil en long, aux courbes de niveau et aux cubatures ; elle se recalcule à chaque modification. Les grands triangles du bord (trop allongés) sont écartés.</li><li><b class="text-white">Étiquette de pente (bouton flèche % ou Pe ⏎) :</b> 2 clics sur des points cotés, des traits 3D ou n'importe où sur la surface : une flèche indique le sens de la descente, avec la pente en % et la <b>différence de niveau Δh</b> (ex. « 4,33 % · Δh 0,26 m »). Elle garde les altitudes du moment où elle est posée.</li><li><b class="text-white">Profil en long (Pr ⏎)</b>Cliquez les points de l'axe puis <b>Entrée</b> (ou double-clic). La fenêtre montre le terrain (vert) et les croisements avec les traits 3D et les points topo à moins de 50 cm de l'axe (orange).</li><li><b class="text-white">Tableau du profil</b>Un point tous les <b>N mètres</b>, plus les sommets et les croisements, avec la pente. <b>Copier (Excel)</b> ou <b>Exporter CSV</b>.</li><li><b class="text-white">Dessiner le profil</b><b>Dessiner dans le plan</b> : tracé 10 m sous le dessin (calque « Profil en long »), avec plan de comparaison et cotes. <b>Hauteurs ×</b> (×5 par défaut, ×1 = réel) règle l'exagération du graphique et du dessin.</li><li><b class="text-white">Courbes de niveau (Cn ⏎) :</b> équidistance au choix (5 cm à 5 m) et une maîtresse toutes les N courbes, avec l'altitude écrite dessus. Elles vont sur les calques « Courbes de niveau » et « Courbes maîtresses », portent leur Z (export DXF 3D) et sont remplacées si vous les régénérez.</li></ul></section><section class="hg-ch" data-ch="earth"><h2 class="hg-title"><span>🚜</span> Terrassement & devis</h2><h3 class="hg-sub">Plateformes et talus</h3><ul class="hg-list"><li><b class="text-white">Créer une plateforme</b>Tracez une forme <b>fermée</b> (rectangle, polygone ou cercle), sélectionnez-la, tapez <b>Y</b> et donnez la même altitude à tous ses sommets (ou au cercle). Elle devient une plateforme : elle ne compte plus comme terrain naturel.</li><li><b class="text-white">Plateforme ronde</b>Tracez un cercle et donnez-lui son altitude avec <b>Y</b>. Un cercle venant d'un DXF de géomètre ou posé sur un point coté reste un simple cercle tant que vous ne lui redonnez pas son Z avec Y (idem pour les contours 2D de géomètre).</li><li><b class="text-white">Talus de chaque plateforme</b>Dans la fenêtre <b>Y</b> : case « Talus jusqu'au terrain », pente de <b>remblai</b> et de <b>déblai</b> en H/V (3/2 = 3 m à plat pour 2 m de haut). Aussi réglables à l'étape Talus des Cubatures. Enregistrés dans le .mmc ; une nouvelle plateforme reprend les derniers réglages.</li><li><b class="text-white">Talus en plan</b>Dessinés automatiquement : <b>pied de talus</b> et <b>peigne</b> (traits longs / courts depuis le haut du talus), angles arrondis, arrêt sur la bissectrice dans les angles rentrants. Ils suivent la plateforme, s'impriment et partent dans le DXF. Rien n'est dessiné hors de la zone couverte par les points cotés.</li><li><b class="text-white">Points nez / pied</b>Quelques points cotés en <b>nez</b> (haut) et <b>pied</b> (bas) de talus : aux angles et tous les <b>N mètres</b> (10 m par défaut, 0 = angles seuls, réglage dans <b>Y</b>). Exportés dans le DXF et dans le <b>semis CSV</b> (matricules PF1-N1, PF1-P1…, codes NEZ / PIED).</li><li><b class="text-white">Plateformes voisines</b>Quand les talus de deux plateformes se rencontrent, ils se <b>raccordent</b> au lieu de se superposer : deux remblais se rejoignent (le plus haut l'emporte), deux déblais se rejoignent (le plus bas l'emporte), et un remblai qui rencontre le déblai d'une autre plateforme s'arrête sur lui. Le peigne, le pied de talus, les points nez / pied et la 3D suivent ce raccord.</li><li><b class="text-white">En 3D</b>Case « Plateformes + talus » de la vue 3D : dalle à sa cote, talus bleus (remblai) ou rouges (déblai), terrain fini autour.</li></ul><h3 class="hg-sub">Cubatures</h3><ul class="hg-list"><li><b class="text-white">Lancer les cubatures</b>Bouton cubatures ou <b>Cu ⏎</b> : assistant en 4 étapes (cliquez une étape pour y revenir).</li><li><b class="text-white">1. Emprise</b>Objet fermé sélectionné, ou « Choisir sur le plan » puis clic dans la zone (polyligne fermée, hachure ou cercle). Une plateforme dessinée est reprise avec sa cote.</li><li><b class="text-white">2. Projet</b>Plateforme horizontale à une cote (la cote moyenne du terrain est proposée : c'est l'équilibre sans talus), ou surface projet tirée des calques cochés.</li><li><b class="text-white">3. Talus</b>Pentes de remblai et de déblai en H/V, du bord de la plateforme jusqu'au terrain.</li><li><b class="text-white">4. Résultats</b>Déblai, remblai et solde, puis le détail plateforme / talus / total avec les surfaces. « Copier (Excel) » et « Tracer sur le plan » (limites déblai / remblai et talus).</li><li><b class="text-white">Plusieurs plateformes</b>Les talus sont calculés avec toutes les plateformes du plan : la zone commune entre deux talus n'est comptée qu'<b>une fois</b>, attribuée au talus qui la façonne (une note l'indique). Avec plusieurs plateformes, un <b>bilan de toutes les plateformes</b> (plateforme + talus, déblai, remblai, solde et total chantier) s'affiche sous les résultats et part dans « Copier (Excel) ».</li><li><b class="text-white">Précision</b>Plateforme : calcul exact triangle par triangle ; talus : petites mailles. Volumes en place, sans foisonnement. Un avertissement s'affiche si le calcul sort de la zone couverte par les points cotés.</li></ul><h3 class="hg-sub">Métré</h3><ul class="hg-list"><li><b class="text-white">Bouton Σ (en-tête) ou Me ⏎ :</b> tableau par calque du <b>linéaire</b> (m : lignes, polylignes, arcs, cercles), de la <b>surface hachurée</b> (m²), de la <b>surface des contours fermés</b> (m²), du nombre de <b>points topo</b> et d'<b>objets</b>, avec le total. Sur tout le plan ou seulement la sélection. <b>Copier (Excel)</b> pour coller directement dans un devis, ou <b>Exporter CSV</b>. Toujours en m / m², quelle que soit l'unité du plan. Rangez vos ouvrages par calque (bordures, enrobé, réseau EP…) pour obtenir un métré directement exploitable.</li><li><b class="text-white">Polylignes ouvertes :</b> les polylignes ouvertes des DXF (bordures, réseaux, limites) restent ouvertes : pas de trait de fermeture, longueur exacte, et elles repartent ouvertes à l'export DXF.</li></ul></section><section class="hg-ch" data-ch="bg"><h2 class="hg-title"><span>🌍</span> Fonds de plan</h2><ul class="hg-list"><li><b class="text-white">Fond de carte 🌍 (palette Topo, ou FC ⏎)</b>Sur un plan <b>géoréférencé</b> (Lambert 93 ou coniques CC42 à CC50, reconnues toutes seules d'après les coordonnées), toute la vue se couvre de la carte satellite, voilée en sombre. Tapez le <b>rayon</b> en mètres + <b>Entrée</b> (50 m par défaut, mémorisé), déplacez le <b>cercle clair</b> à l'endroit voulu et <b>cliquez</b> : l'image haute définition est implantée <b>à sa vraie place</b>, avec le nord tourné selon la projection. En vous déplaçant ou en zoomant, la carte se recharge. Échap pour quitter. Sur un plan non géoréférencé, l'outil ouvre la fenêtre de recherche d'un lieu (adresse, clic, rayon).</li><li><b class="text-white">Cadastre</b>Interrupteur <b>Cadastre</b> (IGN / DGFiP, France) dans la fenêtre puis dans les propriétés du fond, pour l'afficher ou le masquer à tout moment.</li><li><b class="text-white">Manipuler un fond</b>Clic dedans pour le sélectionner, puis Déplacer, Pivoter, Copier, Supprimer ; son centre s'accroche. Agrandir / Réduire le sort de l'échelle (signalé). Si le plan contient déjà un dessin, la vue ne bouge pas : dézoomez pour voir la carte.</li><li><b class="text-white">Opacité</b>Sélectionnez le fond, tapez une valeur puis <b>%</b> (ex. <b>40%</b>) : 100 % = plein, 0 % = invisible.</li><li><b class="text-white">Impression et fichiers</b>Le fond s'imprime (sources Esri / IGN en petit en bas à gauche de la feuille) et s'enregistre dans le .mmc, mais pas dans le DXF.</li><li><b class="text-white">Fond perso 🖼️</b>Bouton image en bas à droite : importe un <b>PDF</b> (choix de la page), un <b>JPEG</b> ou un <b>PNG</b> (plan de géomètre, scan, photo…). Il se place sous le dessin ; sélection, déplacer, pivoter, opacité <b>XX%</b> comme un fond de carte ; ses 4 coins s'accrochent. Enregistré dans le .mmc (pas dans le DXF).</li><li><b class="text-white">Mise à l'échelle</b>Trois façons : <b>Calibrer sur le plan</b>, <b>Échelle du PDF</b> (ex. 1:200, calculée depuis le format de la page) ou <b>Largeur réelle</b> de l'image. Le bouton <b>📏 Calibrer l'échelle</b> des propriétés permet de recaler à tout moment.</li><li><b class="text-white">Calibrer pas à pas</b>1) cliquez le début d'une longueur connue sur l'image, 2) cliquez sa fin, 3) tapez la longueur réelle dans l'unité du plan (ex. <b>12,5</b>), 4) <b>Entrée</b>. L'image est mise à l'échelle autour du 1er point.</li></ul></section><section class="hg-ch" data-ch="files"><h2 class="hg-title"><span>💾</span> Fichiers</h2><ul class="hg-list"><li><b class="text-white">Gabarits (.gbt)</b>Menu fichier : <b>Enregistrer le gabarit</b> crée un fichier <b>.gbt</b> qui garde vos <b>calques</b> (couleurs, types de trait et libellés, épaisseurs, textes, hachures), les réglages <b>⛯</b> (unité, décimales, grille, format, orientation, fichier produit), le <b>cartouche</b> avec son logo et son indice, le sens des cotes, les accroches, les talus par défaut et les <b>blocs ajoutés au catalogue</b>. <b>Charger un gabarit</b> (ou Ouvrir… sur un .gbt) l'applique : sur un plan vierge ses calques remplacent ceux du plan ; sur un plan dessiné ils sont fusionnés par nom (styles mis à jour, calques manquants ajoutés, rien n'est effacé). Le <b>dernier gabarit chargé revient tout seul</b> au démarrage ; son nom s'affiche en <span class="text-sky-400">bleu</span> dans l'en-tête, à côté du nom du plan (clic dessus = en charger un autre). Un gabarit se partage : toute l'équipe peut travailler avec les mêmes calques et le même cartouche.</li><li><b class="text-white">Ouvrir… (Ctrl+O) / Enregistrer (Ctrl+S) / Enregistrer sous… (Ctrl+Maj+S) :</b> dans le menu disquette. Le plan est enregistré dans un fichier <b>.mmc</b> (plan MomoCAD) qui contient tout : dessin, calques et leurs réglages, accrochages, cartouche, grille, fonds de carte (images comprises), la vue en cours, et les réglages ⛯ (unité, décimales, format de feuille, type de fichier, cartouche oui/non) ainsi que le sens du texte des cotes, rétablis à l'ouverture. Le nom du plan s'affiche à côté du menu, avec un <b>•</b> orange tant qu'il reste des modifications non enregistrées ; MomoCAD prévient avant de fermer la page ou d'ouvrir un autre plan.</li><li><b class="text-white">Maillages STL (Ouvrir… ou glisser le fichier)</b>Un fichier <b>.stl</b> (binaire ou texte) est <b>inséré dans le plan en cours</b>. Une fenêtre demande l'<b>unité</b> du fichier (mm, cm, m, pouce — devinée d'après sa taille) et la <b>position</b> : à ses coordonnées (maillage géoréférencé de drone, scanner, MNT) ou au centre de l'écran posé sur le terrain. En plan il apparaît en vue de dessus (triangles fins + cadre), en 3D en volume ; il se déplace, pivote, s'agrandit, se copie et s'accroche par les coins de son cadre. Il est enregistré dans le .mmc (pas dans le DXF).</li><li><b class="text-white">Exporter en STL (3D)</b>Menu fichier : enregistre en <b>STL binaire</b> tout ce que montre la vue 3D (terrain fini, plateformes, talus, solides, maillages), en <b>mètres</b>, dans le repère du plan avec les <b>altitudes réelles</b>, aberration ×1. Les fonds de carte ne sont pas exportés.</li><li><b class="text-white">Enregistrer en DXF :</b> dans « Enregistrer sous », choisissez le type <b>DXF AutoCAD (.dxf)</b> (ou tapez un nom finissant par <b>.dxf</b>). Ensuite Ctrl+S réécrit ce DXF. Le DXF garde la géométrie, les calques et leurs réglages, les textes, cotes et hachures, mais pas les fonds de carte, les cotes d'angle ni le cartouche : gardez aussi un .mmc pour ne rien perdre. <b>Ouvrir</b> accepte aussi les DXF (ils deviennent le plan en cours) et les anciens fichiers .momocad.</li><li><b class="text-white">Double-clic sur un .mmc :</b> avec l'appli installée (Chrome / Edge sur ordinateur), les fichiers .mmc prennent l'icône MomoCAD et s'ouvrent directement dans MomoCAD par double-clic ; les .dxf apparaissent dans « Ouvrir avec ». Le navigateur demande l'autorisation la première fois. Si l'appli était déjà installée, désinstallez-la puis réinstallez-la pour activer l'association.</li><li><b class="text-white">Chrome / Edge :</b> on choisit le dossier et le nom une fois (Enregistrer sous), ensuite <b>Ctrl+S</b> réécrit directement le même fichier, comme un vrai logiciel (le navigateur demande l'autorisation la première fois). <b>Firefox / Safari :</b> Enregistrer télécharge le fichier dans le dossier Téléchargements, et Ouvrir passe par le sélecteur de fichier.</li><li><b class="text-white">DXF (même menu) :</b> Exporter / Importer au format DXF R2000 (AC1015), à l'échelle 1:1 (1 unité = 1 mm). Format d'échange lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li><li><b class="text-white">Mise en forme conservée :</b> couleur, épaisseur, type de ligne, et les réglages Texte et Hachure de chaque calque sont enregistrés dans le DXF et restaurés au rechargement. Les couleurs sont ramenées à l'index ACI le plus proche (palette DXF standard).</li><li><b class="text-white">Entités gérées :</b> lignes, polylignes (rectangles), cercles, arcs, textes et hachures. Les hachures sont exportées en vraies hachures AutoCAD (entités HATCH, îlots compris), modifiables dans AutoCAD et relues comme hachures à l'import. L'import gère l'ancien format de polyligne (POLYLINE/VERTEX) et le moderne (LWPOLYLINE). Les blocs, splines et hachures à contours courbes venant d'autres logiciels sont ignorés et signalés.</li><li><b class="text-white">Installer l'appli :</b> sur la version en ligne (GitHub), Chrome et Edge affichent un bouton vert « Installer l'appli » en haut à droite. MomoCAD s'ouvre alors dans sa propre fenêtre, avec son icône 📐 (une connexion Internet reste nécessaire). Sur iPhone/iPad : Partager → « Sur l'écran d'accueil ».</li><li><b class="text-white">Recentrage auto :</b> après un import DXF, la vue se recentre automatiquement sur le dessin (les fichiers externes ont souvent des coordonnées très éloignées de l'origine).</li></ul></section><section class="hg-ch" data-ch="print"><h2 class="hg-title"><span>🖨️</span> Impression & paramètres</h2><ul class="hg-list"><li><b class="text-white">Unité et décimales</b>Réglées dans ⛯ (onglet Plan) : unité <b>mm</b>, <b>cm</b> ou <b>m</b> et 0 à 4 décimales. Elles s'appliquent aux coordonnées, cotes, longueurs et valeurs tapées (en m, « 2,5 » trace 2,5 m). Le dessin ne change pas, seule la lecture change. Les hauteurs de texte des calques restent en mm.</li><li><b class="text-white">Paramètres ⛯</b>Bouton à gauche d'Imprimer : trois onglets (le dernier ouvert est retenu). <b>Plan</b> : unité, précision, grille. <b>Impression</b> : format de feuille A5 à A0, <b>orientation portrait / paysage</b>, fichier PDF / JPEG / PNG, aperçu de la feuille. <b>Cartouche</b> : impression oui / non, aperçu en direct, plan, <b>indice</b>, client, dessinateur, logo.</li><li><b class="text-white">Cartouche et logo</b>Cartouche compact 70 × 20 mm avec une case logo carrée. L'<b>indice</b> de révision (A, B, C…) s'imprime en gras au bout de la ligne « Plan » (« Ind. B »). À l'import du logo, une fenêtre de <b>recadrage</b> s'ouvre : glissez le carré, tirez un coin ou molette, puis <b>Recadrer</b> (ou <b>Image entière</b>).</li><li><b class="text-white">Mémorisation</b>Tous ces réglages sont mémorisés sur ce poste et enregistrés dans le .mmc : ouvrir un .mmc applique les réglages de ce plan.</li><li><b class="text-white">Aperçu :</b> affiche la feuille exactement comme elle sortira, sur fond blanc (cadre, cartouche, couleurs d'impression). La page suit la souris pour la mise en page ; <b>molette</b> = échelle, <b>ESPACE</b> = portrait/paysage, <b>CLIC</b> = figer ou libérer la page, <b>ENTRÉE</b> = produire le fichier, <b>ÉCHAP</b> = quitter.</li><li><b class="text-white">ESPACE :</b>bascule portrait / paysage (même réglage que l'orientation dans ⛯ › Impression, mémorisé avec le plan).</li><li><b class="text-white">Molette :</b> change l'échelle. Liste complète disponible :
+            <div id="help-body" class="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 text-sm text-gray-300"><section class="hg-ch" data-ch="start"><h2 class="hg-title"><span>🚀</span> Bien démarrer</h2><ul class="hg-list"><li><b class="text-white">Dessiner :</b> choisissez un outil dans la palette de gauche (ou tapez son raccourci, ex. <b>Dr ⏎</b> pour une droite), cliquez les points, tapez une longueur au clavier puis <b>Entrée</b> pour être précis.</li><li><b class="text-white">Palettes d'outils :</b>à gauche, les outils sont rangés en palettes titrées : <b>Modif</b> (sélection, déplacer, rotation, couper, prolonger, décaler, agrandir, réduire, étirer, verrouiller, éclater, arrondir), <b>Dessin</b> (droite, rectangle, cercle, arc, polygone, hachure, polyligne, plume, copie miroir, puis en violet les outils 3D : pavé, cylindre, cône, sphère, extruder, percer), <b>Topo</b> (point topo, pente, profil, courbes, cubatures, fond de carte) et <b>Nomo.</b> (textes et cotes). Cliquez un titre pour <b>réduire / déplier</b> sa palette ; l'état est mémorisé. Une palette réduite qui contient l'outil actif a son titre en bleu.</li><li><b class="text-white">Régler le plan :</b> bouton <b>⛯</b> en haut à droite : unité (mm / cm / m), décimales, grille, format d'impression, cartouche et fond de plan (type de carte, calques IGN).</li><li><b class="text-white">Enregistrer :</b> <b>Ctrl+S</b> enregistre en .mmc (fichier MomoCAD complet) ; le DXF sert à échanger avec AutoCAD.</li><li><b class="text-white">Imprimer :</b> bouton imprimante, molette pour l'échelle, clic pour produire le PDF.</li><li><b class="text-white">Perdu ?</b> <b>Échap</b> annule la commande en cours, <b>Ctrl+Z</b> annule la dernière action, et la recherche en haut de ce guide retrouve n'importe quelle fonction.</li></ul><h3 class="hg-sub">Souris & navigation</h3><ul class="hg-list"><li><b class="text-white">Rosace X Y Z (en haut à droite, en plan comme en 3D)</b>Change de vue en <b>orthogonal</b>, avec une rotation animée ; la vue en cours est <b>cerclée de jaune</b>. Cliquez : <b>Z</b> = dessus (le plan, seule vue où l'on dessine), <b>-z</b> = dessous, <b>Y</b> = face (depuis le sud), <b>X</b> = droite (depuis l'est), <b>-y</b> = arrière, <b>-x</b> = gauche, <b>ISO</b> = vue isométrique. En plan, les autres vues montrent tout en fil de fer à ses altitudes (lignes 3D, plateformes, volumes, maillages, terrain en vert léger) : molette = zoom, clic molette = déplacer ; ce sont des vues de <b>consultation</b> (choisir un outil ramène au plan). Dans la vue 3D, la même rosace oriente la caméra et suit la vue quand on la fait tourner à la souris.</li><li><b class="text-white">Clic Molette (Maintenu) :</b> Se déplacer sur le plan (Panoramique).</li><li><b class="text-white">Molette (Roulette) :</b> Zoomer / Dézoomer, sans limite, centré sur le curseur.</li><li><b class="text-white">Maj (Shift) + Tracé :</b> Forcer un trait horizontal ou vertical (ponctuel).</li><li><b class="text-white">Clic + Maj (Shift) :</b> Ajouter/Retirer un élément de la sélection.</li></ul><h3 class="hg-sub">Aides au tracé (en bas à droite)</h3><ul class="hg-list"><li><b class="text-white">Mode Ortho (icône ⊥) :</b> Activable en bas-droite ou par F8. Force toutes les lignes et polylignes à être horizontales ou verticales. Un guide pointillé bleu relie le bout du segment au pointeur pour visualiser l'alignement.</li><li><b class="text-white">Grille :</b> Affiche/masque le quadrillage de fond. La taille d'un carreau se règle dans <b>⛯ Paramètres</b> (« Carreau de la grille »), <b>dans l'unité du plan</b> choisie juste au-dessus (1 cm par défaut : « 10 » en mm, « 1 » en cm, « 0,01 » en m ; mémorisée sur ce poste). Quand les carreaux deviennent trop petits à l'écran, seul un trait sur 10 est affiché.</li><li><b class="text-white">Origine 0,0 (repère X/Y) :</b> comme dans AutoCAD, le repère rouge (X, vers la droite) et vert (Y, vers le haut) marque le point 0,0. Quand l'origine sort de l'écran, il se range en bas à gauche. Le point 0,0 est accrochable (accroche Extrémités).</li><li><b class="text-white">Coordonnées :</b> en bas à droite, X et Y du curseur par rapport à l'origine. Ce sont les mêmes coordonnées que dans AutoCAD après export DXF.</li></ul></section><section class="hg-ch" data-ch="draw"><h2 class="hg-title"><span>✏️</span> Dessiner & modifier</h2><h3 class="hg-sub">Outils</h3><ul class="hg-list"><li><b class="text-white">Validation clavier :</b> après une saisie de valeur, <b>Entrée</b> valide et revient à la Sélection, <b>Espace</b> valide et garde l'outil actif.</li><li><b class="text-white">Rectangle :</b> Clic 1 = premier coin, clic 2 = coin opposé. Ou par dimensions : après le 1er coin, tapez la largeur ⬌ + <b>Espace</b>, puis la hauteur ⬍ + <b>Entrée</b>. Le sens suit la position de la souris.</li><li><b class="text-white">Arc :</b> centre, puis rayon/point de départ, puis point de fin. L'arc se trace du côté où va la souris (angle tapé négatif = autre sens).</li><li><b class="text-white">Hachures :</b> cliquez à l'intérieur de n'importe quelle zone fermée, même formée par des traits qui se croisent ou dépassent, des arcs ou des cercles. La plus petite zone autour du clic est hachurée, et les formes isolées à l'intérieur sont laissées en blanc (îlots). La surface s'affiche dans la barre de commande. La hachure est un objet à part, au contour invisible : elle se sélectionne en cliquant dedans, se déplace et se supprime comme les autres objets, et sa surface apparaît dans les propriétés. Re-cliquez dedans avec l'outil Hachures pour la retirer. Un petit écart (environ 1,5 pixel à l'écran) entre deux traits est toléré ; au-delà, zoomez ou fermez le contour.</li><li><b class="text-white">Polyligne (PLI ⏎) :</b>comme le polygone, mais elle reste <b>ouverte</b> : cliquez les sommets (ou tapez une longueur + Espace dans la direction de la souris ; Maj / F8 = horizontal / vertical), puis <b>Entrée</b>, <b>Échap</b> ou <b>double-clic</b> pour terminer. Cliquer le 1er point la referme.</li><li><b class="text-white">Plume (PU ⏎) :</b>tracé de <b>courbes</b> comme dans Photoshop. <b>Clic</b> = point anguleux ; <b>cliquer-glisser</b> = point courbe : on tire les <b>poignées</b> (bleues, symétriques) qui donnent la tangente et la rondeur. <b>Retour arrière</b> enlève le dernier point ; <b>Entrée</b>, <b>Échap</b> ou <b>double-clic</b> termine la courbe ouverte, cliquer le 1er point (jaune) la <b>ferme</b> (on peut glisser aussi). Le résultat est une polyligne lissée : elle se déplace, pivote, se coupe, se hachure et part en DXF comme une polyligne ; seuls ses points d'ancrage s'accrochent.</li><li><b class="text-white">Copie miroir (MI ⏎) :</b>sélectionnez les objets (ou lancez l'outil, sélectionnez puis <b>Entrée</b>), cliquez <b>2 points</b> pour tracer l'<b>axe</b> (Maj / F8 = axe horizontal ou vertical) : l'aperçu montre le reflet. <b>Entrée</b> = copie miroir en <b>gardant</b> l'original, <b>Suppr</b> = miroir <b>sans</b> l'original, <b>Échap</b> = annuler. Les textes restent lisibles, les blocs restent des blocs ; les fonds de carte et images ne sont pas retournés.</li><li><b class="text-white">Déplacer :</b> dès qu'un objet est sélectionné (outil Sélection), tapez directement <b>ΔX</b> <b>Espace</b> <b>ΔY</b> <b>Entrée</b> : la barre de commande le propose. Avec l'outil Déplacer : cliquez un point de base et un point de destination. Ou tapez au clavier <b>ΔX</b>, <b>Espace</b>, <b>ΔY</b>, puis <b>Entrée</b> ou <b>Espace</b> : déplacement exact dans l'unité du plan (Y positif vers le haut, valeurs négatives acceptées ; Entrée directement après ΔX = déplacement horizontal seul). L'aperçu suit la saisie.</li><li><b class="text-white">Ajuster (Trim) :</b> Cliquez sur la portion de ligne à supprimer.</li><li><b class="text-white">Prolonger (Extend) :</b> Cliquez près de l'extrémité d'une ligne.</li><li><b class="text-white">Décaler (Offset) :</b> Tapez la distance désirée, puis cliquez sur l'objet.</li><li><b class="text-white">Agrandir / Réduire :</b> sélectionnez, puis choisissez Agrandir ou Réduire. Tapez un facteur puis <b>Entrée</b> (ex. <b>2</b> : ×2 avec Agrandir, ÷2 avec Réduire). L'échelle se fait autour du centre de la sélection. Ou en graphique : <b>clic 1</b> = point de base, <b>clic 2</b> = facteur (distance 2 / distance 1), avec aperçu en direct.</li><li><b class="text-white">Verrouiller (cadenas fermé) :</b>réunit la sélection en un <b>bloc</b> : un clic sur un de ses objets sélectionne tout le bloc.</li><li><b class="text-white">Éclater (cadenas ouvert, EC ⏎) :</b>l'inverse de Verrouiller : défait le bloc sélectionné (bloc verrouillé ou bloc posé depuis le catalogue). Sur des objets libres, Éclater décompose les rectangles et polylignes en <b>droites</b> (altitudes des sommets conservées).</li><li><b class="text-white">Catalogue de blocs (bouton « Catalogue de blocs » à droite des accroches, ou BL ⏎)</b>Onglets <b>🛁 Sanitaires</b> (WC, lavabo, bac à douche, baignoire, évier, vasque), <b>🛋️ Mobilier</b> (tables, chaise, lits, canapé, bureau, armoire) et <b>🌳 Végétation</b> (arbre, conifère, buisson, arbuste, haie), à taille réelle. Cliquez un bloc : il suit la souris en <b>transparence</b> comme un tampon. <b>Maj + molette</b> = agrandir / réduire, <b>Ctrl + molette</b> = tourner de 15°, molette seule = zoom normal. <b>Clic</b> = poser (on peut en poser plusieurs), Échap pour finir. Le bloc posé est un groupe (un clic le sélectionne en entier ; Éclater pour le modifier). Il va tout seul sur le calque de son dossier : <b>« Blocs sanitaires »</b> (bleu), <b>« Blocs mobilier »</b> (orange), <b>« Blocs végétation »</b> (vert), créé au premier bloc posé ; on peut ensuite masquer, verrouiller ou recolorer tout un dossier d'un coup.</li><li><b class="text-white">🧱 Parois (onglet du catalogue)</b>Parois <b>indépendantes, un matériau chacune</b> : voile béton, béton, parpaing 20 / 15, brique, isolant laine 100 / 140, PSE, placo BA13, enduit, ossature bois, lame d'air. En haut de l'onglet : <b>épaisseur</b> imposée (vide = celle de la paroi) et <b>côté du tracé</b> (face gauche, axe, face droite). Cliquez une paroi, puis le <b>début</b> et la <b>fin</b> (ou tapez la longueur + Entrée ; Maj = horizontal / vertical) : les parois <b>s'enchaînent</b> avec des <b>jonctions automatiques en onglet</b> (45° à l'équerre, bissectrice sinon) : faces et motifs se raccordent sur la ligne d'onglet ; recliquez le point de départ pour <b>refermer</b> le contour (onglet là aussi), Échap pour finir. Avant le 1er clic, tapez une <b>épaisseur</b> (mm) + Entrée pour la changer ; <b>Tab</b> inverse le côté (face gauche ↔ face droite). Chaque paroi est dessinée <b>en traits</b> (4 droites : 2 faces + 2 extrémités) <b>avec son motif de coupe, sans remplissage</b> (ondulations de la laine, granulats du béton, alvéoles de brique, blocs de parpaing, billes de PSE, pointillé du placo / enduit, fil du bois), sur le calque <b>« Paroi &lt;matériau&gt; »</b>, créé avec la couleur du matériau (béton gris clair, parpaing violet, brique rouge, laine jaune, PSE bleu, placo rose, enduit vert, bois orange) : vous faites vous-même la <b>superposition</b> (posez la suivante contre la face de la précédente, les coins s'accrochent) et vous <b>recoupez les angles</b> à 45° ou en about avec Couper / Prolonger. Le motif est une <b>hachure matériau</b> du calque (colonne Hachure de l'éditeur de calques : BÉT, LAI, BRQ, PRP, PSE, PLQ, END, BOI), orientée toute seule sur le plus long côté du contour. Après avoir recoupé un angle, supprimez le motif et recliquez dans le nouveau contour avec l'outil <b>Hachure</b> sur ce calque : il épouse la coupe à 45°. En DXF, le motif part en hachure simple. Les anciennes parois multicouches des plans existants restent affichées et modifiables avec <b>Y</b>.</li><li><b class="text-white">Ajouter ses blocs</b>Dans le catalogue, <b>+ Bloc DXF</b> ajoute le dessin d'un DXF (lignes, polylignes, cercles, arcs) dans l'onglet ouvert, à sa taille réelle, centré. Il est mémorisé sur ce poste ; survolez-le puis ✕ pour le retirer.</li><li><b class="text-white">Étirer (ET ⏎) :</b>comme dans AutoCAD : cliquez les 2 coins d'une <b>fenêtre</b> qui entoure les sommets à déplacer, puis le <b>point de base</b>, puis la <b>destination</b> (ou tapez une distance dans la direction de la souris + Entrée ; Maj = horizontal / vertical). Les sommets dans la fenêtre bougent, les autres restent : un rectangle s'allonge, une ligne pivote sur son autre extrémité ; cercles, arcs, textes et points se déplacent si leur centre est dans la fenêtre. Aperçu en direct.</li><li><b class="text-white">Arrondir (RA ⏎) :</b>cliquez la <b>1re droite</b> puis la <b>2e</b> (du côté à garder), tapez le rayon <b>R</b> puis <b>Entrée</b> : les deux droites sont raccourcies ou prolongées jusqu'aux points de tangence et un <b>arc</b> les raccorde. Entrée seule reprend le dernier rayon ; <b>0</b> = angle vif (les droites se rejoignent). Pour un rectangle ou une polyligne, éclatez-la d'abord.</li></ul><h3 class="hg-sub">Points d'accrochage</h3><ul class="hg-list"><li><b class="text-white">Barre « Accroches » (en-tête, à droite des calques) :</b> un bouton par type, allumé = actif : Extrémité ▢, Milieu △, Centre ⊙, Intersection ✕, Perpendiculaire ⊥, Ortho projeté, Grille #. Les choix sont mémorisés sur ce poste et dans le .mmc. Marqueur jaune carré pour les accroches d'objet.</li><li><b class="text-white">Ortho projeté (désactivé par défaut) :</b> restez environ une demi-seconde sur un point d'accroche : il passe de l'<b>orange</b> au <b>violet</b> (point acquis, jusqu'à 3). Déplacez ensuite la souris à l'horizontale ou à la verticale de ce point : une ligne pointillée violette est projetée et le curseur s'accroche (✕ violet) aux <b>croisements</b> de cette ligne avec les lignes, polylignes, cercles et arcs, ainsi qu'au croisement des lignes de deux points acquis ; sinon il glisse le long de la ligne (petit rond violet). Re-survoler un point violet le retire ; Échap les retire tous.</li><li><b class="text-white">Grille (désactivé par défaut) :</b> les croisements du quadrillage affiché deviennent des points d'accroche (✕ bleu). Sans effet si la grille est masquée ; les accroches d'objet restent prioritaires.</li><li><b class="text-white">Perpendiculaire (⊥ cyan) :</b> pendant le tracé d'une ligne ou polyligne, accroche au pied de la perpendiculaire depuis le point de départ vers la forme survolée (ligne, polyligne, cercle, arc). Incompatible avec le mode Ortho.</li></ul></section><section class="hg-ch" data-ch="layers"><h2 class="hg-title"><span>🎨</span> Calques & annotation</h2><h3 class="hg-sub">Calques</h3><ul class="hg-list"><li><b class="text-white">3 calques :</b> 0 - Tracé (blanc, continu), 1 - Construction (gris, tireté), 2 - Cotation (orange). Dans le gestionnaire de calques, chaque calque a sa couleur, son type de trait, son épaisseur, et deux réglages :</li><li><b class="text-white">Ligne avec texte (-T-) :</b>dans le gestionnaire de calques, type de ligne <b>-T-</b> puis tapez le texte dans la colonne <b>Libellé</b> (grisée tant que le type n'est pas -T-) (ex. <b>PVC120</b>) : toutes les lignes, polylignes, cercles et arcs du calque s'affichent <b>---PVC120---PVC120---</b>, texte toujours lisible et aligné sur le trait. Pour un objet en particulier, sélectionnez-le et tapez <b>Y</b> : « Texte de la ligne » remplace celui du calque (ex. EU Ø160). Imprimé tel quel ; exporté en DXF comme un tireté simple.</li><li><b class="text-white">Texte :</b> champ vide (« auto ») = taille <b>variable</b>, constante à l'écran et sur la feuille, comme les cotes. Une valeur (ex. <b>2,5</b>) = <b>hauteur fixe en mm dans le dessin</b> : le texte grandit avec le zoom et suit l'échelle d'impression. S'applique aux textes, détails et valeurs de cote du calque.</li><li><b class="text-white">Hachure :</b> motif des hachures du calque : <b>///</b> (lignes), <b>XX</b> (croisée) ou <b>■</b> (plein).</li><li><b class="text-white">Échelle de hachure (Éch.) :</b> multiplie l'écartement des traits de hachure du calque : <b>1</b> = 3 mm (par défaut), <b>2</b> = 6 mm, <b>0,5</b> = 1,5 mm. S'applique à toutes les hachures du calque, à l'écran, à l'impression et dans le DXF. Sans effet sur le plein.</li><li><b class="text-white">Paramétrer une sélection :</b> sélectionnez des objets puis tapez <b>Y</b> pour les changer de calque et, pour les objets topo, modifier leur Z et matricule (<b>N</b> pour ignorer).</li><li><b class="text-white">Calque Cotation :</b> cotes, textes et détails y sont déposés automatiquement.</li></ul><h3 class="hg-sub">Textes et cotes</h3><ul class="hg-list"><li><b class="text-white">Texte :</b> cliquez puis tapez directement sur le plan. <b>Maj+Entrée</b> = retour à la ligne, <b>Entrée</b> ou <b>Échap</b> = valider.</li><li><b class="text-white">Détail :</b> clic 1 = point désigné, clic 2 = position de l'étiquette, puis tapez le texte. Texte encadré relié par une flèche.</li><li><b class="text-white">Cote ortho (H/V) :</b> ne mesure que l'horizontale ou la verticale. 3 clics : 1er point, 2e point, position de la ligne. La ligne au-dessus ou en dessous donne une cote horizontale, à gauche ou à droite une cote verticale.</li><li><b class="text-white">Cote libre :</b> mesure la vraie distance entre les 2 points, ligne de cote parallèle à eux (avec Ortho F8 / Maj, le 2e point se cale à l'horizontale ou la verticale).</li><li><b class="text-white">Cotes cumulées / successives :</b> outil de cote actif, tapez <b>1</b> (cumulée), <b>2</b> (successive) ou <b>0</b> (simple), puis <b>Espace</b> ou <b>Entrée</b> ; le mode reste choisi jusqu'au prochain changement. <b>Cumulée</b> : clics 1, 2 puis 3 (hauteur de la ligne) ; chaque clic suivant (4, 5…) ajoute une cote mesurée depuis le point 1, sa ligne décalée du même écart que la première, comme un empilement. <b>Successive</b> : clics 1, 2, 3 ; chaque clic suivant ajoute une cote depuis le dernier point, sur la même ligne (cotes bout à bout). <b>Entrée</b>, <b>Espace</b> ou <b>Échap</b> termine la série.</li><li><b class="text-white">Texte des cotes (bouton « 1.23 » sur une ligne verticale) :</b> bascule entre texte <b>aligné</b> sur la ligne de cote (jamais à l'envers) et texte <b>toujours horizontal</b>. S'applique à toutes les cotes, à l'impression et au DXF ; enregistré dans le plan.</li><li><b class="text-white">Cotation angulaire :</b> Clic 1 = D1, Clic 2 = D2, Clic 3 = pose de l'arc. Sélection en cliquant sur la valeur °.</li><li>Textes, détails et cotes vont sur le calque <b>Cotation</b> (orange) et gardent une taille lisible constante quel que soit le zoom.</li></ul></section><section class="hg-ch" data-ch="topo"><h2 class="hg-title"><span>🏔️</span> Topographie</h2><h3 class="hg-sub">Altitudes et points</h3><ul class="hg-list"><li><b class="text-white">Le principe :</b> le plan reste vu de dessus, mais chaque point peut porter une altitude <b>Z</b> (en mètres, affichée avec 2 décimales) : extrémités des lignes, sommets des polylignes, centres des cercles et arcs, et <b>points topo</b>. Un point sans Z reste un point 2D.</li><li><b class="text-white">Lire X Y Z :</b> en bas à droite, le Z s'affiche dès que le curseur accroche ou survole un point coté ; sur un trait 3D, il est <b>interpolé</b> à l'endroit exact du curseur. Au croisement de deux traits d'altitudes différentes, les deux valeurs sont affichées (ex. Z 734,33 / 734,50).</li><li><b class="text-white">Point topo (bouton croix « Z » ou Pt ⏎) :</b> cliquez pour poser un point. Son Z est repris du point accroché ; sinon tapez son altitude puis Entrée (fonctionne aussi pour corriger le dernier point posé). Le point s'affiche comme une croix avec son altitude.</li><li><b class="text-white">Où sont les outils :</b> dans le bloc <b>Topo / 3D</b> de la palette, entre le dessin 2D et les cotations. Le Z affiché en bas d'écran est une lecture seule.</li><li><b class="text-white">Modifier un Z ou un matricule :</b> sélectionnez puis tapez <b>Y</b> (« Paramétrer la sélection ») : matricule et altitude d'un point topo, Z de plusieurs points d'un coup, Z départ / arrivée d'une ligne, Z d'un cercle ou d'un arc, Z de tous les sommets d'une polyligne. Champ vidé = altitude supprimée ; Entrée valide. Les propriétés affichent les Z et, pour une ligne cotée aux deux bouts, la <b>dénivelée</b>, la <b>pente %</b> et la <b>longueur 3D</b>.</li></ul><h3 class="hg-sub">Plans de géomètre et échanges</h3><ul class="hg-list"><li><b class="text-white">Plans de géomètre (DXF) :</b> les blocs de points avec un attribut d'altitude (ALT, ALTI, Z, NGF…) deviennent des points topo (matricule et code repris) ; les Z des lignes, polylignes 3D, points, cercles et arcs sont conservés. Les unités du fichier sont respectées (un DXF en mètres est converti), et seul l'espace objet est importé (pas le cartouche de mise en page).</li><li><b class="text-white">Coordonnées géoréférencées :</b> si le DXF est en Lambert (coordonnées de plusieurs millions de mètres), MomoCAD mémorise une origine et affiche les vraies coordonnées en bas d'écran ; l'export DXF les restitue à l'identique. Cela garde un affichage précis malgré les grands nombres.</li><li><b class="text-white">Export DXF 3D :</b> lignes avec leurs Z, polylignes 3D (ou élévation si tous les sommets ont le même Z), cercles et arcs à leur altitude, points topo en POINT 3D avec l'altitude écrite à côté. Lisible par AutoCAD et Covadis.</li><li><b class="text-white">Semis de points (menu disquette) :</b> <b>Importer un semis (CSV / TXT)</b> : une ligne par point, <b>MAT;X;Y;Z;CODE</b> ou <b>X;Y;Z</b>, en mètres ; séparateurs ; , tabulation ou espace, virgule ou point décimal ; lignes d'en-tête ignorées. Les points arrivent sur le calque « Semis de points ». <b>Exporter les points topo (CSV)</b> : MAT;X;Y;Z;CODE en coordonnées réelles, lisible par Excel.</li></ul><h3 class="hg-sub">Analyser le terrain</h3><ul class="hg-list"><li><b class="text-white">Ouvrir la vue 3D</b>Bouton <b>œil 3D</b> en bas à droite (à droite du fond perso), ou <b>VU ⏎</b>. L'œil est <b>ouvert</b> quand la 3D est affichée, fermé sinon. Re-cliquez l'œil, VU ⏎ ou Échap pour revenir au dessin. La première ouverture demande Internet (moteur 3D). La bande du bas (commande, coordonnées, œil 3D) reste visible sous la vue 3D.</li><li><b class="text-white">Solides 3D (palette Dessin, en violet)</b><b>Pavé</b> (PA ⏎) : 2 coins comme un rectangle ; <b>Cylindre</b> (CY ⏎) et <b>Cône</b> (CO ⏎) : centre puis rayon ; <b>Sphère</b> (SP ⏎) : centre puis rayon. La fenêtre <b>Y</b> s'ouvre aussitôt pour taper la <b>hauteur</b> (en m) ; l'<b>altitude de la base</b> est reprise du point accroché ou du terrain (modifiable dans Y). En plan, un pavé montre ses diagonales, un cylindre une croix, un cône ses rayons et une sphère son équateur ; en 3D ils sont modélisés en volume, à la couleur du calque. Ils se déplacent, pivotent et se copient comme les formes 2D. Ils ne comptent ni comme terrain ni comme plateforme ; le DXF n'en garde que le contour.</li><li><b class="text-white">Extruder (EX ⏎)</b>Transforme une forme fermée dessinée (rectangle, polyligne fermée, cercle) en <b>volume</b> : sélectionnez-la puis Extruder (ou Extruder puis cliquez dedans), la fenêtre <b>Y</b> demande la hauteur. Une polyligne devient un prisme à sa forme, un cercle un cylindre.</li><li><b class="text-white">Percer / découper (PC ⏎)</b>Cliquez le <b>volume</b> (pavé, extrusion, cylindre), puis une <b>forme fermée</b> dessinée entièrement à l'intérieur (cercle, rectangle, polyligne) : elle devient un <b>trou traversant</b> (perçage, réservation, fourreau). On peut enchaîner plusieurs trous ; Échap pour finir. Les trous suivent le volume quand on le déplace, le pivote ou l'agrandit.</li><li><b class="text-white">Se déplacer en 3D</b><b>Glisser</b> = tourner, <b>clic droit</b> (ou molette enfoncée) = déplacer, <b>molette</b> = zoom. La <b>rosace X Y Z</b> en haut à droite donne les vues de dessus, dessous, face, côtés, arrière et ISO, avec un retournement animé ; la vue en cours y est cerclée de jaune.</li><li><b class="text-white">Aberration ×</b>Exagération verticale de la vue 3D : multiplie les différences d'altitude pour mieux voir un relief presque plat. <b>×1 par défaut</b> = proportions réelles ; en ×5, les talus paraissent 5 fois plus raides.</li><li><b class="text-white">Options d'affichage</b><b>Surface</b> (terrain coloré du plus bas en bleu au plus haut en rouge), <b>Altitudes</b> (étiquettes des points), <b>Fonds</b> (cartes et images au sol), <b>Plateformes + talus</b>. Les objets sans altitude sont posés au niveau le plus bas.</li><li><b class="text-white">Surface du terrain (MNT) :</b> tous les sommets cotés (points topo, extrémités de lignes, sommets de polylignes) sont reliés en triangles. Cette surface sert à la vue 3D, aux pentes, au profil en long, aux courbes de niveau et aux cubatures ; elle se recalcule à chaque modification. Les grands triangles du bord (trop allongés) sont écartés.</li><li><b class="text-white">Étiquette de pente (bouton flèche % ou Pe ⏎) :</b> 2 clics sur des points cotés, des traits 3D ou n'importe où sur la surface : une flèche indique le sens de la descente, avec la pente en % et la <b>différence de niveau Δh</b> (ex. « 4,33 % · Δh 0,26 m »). Elle garde les altitudes du moment où elle est posée.</li><li><b class="text-white">Profil en long (Pr ⏎)</b>Cliquez les points de l'axe puis <b>Entrée</b> (ou double-clic). La fenêtre montre le terrain (vert) et les croisements avec les traits 3D et les points topo à moins de 50 cm de l'axe (orange).</li><li><b class="text-white">Tableau du profil</b>Un point tous les <b>N mètres</b>, plus les sommets et les croisements, avec la pente. <b>Copier (Excel)</b> ou <b>Exporter CSV</b>.</li><li><b class="text-white">Dessiner le profil</b><b>Dessiner dans le plan</b> : tracé 10 m sous le dessin (calque « Profil en long »), avec plan de comparaison et cotes. <b>Hauteurs ×</b> (×5 par défaut, ×1 = réel) règle l'exagération du graphique et du dessin.</li><li><b class="text-white">Courbes de niveau (Cn ⏎) :</b> équidistance au choix (5 cm à 5 m) et une maîtresse toutes les N courbes, avec l'altitude écrite dessus. Elles vont sur les calques « Courbes de niveau » et « Courbes maîtresses », portent leur Z (export DXF 3D) et sont remplacées si vous les régénérez.</li></ul></section><section class="hg-ch" data-ch="earth"><h2 class="hg-title"><span>🚜</span> Terrassement & devis</h2><h3 class="hg-sub">Plateformes et talus</h3><ul class="hg-list"><li><b class="text-white">Créer une plateforme</b>Tracez une forme <b>fermée</b> (rectangle, polygone ou cercle), sélectionnez-la, tapez <b>Y</b> et donnez la même altitude à tous ses sommets (ou au cercle). Elle devient une plateforme : elle ne compte plus comme terrain naturel.</li><li><b class="text-white">Plateforme ronde</b>Tracez un cercle et donnez-lui son altitude avec <b>Y</b>. Un cercle venant d'un DXF de géomètre ou posé sur un point coté reste un simple cercle tant que vous ne lui redonnez pas son Z avec Y (idem pour les contours 2D de géomètre).</li><li><b class="text-white">Talus de chaque plateforme</b>Dans la fenêtre <b>Y</b> : case « Talus jusqu'au terrain », pente de <b>remblai</b> et de <b>déblai</b> en H/V (3/2 = 3 m à plat pour 2 m de haut). Aussi réglables à l'étape Talus des Cubatures. Enregistrés dans le .mmc ; une nouvelle plateforme reprend les derniers réglages.</li><li><b class="text-white">Talus en plan</b>Dessinés automatiquement : <b>pied de talus</b> et <b>peigne</b> (traits longs / courts depuis le haut du talus), angles arrondis, arrêt sur la bissectrice dans les angles rentrants. Ils suivent la plateforme, s'impriment et partent dans le DXF. Rien n'est dessiné hors de la zone couverte par les points cotés.</li><li><b class="text-white">Points nez / pied</b>Quelques points cotés en <b>nez</b> (haut) et <b>pied</b> (bas) de talus : aux angles et tous les <b>N mètres</b> (10 m par défaut, 0 = angles seuls, réglage dans <b>Y</b>). Exportés dans le DXF et dans le <b>semis CSV</b> (matricules PF1-N1, PF1-P1…, codes NEZ / PIED).</li><li><b class="text-white">Plateformes voisines</b>Quand les talus de deux plateformes se rencontrent, ils se <b>raccordent</b> au lieu de se superposer : deux remblais se rejoignent (le plus haut l'emporte), deux déblais se rejoignent (le plus bas l'emporte), et un remblai qui rencontre le déblai d'une autre plateforme s'arrête sur lui. Le peigne, le pied de talus, les points nez / pied et la 3D suivent ce raccord.</li><li><b class="text-white">En 3D</b>Case « Plateformes + talus » de la vue 3D : dalle à sa cote, talus bleus (remblai) ou rouges (déblai), terrain fini autour.</li></ul><h3 class="hg-sub">Cubatures</h3><ul class="hg-list"><li><b class="text-white">Lancer les cubatures</b>Bouton cubatures ou <b>Cu ⏎</b> : assistant en 4 étapes (cliquez une étape pour y revenir).</li><li><b class="text-white">1. Emprise</b>Objet fermé sélectionné, ou « Choisir sur le plan » puis clic dans la zone (polyligne fermée, hachure ou cercle). Une plateforme dessinée est reprise avec sa cote.</li><li><b class="text-white">2. Projet</b>Plateforme horizontale à une cote (la cote moyenne du terrain est proposée : c'est l'équilibre sans talus), ou surface projet tirée des calques cochés.</li><li><b class="text-white">3. Talus</b>Pentes de remblai et de déblai en H/V, du bord de la plateforme jusqu'au terrain.</li><li><b class="text-white">4. Résultats</b>Déblai, remblai et solde, puis le détail plateforme / talus / total avec les surfaces. « Copier (Excel) » et « Tracer sur le plan » (limites déblai / remblai et talus).</li><li><b class="text-white">Plusieurs plateformes</b>Les talus sont calculés avec toutes les plateformes du plan : la zone commune entre deux talus n'est comptée qu'<b>une fois</b>, attribuée au talus qui la façonne (une note l'indique). Avec plusieurs plateformes, un <b>bilan de toutes les plateformes</b> (plateforme + talus, déblai, remblai, solde et total chantier) s'affiche sous les résultats et part dans « Copier (Excel) ».</li><li><b class="text-white">Précision</b>Plateforme : calcul exact triangle par triangle ; talus : petites mailles. Volumes en place, sans foisonnement. Un avertissement s'affiche si le calcul sort de la zone couverte par les points cotés.</li></ul><h3 class="hg-sub">Métré</h3><ul class="hg-list"><li><b class="text-white">Bouton Σ (en-tête) ou Me ⏎ :</b> tableau par calque du <b>linéaire</b> (m : lignes, polylignes, arcs, cercles), de la <b>surface hachurée</b> (m²), de la <b>surface des contours fermés</b> (m²), du nombre de <b>points topo</b> et d'<b>objets</b>, avec le total. Sur tout le plan ou seulement la sélection. <b>Copier (Excel)</b> pour coller directement dans un devis, ou <b>Exporter CSV</b>. Toujours en m / m², quelle que soit l'unité du plan. Rangez vos ouvrages par calque (bordures, enrobé, réseau EP…) pour obtenir un métré directement exploitable.</li><li><b class="text-white">Polylignes ouvertes :</b> les polylignes ouvertes des DXF (bordures, réseaux, limites) restent ouvertes : pas de trait de fermeture, longueur exacte, et elles repartent ouvertes à l'export DXF.</li></ul></section><section class="hg-ch" data-ch="bg"><h2 class="hg-title"><span>🌍</span> Fonds de plan</h2><ul class="hg-list"><li><b class="text-white">Fond de carte 🌍 (palette Topo, ou FC ⏎)</b>Sur un plan <b>géoréférencé</b> (Lambert 93 ou coniques CC42 à CC50, reconnues toutes seules d'après les coordonnées), toute la vue se couvre de la carte choisie dans les paramètres (satellite par défaut), voilée en sombre. Tapez le <b>rayon</b> en mètres + <b>Entrée</b> (50 m par défaut, mémorisé), déplacez le <b>cercle clair</b> à l'endroit voulu et <b>cliquez</b> : l'image haute définition est implantée <b>à sa vraie place</b>, avec le nord tourné selon la projection. En vous déplaçant ou en zoomant, la carte se recharge. Échap pour quitter. Sur un plan non géoréférencé, l'outil ouvre la fenêtre de recherche d'un lieu (adresse, clic, rayon).</li><li><b class="text-white">Type de carte et calques (⛯ Paramètres › Fond de plan)</b>Choisissez la carte de fond : <b>Satellite</b> (Esri, monde entier), <b>Photo IGN</b>, <b>Plan</b> (rues) ou <b>Plan IGN</b> ; et les <b>calques superposés</b> à télécharger avec chaque nouveau fond : <b>cadastre</b>, <b>limites de communes</b>, <b>pentes</b>, <b>courbes de niveau</b>, <b>hydrographie</b>, <b>routes</b> (IGN, France). Le cadastre est toujours téléchargé, même décoché. Réglages mémorisés sur ce poste et dans le gabarit .gbt. La fenêtre de recherche de lieu a aussi le choix de carte et l'interrupteur Cadastre.</li><li><b class="text-white">Calques d'un fond posé</b>Sélectionnez le fond : ses propriétés listent la <b>carte</b> (changer = nouveau téléchargement, même centre et rayon) et un <b>interrupteur par calque</b> pour l'afficher ou le masquer à tout moment. Un calque marqué <b>⇣</b> n'a pas encore été téléchargé : cochez-le, il l'est à la demande. Les mentions des sources réellement affichées sont imprimées en bas de la feuille.</li><li><b class="text-white">Manipuler un fond</b>Clic dedans pour le sélectionner, puis Déplacer, Pivoter, Copier, Supprimer ; son centre s'accroche. Agrandir / Réduire le sort de l'échelle (signalé). Si le plan contient déjà un dessin, la vue ne bouge pas : dézoomez pour voir la carte.</li><li><b class="text-white">Opacité</b>Sélectionnez le fond, tapez une valeur puis <b>%</b> (ex. <b>40%</b>) : 100 % = plein, 0 % = invisible.</li><li><b class="text-white">Impression et fichiers</b>Le fond s'imprime (sources Esri / IGN en petit en bas à gauche de la feuille) et s'enregistre dans le .mmc, mais pas dans le DXF.</li><li><b class="text-white">Fond perso 🖼️</b>Bouton image en bas à droite : importe un <b>PDF</b> (choix de la page), un <b>JPEG</b> ou un <b>PNG</b> (plan de géomètre, scan, photo…). Il se place sous le dessin ; sélection, déplacer, pivoter, opacité <b>XX%</b> comme un fond de carte ; ses 4 coins s'accrochent. Enregistré dans le .mmc (pas dans le DXF).</li><li><b class="text-white">Mise à l'échelle</b>Trois façons : <b>Calibrer sur le plan</b>, <b>Échelle du PDF</b> (ex. 1:200, calculée depuis le format de la page) ou <b>Largeur réelle</b> de l'image. Le bouton <b>📏 Calibrer l'échelle</b> des propriétés permet de recaler à tout moment.</li><li><b class="text-white">Calibrer pas à pas</b>1) cliquez le début d'une longueur connue sur l'image, 2) cliquez sa fin, 3) tapez la longueur réelle dans l'unité du plan (ex. <b>12,5</b>), 4) <b>Entrée</b>. L'image est mise à l'échelle autour du 1er point.</li></ul></section><section class="hg-ch" data-ch="files"><h2 class="hg-title"><span>💾</span> Fichiers</h2><ul class="hg-list"><li><b class="text-white">Gabarits (.gbt)</b>Menu fichier : <b>Enregistrer le gabarit</b> crée un fichier <b>.gbt</b> qui garde vos <b>calques</b> (couleurs, types de trait et libellés, épaisseurs, textes, hachures), les réglages <b>⛯</b> (unité, décimales, grille, format, orientation, fichier produit), le <b>cartouche</b> avec son logo et son indice, le sens des cotes, les accroches, les talus par défaut et les <b>blocs ajoutés au catalogue</b>. <b>Charger un gabarit</b> (ou Ouvrir… sur un .gbt) l'applique : sur un plan vierge ses calques remplacent ceux du plan ; sur un plan dessiné ils sont fusionnés par nom (styles mis à jour, calques manquants ajoutés, rien n'est effacé). Le <b>dernier gabarit chargé revient tout seul</b> au démarrage ; son nom s'affiche en <span class="text-sky-400">bleu</span> dans l'en-tête, à côté du nom du plan (clic dessus = en charger un autre). Un gabarit se partage : toute l'équipe peut travailler avec les mêmes calques et le même cartouche.</li><li><b class="text-white">Ouvrir… (Ctrl+O) / Enregistrer (Ctrl+S) / Enregistrer sous… (Ctrl+Maj+S) :</b> dans le menu disquette. Le plan est enregistré dans un fichier <b>.mmc</b> (plan MomoCAD) qui contient tout : dessin, calques et leurs réglages, accrochages, cartouche, grille, fonds de carte (images comprises), la vue en cours, et les réglages ⛯ (unité, décimales, format de feuille, type de fichier, cartouche oui/non) ainsi que le sens du texte des cotes, rétablis à l'ouverture. Le nom du plan s'affiche à côté du menu, avec un <b>•</b> orange tant qu'il reste des modifications non enregistrées ; MomoCAD prévient avant de fermer la page ou d'ouvrir un autre plan.</li><li><b class="text-white">Maillages STL (Ouvrir… ou glisser le fichier)</b>Un fichier <b>.stl</b> (binaire ou texte) est <b>inséré dans le plan en cours</b>. Une fenêtre demande l'<b>unité</b> du fichier (mm, cm, m, pouce — devinée d'après sa taille) et la <b>position</b> : à ses coordonnées (maillage géoréférencé de drone, scanner, MNT) ou au centre de l'écran posé sur le terrain. En plan il apparaît en vue de dessus (triangles fins + cadre), en 3D en volume ; il se déplace, pivote, s'agrandit, se copie et s'accroche par les coins de son cadre. Il est enregistré dans le .mmc (pas dans le DXF).</li><li><b class="text-white">Exporter en STL (3D)</b>Menu fichier : enregistre en <b>STL binaire</b> tout ce que montre la vue 3D (terrain fini, plateformes, talus, solides, maillages), en <b>mètres</b>, dans le repère du plan avec les <b>altitudes réelles</b>, aberration ×1. Les fonds de carte ne sont pas exportés.</li><li><b class="text-white">Enregistrer en DXF :</b> dans « Enregistrer sous », choisissez le type <b>DXF AutoCAD (.dxf)</b> (ou tapez un nom finissant par <b>.dxf</b>). Ensuite Ctrl+S réécrit ce DXF. Le DXF garde la géométrie, les calques et leurs réglages, les textes, cotes et hachures, mais pas les fonds de carte, les cotes d'angle ni le cartouche : gardez aussi un .mmc pour ne rien perdre. <b>Ouvrir</b> accepte aussi les DXF (ils deviennent le plan en cours) et les anciens fichiers .momocad.</li><li><b class="text-white">Double-clic sur un .mmc :</b> avec l'appli installée (Chrome / Edge sur ordinateur), les fichiers .mmc prennent l'icône MomoCAD et s'ouvrent directement dans MomoCAD par double-clic ; les .dxf apparaissent dans « Ouvrir avec ». Le navigateur demande l'autorisation la première fois. Si l'appli était déjà installée, désinstallez-la puis réinstallez-la pour activer l'association.</li><li><b class="text-white">Chrome / Edge :</b> on choisit le dossier et le nom une fois (Enregistrer sous), ensuite <b>Ctrl+S</b> réécrit directement le même fichier, comme un vrai logiciel (le navigateur demande l'autorisation la première fois). <b>Firefox / Safari :</b> Enregistrer télécharge le fichier dans le dossier Téléchargements, et Ouvrir passe par le sélecteur de fichier.</li><li><b class="text-white">DXF (même menu) :</b> Exporter / Importer au format DXF R2000 (AC1015), à l'échelle 1:1 (1 unité = 1 mm). Format d'échange lisible par AutoCAD, Covadis, Mensura, géomètres, etc.</li><li><b class="text-white">Mise en forme conservée :</b> couleur, épaisseur, type de ligne, et les réglages Texte et Hachure de chaque calque sont enregistrés dans le DXF et restaurés au rechargement. Les couleurs sont ramenées à l'index ACI le plus proche (palette DXF standard).</li><li><b class="text-white">Entités gérées :</b> lignes, polylignes (rectangles), cercles, arcs, textes et hachures. Les hachures sont exportées en vraies hachures AutoCAD (entités HATCH, îlots compris), modifiables dans AutoCAD et relues comme hachures à l'import. L'import gère l'ancien format de polyligne (POLYLINE/VERTEX) et le moderne (LWPOLYLINE). Les blocs, splines et hachures à contours courbes venant d'autres logiciels sont ignorés et signalés.</li><li><b class="text-white">Installer l'appli :</b> sur la version en ligne (GitHub), Chrome et Edge affichent un bouton vert « Installer l'appli » en haut à droite. MomoCAD s'ouvre alors dans sa propre fenêtre, avec son icône 📐 (une connexion Internet reste nécessaire). Sur iPhone/iPad : Partager → « Sur l'écran d'accueil ».</li><li><b class="text-white">Recentrage auto :</b> après un import DXF, la vue se recentre automatiquement sur le dessin (les fichiers externes ont souvent des coordonnées très éloignées de l'origine).</li></ul></section><section class="hg-ch" data-ch="print"><h2 class="hg-title"><span>🖨️</span> Impression & paramètres</h2><ul class="hg-list"><li><b class="text-white">Unité et décimales</b>Réglées dans ⛯ (onglet Plan) : unité <b>mm</b>, <b>cm</b> ou <b>m</b> et 0 à 4 décimales. Elles s'appliquent aux coordonnées, cotes, longueurs et valeurs tapées (en m, « 2,5 » trace 2,5 m). Le dessin ne change pas, seule la lecture change. Les hauteurs de texte des calques restent en mm.</li><li><b class="text-white">Paramètres ⛯</b>Bouton à gauche d'Imprimer : trois onglets (le dernier ouvert est retenu). <b>Plan</b> : unité, précision, grille. <b>Impression</b> : format de feuille A5 à A0, <b>orientation portrait / paysage</b>, fichier PDF / JPEG / PNG, aperçu de la feuille. <b>Cartouche</b> : impression oui / non, aperçu en direct, plan, <b>indice</b>, client, dessinateur, logo.</li><li><b class="text-white">Cartouche et logo</b>Cartouche compact 70 × 20 mm avec une case logo carrée. L'<b>indice</b> de révision (A, B, C…) s'imprime en gras au bout de la ligne « Plan » (« Ind. B »). À l'import du logo, une fenêtre de <b>recadrage</b> s'ouvre : glissez le carré, tirez un coin ou molette, puis <b>Recadrer</b> (ou <b>Image entière</b>).</li><li><b class="text-white">Mémorisation</b>Tous ces réglages sont mémorisés sur ce poste et enregistrés dans le .mmc : ouvrir un .mmc applique les réglages de ce plan.</li><li><b class="text-white">Aperçu :</b> affiche la feuille exactement comme elle sortira, sur fond blanc (cadre, cartouche, couleurs d'impression). La page suit la souris pour la mise en page ; <b>molette</b> = échelle, <b>ESPACE</b> = portrait/paysage, <b>CLIC</b> = figer ou libérer la page, <b>ENTRÉE</b> = produire le fichier, <b>ÉCHAP</b> = quitter.</li><li><b class="text-white">ESPACE :</b>bascule portrait / paysage (même réglage que l'orientation dans ⛯ › Impression, mémorisé avec le plan).</li><li><b class="text-white">Molette :</b> change l'échelle. Liste complète disponible :
                         <span class="text-gray-400">5:1, 2:1, <b class="text-white">1:1</b> (défaut), 1:2, 1:5, 1:10, 1:25, 1:50, 1:100, 1:150, 1:200, 1:500.</span>
                         Les agrandissements (5:1, 2:1) servent aux petites pièces, les réductions aux grands ouvrages.</li><li><b class="text-white">Clic (mode Imprimer) :</b> produit le fichier choisi dans ⛯ (marge 5 mm, cartouche 70 × 20 mm en bas à droite s'il est activé). Les images sont en 200 dpi (un peu moins en A1/A0). Épaisseur de trait 1 = 0,25 mm sur papier, quel que soit le format.</li><li><b class="text-white">Zone jaune :</b> dans l'aperçu écran, la silhouette jaune indique l'emplacement réservé au cartouche — évite d'y placer des éléments importants.</li></ul></section><section class="hg-ch" data-ch="keys"><h2 class="hg-title"><span>⌨️</span> Raccourcis</h2><h3 class="hg-sub">Clavier</h3><ul class="hg-list"><li><b class="text-white">Saisie + Entrée :</b> Indiquer la distance, l'angle ou la valeur d'un décalage.</li><li><b class="text-white">F8 :</b> Activer / désactiver le mode Ortho.</li><li><b class="text-white">Échap (Esc) :</b> Revenir à l'outil Sélection.</li><li><b class="text-white">Suppr / Retour arrière :</b> Supprimer les objets sélectionnés.</li><li><b class="text-white">Ctrl + Z / Ctrl + Y :</b> Annuler ou Rétablir une action.</li><li><b class="text-white">Ctrl + C / Ctrl + V / Ctrl + X :</b> Copier, Coller ou Couper.</li></ul><h3 class="hg-sub">Commandes au clavier</h3><div class="hg-raw">
                 <p class="text-xs text-gray-400 mb-1 pl-2">Tapez les lettres (majuscules ou minuscules, sans cliquer nulle part) puis <b>Entrée</b> ⏎. La barre de commande montre ce que vous tapez et les commandes possibles ; Retour arrière corrige, Échap annule. Les objets déjà sélectionnés restent sélectionnés (pratique pour D ⏎ ou R ⏎).</p>
@@ -974,6 +998,7 @@
             document.getElementById('ps-output').value = printSettings.output;
             document.getElementById('ps-orient').value = printOrientation;
             document.getElementById('cartouche-indice').value = cartoucheData.indice || '';
+            document.getElementById('ps-bmbase').value = bmSettings.base; BM_OVL_LIST.forEach(k => { document.getElementById('ps-ov-' + k).checked = !!bmSettings.ov[k]; });
             document.getElementById('ps-unit').value = currentUnit;
             document.getElementById('ps-decimals').value = String(printSettings.decimals); psDecimals(0);
             refreshGridField();
@@ -994,6 +1019,8 @@
             printSettings.output = document.getElementById('ps-output').value;
             printOrientation = printSettings.orientation = document.getElementById('ps-orient').value;
             cartoucheData.indice = document.getElementById('cartouche-indice').value.trim();
+            bmSettings = { base: document.getElementById('ps-bmbase').value, ov: {} }; BM_OVL_LIST.forEach(k => { bmSettings.ov[k] = document.getElementById('ps-ov-' + k).checked; }); bmSaveSettings(); bmRefreshLeaflet();
+            if (bmPlace) { bmPlace.ext = null; bmPlaceLoad(); }
             printSettings.cartouche = document.getElementById('ps-cartouche').checked;
             printSettings.unit = document.getElementById('ps-unit').value;
             printSettings.decimals = parseInt(document.getElementById('ps-decimals').value, 10);
@@ -1057,28 +1084,92 @@
         let basemapStore = {};
         const basemapImgCache = {};
         let bmMap = null, bmMarker = null, bmCircle = null, bmCenter = null, bmLabel = '', bmBusy = false, bmLayer = null;
-        // Fond : imagerie satellite Esri. Calque optionnel : cadastre (Parcellaire Express, IGN / DGFiP, Géoplateforme).
-        const BM_SAT = { url: (z, x, y) => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' + z + '/' + y + '/' + x,
-                         leaflet: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19,
-                         attrib: 'Imagerie &copy; Esri, Maxar, Earthstar Geographics' };
-        const BM_CAD_TPL = 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=CADASTRALPARCELS.PARCELLAIRE_EXPRESS&STYLE=PCI%20vecteur&TILEMATRIXSET=PM&FORMAT=image/png';
-        const BM_CAD = { url: (z, x, y) => BM_CAD_TPL + '&TILEMATRIX=' + z + '&TILEROW=' + y + '&TILECOL=' + x,
-                         leaflet: BM_CAD_TPL + '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', maxZoom: 19, attrib: 'Cadastre &copy; IGN / DGFiP' };
-        let bmCadOn = false, bmCadLayer = null;
-        try { bmCadOn = localStorage.getItem('momocad-basemap-cadastre') === '1'; } catch (e) {}
-        function bmSetCadastre(on) {
-            bmCadOn = !!on;
-            try { localStorage.setItem('momocad-basemap-cadastre', bmCadOn ? '1' : '0'); } catch (e) {}
+        // Fond de plan : une carte de fond (opaque) + des calques superposés (PNG transparents, Géoplateforme IGN).
+        // Réglés dans ⛯ Paramètres › Fond de plan ; chaque fond posé garde ses calques, activables un par un dans ses propriétés.
+        const GPF = (layer, style, fmt, tms) => { const T = 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=' + layer + '&STYLE=' + style + '&TILEMATRIXSET=' + (tms || 'PM') + '&FORMAT=' + fmt;
+            return { url: (z, x, y) => T + '&TILEMATRIX=' + z + '&TILEROW=' + y + '&TILECOL=' + x, leaflet: T + '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}' }; };
+        const ESRI = (svc) => { const T = 'https://server.arcgisonline.com/ArcGIS/rest/services/' + svc + '/MapServer/tile/'; return { url: (z, x, y) => T + z + '/' + y + '/' + x, leaflet: T + '{z}/{y}/{x}' }; };
+        const BM_BASES = {
+            sat: Object.assign(ESRI('World_Imagery'), { name: 'Satellite', sub: 'Esri, monde entier', maxZoom: 19, attrib: 'imagerie © Esri, Maxar' }),
+            ortho: Object.assign(GPF('ORTHOIMAGERY.ORTHOPHOTOS', 'normal', 'image/jpeg'), { name: 'Photo IGN', sub: 'orthophoto IGN, France', maxZoom: 19, attrib: 'photographie aérienne © IGN' }),
+            plan: Object.assign(ESRI('World_Street_Map'), { name: 'Plan', sub: 'plan de rues Esri / OSM', maxZoom: 19, attrib: 'plan © Esri, HERE, Garmin, OpenStreetMap' }),
+            planign: Object.assign(GPF('GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2', 'normal', 'image/png'), { name: 'Plan IGN', sub: 'carte IGN, France', maxZoom: 19, attrib: 'Plan IGN © IGN' })
+        };
+        const BM_OVLS = {
+            cad: Object.assign(GPF('CADASTRALPARCELS.PARCELLAIRE_EXPRESS', 'PCI%20vecteur', 'image/png'), { name: 'Cadastre', sub: 'parcelles et bâti (Parcellaire Express)', maxZoom: 19, attrib: 'cadastre © IGN / DGFiP' }),
+            communes: Object.assign(GPF('ADMINEXPRESS-COG-CARTO.LATEST', 'normal', 'image/png', 'PM_6_16'), { name: 'Limites de communes', sub: 'communes, départements (Admin Express)', minZoom: 6, maxZoom: 16, attrib: 'limites © IGN' }),
+            pentes: Object.assign(GPF('GEOGRAPHICALGRIDSYSTEMS.SLOPES.MOUNTAIN', 'normal', 'image/png'), { name: 'Pentes', sub: 'classes de pente (relief, montagne)', maxZoom: 17, attrib: 'pentes © IGN' }),
+            courbes: Object.assign(GPF('ELEVATION.CONTOUR.LINE', 'normal', 'image/png'), { name: 'Courbes de niveau', sub: 'altimétrie IGN', maxZoom: 18, attrib: 'courbes © IGN' }),
+            hydro: Object.assign(GPF('HYDROGRAPHY.HYDROGRAPHY', 'normal', 'image/png'), { name: 'Hydrographie', sub: 'cours d\'eau, plans d\'eau', maxZoom: 18, attrib: 'hydrographie © IGN' }),
+            routes: Object.assign(GPF('TRANSPORTNETWORKS.ROADS', 'normal', 'image/png'), { name: 'Routes', sub: 'réseau routier', maxZoom: 18, attrib: 'routes © IGN' })
+        };
+        const BM_OVL_LIST = ['cad', 'communes', 'pentes', 'courbes', 'hydro', 'routes'];        // ordre d'affichage des réglages
+        const BM_OVL_ORDER = ['pentes', 'hydro', 'courbes', 'routes', 'communes', 'cad'];      // ordre de dessin (bas → haut)
+        const BM_SAT = BM_BASES.sat, BM_CAD = BM_OVLS.cad;
+        let bmSettings = { base: 'sat', ov: {} };
+        try { const v = JSON.parse(localStorage.getItem('momocad-bm') || 'null');
+            if (v) bmSettings = { base: BM_BASES[v.base] ? v.base : 'sat', ov: Object.assign({}, v.ov) };
+            else bmSettings.ov.cad = localStorage.getItem('momocad-basemap-cadastre') === '1'; } catch (e) {}
+        function bmSaveSettings() { try { localStorage.setItem('momocad-bm', JSON.stringify(bmSettings)); } catch (e) {} }
+        const bmBase = () => BM_BASES[bmSettings.base] || BM_BASES.sat;
+        const bmOvlOn = (s, k) => s.ovl ? !!s.ovl[k] : (k === 'cad' && !!s.cadastre);
+        // fenêtre de recherche (Leaflet) : carte et calques choisis
+        let bmLLayers = {};
+        function bmRefreshLeaflet() {
             if (!bmMap) return;
-            if (bmCadOn && !bmCadLayer) bmCadLayer = L.tileLayer(BM_CAD.leaflet, { maxZoom: 20, maxNativeZoom: BM_CAD.maxZoom, attribution: BM_CAD.attrib, crossOrigin: true });
-            if (bmCadOn) bmCadLayer.addTo(bmMap); else if (bmCadLayer) bmMap.removeLayer(bmCadLayer);
+            const want = ['b:' + bmSettings.base].concat(BM_OVL_ORDER.filter(k => bmSettings.ov[k]).map(k => 'o:' + k));
+            Object.keys(bmLLayers).forEach(key => { if (!want.includes(key) && bmMap.hasLayer(bmLLayers[key])) bmMap.removeLayer(bmLLayers[key]); });
+            want.forEach((key, i) => {
+                const src = key[0] === 'b' ? BM_BASES[key.slice(2)] : BM_OVLS[key.slice(2)]; if (!src) return;
+                if (!bmLLayers[key]) bmLLayers[key] = L.tileLayer(src.leaflet, { maxZoom: 20, maxNativeZoom: src.maxZoom, minNativeZoom: src.minZoom || 0, attribution: src.attrib, crossOrigin: true });
+                if (!bmMap.hasLayer(bmLLayers[key])) bmLLayers[key].addTo(bmMap); bmLLayers[key].setZIndex(i + 1);
+            });
         }
-        // Cadastre d'un fond de carte déjà posé : interrupteur dans les propriétés
-        function toggleBasemapCadastre(on) {
-            const b = selectedShapes.find(x => x.type === 'basemap'); if (!b) return;
-            if (!basemapStore[b.mapId + '_cad']) return;
-            selectedShapes.filter(x => x.type === 'basemap').forEach(x => { if (basemapStore[x.mapId + '_cad']) x.cadastre = !!on; });
-            saveState(); draw();
+        function bmSetCadastre(on) { bmSettings.ov.cad = !!on; bmSaveSettings(); bmRefreshLeaflet(); }
+        function bmSetBaseModal(v) { if (!BM_BASES[v]) return; bmSettings.base = v; bmSaveSettings(); bmRefreshLeaflet(); }
+        // capture : fond + calques demandés autour d'un centre (le cadastre est toujours pris, pour pouvoir l'activer ensuite)
+        async function bmCapture(lat, lon, R, baseKey) {
+            const keys = BM_OVL_LIST.filter(k => k === 'cad' || bmSettings.ov[k]);
+            const res = await Promise.all([buildBasemapLayer(BM_BASES[baseKey] || BM_SAT, lat, lon, R, true)].concat(keys.map(k => buildBasemapLayer(BM_OVLS[k], lat, lon, R, false))));
+            const ov = {}; keys.forEach((k, i) => { if (res[i + 1]) ov[k] = res[i + 1]; });
+            return { base: res[0], ov };
+        }
+        function bmStoreCapture(id, cap) {
+            basemapStore[id] = cap.base.cv.toDataURL('image/jpeg', 0.88); bmImg(id);
+            const ovl = {};
+            for (const k in cap.ov) { basemapStore[id + '_' + k] = cap.ov[k].cv.toDataURL('image/png'); bmImg(id + '_' + k); ovl[k] = !!bmSettings.ov[k]; }
+            return ovl;
+        }
+        // Propriétés d'un fond posé : calque activé / masqué ; s'il n'a pas été téléchargé, il l'est à la demande
+        async function toggleBasemapOverlay(k, on) {
+            const bs = selectedShapes.filter(x => x.type === 'basemap'); if (!bs.length || !BM_OVLS[k]) return;
+            let miss = 0;
+            for (const b of bs) {
+                if (!b.ovl) b.ovl = { cad: !!b.cadastre };
+                if (on && !basemapStore[b.mapId + '_' + k]) {
+                    updateCommandMessageText('FOND DE CARTE : téléchargement du calque ' + BM_OVLS[k].name + '…');
+                    const L1 = await buildBasemapLayer(BM_OVLS[k], b.lat, b.lon, b.radiusM, false);
+                    if (!L1) { miss++; continue; }
+                    basemapStore[b.mapId + '_' + k] = L1.cv.toDataURL('image/png'); bmImg(b.mapId + '_' + k);
+                }
+                b.ovl[k] = !!on; if (k === 'cad') b.cadastre = !!on;
+            }
+            saveState(); draw(); updatePropertiesPopup();
+            updateCommandMessageText(miss ? 'FOND DE CARTE : calque ' + BM_OVLS[k].name + ' indisponible ici (aucune tuile reçue).' : 'FOND DE CARTE : ' + BM_OVLS[k].name + (on ? ' affiché.' : ' masqué.'));
+        }
+        function toggleBasemapCadastre(on) { return toggleBasemapOverlay('cad', on); }
+        // Propriétés : changer la carte de fond d'un fond déjà posé (nouveau téléchargement, même centre et rayon)
+        async function changeBasemapBase(v) {
+            const bs = selectedShapes.filter(x => x.type === 'basemap'); if (!bs.length || !BM_BASES[v]) return;
+            updateCommandMessageText('FOND DE CARTE : téléchargement de « ' + BM_BASES[v].name + ' »…');
+            let miss = 0;
+            for (const b of bs) {
+                const im = await buildBasemapLayer(BM_BASES[v], b.lat, b.lon, b.radiusM, true);
+                if (!im) { miss++; continue; }
+                basemapStore[b.mapId] = im.cv.toDataURL('image/jpeg', 0.88); bmImg(b.mapId); b.base = v;
+            }
+            saveState(); draw(); updatePropertiesPopup();
+            updateCommandMessageText(miss ? 'FOND DE CARTE : « ' + BM_BASES[v].name + ' » indisponible ici (aucune tuile reçue).' : 'FOND DE CARTE : carte « ' + BM_BASES[v].name + ' » appliquée.');
         }
         // ---- Projections françaises : Lambert 93 et coniques conformes CC42…CC50 (GRS80 ≈ WGS84) ----
         function lccParams(code) {
@@ -1125,14 +1216,14 @@
         function bmPlaceLoad() {
             const B = bmPlace; if (!B || mode !== 'bmplace') return;
             const E = bmViewLL(B.P);
-            let z = 19; for (; z > 3; z--) { const n = 2 ** z, nx = Math.floor(tileX(E.e, n)) - Math.floor(tileX(E.w, n)) + 1, ny = Math.floor(tileY(E.s, n)) - Math.floor(tileY(E.n, n)) + 1; if (nx * ny <= 120) break; }
-            if (B.ext && B.z === z && E.w >= B.ext.w && E.e <= B.ext.e && E.s >= B.ext.s && E.n <= B.ext.n) return;   // déjà couvert
-            const n = 2 ** z, gen = ++B.gen, x0 = Math.floor(tileX(E.w, n)), x1 = Math.floor(tileX(E.e, n)), y0 = Math.floor(tileY(E.n, n)), y1 = Math.floor(tileY(E.s, n));
+            let z = bmBase().maxZoom; for (; z > 3; z--) { const n = 2 ** z, nx = Math.floor(tileX(E.e, n)) - Math.floor(tileX(E.w, n)) + 1, ny = Math.floor(tileY(E.s, n)) - Math.floor(tileY(E.n, n)) + 1; if (nx * ny <= 120) break; }
+            if (B.ext && B.z === z && B.base === bmSettings.base && E.w >= B.ext.w && E.e <= B.ext.e && E.s >= B.ext.s && E.n <= B.ext.n) return;   // déjà couvert
+            const src = bmBase(); B.base = bmSettings.base; const n = 2 ** z, gen = ++B.gen, x0 = Math.floor(tileX(E.w, n)), x1 = Math.floor(tileX(E.e, n)), y0 = Math.floor(tileY(E.n, n)), y1 = Math.floor(tileY(E.s, n));
             B.loading = true; updateCommandMessage();
             const jobs = [];
             for (let tx = x0; tx <= x1; tx++) for (let ty = y0; ty <= y1; ty++) jobs.push(new Promise(res => {
                 const im = new Image(); im.crossOrigin = 'anonymous'; const to = setTimeout(() => res(null), 15000);
-                im.onload = () => { clearTimeout(to); res({ im, z, tx, ty }); }; im.onerror = () => { clearTimeout(to); res(null); }; im.src = BM_SAT.url(z, tx, ty);
+                im.onload = () => { clearTimeout(to); res({ im, z, tx, ty }); }; im.onerror = () => { clearTimeout(to); res(null); }; im.src = src.url(z, tx, ty);
             }));
             Promise.all(jobs).then(t => { if (!bmPlace || bmPlace.gen !== gen) return; B.tiles = t.filter(Boolean); B.z = z; B.ext = E; B.loading = false; B.missing = t.length - B.tiles.length; updateCommandMessage(); draw(); });
         }
@@ -1155,16 +1246,16 @@
             const B = bmPlace; if (!B || B.busy) return; B.busy = true; updateCommandMessageText('FOND DE CARTE : téléchargement de l\'image en haute définition…');
             try {
                 const ll = llOfWorld(B.P, wx, wy), R = B.R;
-                const [sat, cad] = await Promise.all([buildBasemapLayer(BM_SAT, ll.lat, ll.lon, R, true), buildBasemapLayer(BM_CAD, ll.lat, ll.lon, R, false)]);
-                if (!sat) throw new Error('impossible de télécharger l\'image satellite');
+                const baseKey = bmSettings.base, cap = await bmCapture(ll.lat, ll.lon, R, baseKey), sat = cap.base;
+                if (!sat) throw new Error('impossible de télécharger la carte « ' + bmBase().name + ' »');
                 const id = 'bm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-                basemapStore[id] = sat.cv.toDataURL('image/jpeg', 0.88); if (cad) basemapStore[id + '_cad'] = cad.cv.toDataURL('image/png');
+                const ovl = bmStoreCapture(id, cap);
                 // nord géographique dans la grille Lambert (convergence des méridiens)
                 const nn = worldOfLL(B.P, ll.lat + 0.001, ll.lon), cc = worldOfLL(B.P, ll.lat, ll.lon), rot = Math.atan2(nn.x - cc.x, -(nn.y - cc.y));
-                const shp = { type: 'basemap', layerId: activeLayerId, x: cc.x, y: cc.y, r: mmToWorld(R * 1000), rot, mapId: id, lat: ll.lat, lon: ll.lon, radiusM: R, label: B.P.code, cadastre: !!(cad && bmCadOn), geo: B.P.code };
-                shapes.unshift(shp); saveState(); bmImg(id); if (cad) bmImg(id + '_cad');
+                const shp = { type: 'basemap', layerId: activeLayerId, x: cc.x, y: cc.y, r: mmToWorld(R * 1000), rot, mapId: id, lat: ll.lat, lon: ll.lon, radiusM: R, label: B.P.code, base: baseKey, ovl, cadastre: !!ovl.cad, geo: B.P.code };
+                shapes.unshift(shp); saveState();
                 setMode('select-box'); selectedShapes = [shp]; draw();
-                updateCommandMessageText('FOND DE CARTE : rayon ' + R.toLocaleString('fr-FR') + ' m implanté à sa place (' + B.P.code + ', nord tourné de ' + (rot * 180 / Math.PI).toFixed(2).replace('.', ',') + '°)' + (sat.missing ? ' — ' + sat.missing + ' tuile(s) manquante(s)' : '') + '. Tapez 50% pour l\'éclaircir.');
+                updateCommandMessageText('FOND DE CARTE : rayon ' + R.toLocaleString('fr-FR') + ' m implanté à sa place (' + B.P.code + ', nord tourné de ' + (rot * 180 / Math.PI).toFixed(2).replace('.', ',') + '°)' + (sat.missing ? ' — ' + sat.missing + ' tuile(s) manquante(s)' : '') + bmMissingOv(cap) + '. Tapez 50% pour l\'éclaircir.');
             } catch (err) { updateCommandMessageText('FOND DE CARTE : erreur — ' + err.message); }
             finally { if (bmPlace) bmPlace.busy = false; }
         }
@@ -1307,14 +1398,13 @@
             if (!bmMap) {
                 let v = null; try { v = JSON.parse(localStorage.getItem('momocad-basemap-view') || 'null'); } catch (e) {}
                 bmMap = L.map('bm-map').setView(v ? [v.lat, v.lng] : [46.6, 2.4], v ? v.z : 6);
-                L.tileLayer(BM_SAT.leaflet, { maxZoom: 20, maxNativeZoom: BM_SAT.maxZoom, attribution: BM_SAT.attrib, crossOrigin: true }).addTo(bmMap);
-                bmSetCadastre(bmCadOn);
+                bmRefreshLeaflet();
                 bmMap.on('click', (e) => { bmLabel = ''; bmSetCenter(e.latlng); });
                 bmMap.on('moveend', () => { const c = bmMap.getCenter(); try { localStorage.setItem('momocad-basemap-view', JSON.stringify({ lat: c.lat, lng: c.lng, z: bmMap.getZoom() })); } catch (e) {} });
                 document.getElementById('bm-radius').addEventListener('input', bmUpdateCircle);
                 document.getElementById('bm-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); bmSearch(); } });
             }
-            document.getElementById('bm-cadastre').checked = bmCadOn;
+            document.getElementById('bm-cadastre').checked = !!bmSettings.ov.cad; document.getElementById('bm-base').value = bmSettings.base; bmRefreshLeaflet();
             setTimeout(() => bmMap.invalidateSize(), 50);
             if (!bmCenter) bmInfo('Cliquez sur la carte pour choisir le centre du fond de carte.');
         }
@@ -1348,7 +1438,7 @@
         async function buildBasemapLayer(src, lat, lon, R, opaque) {
             const cosl = Math.cos(lat * Math.PI / 180), M0 = 156543.03392 * cosl;  // m/px au zoom 0
             let z = Math.floor(Math.log2(M0 * 1280 / (2 * R)));
-            z = Math.max(0, Math.min(src.maxZoom, z));
+            z = Math.max(src.minZoom || 0, Math.min(src.maxZoom, z));
             const n = Math.pow(2, z), mpp = M0 / n, D = 2 * R / mpp;               // diamètre en pixels de tuile
             const k = Math.max(1, 512 / D), S = Math.round(D * k);                  // agrandit les très petits rayons
             const cx = (lon + 180) / 360 * 256 * n;
@@ -1380,6 +1470,8 @@
             c.restore();
             return { cv, S, missing: tiles.length - ok.length };
         }
+        // calques demandés mais vides (hors couverture, service indisponible)
+        function bmMissingOv(cap) { const m = BM_OVL_LIST.filter(k => bmSettings.ov[k] && !cap.ov[k]).map(k => BM_OVLS[k].name); return m.length ? ' — sans : ' + m.join(', ') : ''; }
         function bmStamp(cv, txt) {
             const c = cv.getContext('2d'), S = cv.width, fs = Math.max(9, Math.round(S * 0.026));
             c.font = fs + 'px Arial'; const tw = c.measureText(txt).width;
@@ -1392,15 +1484,14 @@
             const ll = bmCenter || bmMap.getCenter();
             const btn = document.getElementById('bm-ok'); bmBusy = true; btn.textContent = 'Chargement…'; btn.style.opacity = '0.6';
             try {
-                const [sat, cad] = await Promise.all([buildBasemapLayer(BM_SAT, ll.lat, ll.lng, R, true), buildBasemapLayer(BM_CAD, ll.lat, ll.lng, R, false)]);
-                if (!sat) throw new Error('impossible de télécharger l\'image satellite');
+                const baseKey = bmSettings.base, cap = await bmCapture(ll.lat, ll.lng, R, baseKey), sat = cap.base;
+                if (!sat) throw new Error('impossible de télécharger la carte « ' + bmBase().name + ' »');
                 const res = { missing: sat.missing };
                 const id = 'bm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-                basemapStore[id] = sat.cv.toDataURL('image/jpeg', 0.88);
-                if (cad) basemapStore[id + '_cad'] = cad.cv.toDataURL('image/png');
+                const ovl = bmStoreCapture(id, cap);
                 const r = mmToWorld(R * 1000);
                 const c = screenToWorld(canvas.width / 2, canvas.height / 2);
-                const shp = { type: 'basemap', layerId: activeLayerId, x: c.x, y: c.y, r, rot: 0, mapId: id, lat: ll.lat, lon: ll.lng, radiusM: R, label: bmLabel || '', cadastre: !!(cad && bmCadOn) };
+                const shp = { type: 'basemap', layerId: activeLayerId, x: c.x, y: c.y, r, rot: 0, mapId: id, lat: ll.lat, lon: ll.lng, radiusM: R, label: bmLabel || '', base: baseKey, ovl, cadastre: !!ovl.cad };
                 const hadDrawing = shapes.some(x => x.type !== 'basemap');
                 shapes.unshift(shp);   // tout en dessous : le dessin existant reste au-dessus, rien n'est effacé
                 // Plan vierge : on cadre le fond de carte. Plan déjà dessiné : on garde la vue, sinon le dessin
@@ -1410,8 +1501,8 @@
                     camera.x = canvas.width / 2 - c.x * camera.zoom; camera.y = canvas.height / 2 - c.y * camera.zoom;
                 }
                 selectedShapes = [shp]; saveState(); closeBasemapModal();
-                bmImg(id); if (cad) bmImg(id + '_cad'); draw();
-                updateCommandMessageText('FOND DE CARTE : rayon ' + R.toLocaleString('fr-FR') + ' m inséré à l\'échelle, sous le dessin' + (res.missing ? ' (' + res.missing + ' tuile(s) manquante(s))' : '') + (hadDrawing ? ' — vue conservée : dézoomez pour voir toute la carte ; tapez 50% pour l\'éclaircir.' : '.'));
+                draw();
+                updateCommandMessageText('FOND DE CARTE : rayon ' + R.toLocaleString('fr-FR') + ' m inséré à l\'échelle, sous le dessin' + (res.missing ? ' (' + res.missing + ' tuile(s) manquante(s))' : '') + bmMissingOv(cap) + (hadDrawing ? ' — vue conservée : dézoomez pour voir toute la carte ; tapez 50% pour l\'éclaircir.' : '.'));
             } catch (err) { bmInfo('Erreur : ' + err.message); }
             finally { bmBusy = false; btn.textContent = 'Valider'; btn.style.opacity = ''; }
         }
@@ -1844,7 +1935,7 @@
         // Raccourcis de commande : lettres puis Entrée (comme AutoCAD)
         const CMD_ALIASES = {
             D: ['move', 'Déplacer'], R: ['rotate', 'Rotation'], C: ['trim', 'Couper (ajuster)'], P: ['extend', 'Prolonger'], DE: ['offset', 'Décaler'],
-            DR: ['line', 'Droite'], QR: ['rect', 'Quadrilatère'], RO: ['circle', 'Rond (cercle)'], AR: ['arc', 'Arc'], PL: ['poly', 'Polygone'],
+            DR: ['line', 'Droite'], QR: ['rect', 'Quadrilatère'], RO: ['circle', 'Rond (cercle)'], AR: ['arc', 'Arc'], PL: ['poly', 'Polygone'], PLI: ['pline', 'Polyligne'], PU: ['pen', 'Plume'], MI: ['mirror', 'Copie miroir'],
             HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)'], PT: ['topo', 'Point topo'], VU: ['view3d', 'Vue 3D'], PE: ['slope', 'Étiquette de pente'], PR: ['profile', 'Profil en long'], CN: ['contours', 'Courbes de niveau'], CU: ['cubature', 'Cubatures'], ME: ['metre', 'Métré'], FC: ['bmplace', 'Fond de carte'], EC: ['explode', 'Éclater'], ET: ['stretch', 'Étirer'], BL: ['blocks', 'Catalogue de blocs'], RA: ['fillet', 'Arrondir'], EX: ['extrude', 'Extruder'], PC: ['pierce', 'Percer'], PA: ['solid-box', 'Pavé 3D'], CY: ['solid-cyl', 'Cylindre 3D'], CO: ['solid-cone', 'Cône 3D'], SP: ['solid-sphere', 'Sphère 3D']
         };
         let cmdBuffer = '';
@@ -1860,6 +1951,7 @@
             if (a[0] === 'explode') { explodeOrUngroup(); return; }
             if (a[0] === 'blocks') { toggleBlockMenu(); return; }
             if (a[0] === 'extrude') { startExtrude(); return; }
+            if (a[0] === 'mirror') { startMirror(); return; }
             setMode(a[0]); draw();
         }
         // =====================================================================
@@ -2832,7 +2924,9 @@
         function basemapCredit() {
             const vis = shapes.filter(s => s.type === 'basemap' && (s.opacity === undefined || s.opacity > 0) && !(layers.find(l => l.id === (s.layerId || 'layer-0')) || {}).visible === false);
             if (!vis.length) return '';
-            return 'Fond : imagerie © Esri, Maxar' + (vis.some(s => s.cadastre) ? ' · cadastre © IGN / DGFiP' : '');
+            const names = []; const add = (t) => { if (t && !names.includes(t)) names.push(t); };
+            vis.forEach(s => { add((BM_BASES[s.base] || BM_SAT).attrib); BM_OVL_LIST.forEach(k => { if (bmOvlOn(s, k)) add(BM_OVLS[k].attrib); }); });
+            return 'Fond : ' + names.join(' · ');
         }
         function shapesInDrawOrder() {
             if (!shapes.some(isBg)) return shapes;
@@ -2875,6 +2969,7 @@
                             <option value="lines"${(l.hatch||'lines')==='lines'?' selected':''}>///</option>
                             <option value="cross"${l.hatch==='cross'?' selected':''}>XX</option>
                             <option value="solid"${l.hatch==='solid'?' selected':''}>■</option>
+                            ${Object.keys(WALL_MATS).filter(m => m !== 'air').map(m => `<option value="m-${m}"${l.hatch === 'm-' + m ? ' selected' : ''} title="Motif ${WALL_MATS[m].name}">${{ beton: 'BÉT', brique: 'BRQ', parpaing: 'PRP', isolant: 'LAI', pse: 'PSE', placo: 'PLQ', enduit: 'END', bois: 'BOI' }[m]}</option>`).join('')}
                         </select>
                         <input type="text" inputmode="decimal" value="${String(layerHatchScaleOf(l)).replace('.', ',')}" title="Échelle de hachure : multiplie l'écartement des traits (1 = 3 mm, 2 = 6 mm, 0,5 = 1,5 mm). Sans effet sur le plein." class="w-10 bg-gray-700 text-white border border-gray-600 rounded px-1 py-0.5 text-xs text-center outline-none shrink-0 ${l.hatch==='solid'?'opacity-40':''}" onchange="setLayerStyle('${l.id}','hatchScale',this.value)">
                         <button onclick="deleteLayer('${l.id}')" class="text-gray-500 hover:text-red-400 shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
@@ -2919,7 +3014,9 @@
                 if (one.solid) h = row('sp-zall', 'Altitude de la base', zv(one.points[0].z)) + solidRows(one);
                 else if (!one.open && one.points.length >= 3) h += talusRows(one, 'même Z sur tous les sommets');   // polyligne fermée : talus de la plateforme
             }
-            if (one && effectiveDash(one) === 'text' && ['line', 'poly', 'circle', 'arc'].includes(one.type))
+            if (one && one.type === 'line' && one.wall) { wallEdit = JSON.parse(JSON.stringify(one.wall)); h = `<div id="wall-edit" class="flex flex-col gap-1.5">${wallEditorHTML()}</div>`; }
+            else wallEdit = null;
+            if (one && !one.wall && effectiveDash(one) === 'text' && ['line', 'poly', 'circle', 'arc'].includes(one.type))
                 h += `<label class="flex items-center justify-between gap-2">Texte de la ligne<input id="sp-ltt" type="text" value="${String(one.ltText || '').replace(/"/g, '&quot;')}" placeholder="${ltTextOf({ layerId: one.layerId }).replace(/"/g, '&quot;')} (calque)" class="w-36 bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500"></label>`;
             zb.innerHTML = h; zb.classList.toggle('hidden', !h);
             zb.dataset.orig = JSON.stringify(['sp-mat', 'sp-z', 'sp-z1', 'sp-z2', 'sp-zall'].map(id => { const el = document.getElementById(id); return el ? el.value : null; }));
@@ -2956,6 +3053,7 @@
             if (val(2) !== null && one) setZ(one, 'z1', val(2));
             if (val(3) !== null && one) setZ(one, 'z2', val(3));
             if (val(4) !== null && one && one.type === 'poly') { one.points.forEach(q => setZ(q, 'z', val(4))); delete one.elev; }   // Z saisi : devient une plateforme si fermée
+            if (wallEdit && one && one.wall && document.getElementById('wall-edit')) { wallSync(); if (wallEdit.layers.length) one.wall = Object.assign(one.wall, { align: wallEdit.align, layers: wallEdit.layers.filter(l => l.e > 0) }); wallEdit = null; }
             const lt = document.getElementById('sp-ltt'); if (lt && one) { const v = lt.value.trim(); if (v) one.ltText = v; else delete one.ltText; }
             const hb = document.getElementById('sp-h');
             if (hb && one && one.solid) { const hv = parseFloat(String(hb.value).replace(',', '.')); if (hv > 0) one.solid.H = hv * 1000; }
@@ -3411,7 +3509,7 @@
                 let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (layer && !layer.visible) continue;
                 if (snapSettings.endpoint) {
                     if (s.type === 'line' || s.type === 'dim') pts.push({x: s.x1, y: s.y1}, {x: s.x2, y: s.y2});
-                    else if (s.type === 'poly') s.points.forEach(p => pts.push({x: p.x, y: p.y}));
+                    else if (s.type === 'poly') s.points.forEach((p, i) => { if (!s.curve || i % s.curve === 0 || i === s.points.length - 1) pts.push({x: p.x, y: p.y}); });
                     else if (s.type === 'text' || s.type === 'point') pts.push({x: s.x, y: s.y});
                     else if (s.type === 'arc') {
                         pts.push({x: s.x + Math.cos(s.startAngle)*s.r, y: s.y + Math.sin(s.startAngle)*s.r});
@@ -3426,12 +3524,13 @@
                 }
                 if (snapSettings.midpoint) {
                     if (s.type === 'line' || s.type === 'dim') pts.push({x: (s.x1+s.x2)/2, y: (s.y1+s.y2)/2});
-                    else if (s.type === 'poly') { for (let i=0; i<polyEdges(s); i++) { let p1=s.points[i], p2=s.points[(i+1)%s.points.length]; pts.push({x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2}); } }
+                    else if (s.type === 'poly' && !s.curve) { for (let i=0; i<polyEdges(s); i++) { let p1=s.points[i], p2=s.points[(i+1)%s.points.length]; pts.push({x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2}); } }
                     else if (s.type === 'arc') { let mid = s.startAngle < s.endAngle ? (s.startAngle + s.endAngle)/2 : (s.startAngle + s.endAngle + 2*Math.PI)/2; pts.push({x: s.x + Math.cos(mid)*s.r, y: s.y + Math.sin(mid)*s.r}); }
                 }
                 if (snapSettings.center && (s.type === 'circle' || s.type === 'arc' || s.type === 'basemap')) pts.push({x: s.x, y: s.y});
                 if (snapSettings.endpoint && s.type === 'bgimage') pts.push(...bgCorners(s));
                 if (snapSettings.endpoint && s.type === 'mesh') pts.push(...meshCorners(s));
+                if (snapSettings.endpoint && s.type === 'line' && s.wall) wallBands(s, 0, 0).forEach(b => b.pts.forEach(q => pts.push({ x: q[0], y: q[1] })));
             }
             if (snapSettings.intersection) pts.push(...getAllIntersections());
 
@@ -3467,10 +3566,10 @@
             // --- Accroche PERPENDICULAIRE ---
             // Disponible uniquement pendant le tracé d'une ligne/polyligne, car le pied
             // de la perpendiculaire dépend du point d'origine du segment en cours.
-            if (snapSettings.perpendicular && isDrawing && (mode === 'line' || mode === 'poly')) {
+            if (snapSettings.perpendicular && isDrawing && (mode === 'line' || isPolyMode())) {
                 let origin = null;
                 if (mode === 'line') origin = { x: startX, y: startY };
-                else if (mode === 'poly' && currentPolygon.length > 0) origin = currentPolygon[currentPolygon.length - 1];
+                else if (isPolyMode() && currentPolygon.length > 0) origin = currentPolygon[currentPolygon.length - 1];
                 if (origin) {
                     const perp = findPerpendicularFoot(origin, wx, wy);
                     if (perp) {
@@ -3608,6 +3707,7 @@
                 if (s.type === 'point') { if (Math.hypot(p.x - s.x, p.y - s.y) < tol) return s; continue; }
                 if (s.type === 'mesh') { const q = meshLocal(s, p.x, p.y); if (q.x >= s.bb.x0 && q.x <= s.bb.x1 && q.y >= s.bb.y0 && q.y <= s.bb.y1) return s; continue; }
                 if (s.type === 'slope') { const l2 = (s.x2 - s.x1) ** 2 + (s.y2 - s.y1) ** 2; if (l2 === 0) continue; const t = Math.max(0, Math.min(1, ((p.x - s.x1) * (s.x2 - s.x1) + (p.y - s.y1) * (s.y2 - s.y1)) / l2)); if (Math.hypot(p.x - (s.x1 + t * (s.x2 - s.x1)), p.y - (s.y1 + t * (s.y2 - s.y1))) < tol) return s; continue; }
+                if (s.type === 'line' && s.wall) { const B = wallBands(s, 0, 0); if (B.length) { const q = [B[0].pts[0], B[0].pts[1], B[B.length - 1].pts[2], B[B.length - 1].pts[3]].map(v => ({ x: v[0], y: v[1] })); if (pointInPolygon(p.x, p.y, q)) return s; } }
                 if (s.type === 'line') { let l2 = Math.pow(s.x2-s.x1,2)+Math.pow(s.y2-s.y1,2); if (l2 === 0) continue; let t = Math.max(0, Math.min(1, ((p.x-s.x1)*(s.x2-s.x1)+(p.y-s.y1)*(s.y2-s.y1))/l2)); if (Math.hypot(p.x-(s.x1+t*(s.x2-s.x1)), p.y-(s.y1+t*(s.y2-s.y1))) < tol) return s; }
                 else if (s.type === 'dim') {
                     const g = dimGeom(s); if (!g) continue;
@@ -3951,7 +4051,7 @@
         // CATALOGUE DE BLOCS (tampons) : définitions en mm, Y vers le haut, origine = point d'insertion
         // éléments : ['L',x1,y1,x2,y2] droite · ['P',[[x,y]…],fermé] polyligne · ['C',x,y,r] cercle · ['A',x,y,r,a0,a1] arc (degrés, sens trigo)
         // =====================================================================
-        const BLK_TABS = [{ id: 'sanit', ico: '🛁', name: 'Sanitaires' }, { id: 'mobil', ico: '🛋️', name: 'Mobilier' }, { id: 'veget', ico: '🌳', name: 'Végétation' }];
+        const BLK_TABS = [{ id: 'sanit', ico: '🛁', name: 'Sanitaires' }, { id: 'mobil', ico: '🛋️', name: 'Mobilier' }, { id: 'veget', ico: '🌳', name: 'Végétation' }, { id: 'paroi', ico: '🧱', name: 'Parois' }];
         const bkEll = (cx, cy, rx, ry, n) => Array.from({ length: n || 40 }, (_, i) => { const a = 2 * Math.PI * i / (n || 40); return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)]; });
         const bkRect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
         const bkRRect = (x0, y0, x1, y1, r) => { const p = [], q = (cx, cy, a) => { for (let k = 0; k <= 6; k++) { const t = (a + k * 15) * Math.PI / 180; p.push([cx + r * Math.cos(t), cy + r * Math.sin(t)]); } }; q(x1 - r, y0 + r, -90); q(x1 - r, y1 - r, 0); q(x0 + r, y1 - r, 90); q(x0 + r, y0 + r, 180); return p; };
@@ -4012,7 +4112,16 @@
         }
         const blkThumbCache = {};
         function renderBlockMenu() {
-            document.getElementById('blk-tabs').innerHTML = BLK_TABS.map(t => `<button type="button" onclick="blkTab='${t.id}';try{localStorage.setItem('momocad-blk-tab','${t.id}')}catch(e){};renderBlockMenu()" class="flex-1 py-2 text-sm ${t.id === blkTab ? 'text-white border-b-2 border-blue-500 bg-gray-700/50' : 'text-gray-400 hover:text-white'}" title="${t.name}"><span class="text-lg">${t.ico}</span> ${t.name}</button>`).join('');
+            document.getElementById('blk-tabs').innerHTML = BLK_TABS.map(t => `<button type="button" onclick="blkTab='${t.id}';try{localStorage.setItem('momocad-blk-tab','${t.id}')}catch(e){};renderBlockMenu()" class="flex-1 py-2 text-xs ${t.id === blkTab ? 'text-white border-b-2 border-blue-500 bg-gray-700/50' : 'text-gray-400 hover:text-white'}" title="${t.name}"><span class="text-lg">${t.ico}</span> ${t.name}</button>`).join('');
+            if (blkTab === 'paroi') {
+                const al = (v, t) => `<button type="button" onclick="wallOpt.align='${v}';wallOptSave();renderBlockMenu()" class="px-2 py-1 rounded ${wallOpt.align === v ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}">${t}</button>`;
+                document.getElementById('blk-grid').innerHTML = `<div class="col-span-full flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-300 pb-1 border-b border-gray-700">
+                    <label class="flex items-center gap-1" title="Vide = épaisseur de la paroi choisie. Aussi au clavier : tapez l'épaisseur + Entrée avant le 1er clic.">Épaisseur <input type="text" inputmode="decimal" value="${wallOpt.e || ''}" placeholder="auto" onchange="wallOpt.e=parseFloat(String(this.value).replace(',','.'))||0;wallOptSave()" class="w-14 bg-gray-700 border border-gray-600 rounded px-1 py-0.5 text-right text-white outline-none"> mm</label>
+                    <span class="flex items-center gap-1" title="Le trait cliqué est la face gauche, l'axe ou la face droite de la paroi (Tab pendant le tracé : inverser)">Tracé = <span class="inline-flex bg-gray-900 border border-gray-600 rounded p-0.5">${al('gauche', 'face G')}${al('axe', 'axe')}${al('droite', 'face D')}</span></span>
+                    <span class="text-gray-500 w-full">Une paroi = un matériau : 4 traits + son motif, sans remplissage, sur son calque coloré. Superposez-les et recoupez les angles vous-même.</span></div>` + WALL_PRESETS.map(p => { const th = blkThumbCache[p.id] || (blkThumbCache[p.id] = wallThumb(p)), T = p.layers.reduce((a, l) => a + l[1], 0);
+                    return `<button type="button" onclick="startWall('${p.id}')" title="${p.name} — ${WALL_MATS[p.layers[0][0]].name} ${p.layers[0][1]} mm, calque « Paroi ${WALL_MATS[p.layers[0][0]].name.toLowerCase()} »" style="border-bottom:3px solid ${WALL_MATS[p.layers[0][0]].line}" class="w-full flex flex-col items-center gap-1 p-1.5 rounded-lg bg-gray-900 border border-gray-700 hover:border-blue-500"><img src="${th}" class="w-14 h-14" draggable="false"><span class="text-[11px] text-gray-300 leading-tight text-center w-full">${p.name}<br><span class="text-gray-500">${T} mm</span></span></button>`; }).join('');
+                return;
+            }
             const list = allBlocks().filter(b => b.tab === blkTab);
             document.getElementById('blk-grid').innerHTML = list.length ? list.map(b => {
                 const th = blkThumbCache[b.id] || (blkThumbCache[b.id] = blockThumb(b)), bb = blockBBox(b), dim = nfr((bb.x1 - bb.x0) / 1000, 2) + ' × ' + nfr((bb.y1 - bb.y0) / 1000, 2) + ' m';
@@ -4034,9 +4143,12 @@
             blockShapes(stamp.b, currentX, currentY, stamp.sc, stamp.rot).forEach(sh => drawSingleShape(ctx, sh, false, false, 0, 0));
             ctx.restore();
         }
+        // calque affilié au dossier du catalogue : « Blocs sanitaires », « Blocs mobilier », « Blocs végétation »…
+        const BLK_COLORS = { sanit: '#38bdf8', mobil: '#f59e0b', veget: '#4ade80' };
+        function blockLayerId(b) { const t = BLK_TABS.find(x => x.id === b.tab) || { name: 'Divers' }; return ensureLayer('Blocs ' + t.name.toLowerCase(), BLK_COLORS[b.tab] || '#e5e7eb'); }
         function placeStamp() {
             if (!stamp) return; const gid = 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
-            const out = blockShapes(stamp.b, currentX, currentY, stamp.sc, stamp.rot); out.forEach(sh => { sh.groupId = gid; sh.block = stamp.b.name; });
+            const out = blockShapes(stamp.b, currentX, currentY, stamp.sc, stamp.rot); const lid = blockLayerId(stamp.b); out.forEach(sh => { sh.groupId = gid; sh.block = stamp.b.name; sh.layerId = lid; });
             shapes.push(...out); saveState(); draw();
             updateCommandMessageText('BLOC : ' + stamp.b.name + ' posé (×' + nfr(stamp.sc, 2) + ', ' + Math.round(stamp.rot * 180 / Math.PI) + '°). Cliquez pour en poser un autre, Échap pour finir.');
         }
@@ -4076,7 +4188,7 @@
             return { app: 'MomoCAD', kind: 'gabarit', version: 1, name: gabaritName,
                 layers: JSON.parse(JSON.stringify(layers)), activeLayerId,
                 settings: Object.assign({}, printSettings, { orientation: printOrientation }), gridMm, dimText: dimTextAligned ? 'aligned' : 'horizontal',
-                snapSettings, cartouche: cartoucheData, talus: { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, blocks: userBlocks };
+                snapSettings, cartouche: cartoucheData, talus: { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, blocks: userBlocks, fond: bmSettings };
         }
         function updateGbtLabel() { const el = document.getElementById('gbt-label'); if (!el) return; el.classList.toggle('hidden', !gabaritName); el.textContent = gabaritName ? '▣ ' + gabaritName.replace(/\.gbt$/i, '') : ''; el.title = 'Gabarit chargé : ' + gabaritName + ' (cliquer pour en charger un autre)'; }
         // applique un gabarit ; plan vierge : ses calques remplacent ceux du plan, sinon fusion par nom (styles mis à jour, calques manquants ajoutés)
@@ -4092,13 +4204,14 @@
             if (g.snapSettings) { snapSettings = Object.assign({}, SNAP_DEFAULTS, g.snapSettings); refreshSnapButtons(); }
             if (g.cartouche) { cartoucheData = Object.assign({ logo: null, planName: '', clientName: '', draftsmanName: '', indice: '' }, g.cartouche); getLogoImg(); }
             if (g.talus) { cubState.talus = g.talus.on !== false; cubState.kR = g.talus.kR || cubState.kR; cubState.kD = g.talus.kD || cubState.kD; }
+            if (g.fond && g.fond.ov) { bmSettings = { base: BM_BASES[g.fond.base] ? g.fond.base : 'sat', ov: Object.assign({}, g.fond.ov) }; bmSaveSettings(); bmRefreshLeaflet(); }
             if (Array.isArray(g.blocks)) { userBlocks = g.blocks; Object.keys(blkThumbCache).forEach(k => { if (k[0] === 'u') delete blkThumbCache[k]; }); }
             gabaritName = name || g.name || 'gabarit.gbt';
             try { localStorage.setItem('momocad-print', JSON.stringify(printSettings)); localStorage.setItem('momocad-grid-mm', String(gridMm)); localStorage.setItem('momocad-snap', JSON.stringify(snapSettings)); localStorage.setItem('momocad-blocks', JSON.stringify(userBlocks)); } catch (e) {}
             try { saveCartoucheData(); } catch (e) {}
             idbStore('put', { name: gabaritName, data: g });
             updateGbtLabel(); updateLayerUI(); refreshGridField(); invalidateCache(); draw();
-            if (!silent) updateCommandMessageText('GABARIT : ' + gabaritName + ' chargé (calques, styles, réglages, cartouche' + (Array.isArray(g.blocks) && g.blocks.length ? ', ' + g.blocks.length + ' bloc(s)' : '') + '). Il sera rechargé au prochain démarrage.');
+            if (!silent) updateCommandMessageText('GABARIT : ' + gabaritName + ' chargé (calques, styles, réglages, cartouche, fond de plan' + (Array.isArray(g.blocks) && g.blocks.length ? ', ' + g.blocks.length + ' bloc(s)' : '') + '). Il sera rechargé au prochain démarrage.');
             return true;
         }
         async function loadGabaritFile(input) {
@@ -4222,6 +4335,307 @@
         }
         function updateRose() { const svg = document.getElementById('rose-svg'); if (!svg) return; const k = view2d.a.toFixed(1) + '|' + view2d.e.toFixed(1); if (svg.dataset.k !== k) { svg.dataset.k = k; svg.innerHTML = roseSVG(view2d.a, view2d.e, '2d'); } }
 
+
+        // =====================================================================
+        // PAROIS : une droite porte une composition de couches (s.wall = { align, layers:[{ mat, e (mm) }] }).
+        // Elle s'étire, se déplace, pivote comme une droite ; chaque couche est dessinée avec son motif de coupe.
+        // =====================================================================
+        const WALL_MATS = {
+            beton:   { name: 'Béton', fill: '#cbd5e1', ink: '#334155', line: '#cbd5e1' },
+            brique:  { name: 'Brique / briquette', fill: '#fecaca', ink: '#7f1d1d', line: '#f87171' },
+            parpaing:{ name: 'Parpaing', fill: '#d6d3d1', ink: '#44403c', line: '#a78bfa' },
+            isolant: { name: 'Isolant (laine)', fill: '#fef08a', ink: '#713f12', line: '#facc15' },
+            pse:     { name: 'Isolant (PSE)', fill: '#e0f2fe', ink: '#075985', line: '#38bdf8' },
+            placo:   { name: 'Plaque de plâtre', fill: '#f5f5f4', ink: '#57534e', line: '#f472b6' },
+            enduit:  { name: 'Enduit', fill: '#e7e5e4', ink: '#57534e', line: '#a3e635' },
+            bois:    { name: 'Bois / ossature', fill: '#fde68a', ink: '#78350f', line: '#f59e0b' },
+            air:     { name: "Lame d'air", fill: null, ink: '#64748b', line: '#94a3b8' },
+        };
+        // Parois indépendantes : un seul matériau chacune, tracées en traits (contour) sur un calque coloré par matériau.
+        // On superpose soi-même (ex. béton puis isolant puis placo, côte à côte) et on recoupe les angles (Couper, Prolonger…).
+        const WALL_PRESETS = [
+            { id: 'w-beton20', name: 'Voile béton', layers: [['beton', 200]] },
+            { id: 'w-beton16', name: 'Béton', layers: [['beton', 160]] },
+            { id: 'w-parp20', name: 'Parpaing', layers: [['parpaing', 200]] },
+            { id: 'w-parp15', name: 'Parpaing', layers: [['parpaing', 150]] },
+            { id: 'w-brique', name: 'Brique', layers: [['brique', 200]] },
+            { id: 'w-laine100', name: 'Isolant laine', layers: [['isolant', 100]] },
+            { id: 'w-laine140', name: 'Isolant laine', layers: [['isolant', 140]] },
+            { id: 'w-pse', name: 'Isolant PSE', layers: [['pse', 140]] },
+            { id: 'w-placo', name: 'Placo BA13', layers: [['placo', 13]] },
+            { id: 'w-enduit', name: 'Enduit', layers: [['enduit', 15]] },
+            { id: 'w-bois', name: 'Ossature bois', layers: [['bois', 145]] },
+            { id: 'w-air', name: "Lame d'air", layers: [['air', 20]] },
+        ];
+        let wallOpt = { e: 0, align: 'gauche' };   // épaisseur imposée (0 = celle de la paroi) et côté du tracé
+        try { Object.assign(wallOpt, JSON.parse(localStorage.getItem('momocad-wallopt') || '{}')); } catch (e) {}
+        function wallOptSave() { try { localStorage.setItem('momocad-wallopt', JSON.stringify(wallOpt)); } catch (e) {} }
+        const wallThick = (w) => w.layers.reduce((a, l) => a + (+l.e || 0), 0);
+        function wallBase(w) { const T = wallThick(w); return w.align === 'axe' ? -T / 2 : w.align === 'droite' ? -T : 0; }
+        // bandes (polygones monde) de chaque couche ; n = normale à gauche du sens de tracé
+        function wallBands(s, dx, dy) {
+            const L = Math.hypot(s.x2 - s.x1, s.y2 - s.y1); if (L < 1e-9) return [];
+            const ux = (s.x2 - s.x1) / L, uy = (s.y2 - s.y1) / L, nx = uy, ny = -ux, k = mmToWorld(1); let o = wallBase(s.wall);
+            return s.wall.layers.map(l => { const e = +l.e || 0, a = o * k, b = (o + e) * k; o += e;
+                return { l, L, e, o: a, ux, uy, nx, ny, x0: s.x1 + dx + nx * a, y0: s.y1 + dy + ny * a,
+                    pts: [[s.x1 + dx + nx * a, s.y1 + dy + ny * a], [s.x2 + dx + nx * a, s.y2 + dy + ny * a], [s.x2 + dx + nx * b, s.y2 + dy + ny * b], [s.x1 + dx + nx * b, s.y1 + dy + ny * b]] }; });
+        }
+        function wallRand(i) { const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); }
+        // motif d'une couche dans son repère (x le long de la paroi, y dans l'épaisseur), en mm
+        function wallPattern(c, mat, Lmm, e, px) {
+            c.beginPath();
+            if (mat === 'isolant') {   // boucles de laine
+                const st = Math.max(e * 0.55, 8), n = Math.ceil(Lmm / st) * 40;
+                for (let i = 0; i <= n; i++) { const t = i / 40, x = t * st + st * 0.55 * Math.sin(t * 2 * Math.PI), y = e / 2 - e * 0.42 * Math.cos(t * 2 * Math.PI); if (x > Lmm + st) break; i ? c.lineTo(x, y) : c.moveTo(x, y); }
+            } else if (mat === 'beton') {   // granulats : points et petits triangles
+                const n = Math.min(1500, Math.round(Lmm * e / Math.max(e * e / 6, 600)));
+                for (let i = 0; i < n; i++) { const x = wallRand(i) * Lmm, y = (0.08 + 0.84 * wallRand(i + 999)) * e, r = Math.max(e * 0.035, 3);
+                    if (i % 3) { c.moveTo(x + r * 0.35, y); c.arc(x, y, r * 0.35, 0, 7); } else { c.moveTo(x, y - r); c.lineTo(x + r, y + r * 0.7); c.lineTo(x - r, y + r * 0.7); c.closePath(); } }
+            } else if (mat === 'brique') {   // alvéoles
+                const rows = Math.max(2, Math.round(e / 45)), h = e / rows, w = Math.max(h * 1.1, 25);
+                for (let x = 0; x < Lmm; x += w) for (let r = 0; r < rows; r++) c.rect(x + w * 0.18, r * h + h * 0.2, w * 0.64, h * 0.6);
+            } else if (mat === 'parpaing') {   // blocs 50 cm à 2 alvéoles
+                for (let x = 0; x < Lmm; x += 500) { c.moveTo(x, 0); c.lineTo(x, e); c.rect(x + 40, e * 0.22, 190, e * 0.56); c.rect(x + 270, e * 0.22, 190, e * 0.56); }
+            } else if (mat === 'pse') {   // billes
+                const n = Math.min(1200, Math.round(Lmm * e / Math.max(e * e / 10, 300)));
+                for (let i = 0; i < n; i++) { const x = wallRand(i + 7) * Lmm, y = wallRand(i + 77) * e, r = Math.max(e * 0.06, 2); c.moveTo(x + r, y); c.arc(x, y, r, 0, 7); }
+            } else if (mat === 'placo' || mat === 'enduit') {   // pointillé fin
+                const st = Math.max(e * 1.4, 12); for (let x = st / 2; x < Lmm; x += st) { c.moveTo(x + e * 0.12, e / 2); c.arc(x, e / 2, e * 0.12, 0, 7); }
+            } else if (mat === 'bois') {   // fil du bois
+                for (let k = 1; k <= 3; k++) { const y0 = e * k / 4; c.moveTo(0, y0); for (let x = 0; x <= Lmm; x += Math.max(e, 20)) c.lineTo(x, y0 + Math.sin(x / Math.max(e, 20) + k) * e * 0.08); }
+            }
+            c.lineWidth = 1 / px; c.stroke();
+        }
+        function drawWall(c, s, dx, dy, ls, sel, isPrinting) {
+            const bands = wallBands(s, dx, dy), k = mmToWorld(1), pxPerMm = k * ls;
+            bands.forEach(b => {
+                const M = WALL_MATS[b.l.mat] || WALL_MATS.air;
+                c.save(); c.beginPath(); b.pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath();
+                if (b.e * pxPerMm > 4) {   // motif seulement s'il est lisible
+                    c.clip(); c.translate(b.x0, b.y0); c.transform(b.ux * k, b.uy * k, b.nx * k, b.ny * k, 0, 0); c.strokeStyle = isPrinting ? M.ink : (M.line || M.ink); c.setLineDash([]); wallPattern(c, b.l.mat, worldToMm(b.L), b.e, pxPerMm);
+                }
+                c.restore();
+                c.save(); c.setLineDash([]); c.strokeStyle = sel ? '#ec4899' : (isPrinting ? '#000' : '#9ca3af'); c.lineWidth = (sel ? 2 : 0.8) / ls; c.beginPath(); b.pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.stroke(); c.restore();
+            });
+        }
+        function wallFromPreset(p) { return { align: 'gauche', layers: p.layers.map(([mat, e]) => ({ mat, e })) }; }
+        function wallThumb(p) {
+            const cv = document.createElement('canvas'); cv.width = cv.height = 120; const c = cv.getContext('2d'), w = wallFromPreset(p), T = wallThick(w), k = Math.min(100 / Math.max(T * 1.25, 1), 0.3);
+            c.translate(60 - T * k / 2, 10); c.scale(k, k);   // coupe verticale : couches côte à côte, 100 px de haut
+            let x = 0; w.layers.forEach(l => { const M = WALL_MATS[l.mat] || WALL_MATS.air; c.save(); c.beginPath(); c.rect(x, 0, l.e, 100 / k); c.clip();
+                c.translate(x, 0); c.transform(0, 1, 1, 0, 0, 0); c.strokeStyle = M.line || M.ink; wallPattern(c, l.mat, 100 / k, l.e, k); c.restore();
+                c.strokeStyle = M.line || '#e5e7eb'; c.lineWidth = 2.5 / k; c.strokeRect(x, 0, l.e, 100 / k); x += l.e; });
+            return cv.toDataURL();
+        }
+        // tracé d'une paroi : clic début, clic fin (ou longueur + Entrée) ; les parois s'enchaînent
+        let wallTool = null, wallStart = null;
+        function startWall(id) { const p = WALL_PRESETS.find(x => x.id === id); if (!p) return; closeFileMenus(); setMode('wall'); wallTool = wallFromPreset(p); wallTool.name = p.name; wallTool.align = wallOpt.align; if (wallOpt.e > 0) wallTool.layers[0].e = wallOpt.e; wallStart = null; wallChain = null; typedInput = ''; updateCommandMessage(); draw(); }
+        // contour d'une paroi : 4 traits indépendants (faces + extrémités), sur le calque « Paroi <matériau> » de la couleur du matériau
+        function wallSegs(x1, y1, x2, y2, w) { const B = wallBands({ x1, y1, x2, y2, wall: w }, 0, 0); if (!B.length) return []; const q = [B[0].pts[0], B[0].pts[1], B[B.length - 1].pts[2], B[B.length - 1].pts[3]]; return [[q[0], q[1]], [q[1], q[2]], [q[2], q[3]], [q[3], q[0]]]; }
+        function wallLayerId(w) { const mat = w.layers[0].mat, M = WALL_MATS[mat] || WALL_MATS.air, id = ensureLayer('Paroi ' + M.name.toLowerCase(), M.line || '#ffffff'), l = layers.find(x => x.id === id);
+            if (l && !String(l.hatch || '').startsWith('m-')) l.hatch = 'm-' + mat; return id; }
+        function wallRect(x1, y1, x2, y2, w) { const B = wallBands({ x1, y1, x2, y2, wall: w }, 0, 0); return B.length ? [B[0].pts[0], B[0].pts[1], B[B.length - 1].pts[2], B[B.length - 1].pts[3]].map(q => ({ x: q[0], y: q[1] })) : null; }
+        // Chaîne de parois : à chaque nouveau tronçon, la chaîne entière est redessinée avec des jonctions en onglet (bissectrice, 45° à l'équerre).
+        // Faces et motifs se raccordent sur la ligne d'onglet ; extrémités seulement au début et à la fin (aucune si la chaîne est refermée).
+        let wallChain = null;   // { pts:[{x,y}], shapes:[], lid, closed }
+        function wallChainGeom(P, w, closed) {
+            const k = mmToWorld(1), b0 = wallBase(w), T = wallThick(w), oa = b0 * k, ob = (b0 + T) * k, n = P.length, ns = closed ? n : n - 1;
+            const U = []; for (let i = 0; i < ns; i++) { const a = P[i], b = P[(i + 1) % n], L = Math.hypot(b.x - a.x, b.y - a.y) || 1; U.push({ x: (b.x - a.x) / L, y: (b.y - a.y) / L }); }
+            const joint = (o, v) => {
+                const ip = (v > 0 || closed) ? (v - 1 + ns) % ns : -1, inx = (v < ns || closed) ? v % ns : -1, V = P[v % n];
+                const one = (u) => ({ x: V.x + u.y * o, y: V.y - u.x * o });
+                if (ip < 0 || (!closed && v === n - 1 && inx >= ns)) return one(U[ip < 0 ? inx : ip]);
+                if (inx < 0) return one(U[ip]);
+                const u1 = U[ip], u2 = U[inx], A = one(u1), B = one(u2), den = u1.x * u2.y - u1.y * u2.x;
+                if (Math.abs(den) < 1e-9) return B;
+                const t = ((B.x - A.x) * u2.y - (B.y - A.y) * u2.x) / den, X = { x: A.x + u1.x * t, y: A.y + u1.y * t };
+                return Math.hypot(X.x - V.x, X.y - V.y) > 20 * Math.max(Math.abs(oa), Math.abs(ob), k) ? B : X;   // angle trop aigu : pas d'onglet
+            };
+            const segs = [];
+            for (let i = 0; i < ns; i++) { const j = closed ? (i + 1) % n : i + 1; segs.push({ A0: joint(oa, i), A1: joint(oa, j), B1: joint(ob, j), B0: joint(ob, i), first: !closed && i === 0 }); }
+            return segs;
+        }
+        function wallChainShapes(P, w, closed, lid) {
+            const out = [], L = (a, b) => ({ type: 'line', layerId: lid, x1: a.x, y1: a.y, x2: b.x, y2: b.y }), mat = w.layers[0].mat;
+            wallChainGeom(P, w, closed).forEach(g => {
+                const seg = [];
+                if (mat !== 'air') seg.push({ type: 'hatch', layerId: lid, loops: [[g.A0, g.A1, g.B1, g.B0].map(q => ({ x: q.x, y: q.y }))] });
+                seg.push(L(g.A0, g.A1), L(g.B0, g.B1), L(g.A1, g.B1)); if (g.first) seg.push(L(g.A0, g.B0));
+                out.push(...seg); out.last = seg;
+            });
+            return out;
+        }
+        function wallAddTo(x2, y2) {
+            // chaîne perdue (annuler, autre paroi…) : on repart du point courant
+            if (!wallChain || wallChain.shapes.some(sh => !shapes.includes(sh)) || wallChain.closed) wallChain = { pts: [{ x: wallStart.x, y: wallStart.y }], shapes: [], lid: wallLayerId(wallTool) };
+            const C = wallChain, P0 = C.pts[0], tol = 8 / camera.zoom;
+            let closed = C.pts.length >= 3 && Math.hypot(x2 - P0.x, y2 - P0.y) < tol;
+            if (!closed) C.pts.push({ x: x2, y: y2 });
+            shapes = shapes.filter(sh => !C.shapes.includes(sh));
+            C.shapes = wallChainShapes(C.pts, wallTool, closed, C.lid); C.last = new Set(C.shapes.last || []);
+            shapes.push(...C.shapes); saveState(); typedInput = '';
+            if (closed) { C.closed = true; wallStart = null; wallChain = null; updateCommandMessageText('PAROI : contour refermé, angles en onglet. Cliquez un nouveau début, ou Échap.'); }
+            else wallStart = { x: x2, y: y2 };
+            draw();
+        }
+        // Aperçu : le dernier tronçon posé est masqué et redessiné avec son futur onglet, suivi du tronçon en cours
+        function wallChainLive() { return mode === 'wall' && wallTool && wallStart && wallChain && !wallChain.closed && wallChain.last && wallChain.shapes.every(sh => shapes.includes(sh)) ? wallChain : null; }
+        // point d'arrivée réel du tronçon : même règle que le clic (ortho / Maj) et que la longueur tapée
+        function wallTarget(px, py, shift) {
+            const a = wallStart;
+            if (typedInput && parseFloat(typedInput) > 0) {
+                const d = (parseFloat(typedInput) / unitsPerSquare) * GRID_SIZE, a0 = Math.atan2(py - a.y, px - a.x), an = (orthoMode || shift) ? Math.round(a0 / (Math.PI / 2)) * Math.PI / 2 : a0;
+                return { x: a.x + d * Math.cos(an), y: a.y + d * Math.sin(an) };
+            }
+            if (orthoMode || shift) { if (Math.abs(px - a.x) > Math.abs(py - a.y)) py = a.y; else px = a.x; }
+            return { x: px, y: py };
+        }
+        document.addEventListener('keyup', (e) => { if (e.key === 'Shift' && mode === 'wall') { shiftHeld = false; draw(); } });
+        // =====================================================================
+        // POLYLIGNE (ouverte) : même saisie que le polygone, se termine ouverte (Entrée / Échap / double-clic)
+        // =====================================================================
+        const isPolyMode = () => mode === 'poly' || mode === 'pline';
+        function finishPline() {
+            const P = currentPolygon.filter((q, i, a) => i === 0 || Math.hypot(q.x - a[i - 1].x, q.y - a[i - 1].y) > 1e-9);
+            if (P.length >= 2) { shapes.push({ type: 'poly', layerId: activeLayerId, points: P, open: true, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false }); saveState(); }
+            isDrawing = false; currentPolygon = []; typedInput = ''; updateCommandMessage(); draw();
+        }
+        // =====================================================================
+        // PLUME : courbes de Bézier cubiques. Chaque point { x, y, hin, hout } (poignées, ou null = point anguleux).
+        // Le résultat est une polyligne lissée (s.curve = nombre de pas par tronçon) : se déplace, pivote, se coupe, s'exporte comme une polyligne.
+        // =====================================================================
+        let penPts = [], penDrag = null;
+        const PEN_STEPS = 24;
+        function bezPt(a, c1, c2, b, t) { const u = 1 - t; return { x: u * u * u * a.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * b.x, y: u * u * u * a.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * b.y }; }
+        function penFlatten(P, closed) {
+            const out = [{ x: P[0].x, y: P[0].y }], n = P.length, ns = closed ? n : n - 1;
+            for (let i = 0; i < ns; i++) { const a = P[i], b = P[(i + 1) % n], c1 = a.hout || a, c2 = b.hin || b;
+                for (let k = 1; k <= PEN_STEPS; k++) out.push(bezPt(a, c1, c2, b, k / PEN_STEPS)); }
+            if (closed) out.pop();   // le dernier point = le premier
+            return out;
+        }
+        function finishPen(closed) {
+            if (penPts.length >= 2) {
+                const pts = penFlatten(penPts, closed);
+                shapes.push({ type: 'poly', layerId: activeLayerId, points: pts, open: !closed, curve: PEN_STEPS, color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
+                saveState();
+            }
+            penPts = []; penDrag = null; updateCommandMessage(); draw();
+        }
+        function penDown(wx, wy) {
+            const sn = findSnap(wx, wy); let x = sn ? sn.x : wx, y = sn ? sn.y : wy;
+            if (penPts.length >= 2 && Math.hypot(x - penPts[0].x, y - penPts[0].y) < SNAP_DIST_PX / camera.zoom) { penDrag = { i: 0, closing: true, x0: penPts[0].x, y0: penPts[0].y }; return; }
+            if (penPts.length && (orthoMode || shiftHeld)) { const lp = penPts[penPts.length - 1]; if (Math.abs(x - lp.x) > Math.abs(y - lp.y)) y = lp.y; else x = lp.x; }
+            penPts.push({ x, y, hin: null, hout: null }); penDrag = { i: penPts.length - 1, x0: x, y0: y };
+        }
+        function penMove(wx, wy) {   // cliquer-glisser : poignées symétriques
+            if (!penDrag) return; const q = penPts[penDrag.i]; if (Math.hypot(wx - q.x, wy - q.y) < 3 / camera.zoom) { if (!penDrag.closing) { q.hin = q.hout = null; } return; }
+            if (penDrag.closing) { q.hin = { x: 2 * q.x - wx, y: 2 * q.y - wy }; if (!q.hout) q.hout = { x: wx, y: wy }; else q.hout = { x: wx, y: wy }; return; }
+            q.hout = { x: wx, y: wy }; q.hin = { x: 2 * q.x - wx, y: 2 * q.y - wy };
+        }
+        function penUp() { if (!penDrag) return; const closing = penDrag.closing; penDrag = null; if (closing) finishPen(true); else { updateCommandMessage(); draw(); } }
+        function drawPenPreview(c) {
+            if (mode !== 'pen' || !penPts.length) return;
+            const col = document.getElementById('prop-color').value, P = penPts.slice();
+            if (!penDrag) P.push({ x: currentX, y: currentY, hin: null, hout: null });
+            c.save(); c.setLineDash([]); c.strokeStyle = col; c.lineWidth = 1.5 / camera.zoom; c.beginPath();
+            const F = P.length >= 2 ? penFlatten(P, false) : [P[0]]; F.forEach((q, i) => i ? c.lineTo(q.x, q.y) : c.moveTo(q.x, q.y)); c.stroke();
+            // poignées et points
+            const t = 4 / camera.zoom; c.lineWidth = 1 / camera.zoom; c.strokeStyle = '#38bdf8'; c.fillStyle = '#38bdf8';
+            penPts.forEach((q, i) => {
+                [q.hin, q.hout].forEach(h => { if (!h) return; c.beginPath(); c.moveTo(q.x, q.y); c.lineTo(h.x, h.y); c.stroke(); c.beginPath(); c.arc(h.x, h.y, t * 0.7, 0, 7); c.fill(); });
+                c.fillStyle = i === 0 ? '#eab308' : '#fff'; c.fillRect(q.x - t, q.y - t, 2 * t, 2 * t); c.strokeRect(q.x - t, q.y - t, 2 * t, 2 * t); c.fillStyle = '#38bdf8';
+            });
+            c.restore();
+        }
+        // =====================================================================
+        // COPIE MIROIR : sélection, axe en 2 clics, Entrée = copie (original gardé), Suppr = miroir sans l'original
+        // =====================================================================
+        let mirrorA = null, mirrorB = null, mirrorPending = false, mirrorSel = [];
+        function startMirror() {
+            const sel = selectedShapes.filter(x => !isBg(x) && x.type !== 'mesh');
+            if (!sel.length) { setMode('select-box'); mirrorPending = true; updateCommandMessageText('COPIE MIROIR : sélectionnez les objets, puis Entrée (ou recliquez le bouton miroir).'); draw(); return; }
+            mirrorPending = false; setMode('mirror'); selectedShapes = sel; mirrorSel = sel; mirrorA = mirrorB = null; updateCommandMessage(); draw();
+        }
+        function mirrorPointFn(A, B) {
+            const dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy || 1, c2 = (dx * dx - dy * dy) / L2, s2 = 2 * dx * dy / L2;
+            return (x, y) => { const X = x - A.x, Y = y - A.y; return { x: A.x + X * c2 + Y * s2, y: A.y + X * s2 - Y * c2 }; };
+        }
+        function applyMirrorToShape(s, A, B) {
+            const m = mirrorPointFn(A, B), phi = Math.atan2(B.y - A.y, B.x - A.x), mp = (o, kx, ky) => { const q = m(o[kx], o[ky]); o[kx] = q.x; o[ky] = q.y; };
+            holesOf(s).forEach(h => h.forEach(p => mp(p, 'x', 'y')));
+            if (s.type === 'line' || s.type === 'slope') { mp(s, 'x1', 'y1'); mp(s, 'x2', 'y2'); if (s.wall && s.wall.align !== 'axe') s.wall.align = s.wall.align === 'droite' ? 'gauche' : 'droite'; }
+            else if (s.type === 'circle' || s.type === 'point' || s.type === 'text') mp(s, 'x', 'y');
+            else if (s.type === 'arc') { mp(s, 'x', 'y'); const a0 = s.startAngle, a1 = s.endAngle; s.startAngle = 2 * phi - a1; s.endAngle = 2 * phi - a0; }
+            else if (s.type === 'poly') s.points.forEach(p => mp(p, 'x', 'y'));
+            else if (s.type === 'dim') {
+                const hv = Math.abs(Math.sin(2 * phi)) < 1e-9;
+                if (s.orient && !hv) { const g = dimGeom(s); if (g) { s.x1 = g.c1.x; s.y1 = g.c1.y; s.x2 = g.c2.x; s.y2 = g.c2.y; s.ox = g.mid.x; s.oy = g.mid.y; } delete s.orient; }
+                mp(s, 'x1', 'y1'); mp(s, 'x2', 'y2'); mp(s, 'ox', 'oy');
+            }
+            else if (s.type === 'dim-angle') { [s.vertex, s.p1, s.p2].forEach(p => mp(p, 'x', 'y')); }
+            else if (s.type === 'hatch') { s.loops.forEach(l => l.forEach(p => mp(p, 'x', 'y'))); s.hatchAngle = 2 * phi * 180 / Math.PI - ((s.hatchAngle !== undefined) ? s.hatchAngle : 45); }
+            else if (s.type === 'detail') { mp(s, 'tx', 'ty'); mp(s, 'lx', 'ly'); }
+        }
+        function mirrorClones(A, B) {
+            const gmap = {};
+            return mirrorSel.map(s0 => { const s = JSON.parse(JSON.stringify(s0)); if (s.groupId) s.groupId = gmap[s.groupId] || (gmap[s.groupId] = 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)); applyMirrorToShape(s, A, B); return s; });
+        }
+        function mirrorTargetB(px, py, shift) { const A = mirrorA; if (A && (orthoMode || shift)) { if (Math.abs(px - A.x) > Math.abs(py - A.y)) py = A.y; else px = A.x; } return { x: px, y: py }; }
+        function mirrorClick(wx, wy, shift) {
+            const sn = findSnap(wx, wy), x = sn ? sn.x : wx, y = sn ? sn.y : wy;
+            if (!mirrorA) mirrorA = { x, y };
+            else if (!mirrorB) { const b = mirrorTargetB(x, y, shift); if (Math.hypot(b.x - mirrorA.x, b.y - mirrorA.y) > 1e-9) mirrorB = b; }
+            updateCommandMessage(); draw();
+        }
+        function mirrorApply(keep) {
+            if (!mirrorA || !mirrorB) return;
+            const cl = mirrorClones(mirrorA, mirrorB);
+            if (!keep) shapes = shapes.filter(s => !mirrorSel.includes(s));
+            shapes.push(...cl); saveState();
+            const n = cl.length; mirrorA = mirrorB = null; setMode('select-box'); selectedShapes = cl;
+            updateCommandMessageText('COPIE MIROIR : ' + n + ' objet(s) ' + (keep ? 'copiés en miroir (originaux gardés).' : 'retournés en miroir (originaux supprimés).')); draw();
+        }
+        function drawMirrorPreview(c) {
+            if (mode !== 'mirror' || !mirrorA) return;
+            const B = mirrorB || mirrorTargetB(currentX, currentY, shiftHeld); if (Math.hypot(B.x - mirrorA.x, B.y - mirrorA.y) < 1e-9) return;
+            const dx = B.x - mirrorA.x, dy = B.y - mirrorA.y, L = Math.hypot(dx, dy), ext = 3000 / camera.zoom;
+            c.save(); c.strokeStyle = '#fbbf24'; c.lineWidth = 1.2 / camera.zoom; c.setLineDash([10 / camera.zoom, 4 / camera.zoom, 2 / camera.zoom, 4 / camera.zoom]);
+            c.beginPath(); c.moveTo(mirrorA.x - dx / L * ext, mirrorA.y - dy / L * ext); c.lineTo(B.x + dx / L * ext, B.y + dy / L * ext); c.stroke(); c.restore();
+            c.save(); c.globalAlpha = 0.6; mirrorClones(mirrorA, B).forEach(s => drawSingleShape(c, s, false, false, 0, 0, camera.zoom)); c.restore();
+        }
+        function drawWallPreview(c) {
+            if (mode !== 'wall' || !wallTool || !wallStart) return;
+            const C = wallChainLive(), pts = C ? C.pts : [wallStart], cur = wallTarget(currentX, currentY, shiftHeld);
+            if (Math.hypot(cur.x - pts[pts.length - 1].x, cur.y - pts[pts.length - 1].y) < 1e-9) return;
+            const sub = pts.slice(-3).concat([cur]), G = wallChainGeom(sub, wallTool, false), mat = wallTool.layers[0].mat;
+            const lid = C ? C.lid : null, col = lid ? effectiveColor({ layerId: lid }, false) : ((WALL_MATS[mat] || WALL_MATS.air).line || '#fff');
+            const lw = (lid ? effectiveWidth({ layerId: lid }) : 1) * 2 / camera.zoom;
+            const draw1 = (g, alpha, first) => {
+                const rc = [g.A0, g.A1, g.B1, g.B0];
+                c.save(); c.globalAlpha = alpha; if (mat !== 'air') drawMatHatch(c, { loops: [rc] }, mat, col, camera.zoom);
+                c.strokeStyle = col; c.lineWidth = lw; c.setLineDash([]); c.beginPath();
+                c.moveTo(g.A0.x, g.A0.y); c.lineTo(g.A1.x, g.A1.y); c.lineTo(g.B1.x, g.B1.y); c.lineTo(g.B0.x, g.B0.y); if (first) c.closePath(); c.stroke(); c.restore();
+            };
+            if (C && G.length >= 2) draw1(G[G.length - 2], 1, pts.length === 2);   // tronçon précédent, onglet à jour
+            draw1(G[G.length - 1], 0.7, !C);
+            c.save(); c.globalAlpha = 0.5; c.strokeStyle = col; c.lineWidth = 1 / camera.zoom; c.setLineDash([6 / camera.zoom, 4 / camera.zoom]); c.beginPath(); c.moveTo(wallStart.x, wallStart.y); c.lineTo(cur.x, cur.y); c.stroke(); c.restore();
+        }
+        // éditeur de couches (fenêtre Y)
+        let wallEdit = null;
+        function wallEditorHTML() {
+            const opts = (v) => Object.keys(WALL_MATS).map(k => `<option value="${k}"${k === v ? ' selected' : ''}>${WALL_MATS[k].name}</option>`).join('');
+            return `<div class="border-t border-gray-600 pt-2 mt-1 text-xs text-gray-400">Paroi : couches du côté gauche (sens de tracé) vers le côté droit — épaisseur totale <b id="wl-tot" class="text-white">${wallThick(wallEdit)} mm</b></div>`
+                + wallEdit.layers.map((l, i) => `<div class="flex items-center gap-1"><select class="wl-mat flex-1 bg-gray-700 text-white border border-gray-600 rounded px-1 py-1 text-xs" data-i="${i}" onchange="wallSync()">${opts(l.mat)}</select><input class="wl-e w-16 bg-gray-700 text-white border border-gray-600 rounded px-1 py-1 text-xs text-right" data-i="${i}" value="${l.e}" oninput="wallSync(true)"><span class="text-xs text-gray-400">mm</span><button type="button" class="text-red-300 hover:text-red-200 text-xs px-1" title="Retirer la couche" onclick="wallSync();wallEdit.layers.splice(${i},1);wallRender()">✕</button></div>`).join('')
+                + `<div class="flex items-center justify-between gap-2"><button type="button" class="text-xs text-sky-300 hover:text-sky-200" onclick="wallSync();wallEdit.layers.push({mat:'beton',e:200});wallRender()">+ Ajouter une couche</button><label class="text-xs flex items-center gap-1">Alignement <select id="wl-align" class="bg-gray-700 text-white border border-gray-600 rounded px-1 py-0.5 text-xs" onchange="wallSync()"><option value="gauche"${wallEdit.align === 'gauche' ? ' selected' : ''}>tracé = face gauche</option><option value="axe"${wallEdit.align === 'axe' ? ' selected' : ''}>tracé = axe</option><option value="droite"${wallEdit.align === 'droite' ? ' selected' : ''}>tracé = face droite</option></select></label></div>`;
+        }
+        function wallSync(noRender) {
+            document.querySelectorAll('#wall-edit .wl-mat').forEach(el => { wallEdit.layers[+el.dataset.i].mat = el.value; });
+            document.querySelectorAll('#wall-edit .wl-e').forEach(el => { const v = parseFloat(String(el.value).replace(',', '.')); if (v > 0) wallEdit.layers[+el.dataset.i].e = v; });
+            const al = document.getElementById('wl-align'); if (al) wallEdit.align = al.value;
+            const tt = document.getElementById('wl-tot'); if (tt) tt.textContent = wallThick(wallEdit) + ' mm';
+        }
+        function wallRender() { const d = document.getElementById('wall-edit'); if (d) d.innerHTML = wallEditorHTML(); }
         // ---- Étirer (STRETCH) : fenêtre de capture, point de base, destination ----
         // sommets dans la fenêtre déplacés ; cercles, arcs, textes, points… déplacés si leur centre / point d'insertion y est
         let stretchWin = null, stretchA = null, stretchBase = null;
@@ -4341,7 +4755,7 @@
         function solidBaseZ(s) { return s.type === 'circle' ? s.z : s.points[0].z; }
         function setMode(newMode) {
             if (typeof isOrthoView === 'function' && isOrthoView() && !view2dAnim && newMode !== 'select-box') { view2d = { a: 0, e: 90 }; orthoCenterCamera(); }
-            solidTool = null; filletA = filletB = null; pierceTarget = null; stretchWin = stretchA = stretchBase = null; if (newMode !== 'stamp' && typeof stamp !== 'undefined') stamp = null; if (newMode !== 'bmplace' && typeof bmPlace !== 'undefined' && bmPlace) { clearTimeout(bmPlace.timer); bmPlace = null; }
+            solidTool = null; filletA = filletB = null; pierceTarget = null; stretchWin = stretchA = stretchBase = null; if (newMode !== 'wall') { wallTool = null; wallStart = null; wallChain = null; } if (newMode !== 'pen') { penPts = []; penDrag = null; } if (newMode !== 'mirror') { mirrorA = mirrorB = null; } if (newMode !== 'select-box') mirrorPending = false; if (newMode !== 'stamp' && typeof stamp !== 'undefined') stamp = null; if (newMode !== 'bmplace' && typeof bmPlace !== 'undefined' && bmPlace) { clearTimeout(bmPlace.timer); bmPlace = null; }
             if (typeof is3DOpen === 'function' && is3DOpen()) close3D();   // choisir un outil ramène au plan 2D
             mode = newMode; flashUntil = 0;   // un nouvel outil remplace le message temporaire
             moveBasePoint = null; isMovingObjects = false; isDrawing = false; moveTypedX = null;
@@ -4605,6 +5019,8 @@
                         const ox = -wTxt / 2, oy = h * 0.5;   // texte centré, juste au-dessus de la ligne
                         text(s, cx + ox * ca - oy * sa, cy + ox * sa + oy * ca, h, str, a * 180 / Math.PI);
                     }
+                } else if (s.type === 'line' && s.wall) {
+                    wallBands(s, 0, 0).forEach(b => b.pts.forEach((q, i) => { const r2 = b.pts[(i + 1) % 4]; line(s, q[0], q[1], r2[0], r2[1]); }));
                 } else if (s.type === 'line') {
                     line(s, s.x1, s.y1, s.x2, s.y2, s.z1, s.z2);
                 } else if (s.type === 'slope') {
@@ -4721,7 +5137,7 @@
                             const kv = {}; momo.split(';').forEach(t => { const [a, b] = t.split('='); if (a) kv[a.trim()] = (b || '').trim(); });
                             importedLayers[name].momo = true;
                             importedLayers[name].textH = parseFloat(kv.textH) > 0 ? parseFloat(kv.textH) : '';
-                            importedLayers[name].hatch = ['lines', 'cross', 'solid'].includes(kv.hatch) ? kv.hatch : 'lines';
+                            importedLayers[name].hatch = (['lines', 'cross', 'solid'].includes(kv.hatch) || /^m-[a-z]+$/.test(kv.hatch || '')) ? kv.hatch : 'lines';
                             importedLayers[name].hatchScale = parseFloat(kv.hscale) > 0 ? parseFloat(kv.hscale) : 1;
                         }
                     }
@@ -5030,7 +5446,7 @@
         const OPEN_TYPES = [{ description: 'Plans MomoCAD, DXF et maillages STL', accept: { 'application/json': ['.mmc', '.momocad', '.json'], 'application/dxf': ['.dxf'], 'model/stl': ['.stl'], 'application/x-momocad-gabarit': ['.gbt'] } }];
         const isDxfName = (n) => /\.dxf$/i.test(n || '');
         function projectData() {
-            const basemaps = {}; shapes.forEach(sh => { if (!isBg(sh)) return; [sh.mapId, sh.mapId + '_cad'].forEach(k => { if (basemapStore[k]) basemaps[k] = basemapStore[k]; }); });
+            const basemaps = {}; shapes.forEach(sh => { if (!isBg(sh)) return; Object.keys(basemapStore).forEach(k => { if (k === sh.mapId || (sh.type === 'basemap' && k.startsWith(sh.mapId + '_'))) basemaps[k] = basemapStore[k]; }); });
             const meshes = {}; shapes.forEach(sh => { if (sh.type === 'mesh' && meshStore[sh.meshId]) meshes[sh.meshId] = f32ToB64(meshStore[sh.meshId]); });
             const c = screenToWorld(canvas.width / 2, canvas.height / 2);
             return { app: 'MomoCAD', version: '1.3', scale: { value: unitsPerSquare, unit: currentUnit }, layers, activeLayerId, snapSettings, shapes,
@@ -5488,6 +5904,7 @@
                    : s.loops ? { type:'hatch', loops: s.loops.map(l => l.map(p => ({x:p.x+dx, y:p.y+dy}))) }
                    : { type:'poly', points: s.points.map(p => ({x:p.x+dx, y:p.y+dy})) })
                 : s;
+            if (pattern.startsWith('m-') && shp.type !== 'circle') { drawMatHatch(targetCtx, shp, pattern.slice(2), col, lineScale); return; }
             targetCtx.save();
             targetCtx.setLineDash([]);
             if (pattern === 'solid') {
@@ -5509,7 +5926,25 @@
             targetCtx.restore();
         }
 
+        // Hachure « matériau » (parois) : motif de coupe orienté sur le plus long côté du contour, sans remplissage
+        function drawMatHatch(c, shp, mat, col, ls) {
+            const loops = shp.loops || [shp.points], L0 = loops[0], n = L0.length; if (n < 3) return;
+            let best = null; for (let i = 0; i < n; i++) { const a = L0[i], b = L0[(i + 1) % n], len = Math.hypot(b.x - a.x, b.y - a.y); if (!best || len > best.len) best = { a, b, len }; }
+            if (!best || best.len < 1e-9) return;
+            const a = best.a, ux = (best.b.x - a.x) / best.len, uy = (best.b.y - a.y) / best.len;
+            let gx = 0, gy = 0; L0.forEach(q => { gx += q.x / n; gy += q.y / n; });
+            let nx = uy, ny = -ux; if ((gx - a.x) * nx + (gy - a.y) * ny < 0) { nx = -nx; ny = -ny; }
+            let e = 0, x0 = Infinity, x1 = -Infinity; L0.forEach(q => { const dx = q.x - a.x, dy = q.y - a.y; e = Math.max(e, dx * nx + dy * ny); const t = dx * ux + dy * uy; x0 = Math.min(x0, t); x1 = Math.max(x1, t); });
+            const k = mmToWorld(1);
+            c.save(); c.setLineDash([]); c.beginPath();
+            for (const l of loops) { c.moveTo(l[0].x, l[0].y); for (const q of l) c.lineTo(q.x, q.y); c.closePath(); }
+            c.clip('evenodd');
+            c.translate(a.x + ux * x0, a.y + uy * x0); c.transform(ux * k, uy * k, nx * k, ny * k, 0, 0);
+            c.strokeStyle = col; wallPattern(c, mat, worldToMm(x1 - x0), worldToMm(e), k * ls);
+            c.restore();
+        }
         function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy, lineScale) {
+            if (!isPrinting && wallChain && wallChain.last && wallChain.last.has(s) && wallChainLive()) return;   // redessiné par l'aperçu de paroi
             if (lineScale === undefined) lineScale = camera.zoom;
             let col = effectiveColor(s, isPrinting);
             let dash = effectiveDash(s);
@@ -5524,7 +5959,8 @@
                 ltD = 34 / lineScale; ltG = targetCtx.measureText(ltt).width + 8 / lineScale; targetCtx.setLineDash([ltD, ltG]);
             }
             else targetCtx.setLineDash([]);
-            if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); if (ltt) drawLineTexts(targetCtx, s, dx, dy, ltt, ltD, ltG, ltF, sel ? '#ec4899' : col); }
+            if (s.type === 'line' && s.wall) { drawWall(targetCtx, s, dx, dy, lineScale, sel, isPrinting); }
+            else if (s.type === 'line') { targetCtx.moveTo(s.x1+dx, s.y1+dy); targetCtx.lineTo(s.x2+dx, s.y2+dy); targetCtx.stroke(); if (ltt) drawLineTexts(targetCtx, s, dx, dy, ltt, ltD, ltG, ltF, sel ? '#ec4899' : col); }
             else if (s.type === 'circle') { targetCtx.arc(s.x+dx, s.y+dy, s.r, 0, 2*Math.PI); targetCtx.stroke(); if (ltt) drawLineTexts(targetCtx, s, dx, dy, ltt, ltD, ltG, ltF, sel ? '#ec4899' : col); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); if (isPlateforme(s)) drawTalus2D(targetCtx, s, sel ? '#ec4899' : col, dx, dy, lineScale); if (s.solid) drawSolid2D(targetCtx, s, sel ? '#ec4899' : col, dx, dy, lineScale); }
             else if (s.type === 'arc') { targetCtx.arc(s.x+dx, s.y+dy, s.r, s.startAngle, s.endAngle, !!s.anticlockwise); targetCtx.stroke(); if (ltt) drawLineTexts(targetCtx, s, dx, dy, ltt, ltD, ltG, ltF, sel ? '#ec4899' : col); }
             else if (s.type === 'poly') { targetCtx.moveTo(s.points[0].x+dx, s.points[0].y+dy); for (let pt of s.points.slice(1)) targetCtx.lineTo(pt.x+dx, pt.y+dy); if (!s.open) targetCtx.closePath(); targetCtx.stroke(); if (ltt) drawLineTexts(targetCtx, s, dx, dy, ltt, ltD, ltG, ltF, sel ? '#ec4899' : col); if (s.hatch) drawHatch(targetCtx, s, col, dx, dy, lineScale); if (isPlateforme(s)) drawTalus2D(targetCtx, s, sel ? '#ec4899' : col, dx, dy, lineScale); if (s.solid) drawSolid2D(targetCtx, s, sel ? '#ec4899' : col, dx, dy, lineScale); }
@@ -5553,8 +5989,7 @@
                 if (img) {
                     targetCtx.globalAlpha *= (s.opacity === undefined ? 1 : Math.max(0, Math.min(1, s.opacity)));
                     targetCtx.translate(X, Y); targetCtx.rotate(s.rot || 0); targetCtx.drawImage(img, -s.r, -s.r, 2 * s.r, 2 * s.r);
-                    const cad = s.cadastre ? bmImg(s.mapId + '_cad') : null;
-                    if (cad) targetCtx.drawImage(cad, -s.r, -s.r, 2 * s.r, 2 * s.r);
+                    for (const k of BM_OVL_ORDER) { if (!bmOvlOn(s, k)) continue; const o = bmImg(s.mapId + '_' + k); if (o) targetCtx.drawImage(o, -s.r, -s.r, 2 * s.r, 2 * s.r); }
                 }
                 else { targetCtx.fillStyle = '#d1d5db'; targetCtx.fill(); }
                 targetCtx.restore();
@@ -5622,14 +6057,14 @@
                 }
                 drawSingleShape(targetCtx, s, isPrinting, sel, ddx, ddy);
             }
-            if (!isPrinting) { drawStampPreview(targetCtx); drawStretchPreview(targetCtx); }
+            if (!isPrinting) { drawStampPreview(targetCtx); drawStretchPreview(targetCtx); drawWallPreview(targetCtx); drawPenPreview(targetCtx); drawMirrorPreview(targetCtx); }
 
             // Prévisualisations en cours de tracé
             if (isDrawing && !isPanning && isUIEnabled) {
                 let dash = document.getElementById('prop-dash').value;
                 if (dash === 'dashed') targetCtx.setLineDash([8/camera.zoom, 8/camera.zoom]); else if (dash === 'center') targetCtx.setLineDash([16/camera.zoom, 6/camera.zoom, 2/camera.zoom, 6/camera.zoom]); else targetCtx.setLineDash([]);
                 let px = currentX, py = currentY, pr = Math.hypot(currentX-startX, currentY-startY);
-                if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; pr = d; if (mode === 'poly' && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); px = lp.x+Math.cos(a)*d; py = lp.y+Math.sin(a)*d; } else if (mode !== 'arc') { let a = Math.atan2(currentY-startY, currentX-startX); px = startX+Math.cos(a)*d; py = startY+Math.sin(a)*d; } }
+                if (typedInput.length > 0 && !isNaN(parseFloat(typedInput))) { let d = (parseFloat(typedInput)/unitsPerSquare)*GRID_SIZE; pr = d; if (isPolyMode() && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); px = lp.x+Math.cos(a)*d; py = lp.y+Math.sin(a)*d; } else if (mode !== 'arc') { let a = Math.atan2(currentY-startY, currentX-startX); px = startX+Math.cos(a)*d; py = startY+Math.sin(a)*d; } }
                 let previewW = (parseFloat(document.getElementById('prop-width').value) || 1) * 2;
                 if (mode === 'rect') {
                     targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom;
@@ -5681,7 +6116,7 @@
                         targetCtx.globalAlpha = 0.5; targetCtx.beginPath(); targetCtx.moveTo(arcCenter.x, arcCenter.y); targetCtx.lineTo(arcP1.x, arcP1.y); targetCtx.stroke(); targetCtx.globalAlpha = 1.0;
                     }
                 }
-                else if (mode === 'poly' && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let p of currentPolygon.slice(1)) targetCtx.lineTo(p.x, p.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; let t=5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x-t, currentPolygon[0].y-t, t*2, t*2); }
+                else if (isPolyMode() && currentPolygon.length > 0) { targetCtx.strokeStyle = document.getElementById('prop-color').value; targetCtx.lineWidth = previewW/camera.zoom; targetCtx.beginPath(); targetCtx.moveTo(currentPolygon[0].x, currentPolygon[0].y); for (let p of currentPolygon.slice(1)) targetCtx.lineTo(p.x, p.y); targetCtx.lineTo(px, py); targetCtx.stroke(); targetCtx.setLineDash([]); targetCtx.strokeStyle = '#eab308'; let t=5/camera.zoom; targetCtx.strokeRect(currentPolygon[0].x-t, currentPolygon[0].y-t, t*2, t*2); }
                 else if (mode === 'profile' && profileAxis.length) {
                     targetCtx.strokeStyle = '#a3e635'; targetCtx.lineWidth = 2 / camera.zoom; targetCtx.setLineDash([10 / camera.zoom, 4 / camera.zoom, 2 / camera.zoom, 4 / camera.zoom]);
                     targetCtx.beginPath(); targetCtx.moveTo(profileAxis[0].x, profileAxis[0].y); profileAxis.slice(1).forEach(q => targetCtx.lineTo(q.x, q.y)); targetCtx.lineTo(currentX, currentY); targetCtx.stroke(); targetCtx.setLineDash([]);
@@ -6082,7 +6517,7 @@
                 ctx.fillStyle = '#ffffff'; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(full, ms.x+20, ms.y+26);
             }
 
-            if (isDrawing && !isPanning && (mode === 'line' || mode === 'rect' || mode === 'circle' || mode === 'poly' || mode === 'arc')) {
+            if (isDrawing && !isPanning && (mode === 'line' || mode === 'rect' || mode === 'circle' || isPolyMode() || mode === 'arc')) {
                 let full = "";
                 if (mode === 'arc') {
                     if (arcStep === 1) { let dist = Math.hypot(currentX - arcCenter.x, currentY - arcCenter.y); full = "R= " + (typedInput.length > 0 ? typedInput + "_ " + currentUnit : calculateRealDistance(dist)); }
@@ -6099,7 +6534,7 @@
                     }
                     full = "⬌ " + calculateRealDistance(wWorld) + "  ⬍ " + calculateRealDistance(hWorld);
                 } else {
-                    let lp = mode === 'poly' && currentPolygon.length > 0 ? currentPolygon[currentPolygon.length-1] : {x:startX, y:startY};
+                    let lp = isPolyMode() && currentPolygon.length > 0 ? currentPolygon[currentPolygon.length-1] : {x:startX, y:startY};
                     let dist = Math.hypot(currentX-lp.x, currentY-lp.y);
                     if (typedInput.length > 0) full = (mode === 'circle' ? "R=" : "L=") + typedInput + "_ " + currentUnit;
                     else full = (mode === 'circle' ? "R=" : "L=") + calculateRealDistance(dist);
@@ -6126,8 +6561,12 @@
             }
             else if (mode === 'circle') msg = isDrawing ? "CERCLE : Spécifiez le rayon (valeur + Entrée)." : "CERCLE : Spécifiez le centre.";
             else if (mode === 'arc') { if (arcStep === 0) msg = "ARC : Spécifiez le centre."; else if (arcStep === 1) msg = "ARC : Spécifiez le rayon et le point de départ."; else msg = "ARC : Spécifiez l'angle de fin (valeur + Entrée)."; }
-            else if (mode === 'poly') msg = 'POLYGONE : ' + (isDrawing ? "Spécifiez le point suivant (clic sur le 1er point ou double-clic pour fermer)." : "Spécifiez le point de départ du contour.");
+            else if (mode === 'pline') msg = 'POLYLIGNE : ' + (isDrawing ? 'point suivant (ou longueur + Entrée) — Entrée / Échap / double-clic = terminer, clic sur le 1er point = fermer.' : 'cliquez le premier point.');
+            else if (mode === 'pen') msg = 'PLUME : ' + (penPts.length ? 'clic = point anguleux, cliquer-glisser = point courbe — Entrée / Échap / double-clic = terminer, clic sur le 1er point = fermer.' : 'cliquez (ou cliquez-glissez) le premier point.');
+            else if (mode === 'mirror') msg = 'COPIE MIROIR (' + selectedShapes.length + ' objet(s)) : ' + (!mirrorA ? 'cliquez le 1er point de l\'axe.' : !mirrorB ? 'cliquez le 2e point de l\'axe (Maj / ortho = axe H ou V).' : 'Entrée = copie miroir (garde l\'original) · Suppr = miroir sans l\'original · Échap = annuler.');
+            else if (isPolyMode()) msg = 'POLYGONE : ' + (isDrawing ? "Spécifiez le point suivant (clic sur le 1er point ou double-clic pour fermer)." : "Spécifiez le point de départ du contour.");
             else if (mode === 'stamp' && stamp) msg = 'BLOC ' + stamp.b.name + ' : ×' + nfr(stamp.sc, 2) + ' · ' + (((Math.round(stamp.rot * 180 / Math.PI) % 360) + 360) % 360) + '° — clic = poser · Maj+molette = taille · Ctrl+molette = rotation (15°) · Échap pour finir.';
+            else if (mode === 'wall' && wallTool) msg = 'PAROI ' + wallTool.name + ' ' + wallThick(wallTool) + ' mm, tracé = ' + ({ gauche: 'face gauche', axe: 'axe', droite: 'face droite' }[wallTool.align] || 'face gauche') + ' : ' + (!wallStart ? (typedInput ? 'épaisseur = ' + typedInput + ' mm + Entrée' : 'cliquez le début — ou tapez une épaisseur (mm) + Entrée ; Tab inverse le côté.') : 'cliquez la fin, ou tapez la longueur' + (typedInput ? ' = ' + typedInput + ' ' + currentUnit : '') + ' + Entrée — les parois s\'enchaînent, Échap pour finir.');
             else if (mode === 'stretch') msg = !stretchWin ? (!stretchA ? 'ÉTIRER : cliquez le 1er coin de la fenêtre (entourez les sommets à déplacer).' : 'ÉTIRER : cliquez le 2e coin de la fenêtre.') : !stretchBase ? 'ÉTIRER : ' + selectedShapes.length + ' objet(s) touché(s). Cliquez le point de base.' : 'ÉTIRER : cliquez la destination, ou tapez une distance' + (typedInput ? ' = ' + typedInput + ' ' + currentUnit : '') + ' puis Entrée (Maj = ortho).';
             else if (mode === 'fillet') msg = !filletA ? 'ARRONDIR : cliquez la 1re droite (côté à garder).' : !filletB ? 'ARRONDIR : cliquez la 2e droite (côté à garder).' : 'ARRONDIR : R = ' + (typedInput || '…') + ' ' + currentUnit + ' puis [Entrée]' + (filletR !== null && !typedInput ? ' (Entrée seule : ' + String(filletR).replace('.', ',') + ')' : '') + ' — 0 = angle vif.';
             else if (mode === 'extrude') msg = 'EXTRUDER : cliquez un rectangle, une polyligne fermée ou un cercle (ou sélectionnez-les avant).';
@@ -6261,8 +6700,10 @@
                 if (Math.abs(realR - b.radiusM) > 1e-6 * b.radiusM) html += `<div class="text-yellow-300 text-xs">Agrandi/réduit : n'est plus à l'échelle (d'origine ${b.radiusM.toLocaleString('fr-FR')} m)</div>`;
                 html += `<div class="text-gray-400 text-xs">${b.label ? esc(b.label) + ' — ' : ''}${b.lat.toFixed(5)}, ${b.lon.toFixed(5)}</div>`;
                 html += `<div class="flex justify-between items-center"><span>Opacité:</span> <span class="font-mono text-emerald-300 ml-4">${Math.round((b.opacity === undefined ? 1 : b.opacity) * 100)} %</span></div>`;
-                const hasCad = !!basemapStore[b.mapId + '_cad'];
-                html += `<label class="flex justify-between items-center mt-1 cursor-pointer select-none" title="${hasCad ? 'Afficher / masquer le cadastre' : 'Cadastre indisponible pour ce lieu'}"><span>Cadastre:</span> <input type="checkbox" class="bm-switch ml-4" ${b.cadastre ? 'checked' : ''} ${hasCad ? '' : 'disabled'} onchange="toggleBasemapCadastre(this.checked)"></label>`;
+                html += `<label class="flex justify-between items-center mt-1"><span>Carte:</span> <select class="ml-4 bg-gray-700 text-emerald-300 border border-gray-600 rounded px-1 py-0.5 text-xs outline-none" title="Changer la carte de fond (nouveau téléchargement)" onchange="changeBasemapBase(this.value)">${Object.keys(BM_BASES).map(k => `<option value="${k}" ${(b.base || 'sat') === k ? 'selected' : ''}>${BM_BASES[k].name}</option>`).join('')}</select></label>`;
+                html += `<div class="text-gray-400 text-xs mt-1.5 mb-0.5">Calques</div>`;
+                BM_OVL_LIST.forEach(k => { const has = !!basemapStore[b.mapId + '_' + k];
+                    html += `<label class="flex justify-between items-center cursor-pointer select-none py-px" title="${has ? 'Afficher / masquer : ' + BM_OVLS[k].sub : 'Pas encore téléchargé : cochez pour le télécharger (' + BM_OVLS[k].sub + ')'}"><span>${BM_OVLS[k].name}${has ? '' : ' <span class="text-gray-500">⇣</span>'}</span> <input type="checkbox" class="bm-switch ml-4" data-ovl="${k}" ${bmOvlOn(b, k) ? 'checked' : ''} onchange="toggleBasemapOverlay('${k}', this.checked)"></label>`; });
             }
             if (html === '') html = '<div class="text-gray-500 italic">Aucune géométrie calculable</div>';
             content.innerHTML = html;
@@ -6282,6 +6723,14 @@
             if (mode === 'preview') { previewPin = previewPin ? null : { x: sx, y: sy }; draw(); return; }
             if (mode === 'bmplace' && e.button === 0) { const w = screenToWorld(sx, sy); placeBasemapAt(w.x, w.y); return; }
             if (mode === 'stamp' && e.button === 0) { const w = screenToWorld(sx, sy), sn = findSnap(w.x, w.y); currentX = sn ? sn.x : w.x; currentY = sn ? sn.y : w.y; placeStamp(); return; }
+            if (mode === 'pen' && e.button === 0) { const w = screenToWorld(sx, sy); penDown(w.x, w.y); updateCommandMessage(); draw(); return; }
+            if (mode === 'mirror' && e.button === 0) { const w = screenToWorld(sx, sy); mirrorClick(w.x, w.y, e.shiftKey); return; }
+            if (mode === 'wall' && e.button === 0 && wallTool) {
+                const w = screenToWorld(sx, sy), sn = findSnap(w.x, w.y); let px = sn ? sn.x : w.x, py = sn ? sn.y : w.y;
+                if (!wallStart) { wallStart = { x: px, y: py }; wallChain = null; }
+                else { const t = wallTarget(px, py, e.shiftKey); if (Math.hypot(t.x - wallStart.x, t.y - wallStart.y) > 1e-6) wallAddTo(t.x, t.y); }
+                updateCommandMessage(); draw(); return;
+            }
             if (mode === 'stretch' && e.button === 0) {
                 const w = screenToWorld(sx, sy), sn = findSnap(w.x, w.y); let px = sn ? sn.x : w.x, py = sn ? sn.y : w.y;
                 if (!stretchWin) {
@@ -6553,7 +7002,7 @@
                 return;
             }
 
-            if (mode === 'poly') {
+            if (isPolyMode()) {
                 let sn = findSnap(wp.x, wp.y), px2 = sn ? sn.x : wp.x, py2 = sn ? sn.y : wp.y;
                 if (!isDrawing) { currentPolygon = [{x:px2, y:py2}]; isDrawing = true; typedInput = ""; }
                 else {
@@ -6605,10 +7054,11 @@
             currentY = currentSnap ? currentSnap.y : wp.y;
             // Position réelle du pointeur (NON contrainte) pour le guide d'alignement
             rawMouseX = currentX; rawMouseY = currentY;
+            if (mode === 'pen' && penDrag) penMove(wp.x, wp.y);
             // Contrainte orthogonale : mode Ortho permanent OU touche Shift maintenue.
             if (isDrawing && (orthoMode || e.shiftKey)) {
                 if (mode === 'line') { if (Math.abs(currentX-startX) > Math.abs(currentY-startY)) currentY = startY; else currentX = startX; }
-                else if (mode === 'poly' && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1]; if (Math.abs(currentX-lp.x) > Math.abs(currentY-lp.y)) currentY = lp.y; else currentX = lp.x; }
+                else if (isPolyMode() && currentPolygon.length > 0) { let lp = currentPolygon[currentPolygon.length-1]; if (Math.abs(currentX-lp.x) > Math.abs(currentY-lp.y)) currentY = lp.y; else currentX = lp.x; }
             }
 
             if (mode === 'offset' && offsetTarget && typedInput.length > 0) {
@@ -6634,6 +7084,7 @@
         });
 
         canvas.addEventListener('mouseup', (e) => {
+            if (mode === 'pen' && e.button === 0) penUp();
             if (e.button === 1) { isPanning = false; canvas.style.cursor = mode === 'select-box' ? 'default' : 'crosshair'; }
             if (mode === 'select-box' && isDrawing) {
                 moveTypedX = null; typedInput = "";
@@ -6723,11 +7174,11 @@
                 let d = (val/unitsPerSquare)*GRID_SIZE;
                 if (mode === 'circle') { shapes.push({ type:'circle', layerId:activeLayerId, x:startX, y:startY, r:d, color:col, dash:dsh, width:wdt, hatch:false }); isDrawing = false; }
                 else if (mode === 'line') { let a = Math.atan2(currentY-startY, currentX-startX); shapes.push({ type:'line', layerId:activeLayerId, x1:startX, y1:startY, x2:startX+Math.cos(a)*d, y2:startY+Math.sin(a)*d, color:col, dash:dsh, width:wdt }); isDrawing = false; }
-                else if (mode === 'poly') { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); currentPolygon.push({x: lp.x+Math.cos(a)*d, y: lp.y+Math.sin(a)*d}); }
+                else if (isPolyMode()) { let lp = currentPolygon[currentPolygon.length-1], a = Math.atan2(currentY-lp.y, currentX-lp.x); currentPolygon.push({x: lp.x+Math.cos(a)*d, y: lp.y+Math.sin(a)*d}); }
             }
             if (mode !== 'offset') {
                 typedInput = "";
-                if (mode !== 'poly') { saveState(); if (returnToSelect) setMode('select-box'); }
+                if (!isPolyMode()) { saveState(); if (returnToSelect) setMode('select-box'); }
                 draw();
             }
         }
@@ -6767,6 +7218,16 @@
                     if (e.key === 'Escape') { e.preventDefault(); cmdBuffer = ''; draw(); return; }
                 }
             }
+            // Polyligne / Plume : Entrée, Espace (sans saisie) ou Échap = terminer ; Miroir : Entrée / Suppr / Échap
+            if (mode === 'pline' && isDrawing && !typedInput && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { e.preventDefault(); finishPline(); return; }
+            if (mode === 'pen' && penPts.length && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { e.preventDefault(); finishPen(false); return; }
+            if (mode === 'pen' && penPts.length && e.key === 'Backspace') { e.preventDefault(); penPts.pop(); updateCommandMessage(); draw(); return; }
+            if (mode === 'mirror') {
+                if (e.key === 'Enter' && mirrorB) { e.preventDefault(); mirrorApply(true); return; }
+                if ((e.key === 'Delete' || e.key === 'Backspace') && mirrorB) { e.preventDefault(); mirrorApply(false); return; }
+                if (e.key === 'Escape') { e.preventDefault(); const sel = mirrorSel; mirrorA = mirrorB = null; setMode('select-box'); selectedShapes = sel; updateCommandMessageText('COPIE MIROIR annulée.'); draw(); return; }
+            }
+            if (mirrorPending && mode === 'select-box' && e.key === 'Enter' && selectedShapes.length) { e.preventDefault(); startMirror(); return; }
             if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
             if (e.ctrlKey && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
             if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copySelection(); return; }
@@ -6805,6 +7266,20 @@
                     updateCommandMessageText('DÉPLACÉ de ΔX ' + fmtLen(mx) + ' · ΔY ' + fmtLen(my) + '.');
                     draw(); return;
                 }
+            }
+            // Paroi : avant le 1er clic, épaisseur tapée (mm) + Entrée ; Tab = inverser le côté (gauche ↔ droite)
+            if (mode === 'wall' && wallTool && !e.ctrlKey && e.key === 'Tab') { e.preventDefault(); wallTool.align = wallTool.align === 'gauche' ? 'droite' : wallTool.align === 'droite' ? 'gauche' : 'axe'; if (wallTool.align === 'axe') wallTool.align = 'gauche'; updateCommandMessage(); draw(); return; }
+            if (mode === 'wall' && wallTool && !wallStart && !e.ctrlKey) {
+                if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); updateCommandMessage(); return; }
+                if (e.key === 'Backspace' && typedInput) { e.preventDefault(); typedInput = typedInput.slice(0, -1); updateCommandMessage(); return; }
+                if ((e.key === 'Enter' || e.key === ' ') && typedInput) { e.preventDefault(); const v = parseFloat(typedInput); typedInput = ''; if (v > 0) wallTool.layers[0].e = v; updateCommandMessage(); draw(); return; }
+            }
+            // Paroi : longueur tapée dans la direction de la souris puis Entrée
+            if (mode === 'wall' && wallStart && !e.ctrlKey) {
+                if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); updateCommandMessage(); draw(); return; }
+                if (e.key === 'Backspace' && typedInput) { e.preventDefault(); typedInput = typedInput.slice(0, -1); updateCommandMessage(); draw(); return; }
+                if (e.key === 'Shift') { shiftHeld = true; draw(); }
+                if ((e.key === 'Enter' || e.key === ' ') && typedInput) { e.preventDefault(); const d = (parseFloat(typedInput) / unitsPerSquare) * GRID_SIZE, a0 = Math.atan2(currentY - wallStart.y, currentX - wallStart.x), a = (orthoMode || e.shiftKey) ? Math.round(a0 / (Math.PI / 2)) * Math.PI / 2 : a0; wallAddTo(wallStart.x + d * Math.cos(a), wallStart.y + d * Math.sin(a)); updateCommandMessage(); return; }
             }
             // Étirer : distance tapée dans la direction de la souris puis Entrée
             if (mode === 'stretch' && stretchBase && !e.ctrlKey) {
@@ -6902,7 +7377,9 @@
 
         canvas.addEventListener('dblclick', (e) => {
             if (mode === 'profile' && profileAxis.length >= 2) { profileAxis.pop(); finishProfileAxis(); return; }   // le double-clic a ajouté un point en double
-            if (mode === 'poly' && isDrawing && currentPolygon.length > 2) {
+            if (mode === 'pline' && isDrawing) { finishPline(); return; }
+            if (mode === 'pen' && penPts.length) { penPts = penPts.filter((q, i) => i === 0 || Math.hypot(q.x - penPts[i - 1].x, q.y - penPts[i - 1].y) > 1e-9); finishPen(false); return; }
+            if (isPolyMode() && isDrawing && currentPolygon.length > 2) {
                 shapes.push({ type: 'poly', layerId: activeLayerId, points: [...currentPolygon], color: document.getElementById('prop-color').value, dash: document.getElementById('prop-dash').value, width: parseFloat(document.getElementById('prop-width').value) || 1, hatch: false });
                 isDrawing = false; currentPolygon = []; typedInput = ""; saveState(); draw();
             }
