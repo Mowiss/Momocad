@@ -726,6 +726,12 @@
     #mt-bubble .mt-do { background:#1f2937; border:1px solid #374151; border-radius:10px; padding:9px 11px; margin-bottom:8px; } #mt-bubble .mt-do .mt-lab { color:#fbbf24; }
     #mt-bubble .mt-more { background:#f59e0b14; border-left:3px solid #f59e0b; border-radius:6px; padding:6px 9px; color:#fde68a; font-size:13px; margin-bottom:8px; }
     #mt-bubble ol, #mt-bubble ul { margin:4px 0 0; padding-left:20px; } #mt-bubble li { margin:2px 0; }
+    #mt-bubble .mt-do ol { list-style:none; padding-left:0; counter-reset: jl; }
+    #mt-bubble .mt-do ol > li { position:relative; padding-left:28px; counter-increment: jl; transition: color .3s; }
+    #mt-bubble .mt-do ol > li:before { content: counter(jl); position:absolute; left:0; top:2px; width:19px; height:19px; border-radius:50%; border:1.5px solid #6b7280; color:#9ca3af; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; box-sizing:border-box; transition: all .3s; }
+    #mt-bubble .mt-do ol > li.ck { color:#bbf7d0; }
+    #mt-bubble .mt-do ol > li.ck:before { content:'✓'; background:#22c55e; border-color:#22c55e; color:#052e16; font-size:12px; animation: mt-pop .35s ease-out; }
+    @keyframes mt-pop { 0% { transform: scale(.4); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
     #mt-bubble kbd { display:inline-block; min-width:18px; text-align:center; padding:0 5px; margin:0 1px; border:1px solid #6b7280; border-bottom-width:2px; border-radius:4px; background:#1f2937; color:#fde68a; font-family:ui-monospace,monospace; font-size:12px; }
     #mt-bubble small { color:#9ca3af; }
     #mt-state { font-size:13px; font-weight:600; margin:2px 0 0; }
@@ -830,7 +836,7 @@
             ${back3D}${state}
             <div id="mt-bar"><i style="width:${Math.round((idx + (ready ? 1 : 0)) / n * 100)}%"></i></div><div id="mt-acts">${btns.join('')}</div>`;
         momo.classList.remove('talk'); void momo.getBoundingClientRect(); momo.classList.add('talk');
-        bubble.scrollTop = 0; place();
+        bubble.scrollTop = 0; place(); if (jal) { jal.rules = null; jalTick(); }
     }
     // la cible peut être dans une fenêtre fermée : on montre alors le bouton qui la rouvre
     const OPENERS = [['#cartouche-modal', 'btn-print-settings', '↩ Rouvrir les Paramètres ⛯'], ['#layer-modal', 'button[onclick="openLayerModal()"]', '↩ Rouvrir le gestionnaire de calques']];
@@ -892,8 +898,47 @@
         window.tutoGhost = items.length ? { items, pts: [].concat(...items.filter(it => it.cur).map(it => it.snap || [])) } : null;
         try { invalidateCache(); draw(); } catch (e) {}
     }
+    // ---------- jalons : chaque ligne de « À toi » se coche au fur et à mesure ----------
+    let jal = null;   // { rules:[…], ok:[…], clicks, typed, tool, m0, sel0 }
+    const jalTxt = (li) => (li.textContent || '').replace(/\s+/g, ' ').trim();
+    function jalRules(items) {
+        let need = 0, acted = false;
+        const NB = { deux: 2, trois: 3, quatre: 4 };
+        return items.map(t => {
+            const T = t.toLowerCase(), nbm = T.match(/\b(\d|deux|trois|quatre) (points|coins|pans)\b/), nb = nbm ? (NB[nbm[1]] || +nbm[1]) : 0;
+            const early = !acted;
+            if (/^Clique [A-ZÉ]/.test(t)) return { k: 'end' };                                          // un bouton (Joindre, Éclater…)
+            if (/appliquer|valider|créer le toit|, puis poser/.test(T)) return { k: 'end' };            // la ligne qui conclut
+            if (/sélectionne|toujours en rose/.test(T) && !/fenêtre jaune/.test(T)) { if (early) return { k: 'sel' }; return { k: 'end' }; }
+            const clicks = /clic|clique/.test(T) && /(point|coin|centre|côté du|bord|bout|fenêtre jaune|la dalle|le regard|le couvercle|la rampe|la polyligne|la ligne|le rectangle|le soulignement|l'emprise|la pièce|le mur|un mur|pans|sous le|à l'intérieur)/.test(T)
+                ? (nb || Math.max(1, (T.match(/clique|clic\b|puis (celui|le|la|du)\b/g) || []).length)) : 0;
+            if (clicks) { need += clicks; acted = true; return { k: 'clk', n: need }; }
+            if (/\btape\b/.test(T)) { acted = true; return { k: 'typ' }; }
+            if (early && /^(prends|ouvre|outil|catalogue de blocs|allume|déplie|rouvre|y sur|chapitre|sur un calque|échap)/.test(T)) return { k: 'tool' };
+            return { k: 'end' };
+        });
+    }
+    function jalInit() {
+        jal = { rules: null, ok: [], clicks: 0, typed: false, tool: false, m0: G.mode(), sel: false, modal: false };
+    }
+    function jalTick() {
+        const lis = bubble ? [...bubble.querySelectorAll('.mt-do ol > li')] : []; if (!lis.length || !jal) return;
+        if (!jal.rules) jal.rules = jalRules(lis.map(jalTxt));
+        const m = G.mode();
+        if (m && m !== jal.m0 && m !== 'select-box') jal.tool = true;
+        const tg = targetEl(); if (tg && tg.classList && tg.classList.contains('active')) jal.tool = true;
+        if (['topo-modal', 'selparam-modal', 'layer-modal', 'cartouche-modal', 't2-panel'].some(id => G.shown(id)) || G.is3D()) { jal.tool = true; jal.modal = true; }
+        if (G.sel().length) jal.sel = true;
+        try { if (typedInput && String(typedInput).length) jal.typed = true; } catch (e) {}
+        const fin = !!done[idx];
+        const raw = jal.rules.map((r, i) => fin || (r.k === 'tool' && jal.tool) || (r.k === 'sel' && jal.sel) || (r.k === 'clk' && jal.clicks >= r.n) || (r.k === 'typ' && jal.typed) );
+        // une ligne cochée coche aussi celles d'avant (on avance dans l'ordre)
+        let any = false; for (let i = raw.length - 1; i >= 0; i--) { if (raw[i]) any = true; if (any) jal.ok[i] = true; }
+        lis.forEach((li, i) => li.classList.toggle('ck', !!jal.ok[i]));
+    }
+    function jalClick(e) { if (jal && e.button === 0) jal.clicks++; }
     function go(i) {
-        idx = Math.max(0, Math.min(i, STEPS.length - 1)); ctx = {};
+        idx = Math.max(0, Math.min(i, STEPS.length - 1)); ctx = {}; jalInit();
         const s = STEPS[idx]; if (s.init) s.init(ctx);
         setGhost(); render();
     }
@@ -903,6 +948,7 @@
         const s = STEPS[idx];
         const v3 = G.is3D(); if (v3 !== last3D) { last3D = v3; render(); }
         if (s.tick) s.tick(ctx);
+        jalTick();
         if (s.wait && !done[idx]) {
             let ok = false; try { ok = s.wait(ctx); } catch (e) {}
             if (ok) { done[idx] = true; render(); jump(); confetti(); }   // l'étape se coche ; on avance quand on veut, avec ▶
@@ -912,6 +958,7 @@
         const T = TUTOS.find(t => t.id === id) || TUTOS[0]; applyVoice(T.id, T.steps); STEPS = T.steps; done = []; if (T.setup) T.setup();
         if (root && root.isConnected) { go(0); return; }
         build(); go(0);
+        try { canvas.addEventListener('mousedown', jalClick, true); } catch (e) {}
         clearInterval(timer); timer = setInterval(tick, 250);
         window.addEventListener('resize', place);
     }
@@ -919,7 +966,8 @@
         clearInterval(timer); timer = null;
         [root, ring, tip].forEach(e => e && e.remove()); root = null;
         window.tutoGhost = null; try { draw(); } catch (e) {}
+        try { canvas.removeEventListener('mousedown', jalClick, true); } catch (e) {}
         window.removeEventListener('resize', place);
     }
-    window.MomoTuto = { start, stop, list: TUTOS };
+    window.MomoTuto = { start, stop, list: TUTOS, rules: jalRules };
 })();
