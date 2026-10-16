@@ -41,154 +41,184 @@
     const ol = (...a) => '<ol>' + a.map(x => `<li>${x}</li>`).join('') + '</ol>';
     const seen = (m) => (c) => { if ([].concat(m).includes(G.mode())) c.seen = true; };
     // « l'outil a été utilisé et le plan a changé »
-    const used = (m) => ({ wait: (c) => changes > c.k && c.seen, init: (c) => { c.k = changes; }, tick: seen(m) });
-    const more = (m, n) => ({ wait: (c) => G.shapes().length >= c.n + (n || 1) && c.seen, init: (c) => { c.n = G.shapes().length; }, tick: seen(m) });
+    const used = (m) => madeWith(m, 1);
+    const more = (m) => madeWith(m, 1);
 
     // ---------- les étapes ----------
     // title · why (à quoi ça sert, pourquoi) · do (ce qu'on fait) · more (astuce) · target / tip (bouton montré)
     // wait (ctx) -> true quand c'est réussi : l'étape se coche, on passe à la suite avec ▶ quand on veut
-    // ===================================================================== 1. LES OUTILS DE BASE
+    // ---------- exercices : un modèle à reproduire, chaque étape vérifie le VRAI résultat ----------
+    // Le modèle est dessiné en pointillés sur le plan (jaune = à faire maintenant, vert = déjà fait) ; ses points s'accrochent.
+    let A = { x: 0, y: 0 };                                       // ancrage de l'exercice (point 0,0 du modèle), en coordonnées du plan
+    const mw = (v) => { try { return mmToWorld(v * 1000); } catch (e) { return v * 5000; } };
+    const W = (x, y) => ({ x: A.x + mw(x), y: A.y - mw(y) });    // mètres (Y vers le haut) -> plan
+    const TOL = () => mw(0.08);
+    const near = (p, q) => Math.hypot(p.x - q.x, p.y - q.y) <= TOL();
+    const U = (v) => { try { const k = 1000 / (UNIT_MM[currentUnit] || 1); return String(+(v * k).toFixed(3)).replace('.', ','); } catch (e) { return String(v).replace('.', ','); } };
+    const UN = () => { try { return currentUnit; } catch (e) { return 'm'; } };
+    const sameSeq = (P, Q) => P.length === Q.length && P.every((p, i) => near(p, Q[i]));
+    const sameSet = (P, Q) => P.length === Q.length && Q.every(q => P.some(p => near(p, q)));
+    const hasLine = (a, b) => { const P = W(...a), Q = W(...b); return G.shapes().some(s => s.type === 'line' && ((near({ x: s.x1, y: s.y1 }, P) && near({ x: s.x2, y: s.y2 }, Q)) || (near({ x: s.x1, y: s.y1 }, Q) && near({ x: s.x2, y: s.y2 }, P)))); };
+    const polyOf = (pts, closed) => { const Q = pts.map(p => W(...p)); return G.shapes().find(s => s.type === 'poly' && !s.solid && !!s.open === !closed && (closed ? sameSet(s.points, Q) : (sameSeq(s.points, Q) || sameSeq(s.points, Q.slice().reverse())))); };
+    const circleOf = (c, r) => { const C = W(...c); return G.shapes().find(s => s.type === 'circle' && near(s, C) && Math.abs(s.r - mw(r)) <= TOL()); };
+    const arcOf = (c, r) => { const C = W(...c); return G.shapes().find(s => s.type === 'arc' && near(s, C) && Math.abs(s.r - mw(r)) <= TOL()); };
+    const hatchAt = (p) => { const P = W(...p); return G.shapes().some(s => s.type === 'hatch' && typeof pointInHatch === 'function' && pointInHatch(s, P.x, P.y)); };
+    const gl = (a, b, o) => Object.assign({ t: 'line', a: W(...a), b: W(...b), snap: [W(...a), W(...b)] }, o || {});
+    const gp = (pts, closed, o) => { const Q = pts.map(p => W(...p)); return Object.assign({ t: 'poly', pts: Q, closed: !!closed, snap: Q }, o || {}); };
+    const gc = (c, r, o) => Object.assign({ t: 'circle', c: W(...c), r: mw(r), snap: [W(...c)] }, o || {});
+    // arc du modèle : centre, rayon, angles en degrés (sens trigonométrique, Y vers le haut), de a0 à a1
+    const ga = (c, r, a0, a1, o) => { const C = W(...c), R = mw(r), P = (d) => W(c[0] + r * Math.cos(d * Math.PI / 180), c[1] + r * Math.sin(d * Math.PI / 180)); return Object.assign({ t: 'arc', c: C, r: R, a0: -a1 * Math.PI / 180, a1: -a0 * Math.PI / 180, snap: [C, P(a0), P(a1)] }, o || {}); };
+    const garrow = (a, b, o) => Object.assign({ t: 'arrow', a: W(...a), b: W(...b), snap: [W(...a), W(...b)] }, o || {});
+    // place l'exercice au centre de la vue et cadre le modèle (xmin..xmax, ymin..ymax en m) à gauche de Momo
+    function setupExercise(x0, x1, y0, y1) {
+        try {
+            if (typeof setMode === 'function') setMode('select-box');
+            // zone libre : à gauche de la bulle de Momo (≈ 560 px à droite)
+            const Wd = canvas.width, Hd = canvas.height, zw = Math.max(300, Wd - 600), sx = 40 + zw / 2, sy = Hd * 0.45, z = Math.min(zw / mw(x1 - x0), (Hd * 0.8) / mw(y1 - y0));
+            camera.zoom = z; const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+            const w0 = screenToWorld(sx, sy); A = { x: Math.round(w0.x / mw(1)) * mw(1) - mw(cx), y: Math.round(w0.y / mw(1)) * mw(1) + mw(cy) };
+            const C = W(cx, cy); camera.x = sx - C.x * z; camera.y = sy - C.y * z; draw();
+        } catch (e) {}
+    }
+    // « la nouvelle forme a été faite AVEC cet outil » (et pas avec un autre choisi juste après)
+    const madeWith = (m, n) => ({
+        init: (c) => { c.L = G.shapes().length; c.k = changes; c.hits = 0; c.pm = G.mode(); },
+        tick: (c) => { const L = G.shapes().length, M = [].concat(m); if ((L > c.L || changes > c.k) && (M.includes(c.pm) || M.includes(G.mode()))) c.hits++; c.L = L; c.k = changes; c.pm = G.mode(); },
+        wait: (c) => c.hits >= (n || 1) });
+
+    // ===================================================================== 1. DÉBUTANT : le logo MOMOCAD
+    // modèle (m) : M 0..3, O centre 5,5 / 2, copie +8,5 -> M 8,5..11,5 et O 14 / 2, C centre 19 / 2, A 22..25, D 26..28,5, double soulignement y = -1 et -1,5
+    const S45 = Math.SQRT1_2 * 2, M1 = [[0, 0], [0, 4], [1.5, 2], [3, 4], [3, 0]], M2 = M1.map(([x, y]) => [x + 8.5, y]);
     const BASE = [
-        { title: 'Bonjour, je suis Momo !', why: `Je vais vous apprendre les outils de base de MomoCAD <b>en pratiquant</b>, directement sur votre plan. À chaque étape je vous dis <b>à quoi sert</b> l'outil, puis ce qu'il faut faire.`,
-          do: `Quand vous avez réussi, l'étape se <b>coche ✓</b> toute seule. Prenez le temps de lire : rien ne change tant que vous ne cliquez pas sur ${K('▶')}.<br>${K('◀')} revient en arrière, ✕ arrête la visite.`,
-          more: `Travaillez plutôt sur un plan vierge : tout ce qu'on dessine pourra être effacé à la fin.` },
-        { title: 'Se déplacer dans le plan', why: `Avant de dessiner, il faut savoir regarder : zoomer sur un détail, revenir à l'ensemble, faire glisser la feuille.`,
-          do: `Essayez avec la souris :<ul><li><b>molette</b> = zoomer, autour du curseur ;</li><li><b>clic molette maintenu</b> = faire glisser le plan ;</li><li><b>double-clic molette</b> = tout voir d'un coup.</li></ul>`,
-          more: `Le bouton rond au-dessus d'<b>ISO</b>, près de la rosace en haut à droite, fait aussi « tout voir ».` },
-        // ----- DESSIN
-        { title: 'La droite', target: 'btn-line', tip: 'Droite<br><small>ou DR + Espace</small>', why: `La droite est le trait de base de tout plan : une bordure, une limite, un axe de voirie. Dans MomoCAD on la dessine <b>à la cote</b>, pas à l'œil.`,
-          do: `Choisissez l'outil <b>Droite</b> dans la palette Dessin (je vous le montre en orange).`, wait: () => G.mode() === 'line' },
-        { title: 'Une droite à la cote', target: 'btn-line', why: `Taper la longueur au clavier garantit un plan juste : c'est le réflexe à prendre dès maintenant.`,
-          do: ol('Cliquez un premier point sur le plan.', `Tapez ${K('5')} : la valeur s'affiche près du curseur.`, `Appuyez sur ${SP} : une droite de <b>5 m</b> part dans la direction de la souris.`),
-          more: `${SP} valide partout dans MomoCAD. Maintenez ${K('Maj')} pour rester horizontal ou vertical.`, wait: (c) => count('line') > c.lines, init: (c) => { c.lines = count('line'); } },
-        { title: 'Le rectangle', target: 'btn-rect', tip: 'Rectangle<br><small>ou QR + Espace</small>', why: `Un bâtiment, une place de parking, une emprise de chantier : le rectangle est la forme la plus courante. On peut lui donner ses dimensions exactes.`,
-          do: ol('Choisissez l\'outil <b>Rectangle</b>.', 'Cliquez un premier coin.', `Tapez la largeur ${K('8')} ${SP}, puis la hauteur ${K('5')} ${SP}.`),
-          more: `On peut aussi simplement cliquer le coin opposé.`, wait: (c) => G.shapes().length > c.n && c.seen, init: (c) => { c.n = G.shapes().length; }, tick: seen('rect') },
-        { title: 'Le cercle', target: 'btn-circle', tip: 'Cercle<br><small>ou RO + Espace</small>', why: `Pour un regard, un arbre, un giratoire, un poteau.`,
-          do: ol('Outil <b>Cercle</b>.', 'Cliquez le centre.', `Tapez le rayon ${K('2')} ${SP}.`), wait: (c) => count('circle') > c.n, init: (c) => { c.n = count('circle'); } },
-        { title: 'L\'ellipse', target: 'btn-ellipse', tip: 'Ellipse<br><small>ou ELL + Espace</small>', why: `Un massif planté, un bassin ovale, un îlot : quand le cercle ne suffit pas.`,
-          do: ol('Outil <b>Ellipse</b>.', 'Cliquez le centre.', 'Cliquez le bout de la longueur (ou tapez-la + Espace).', 'Cliquez la largeur (ou tapez-la + Espace).'),
-          more: `C'est une forme fermée : on peut la hachurer, et même l'extruder en volume.`, wait: (c) => G.shapes().filter(x => x.ell).length > c.n, init: (c) => { c.n = G.shapes().filter(x => x.ell).length; } },
-        { title: 'L\'arc', target: 'btn-arc', tip: 'Arc<br><small>ou AR + Espace</small>', why: `Une bordure courbe, un rayon de giration au bout d'une rue.`,
-          do: ol('Outil <b>Arc</b>.', 'Cliquez le <b>centre</b>.', 'Cliquez le <b>point de départ</b> : il donne le rayon.', 'Cliquez le <b>point de fin</b> : l\'arc tourne du côté où va la souris.'), wait: (c) => count('arc') > c.n, init: (c) => { c.n = count('arc'); } },
-        { title: 'Le polygone', target: 'btn-poly', tip: 'Polygone<br><small>ou PL + Espace</small>', why: `Une forme fermée quelconque : une parcelle, une emprise de travaux. Fermée, elle a une surface, et pourra devenir une plateforme ou une hachure.`,
-          do: ol('Outil <b>Polygone</b>.', 'Cliquez 4 ou 5 sommets.', 'Recliquez le <b>premier</b> sommet (ou double-clic) pour fermer.'), wait: (c) => G.shapes().length > c.n && c.seen, init: (c) => { c.n = G.shapes().length; }, tick: seen('poly') },
-        { title: 'La polyligne', target: 'btn-pline', tip: 'Polyligne<br><small>ou PLI + Espace</small>', why: `Un tracé ouvert d'un seul tenant : un réseau, une bordure, un fil d'eau. Un seul objet, donc une seule longueur au métré.`,
-          do: ol('Outil <b>Polyligne</b>.', 'Cliquez plusieurs points.', `${SP} ou double-clic pour terminer.`), wait: (c) => G.shapes().length > c.n && c.seen, init: (c) => { c.n = G.shapes().length; }, tick: seen('pline') },
-        { title: 'La hachure', target: 'btn-hatch', tip: 'Hachure<br><small>ou HA + Espace</small>', why: `Pour montrer une surface (enrobé, espace vert, béton) <b>et</b> connaître son aire : MomoCAD la calcule pour vous.`,
-          do: ol('Outil <b>Hachure</b>.', 'Cliquez <b>à l\'intérieur</b> du rectangle.', 'Lisez la surface affichée en bas de l\'écran.'), wait: (c) => count('hatch') > c.h, init: (c) => { c.h = count('hatch'); } },
-        { title: 'Le point', target: 'btn-point', tip: 'Point<br><small>ou PN + Espace</small>', why: `Un repère tout simple : un piquet d'implantation, le centre d'un arbre, un point à retrouver.`,
-          do: ol('Outil <b>Point</b>.', 'Cliquez pour en poser un ou deux (les accroches aident).', `${K('Échap')} pour finir.`), wait: (c) => count('point') > c.n && c.seen, init: (c) => { c.n = count('point'); }, tick: seen('point') },
-        // ----- SÉLECTION ET MODIF
-        { title: 'Sélectionner', target: 'btn-select-box', tip: 'Sélection<br><small>ou Échap</small>', why: `Avant de modifier, on choisit les objets. MomoCAD offre trois gestes : un clic sur l'objet ; un clic dans le vide puis un second clic (une <b>fenêtre</b>) ; ou bouton maintenu en glissant (un <b>lasso</b> à main levée).`,
-          do: ol(`Appuyez sur ${K('Échap')} : vous êtes dans l'outil Sélection.`, 'Cliquez sur le cercle : il se colore en rose et montre ses <b>poignées</b> bleues.'),
-          more: `${K('Maj')} + clic ajoute ou retire un objet. Les propriétés (rayon, surface…) s'affichent en bas à droite.`, wait: () => G.mode() === 'select-box' && G.sel().length > 0 },
-        { title: 'Fenêtre et lasso', why: `Pour attraper plusieurs objets d'un coup. La fenêtre est rapide pour une zone rectangulaire ; le lasso suit une forme irrégulière (un îlot, un bâtiment en L).`,
-          do: ol('Cliquez dans le vide, relâchez, puis cliquez un 2<sup>e</sup> coin : tout ce qui est <b>entièrement</b> dans la fenêtre est sélectionné.', 'Puis essayez le lasso : bouton maintenu, faites le tour de quelques objets, relâchez.'),
-          wait: (c) => G.sel().length >= 2 && G.mode() === 'select-box', init: () => {} },
-        { title: 'Les poignées', why: `Les poignées retouchent un objet à la souris, sans outil : agrandir un cercle, pousser le côté d'un rectangle, déplacer un sommet.`,
-          do: `Sélectionnez un objet et tirez une poignée : celle du centre déplace l'objet, celles du tour changent le rayon, celle au milieu d'un côté pousse ce côté.`, wait: (c) => changes > c.k, init: (c) => { c.k = changes; } },
-        { title: 'Déplacer', target: 'btn-move', tip: 'Déplacer<br><small>ou D + Espace</small>', why: `Repositionner un objet <b>exactement</b>, d'une distance connue ou d'un point précis à un autre.`,
-          do: ol('Sélectionnez un objet.', `Tapez ${K('3')} ${SP} ${K('0')} ${SP} : il se décale de 3 m vers la droite (X, puis Y).`),
-          more: `Avec l'outil Déplacer, on clique un point de base puis la destination. Et pendant le déplacement, ${K('C')} garde l'original : on pose des copies.`, wait: (c) => changes > c.k && G.sel().length > 0, init: (c) => { c.k = changes; } },
-        { title: 'Copier', target: 'btn-copy', tip: 'Copier<br><small>ou CP + Espace</small>', why: `Reproduire un objet plusieurs fois au bon endroit : des regards le long d'un réseau, des arbres d'alignement, des plots. L'original ne bouge pas.`,
-          do: ol('Sélectionnez un objet, puis l\'outil <b>Copier</b>.', 'Cliquez un point de base (un coin, le centre…).', `Cliquez deux ou trois endroits : une copie à chaque clic. Ou tapez une distance + ${SP}.`, `${SP} seul pour terminer.`), ...more('copy', 2) },
-        { title: 'Rotation', target: 'btn-rotate', tip: 'Rotation<br><small>ou R + Espace</small>', why: `Orienter un bâtiment, un bloc ou un plan importé selon le terrain.`,
-          do: ol('Sélectionnez le rectangle.', 'Outil <b>Rotation</b>, cliquez le centre de rotation.', `Tapez ${K('30')} ${SP} : il tourne de 30°.`), more: `${K('C')} pendant la rotation garde l'original : on obtient une copie tournée.`, ...used('rotate') },
-        { title: 'Décaler', target: 'btn-offset', tip: 'Décaler<br><small>ou DE + Espace</small>', why: `Une copie <b>parallèle</b> à distance fixe : la largeur d'un trottoir, la seconde ligne d'une bordure, un fil d'eau à 50 cm.`,
-          do: ol(`Outil <b>Décaler</b>, tapez ${K('1')} ${SP} (distance 1 m).`, 'Cliquez le cercle.', 'Cliquez à l\'extérieur : un cercle parallèle apparaît, 1 m plus loin.'), ...more('offset') },
-        { title: 'Préparer la coupe', target: 'btn-line', tip: 'Droite', why: `Pour l'outil suivant, il nous faut un trait qui dépasse.`, do: `Tracez une <b>droite qui traverse</b> le rectangle de part en part.`, wait: (c) => count('line') > c.lines, init: (c) => { c.lines = count('line'); } },
-        { title: 'Couper', target: 'btn-trim', tip: 'Couper<br><small>ou C + Espace</small>', why: `Nettoyer les dépassements sans redessiner : on clique le morceau en trop, il disparaît jusqu'aux traits qui le croisent.`,
-          do: `Outil <b>Couper</b> : cliquez le <b>bout de la droite qui dépasse</b> du rectangle.`, ...used('trim') },
-        { title: 'Prolonger', target: 'btn-extend', tip: 'Prolonger<br><small>ou P + Espace</small>', why: `L'inverse : un trait trop court rejoint le trait suivant, sans calcul.`, do: `Outil <b>Prolonger</b> : cliquez près du bout coupé de la droite.`, ...used('extend') },
-        { title: 'Longueur', target: 'btn-lengthen', tip: 'Longueur<br><small>ou LO + Espace</small>', why: `Donner une longueur exacte à un trait existant : « cette bordure fait 12 m », sans la redessiner.`,
-          do: ol('Outil <b>Longueur</b>.', 'Cliquez près d\'un bout de la droite : il suit la souris.', `Tapez ${K('6')} ${SP} : la droite mesure maintenant 6 m.`),
-          more: `Autre façon : tapez d'abord <b>+0,5</b> (ou -0,5) ${SP}, puis cliquez autant de bouts que vous voulez.`, ...used('lengthen') },
-        { title: 'Couper au point', target: 'btn-break', tip: 'Couper au point<br><small>ou CA + Espace</small>', why: `Séparer un trait en deux <b>sans rien effacer</b> : pour changer de calque sur une partie, ou arrêter un réseau à un regard.`,
-          do: `Outil <b>Couper au point</b> : cliquez au milieu d'une droite. Elle devient deux droites (sélectionnées).`, ...used('break') },
-        { title: 'Joindre', target: 'btn-join', tip: 'Joindre<br><small>ou JO + Espace</small>', why: `Le geste inverse, et très utile : des traits qui se touchent bout à bout deviennent <b>une seule polyligne</b>. Une emprise dessinée en plusieurs morceaux devient ainsi une forme fermée, prête pour une hachure, une plateforme ou des cubatures.`,
-          do: ol('Sélectionnez les deux morceaux que vous venez de couper.', 'Cliquez <b>Joindre</b> : ils ne font plus qu\'un.'), ...used('join') },
-        { title: 'Agrandir et réduire', target: 'btn-scale-up', tip: 'Agrandir<br><small>Réduire juste à côté</small>', why: `Changer la taille d'un dessin d'un facteur, ou le caler sur une longueur connue (un plan scanné, par exemple).`,
-          do: ol('Sélectionnez le cercle.', `Outil <b>Agrandir</b>, tapez ${K('2')} ${SP} : il double de taille.`),
-          more: `Dans Agrandir, ${K('R')} = <b>par référence</b> : un point fixe, les deux bouts d'une longueur connue, puis sa vraie longueur.`, ...used(['scale-up', 'scale-down']) },
-        { title: 'Étirer', target: 'btn-stretch', tip: 'Étirer<br><small>ou ET + Espace</small>', why: `Allonger un bâtiment ou une place sans déformer le reste : seuls les sommets pris dans la fenêtre bougent.`,
-          do: ol('Outil <b>Étirer</b> : tracez une fenêtre (2 clics) autour d\'<b>un seul côté</b> du rectangle.', 'Cliquez un point de base, puis la destination.'), ...used('stretch') },
-        { title: 'Copie miroir', target: 'btn-mirror', tip: 'Copie miroir<br><small>ou MI + Espace</small>', why: `Dessiner une moitié et obtenir l'autre : un bâtiment symétrique, un carrefour.`,
-          do: ol('Sélectionnez un objet, outil <b>Copie miroir</b>.', 'Cliquez 2 points pour l\'axe.', `${SP} : le reflet est créé, l'original reste.`), ...used('mirror') },
-        { title: 'Arrondir', target: 'btn-fillet', tip: 'Arrondir<br><small>ou RA + Espace</small>', why: `Raccorder deux droites par un arc : un angle de bordure, un rayon de giration.`,
-          do: ol('Tracez deux droites qui forment un angle.', 'Outil <b>Arrondir</b> : cliquez la 1<sup>re</sup> droite, puis la 2<sup>e</sup>.', `Tapez le rayon ${K('1')} ${SP}.`), ...used('fillet') },
-        { title: 'Chanfrein', target: 'btn-chamfer', tip: 'Chanfrein<br><small>ou CH + Espace</small>', why: `Un <b>pan coupé</b> à la place de l'angle : angle de bâtiment, bordure biaise, angle de carrefour.`,
-          do: ol('Encore deux droites en angle.', 'Outil <b>Chanfrein</b> : cliquez-les l\'une après l\'autre.', `Tapez ${K('1')} ${SP} (ou deux reculs différents : 0,5/1).`), ...used('chamfer') },
-        { title: 'Verrouiller en bloc', target: 'btn-group', tip: 'Verrouiller (bloc)', why: `Réunir plusieurs objets en un <b>bloc</b> qu'un seul clic sélectionne : un mobilier, un détail, un ensemble qu'on ne veut pas défaire par erreur.`,
-          do: `Sélectionnez plusieurs objets (fenêtre ou lasso), puis <b>Verrouiller</b>. <b>Éclater</b> le défait.`, wait: (c) => changes > c.k, init: (c) => { c.k = changes; } },
-        { title: 'Annuler', target: 'btn-undo', tip: 'Annuler<br><small>Ctrl+Z</small>', why: `Pas de panique en cas d'erreur : tout s'annule.`, do: `Appuyez sur ${K('Ctrl')}+${K('Z')} pour annuler la dernière action. ${K('Ctrl')}+${K('Y')} la rétablit.`, wait: (c) => G.hist() < c.h, init: (c) => { c.h = G.hist(); } },
-        { title: 'Faire le ménage', why: `Pour repartir d'un plan propre.`, do: `Sélectionnez avec une grande fenêtre autour de tout le dessin, puis ${K('Suppr')}.` },
-        { title: 'Bravo, débutant diplômé !', why: `Vous savez dessiner à la cote, sélectionner de trois façons et modifier sans tout refaire.`,
-          do: `Pour aller plus loin :<ul><li>${K('Y')} sur un objet sélectionné règle tous ses paramètres ;</li><li>le <b>guide</b> (bouton ⓘ en haut à droite) décrit chaque outil avec des schémas ;</li><li>tapez les lettres d'une commande puis ${SP} (DR, QR, RO, CP…) pour aller plus vite.</li></ul>`,
-          more: `Prochain tuto : <b>Les outils avancés</b> (niveau Initié).`, last: true },
+        { title: 'Bonjour, je suis Momo !', why: `On va apprendre les outils de base <b>en dessinant pour de vrai</b> : ensemble, on va redessiner le <b>logo MOMOCAD</b>, lettre par lettre. Chaque outil sert à quelque chose dans le logo.`,
+          do: `Le modèle est tracé en <b>pointillés</b> sur le plan : en <b style="color:#fbbf24">jaune</b> ce qu'il faut dessiner maintenant, en <b style="color:#4ade80">vert</b> ce qui est fait. Ses points jaunes <b>s'accrochent</b> : visez-les.<br>L'étape se coche ✓ seulement si votre dessin correspond au modèle. Vous avancez avec ${K('▶')}.`,
+          more: `Un plan vierge est idéal. Les longueurs sont en mètres.` },
+        { title: 'Se déplacer dans le plan', why: `Avant de dessiner, il faut savoir regarder : zoomer sur un détail, revenir à l'ensemble.`,
+          do: `<ul><li><b>molette</b> = zoomer, autour du curseur ;</li><li><b>clic molette maintenu</b> = faire glisser le plan ;</li><li><b>double-clic molette</b> = tout voir.</li></ul>Le modèle du logo est déjà au milieu de l'écran.` },
+        // M : demi-M, miroir, joindre
+        { title: 'Le M, première moitié', target: 'btn-pline', tip: 'Polyligne<br><small>ou PLI + Espace</small>', ghost: () => [gp([[0, 0], [0, 4], [1.5, 2]], false, { label: '3 points, puis Espace', lp: W(1.5, 2) })],
+          why: `La <b>polyligne</b> trace plusieurs segments d'un seul tenant : un seul objet, idéal pour une bordure, un réseau… ou une lettre.`,
+          do: ol('Outil <b>Polyligne</b>.', 'Cliquez les 3 points jaunes : en bas à gauche, en haut, puis le milieu.', `${SP} pour terminer.`), more: `Le M est symétrique : on n'en dessine que la moitié, le miroir fera le reste.`,
+          wait: () => !!polyOf([[0, 0], [0, 4], [1.5, 2]], false) },
+        { title: 'Le M, l\'autre moitié en miroir', target: 'btn-mirror', tip: 'Copie miroir<br><small>ou MI + Espace</small>', ghost: () => [gl([1.5, -0.4], [1.5, 4.4], { label: 'axe du miroir', lp: W(1.5, 4.4), snap: [W(1.5, 0), W(1.5, 4.4)] }), gp([[3, 0], [3, 4], [1.5, 2]])],
+          why: `La <b>copie miroir</b> reflète un dessin de l'autre côté d'un axe : on dessine une moitié, on obtient l'autre, parfaitement symétrique.`,
+          do: ol('Sélectionnez la demi-lettre (clic dessus).', 'Outil <b>Copie miroir</b>.', 'Cliquez les 2 points de l\'axe vertical (les points jaunes).', `${SP} : le reflet apparaît, l'original reste.`),
+          wait: () => !!polyOf([[3, 0], [3, 4], [1.5, 2]], false) },
+        { title: 'Le M, d\'un seul morceau', target: 'btn-join', tip: 'Joindre<br><small>ou JO + Espace</small>', ghost: () => [gp(M1)],
+          why: `Nos deux moitiés se touchent au milieu. <b>Joindre</b> les réunit en <b>une seule polyligne</b> : un seul objet à sélectionner, une seule longueur au métré.`,
+          do: ol(`Sélectionnez les deux moitiés (clic sur l'une, ${K('Maj')} + clic sur l'autre).`, 'Cliquez <b>Joindre</b>.'), wait: () => !!polyOf(M1, false) },
+        // O
+        { title: 'Le O', target: 'btn-circle', tip: 'Cercle<br><small>ou RO + Espace</small>', ghost: () => [gc([5.5, 2], 2, { label: () => 'rayon ' + U(2) + ' ' + UN(), lp: W(5.5, 4) })],
+          why: `Le <b>cercle</b> : un regard, un arbre, un giratoire… et ici notre O.`,
+          do: () => ol('Outil <b>Cercle</b>.', 'Cliquez le <b>centre</b> (le point jaune).', `Tapez le rayon ${K(U(2))} puis ${SP}.`), more: `Taper la valeur au clavier garantit un dessin juste : c'est LE réflexe à prendre.`,
+          wait: () => !!circleOf([5.5, 2], 2) },
+        // sélection fenêtre + copier
+        { title: 'Sélectionner M et O ensemble', target: 'btn-select-box', tip: 'Sélection<br><small>ou Échap</small>', ghost: () => [gp([[-0.6, -0.6], [7.9, -0.6], [7.9, 4.6], [-0.6, 4.6]], true, { label: 'clic ici… puis là', lp: W(-0.6, 4.6), snap: [W(-0.6, 4.6), W(7.9, -0.6)] })],
+          why: `Pour agir sur plusieurs objets, on les sélectionne ensemble. Un <b>clic dans le vide, puis un 2<sup>e</sup> clic</b> trace une <b>fenêtre</b> : tout ce qui est entièrement dedans est pris.`,
+          do: ol(`${K('Échap')} pour l'outil Sélection.`, 'Cliquez un coin de la fenêtre jaune, relâchez, puis cliquez le coin opposé.', 'Le M et le O passent en rose.'),
+          more: `Autres gestes : un clic sur un objet ; ou bouton maintenu en glissant = un <b>lasso</b> à main levée.`,
+          wait: () => { const m = polyOf(M1, false), o = circleOf([5.5, 2], 2); return !!m && !!o && G.sel().includes(m) && G.sel().includes(o); } },
+        { title: 'MOMO : copier M et O', target: 'btn-copy', tip: 'Copier<br><small>ou CP + Espace</small>', ghost: () => [garrow([0, 0], [8.5, 0], { label: 'de ce point… à celui-là', lp: W(8.5, 0) }), gp(M2), gc([14, 2], 2)],
+          why: `<b>Copier</b> reproduit un dessin au bon endroit, l'original reste. Pourquoi redessiner « MO » quand on peut le copier ?`,
+          do: ol('M et O toujours sélectionnés, outil <b>Copier</b>.', 'Cliquez le point de base : le coin en bas à gauche du M.', 'Cliquez la destination (le point jaune au bout de la flèche).', `${SP} pour terminer.`),
+          more: `On peut aussi taper la distance (${U(8.5)}) au lieu de cliquer la destination.`, wait: () => !!polyOf(M2, false) && !!circleOf([14, 2], 2) },
+        // C
+        { title: 'Le C', target: 'btn-arc', tip: 'Arc<br><small>ou AR + Espace</small>', ghost: () => [ga([19, 2], 2, 45, 315, { label: 'centre, départ en bas, 270°', lp: W(17, 4.2) })],
+          why: `L'<b>arc</b> : une bordure courbe, un rayon de giration… et notre C.`,
+          do: ol('Outil <b>Arc</b>.', 'Cliquez le <b>centre</b> (point jaune au milieu).', 'Cliquez le <b>départ</b> : le point jaune <b>en bas</b> à droite.', `Tapez l'angle ${K('270')} puis ${SP} : l'arc fait les trois quarts du tour par la gauche.`),
+          wait: () => { const a = arcOf([19, 2], 2); if (!a) return false; try { const L = W(17, 2); return t2OnArc(a, Math.atan2(L.y - a.y, L.x - a.x)) && t2ArcSweep(a) > 4.4 && t2ArcSweep(a) < 5.0; } catch (e) { return true; } } },
+        // A
+        { title: 'Le A', target: 'btn-pline', tip: 'Polyligne', ghost: () => [gp([[22, 0], [23.5, 4], [25, 0]])],
+          why: `Encore une polyligne : les deux jambes du A.`, do: ol('Outil <b>Polyligne</b>.', 'Cliquez les 3 points jaunes.', `${SP} pour terminer.`),
+          wait: () => !!polyOf([[22, 0], [23.5, 4], [25, 0]], false) },
+        { title: 'La barre du A, trop longue', target: 'btn-line', tip: 'Droite<br><small>ou DR + Espace</small>', ghost: () => [gl([21.5, 1.5], [25.5, 1.5])],
+          why: `La <b>droite</b>, le trait de base. On la trace exprès trop longue : l'outil suivant va la recouper proprement.`,
+          do: ol('Outil <b>Droite</b>.', 'Cliquez les 2 points jaunes : elle dépasse des deux côtés du A.'), wait: () => hasLine([21.5, 1.5], [25.5, 1.5]) },
+        { title: 'Couper ce qui dépasse', target: 'btn-trim', tip: 'Couper<br><small>ou C + Espace</small>', ghost: () => [gl([22.5625, 1.5], [24.4375, 1.5], { label: 'garder seulement ce morceau', lp: W(24.5, 1.5) })],
+          why: `<b>Couper</b> nettoie les dépassements : on clique le morceau en trop, il disparaît jusqu'au trait qui le croise. Plus besoin de viser les intersections au millimètre.`,
+          do: ol('Outil <b>Couper</b>.', 'Cliquez le bout qui dépasse à <b>gauche</b> du A, puis celui qui dépasse à <b>droite</b>.'), wait: () => hasLine([22.5625, 1.5], [24.4375, 1.5]) },
+        // D
+        { title: 'Le D, d\'abord un rectangle', target: 'btn-rect', tip: 'Rectangle<br><small>ou QR + Espace</small>', ghost: () => [gp([[26, 0], [28.5, 0], [28.5, 4], [26, 4]], true, { label: () => U(2.5) + ' × ' + U(4), lp: W(28.5, 4), snap: [W(26, 0)] })],
+          why: `Le <b>rectangle</b> : bâtiment, place de parking, emprise… Ses dimensions se tapent au clavier.`,
+          do: () => ol('Outil <b>Rectangle</b>.', 'Cliquez le coin en bas à gauche (point jaune).', `La souris vers le haut à droite, tapez ${K(U(2.5))} ${SP} (largeur) puis ${K(U(4))} ${SP} (hauteur).`),
+          wait: () => !!polyOf([[26, 0], [28.5, 0], [28.5, 4], [26, 4]], true) },
+        { title: 'Éclater le rectangle', target: 'btn-ungroup', tip: 'Éclater<br><small>ou EC + Espace</small>', ghost: () => [gl([26, 0], [28.5, 0]), gl([28.5, 0], [28.5, 4]), gl([28.5, 4], [26, 4]), gl([26, 4], [26, 0])],
+          why: `Un rectangle est un seul objet. <b>Éclater</b> le décompose en 4 droites indépendantes, pour retravailler ses angles.`,
+          do: ol('Sélectionnez le rectangle.', 'Cliquez <b>Éclater</b> (juste à côté du cadenas Grouper).'), wait: () => hasLine([26, 0], [28.5, 0]) && hasLine([28.5, 0], [28.5, 4]) && hasLine([28.5, 4], [26, 4]) },
+        { title: 'Arrondir le haut du D', target: 'btn-fillet', tip: 'Arrondir<br><small>ou RA + Espace</small>', ghost: () => [ga([27.25, 2.75], 1.25, 0, 90, { label: () => 'R = ' + U(1.25), lp: W(28.6, 4) })],
+          why: `<b>Arrondir</b> raccorde deux droites par un arc tangent : un angle de bordure, un rayon de giration… et la panse du D.`,
+          do: () => ol('Outil <b>Arrondir</b>.', 'Cliquez le côté <b>du haut</b>, puis le côté <b>de droite</b>.', `Tapez le rayon ${K(U(1.25))} puis ${SP}.`), wait: () => !!arcOf([27.25, 2.75], 1.25) },
+        { title: 'Arrondir le bas du D', target: 'btn-fillet', tip: 'Arrondir', ghost: () => [ga([27.25, 1.25], 1.25, 270, 360)],
+          why: `Même geste pour l'angle du bas.`, do: () => ol('Cliquez le côté <b>du bas</b>, puis le côté <b>de droite</b>.', `${SP} seul reprend le dernier rayon (${U(1.25)}).`), wait: () => !!arcOf([27.25, 1.25], 1.25) },
+        // soulignement
+        { title: 'Le soulignement', target: 'btn-line', tip: 'Droite', ghost: () => [gl([0, -1], [20, -1], { label: () => U(20) + ' ' + UN() + ' vers la droite', lp: W(20, -1), snap: [W(0, -1)] })],
+          why: `Une droite <b>à la cote</b> : on clique le départ, on tape la longueur, elle part dans la direction de la souris.`,
+          do: () => ol('Outil <b>Droite</b>, cliquez le point jaune de départ.', `Maintenez ${K('Maj')} (trait bien horizontal), souris vers la droite.`, `Tapez ${K(U(20))} puis ${SP}.`), wait: () => hasLine([0, -1], [20, -1]) },
+        { title: 'Le soulignement à la bonne longueur', target: 'btn-lengthen', tip: 'Longueur<br><small>ou LO + Espace</small>', ghost: () => [gl([0, -1], [28.5, -1], { label: () => U(28.5) + ' ' + UN(), lp: W(28.5, -1) })],
+          why: `Il est trop court ! <b>Longueur</b> donne une longueur exacte à un trait existant, sans le redessiner.`,
+          do: () => ol('Outil <b>Longueur</b>.', `Tapez ${K(U(28.5))} puis ${SP} : c'est la longueur totale voulue.`, 'Cliquez près du bout <b>droit</b> du trait : il s\'allonge.'), wait: () => hasLine([0, -1], [28.5, -1]) },
+        { title: 'Doubler le soulignement', target: 'btn-offset', tip: 'Décaler<br><small>ou DE + Espace</small>', ghost: () => [gl([0, -1.5], [28.5, -1.5], { label: () => U(0.5) + ' ' + UN() + ' plus bas', lp: W(28.5, -1.5) })],
+          why: `<b>Décaler</b> crée une copie parallèle à distance fixe : une bordure, un trottoir, un fil d'eau… et ici un double trait.`,
+          do: () => ol('Outil <b>Décaler</b>, tapez la distance ' + K(U(0.5)) + ' puis ' + SP + '.', 'Cliquez le soulignement.', 'Cliquez <b>en dessous</b> : la copie apparaît.'), wait: () => hasLine([0, -1.5], [28.5, -1.5]) },
+        // hachures
+        { title: 'Remplir les O', target: 'btn-hatch', tip: 'Hachure<br><small>ou HA + Espace</small>', ghost: () => [gc([5.5, 2], 1.95), gc([14, 2], 1.95)],
+          why: `La <b>hachure</b> remplit une zone fermée et donne sa surface : un enrobé, un espace vert… ou nos deux O.`,
+          do: ol('Outil <b>Hachure</b>.', 'Cliquez <b>à l\'intérieur</b> du premier O, puis du second.', 'La surface s\'affiche en bas de l\'écran.'), wait: () => hatchAt([5.5, 2]) && hatchAt([14, 2]) },
+        { title: 'Votre logo !', why: `Regardez : <b>MOMOCAD</b>, dessiné à la cote. Polyligne, miroir, joindre, cercle, sélection, copier, arc, droite, couper, rectangle, éclater, arrondir, longueur, décaler, hachure : vous avez utilisé 15 outils.`,
+          do: `Double-clic molette pour tout voir. ${K('Ctrl')}+${K('Z')} annule une action, ${K('Ctrl')}+${K('Y')} la refait ; ${K('Suppr')} efface la sélection.`,
+          more: `Prochain tuto : <b>Les outils avancés</b> (niveau Initié) : un petit parking, avec calques, réseau, cotes et blocs.`, last: true },
     ];
 
-    // ===================================================================== 2. LES OUTILS AVANCÉS
+    // ===================================================================== 2. INITIÉ : un petit parking
+    // modèle (m) : emprise 0,0 – 20,12 ; places 2,5 × 5 depuis 1,0 (6 places) ; accès en biais 20,4 -> 45° 4 m ; haie y = 14 ; regard centre 10,9 r 0,5
+    const AC = [20 + 4 * Math.SQRT1_2, 4 + 4 * Math.SQRT1_2], PLACE = (k) => [[1 + 2.5 * k, 0], [3.5 + 2.5 * k, 0], [3.5 + 2.5 * k, 5], [1 + 2.5 * k, 5]];
+    const parkLayer = () => G.layers().find(l => /parking/i.test(l.name || ''));
     const ADV = [
-        { title: 'Les outils avancés', why: `On passe à la vitesse supérieure : dessiner <b>juste</b> grâce aux accroches, <b>ranger</b> avec les calques, <b>répéter</b> avec le réseau, <b>contrôler</b> avec la mesure, <b>habiller</b> avec les textes et les cotes, puis sortir le plan.`,
-          do: `Un plan vierge est idéal. Le tuto « Les outils de base » est conseillé avant celui-ci.` },
-        { title: 'Les points d\'accroche', target: 'snapbtn-endpoint', tip: 'Barre des accroches', why: `Un trait qui « tombe presque » sur un autre fausse les surfaces, les hachures et les cubatures. Les accroches font sauter le curseur <b>exactement</b> sur le bout d'un trait, son milieu, un centre, un croisement…`,
-          do: ol('Regardez la barre jaune en haut : un bouton par type d\'accroche (allumé = actif).', 'Tracez une droite qui part <b>exactement</b> du milieu d\'une autre : le repère jaune apparaît quand vous approchez.'),
-          more: `Les repères n'apparaissent que pendant un tracé, jamais en simple sélection.` },
-        { title: 'Tangente et proche', target: 'snapbtn-tangent', tip: 'Accroche tangente', why: `<b>Tangente</b> : depuis un point, le trait vient toucher un cercle sans le couper (une bordure qui longe un regard). <b>Proche</b> : on accroche n'importe quel point d'un trait.`,
-          do: `Vérifiez que la <b>tangente</b> est allumée, puis dessinez un cercle et une droite qui part d'à côté : approchez le bord du cercle, le repère bleu rond barré apparaît.`, wait: () => G.snap('tangent') },
-        { title: 'Le mode Ortho', target: 'btn-toggle-ortho', tip: 'Mode Ortho<br><small>ou F8</small>', why: `Comme une équerre : tous les traits restent horizontaux ou verticaux. Idéal pour un bâtiment ou un réseau orthogonal.`,
-          do: `Appuyez sur ${K('F8')} (ou le bouton en bas à droite). Un second ${K('F8')} l'éteint.`, wait: () => G.ortho() },
-        { title: 'Le suivi polaire', target: 'btn-toggle-polar', tip: 'Suivi polaire<br><small>ou F10</small>', why: `Pour tracer à 45°, 30°, 15° sans calculer : le trait s'aimante aux angles ronds et une ligne pointillée bleue vous le montre.`,
-          do: ol(`Éteignez l'Ortho (${K('F8')}), puis allumez le suivi polaire avec ${K('F10')}.`, 'Tracez une droite : en approchant 45°, elle se cale.'), more: `Clic droit sur le bouton pour changer le pas (5°, 10°, 15°, 22,5°, 30°, 45°, 90°).`, wait: () => G.polar() && !G.ortho() },
-        { title: 'L\'ortho projeté', target: 'snapbtn-track', tip: 'Ortho projeté', why: `Pour s'aligner sur un point éloigné sans tracer de ligne de construction : la façade d'en face, l'axe d'un regard.`,
-          do: ol('Allumez l\'<b>Ortho projeté</b>.', 'En traçant, restez une demi-seconde sur un point d\'accroche : il devient violet.', 'Glissez à l\'horizontale ou à la verticale : une ligne pointillée vous aligne sur ce point.'), wait: () => G.snap('track') },
-        // calques
-        { title: 'Les calques', target: 'button[onclick="openLayerModal()"]', tip: 'Gérer les calques', why: `Les calques rangent le dessin comme des transparents : bordures, réseaux, cotes… Chacun a sa couleur et son trait, se masque d'un clic, et surtout le <b>métré compte par calque</b> : un plan bien rangé se chiffre tout seul.`,
-          do: `Ouvrez le <b>gestionnaire de calques</b>.`, wait: () => G.shown('layer-modal') },
-        { title: 'Un nouveau calque', target: 'new-layer-name', tip: 'Nom du calque', why: `Un calque par famille d'ouvrages, avec un nom clair.`,
-          do: `Tapez un nom, par exemple <b>Réseau EU</b>, puis ${K('Entrée')} ou « Ajouter ». Il devient le <b>calque actif</b>.`, more: `Ici c'est ${K('Entrée')} qui valide, car l'espace sert à écrire le nom.`, wait: (c) => G.layers().length > c.n, init: (c) => { c.n = G.layers().length; } },
-        { title: 'Dessiner sur un calque', target: 'btn-pline', tip: 'Polyligne', why: `Tout ce qu'on dessine va sur le calque actif et prend sa couleur.`,
-          do: `Fermez le gestionnaire et tracez une <b>polyligne</b>.`, wait: (c) => G.shapes().length > c.n && G.shapes()[G.shapes().length - 1].layerId === G.active(), init: (c) => { c.n = G.shapes().length; } },
-        { title: 'Régler avec Y', why: `${K('Y')} ouvre les réglages de l'objet sélectionné : son calque, ses altitudes, sa plateforme, son volume… La fenêtre ne montre que ce qui le concerne.`,
-          do: `Sélectionnez un objet puis tapez ${K('Y')}.`, wait: () => G.shown('selparam-modal') },
-        { title: 'Changer de calque', target: 'selparam-layer', tip: 'Calque de l\'objet', why: `Un objet dessiné sur le mauvais calque se range en deux clics.`,
-          do: `Choisissez un autre <b>calque</b> dans la liste, puis <b>Appliquer</b>.`, wait: (c) => c.open && !G.shown('selparam-modal') && changes > c.k, init: (c) => { c.k = changes; }, tick: (c) => { if (G.shown('selparam-modal')) c.open = true; } },
-        // répéter, contrôler
-        { title: 'Le réseau', target: 'btn-array', tip: 'Réseau<br><small>ou RE + Espace</small>', why: `Répéter un objet de façon régulière, en une fois : des places de parking en grille, des bornes autour d'un giratoire, des candélabres tous les 25 m le long d'une rue.`,
-          do: ol('Dessinez un petit cercle et sélectionnez-le.', 'Outil <b>Réseau</b> : une fenêtre s\'ouvre à droite, le plan reste visible.', 'Onglet <b>Grille</b> : 4 colonnes, 2 lignes. Regardez l\'aperçu.', '<b>Créer</b>.'),
-          more: `Essayez aussi « Le long d'un tracé » : on clique une polyligne et on choisit « un tous les… ».`, ...more('array', 3) },
-        { title: 'Diviser un tracé', target: 'btn-divide', tip: 'Diviser<br><small>ou DV + Espace</small>', why: `Jalonner un tracé <b>sans le couper</b> : implanter un regard tous les 50 m, repérer des points kilométriques.`,
-          do: ol('Outil <b>Diviser</b>, cliquez votre polyligne.', 'Choisissez « en parts égales » (5) ou « un repère tous les… ».', 'Points, petits traits ou blocs : choisissez, puis <b>Poser</b>.'), ...more('divide', 2) },
-        { title: 'Mesurer', target: 'btn-measure', tip: 'Mesurer<br><small>ou MES + Espace</small>', why: `Le réflexe de contrôle : une distance, un angle, une surface, <b>sans rien dessiner</b>. Avant d'envoyer un plan, on vérifie.`,
-          do: `Outil <b>Mesurer</b> : cliquez deux ou trois points. Longueurs, angle, total et surface s'affichent en bas et près du curseur.`, more: `${SP} recommence une mesure, ${K('⌫')} retire le dernier point.`, wait: () => G.measured() },
-        { title: 'La plume', target: 'btn-pen', tip: 'Plume<br><small>ou PU + Espace</small>', why: `Pour les formes souples : une allée, une berge, une limite de végétation.`,
-          do: `<b>Clic</b> = point anguleux, <b>cliquer-glisser</b> = point arrondi (on tire la courbe). ${SP} ou double-clic pour terminer.`, ...more('pen') },
-        // annotation
-        { title: 'Le texte', target: 'btn-text', tip: 'Texte<br><small>ou TX + Espace</small>', why: `Nommer les ouvrages, ajouter une note.`, do: `Outil <b>Texte</b> : cliquez sur le plan et tapez. ${K('Maj')}+${K('Entrée')} passe à la ligne, ${K('Entrée')} valide.`, wait: (c) => count('text') > c.n, init: (c) => { c.n = count('text'); } },
-        { title: 'L\'infobulle', target: 'btn-detail', tip: 'Infobulle<br><small>ou IF + Espace</small>', why: `Désigner un détail précis avec une étiquette et une flèche : « Regard existant à conserver ».`,
-          do: ol('Cliquez le point à montrer.', 'Cliquez l\'endroit de l\'étiquette.', 'Tapez le texte.'), wait: (c) => count('detail') > c.n, init: (c) => { c.n = count('detail'); } },
-        { title: 'La cote libre', target: 'btn-dim', tip: 'Cote libre', why: `Une cote mesure et affiche une distance sur le plan : elle se met à jour si l'on déplace ses points.`,
-          do: ol('Outil <b>Cote libre</b> : cliquez 2 points (les accroches aident).', 'Cliquez la position de la ligne de cote.'), wait: (c) => count('dim') > c.n && c.seen, init: (c) => { c.n = count('dim'); }, tick: seen('dim') },
-        { title: 'La cote ortho et les séries', target: 'btn-dim-ortho', tip: 'Cote ortho', why: `La cote ortho ne mesure que l'horizontale ou la verticale ; en série, chaque clic ajoute une cote bout à bout, idéal pour coter une façade.`,
-          do: ol(`Outil <b>Cote ortho</b>, tapez ${K('2')} ${SP} (mode successif).`, 'Cliquez 1er point, 2e point, la ligne, puis d\'autres points.', `${SP} termine.`), wait: (c) => count('dim') >= c.n + 2 && c.ch, init: (c) => { c.n = count('dim'); }, tick: (c) => { if (G.chain() === 'succ' || G.chain() === 'cumul') c.ch = true; } },
-        { title: 'Rayons et diamètres', target: 'btn-dim-rad', tip: 'Cote de rayon<br><small>Diamètre juste à côté</small>', why: `Coter un rayon de giration, le diamètre d'un regard ou d'un bassin.`,
-          do: ol('Outil <b>Cote de rayon</b> : cliquez un cercle.', 'Placez le texte dedans ou dehors, cliquez.'), wait: (c) => count('dimr') > c.n, init: (c) => { c.n = count('dimr'); } },
-        { title: 'La cote d\'angle', target: 'btn-dim-angle', tip: 'Cote d\'angle', why: `L'angle entre deux alignements.`, do: `Cliquez une 1<sup>re</sup> droite, une 2<sup>e</sup>, puis l'endroit de l'arc.`, wait: (c) => count('dim-angle') > c.n, init: (c) => { c.n = count('dim-angle'); } },
-        // blocs, murs
-        { title: 'Le catalogue de blocs', target: 'btn-blocks', tip: 'Catalogue de blocs<br><small>ou BL + Espace</small>', why: `Sanitaires, mobilier, végétation à taille réelle, posés comme des tampons : un plan lisible en quelques clics.`,
-          do: ol('Ouvrez le <b>catalogue</b> (petit bouton carré en haut) et cliquez un bloc.', 'Il suit la souris : cliquez pour le poser.', `${K('Échap')} pour finir.`), more: `${K('Maj')}+molette = taille, ${K('Ctrl')}+molette = rotation.`, ...more('stamp') },
-        { title: 'Les murs', target: 'btn-blocks', tip: 'Catalogue › 🧱 Parois', why: `Des murs qui portent leur matériau (parpaing, béton, brique…), avec les angles raccordés tout seuls, et qui deviennent des volumes 3D.`,
-          do: ol('Catalogue, onglet <b>🧱 Parois</b>, choisissez une paroi.', 'Cliquez le début puis la fin de chaque tronçon.', `${K('Échap')} pour finir.`), ...used('wall') },
-        // sorties
-        { title: 'Le métré', target: 'btn-metre', tip: 'Métré<br><small>ou ME + Espace</small>', why: `Le métré transforme le dessin en quantités : longueurs, surfaces, nombres d'objets par calque, puis terrassement et matériaux chiffrés.`,
-          do: `Ouvrez le <b>Σ Métré</b> et regardez vos calques. « Copier (tableur) » le colle dans un devis.`, wait: () => G.shown('topo-modal') },
-        { title: 'L\'aperçu', target: 'btn-preview', tip: 'Aperçu avant impression', why: `Voir la feuille exactement comme elle sortira, avant d'imprimer.`,
-          do: `Fermez le métré puis cliquez <b>Aperçu</b>. Molette = échelle, ${SP} = portrait / paysage, clic = figer la page, ${K('Entrée')} = imprimer.`, wait: () => G.mode() === 'preview' },
-        { title: 'Enregistrer', target: 'btn-dxf-menu', tip: 'Menu fichier', why: `Garder son travail et l'échanger.`,
-          do: `${K('Échap')} pour quitter l'aperçu. Dans le menu <b>fichier</b> :<ul><li>${K('Ctrl')}+${K('S')} enregistre le plan complet en <b>.mmc</b> ;</li><li>le <b>DXF</b> sert à échanger avec les géomètres et bureaux d'études ;</li><li>le <b>gabarit</b> garde vos calques et réglages pour toute l'équipe.</li></ul>` },
-        { title: 'Bravo, vous êtes initié !', why: `Accroches, Ortho et suivi polaire, calques, réseau, mesure, textes et cotes, blocs, murs, métré et impression : vous dessinez des plans propres et justes.`,
-          more: `Prochain tuto : <b>Le paramétrage</b> (niveau Expert), pour des plans « maison ».`, last: true },
+        { title: 'Les outils avancés', why: `On passe à la vitesse supérieure avec un vrai petit projet : <b>un parking</b>. Calques, accroches, suivi polaire, réseau de places, arbres plantés, cotes, regard, textes, mesure, puis métré et impression.`,
+          do: `Comme pour le logo, le modèle est en pointillés : jaune = maintenant, vert = fait. L'étape se coche quand votre dessin correspond.`, more: `Le tuto « Les outils de base » est conseillé avant celui-ci.` },
+        { title: 'Les points d\'accroche', target: 'snapbtn-endpoint', tip: 'Barre des accroches', why: `Un trait qui « tombe presque » sur un autre fausse les surfaces, les hachures et les cubatures. Les <b>accroches</b> font sauter le curseur exactement sur le bout d'un trait, son milieu, un centre, un croisement, une tangente…`,
+          do: `Regardez la barre jaune en haut : un bouton par type d'accroche, allumé = actif. Le repère n'apparaît que pendant un tracé.` },
+        { title: 'Un calque Parking', target: 'button[onclick="openLayerModal()"]', tip: 'Gérer les calques', why: `Les calques rangent le dessin comme des transparents : chacun sa couleur, son trait, et surtout le <b>métré compte par calque</b>.`,
+          do: ol('Ouvrez le gestionnaire de calques.', `Tapez <b>Parking</b> dans « Nouveau calque », puis ${K('Entrée')}.`, 'Il devient le calque actif ; fermez le gestionnaire.'), more: `Ici c'est ${K('Entrée')} qui valide : l'espace sert à écrire le nom.`,
+          wait: () => { const l = parkLayer(); return !!l && G.active() === l.id && !G.shown('layer-modal'); } },
+        { title: 'L\'emprise du parking', target: 'btn-rect', tip: 'Rectangle', ghost: () => [gp([[0, 0], [20, 0], [20, 12], [0, 12]], true, { label: () => U(20) + ' × ' + U(12), lp: W(20, 12), snap: [W(0, 0)] })],
+          why: `Le contour du parking, sur le calque Parking.`, do: () => ol('Outil <b>Rectangle</b>, cliquez le coin jaune.', `Souris en haut à droite, tapez ${K(U(20))} ${SP} puis ${K(U(12))} ${SP}.`),
+          wait: () => { const r = polyOf([[0, 0], [20, 0], [20, 12], [0, 12]], true), l = parkLayer(); return !!r && (!l || r.layerId === l.id); } },
+        { title: 'L\'accès en biais (suivi polaire)', target: 'btn-toggle-polar', tip: 'Suivi polaire<br><small>ou F10</small>', ghost: () => [gl([20, 4], AC, { label: () => '45° · ' + U(4) + ' ' + UN(), lp: W(...AC), snap: [W(20, 4)] })],
+          why: `Le <b>suivi polaire</b> aimante le trait aux angles ronds (15°, 30°, 45°…) : pas de calcul pour tracer en biais.`,
+          do: () => ol(`Allumez le suivi polaire : ${K('F10')} (l'Ortho ${K('F8')} doit être éteint).`, 'Outil <b>Droite</b>, cliquez le point jaune sur le bord droit.', `Approchez la souris vers 45° en haut à droite : une ligne pointillée bleue apparaît.`, `Tapez ${K(U(4))} puis ${SP}.`),
+          wait: () => hasLine([20, 4], AC) },
+        { title: 'Une place de parking', target: 'btn-rect', tip: 'Rectangle', ghost: () => [gp(PLACE(0), true, { label: () => U(2.5) + ' × ' + U(5), lp: W(3.5, 5), snap: [W(1, 0)] })],
+          why: `Une place standard fait 2,50 × 5,00 m.`, do: () => ol('Outil <b>Rectangle</b>, cliquez le coin jaune.', `Tapez ${K(U(2.5))} ${SP} puis ${K(U(5))} ${SP}.`), wait: () => !!polyOf(PLACE(0), true) },
+        { title: 'Six places d\'un coup : le réseau', target: 'btn-array', tip: 'Réseau<br><small>ou RE + Espace</small>', ghost: () => [1, 2, 3, 4, 5].map(k => gp(PLACE(k), true)),
+          why: `Le <b>réseau</b> répète un objet de façon régulière, en une fois, avec un aperçu en direct : des places, des plots, des bornes, des candélabres…`,
+          do: () => ol('Sélectionnez la place.', 'Outil <b>Réseau</b>, onglet <b>Grille</b>.', `<b>6</b> colonnes, <b>1</b> ligne, écart entre colonnes ${K(U(2.5))}.`, 'Vérifiez l\'aperçu, puis <b>Créer</b>.'),
+          wait: () => [0, 1, 2, 3, 4, 5].every(k => !!polyOf(PLACE(k), true)) },
+        { title: 'La limite plantée', target: 'btn-line', tip: 'Droite', ghost: () => [gl([0, 14], [20, 14])], why: `Une haie d'arbres le long du parking : on trace d'abord sa ligne.`,
+          do: ol('Outil <b>Droite</b>.', 'Cliquez les 2 points jaunes.'), wait: () => hasLine([0, 14], [20, 14]) },
+        { title: 'Planter les arbres : diviser', target: 'btn-divide', tip: 'Diviser<br><small>ou DV + Espace</small>', ghost: () => [5, 10, 15].map(x => gc([x, 14], 1.2)),
+          why: `<b>Diviser</b> jalonne un tracé sans le couper : un regard tous les 50 m, un candélabre tous les 25 m… ou un arbre tous les 5 m.`,
+          do: ol('Outil <b>Diviser</b>, cliquez la ligne plantée.', 'Choisissez <b>En parts égales</b> : 4 parts.', 'Que poser : <b>❖ Bloc</b> → « Arbre feuillu ».', 'Décochez « aux deux bouts », puis <b>Poser</b>.'),
+          wait: () => { try { const grp = new Set(G.shapes().filter(s => s.block && s.groupId).map(s => s.groupId)); return [5, 10, 15].every(x => { const P = W(x, 14); return [...grp].some(g => { const m = G.shapes().filter(s => s.groupId === g); const b = getShapesBoundingBox(m); return b && Math.hypot(b.centerX - P.x, b.centerY - P.y) < mw(0.6); }); }); } catch (e) { return false; } } },
+        { title: 'Coter la largeur', target: 'btn-dim-ortho', tip: 'Cote ortho', ghost: () => [gl([0, -2], [20, -2], { label: () => U(20) + ' ' + UN(), lp: W(10, -2), snap: [W(0, 0), W(20, 0)] })],
+          why: `Une <b>cote</b> affiche une distance sur le plan, et se met à jour si l'on déplace ses points.`,
+          do: ol('Outil <b>Cote ortho</b>.', 'Cliquez les deux coins du bas de l\'emprise.', 'Cliquez sous le parking pour placer la ligne de cote.'),
+          wait: () => G.shapes().some(s => s.type === 'dim' && (() => { try { const g = dimGeom(s); return g && Math.abs(g.dist - mw(20)) <= TOL(); } catch (e) { return false; } })()) },
+        { title: 'Le regard', target: 'btn-circle', tip: 'Cercle', ghost: () => [gc([10, 9], 0.5, { label: () => 'rayon ' + U(0.5), lp: W(10.5, 9.5) })],
+          why: `Un regard d'eaux pluviales au milieu de l'allée.`, do: () => ol('Outil <b>Cercle</b>, cliquez le centre jaune.', `Tapez ${K(U(0.5))} puis ${SP}.`), wait: () => !!circleOf([10, 9], 0.5) },
+        { title: 'Coter le regard', target: 'btn-dim-dia', tip: 'Cote de diamètre<br><small>ou CD + Espace</small>', why: `La <b>cote de diamètre</b> (ou de rayon, juste à côté) indique la taille d'un cercle : regard, bassin, giration.`,
+          do: ol('Outil <b>Cote de diamètre</b>.', 'Cliquez le regard.', 'Placez le texte à l\'extérieur et cliquez.'), wait: () => G.shapes().some(s => s.type === 'dimr') },
+        { title: 'Le nom du parking', target: 'btn-text', tip: 'Texte<br><small>ou TX + Espace</small>', why: `Nommer les ouvrages rend le plan lisible.`,
+          do: `Outil <b>Texte</b> : cliquez au milieu du parking, tapez <b>PARKING</b>, puis ${K('Entrée')}.`, wait: () => G.shapes().some(s => s.type === 'text' && /parking/i.test(s.content || '')) },
+        { title: 'Signaler l\'entrée', target: 'btn-detail', tip: 'Infobulle<br><small>ou IF + Espace</small>', why: `L'<b>infobulle</b> désigne un détail avec une étiquette et une flèche.`,
+          do: ol('Outil <b>Infobulle</b>.', 'Cliquez l\'accès en biais.', 'Cliquez à côté pour l\'étiquette, tapez <b>Entrée</b>, validez.'), wait: () => G.shapes().some(s => s.type === 'detail' && /entr/i.test(s.content || '')) },
+        { title: 'Contrôler : mesurer', target: 'btn-measure', tip: 'Mesurer<br><small>ou MES + Espace</small>', why: `Avant d'envoyer un plan, on vérifie : <b>Mesurer</b> donne distances, angle et surface, <b>sans rien dessiner</b>.`,
+          do: `Outil <b>Mesurer</b> : cliquez deux coins opposés de l'emprise. La diagonale s'affiche (environ ${U(23.32)} ${UN()}).`, wait: () => G.measured() },
+        { title: 'Le métré', target: 'btn-metre', tip: 'Métré<br><small>ou ME + Espace</small>', why: `Le métré transforme le dessin en quantités, <b>par calque</b> : longueurs, surfaces, nombres d'objets.`,
+          do: `Ouvrez le <b>Σ Métré</b> : retrouvez le calque Parking. « Copier (tableur) » le colle dans un devis.`, wait: () => G.shown('topo-modal') },
+        { title: 'L\'aperçu', target: 'btn-preview', tip: 'Aperçu', why: `Voir la feuille exactement comme elle sortira.`, do: `Fermez le métré puis <b>Aperçu</b>. Molette = échelle, ${SP} = portrait / paysage, ${K('Entrée')} = imprimer, ${K('Échap')} = quitter.`, wait: () => G.mode() === 'preview' },
+        { title: 'Bravo, vous êtes initié !', why: `Un vrai petit plan : calque, emprise, accès au suivi polaire, places en réseau, arbres jalonnés, cotes, regard, textes, contrôle et métré.`,
+          do: `${K('Ctrl')}+${K('S')} pour l'enregistrer (.mmc) ; le DXF sert à l'échanger.`, more: `Prochain tuto : <b>Le paramétrage</b> (niveau Expert).`, last: true },
     ];
 
     // ===================================================================== 3. LE PARAMÉTRAGE
@@ -233,8 +263,8 @@
           do: `Il faut un <b>terrain</b> : des points cotés (levé du géomètre en DXF, semis CSV…). Pas de terrain sous la main ? Je vous en crée un d'exercice de 40 × 40 m.`, action: { label: '▸ Créer un terrain d\'exercice', fn: demoTerrain } },
         { title: 'Le point topo', target: 'btn-topo', tip: 'Point topo<br><small>ou PT + Espace</small>', why: `Un point coté porte une altitude Z. Avec plusieurs points, MomoCAD reconstruit la surface du terrain.`,
           do: ol('Outil <b>Point topo</b>, cliquez.', `Tapez l'altitude (ex. ${K('101,5')}) puis ${SP}.`), more: `Le Z s'affiche en bas à droite au survol des points cotés.`, wait: (c) => count('point') > c.n, init: (c) => { c.n = count('point'); } },
-        { title: 'Voir le terrain en 3D', target: 'btn-view3d', tip: 'Vue 3D<br><small>ou VU + Espace</small>', why: `Avant de concevoir, on comprend le terrain : où sont les bosses, dans quel sens il penche.`,
-          do: `Cliquez l'œil en bas à droite. Glisser = tourner, molette = zoom ; <b>Aberration ×</b> exagère le relief. ${K('Échap')} pour revenir.`, wait: () => G.is3D() },
+        { title: 'Voir le terrain en 3D', target: '#rose-svg .rose-eye', tip: 'Vue 3D<br><small>ou VU + Espace</small>', why: `Avant de concevoir, on comprend le terrain : où sont les bosses, dans quel sens il penche.`,
+          do: `Cliquez la bulle <b>œil 3D</b>, en haut à droite à côté de la rosace. Glisser = tourner, molette = zoom ; <b>Aberration ×</b> exagère le relief. ${K('Échap')} pour revenir.`, wait: () => G.is3D() },
         { title: 'Les courbes de niveau', target: 'btn-contours', tip: 'Courbes de niveau<br><small>ou CN + Espace</small>', why: `Les courbes lisent le relief sur un plan à plat, comme sur une carte IGN.`, do: `Revenez au plan, puis <b>Courbes de niveau</b> : équidistance 0,5 m, générez.`, wait: (c) => G.shapes().filter(x => x.gen === 'contour').length > c.n, init: (c) => { c.n = G.shapes().filter(x => x.gen === 'contour').length; } },
         { title: 'Dessiner la plateforme', target: 'btn-rect', tip: 'Rectangle', why: `Une <b>plateforme</b> est une forme fermée à une altitude : un parking, une dalle de bâtiment, une voirie.`, do: `Tracez un <b>rectangle</b> dans le terrain (20 × 12 m par exemple).`, wait: (c) => G.shapes().length > c.n, init: (c) => { c.n = G.shapes().length; } },
         { title: 'Lui donner son niveau', why: `C'est l'altitude du projet. MomoCAD dessine aussitôt les <b>talus</b> jusqu'au terrain : rouges en déblai, bleus en remblai.`,
@@ -265,7 +295,9 @@
         { title: 'Élever', target: 'btn-elevate', tip: 'Élever<br><small>ou EL + Espace</small>', why: `Monter ou descendre un objet d'une hauteur précise.`, do: `Sélectionnez le pavé, outil <b>Élever</b> : ${K('1')} ${SP}.`, wait: (c) => changes > c.k && c.seen, init: (c) => { c.k = changes; }, tick: (c) => { if (G.modalHas('Élever')) c.seen = true; } },
         { title: 'Poser sur', target: 'btn-stack', tip: 'Poser sur<br><small>ou PS + Espace</small>', why: `Caler un objet pile sur un autre (un couvercle sur un regard), sans calculer de hauteur.`, do: `Outil <b>Poser sur</b> : cliquez le pavé, puis le tube.`, ...used('stack') },
         { title: 'Incliner', target: 'btn-tilt', tip: 'Incliner<br><small>ou IN + Espace</small>', why: `Faire pencher un volume : une dalle en pente, une pièce biaise.`, do: `Outil <b>Incliner</b>, cliquez un volume, tapez ${K('20')} dans « Inclinaison ».`, wait: () => G.shapes().some(x => x.solid && x.solid.tilt && (x.solid.tilt.x || x.solid.tilt.y)) },
-        { title: 'Sélectionner en 3D', target: 'btn-view3d', tip: 'Vue 3D', why: `On peut choisir et régler un volume directement dans la vue 3D.`, do: `Ouvrez la <b>vue 3D</b> et cliquez un volume (sans glisser) : il passe en rose.`, wait: () => G.is3D() && G.sel().length > 0 },
+        { title: 'Peindre les volumes', target: 'btn-paint', tip: 'Peindre<br><small>ou PEI + Espace</small>', why: `Habiller une maquette : béton, brique, bois, tuiles, enrobé, pelouse, verre… Les textures sont posées en vraie grandeur : une brique fait la taille d'une vraie brique. Idéal pour présenter un projet.`,
+          do: ol('Outil <b>Peindre</b> : une fenêtre de textures s\'ouvre à droite.', 'Choisissez <b>Brique</b>, puis cliquez le pavé.', 'Choisissez <b>Béton</b> et cliquez le tube.'), more: `On peut aussi peindre directement dans la vue 3D. La <b>pipette</b> reprend la texture d'un volume, la <b>gomme</b> rend la couleur du calque.`, wait: () => G.shapes().filter(x => x.tex).length >= 2 },
+        { title: 'Sélectionner en 3D', target: '#rose-svg .rose-eye', tip: 'Vue 3D', why: `On peut choisir et régler un volume directement dans la vue 3D.`, do: `Ouvrez la <b>vue 3D</b> (bulle œil près de la rosace) et cliquez un volume (sans glisser) : il passe en rose.`, wait: () => G.is3D() && G.sel().length > 0 },
         { title: 'Les volumes au métré', target: 'btn-metre', tip: 'Métré', why: `Les m³ de béton par calque, prêts pour le devis.`, do: `${K('Échap')}, puis <b>Σ Métré</b> : colonne <b>Volumes 3D</b>.`, wait: () => G.modalHas('Volumes 3D') },
         { title: 'Seigneur de la 3D !', why: `Solides, révolution, balayage, élever, poser, incliner, sélection en 3D et métré des volumes.`, more: `Dernier tuto : <b>Pièces et bâtiment</b> (niveau Dieu).`, last: true },
     ];
@@ -287,7 +319,7 @@
         { title: 'Une poutre', target: 'btn-solid-beam', tip: 'Poutre<br><small>ou PO + Espace</small>', why: `Bois ou acier, droite ou en pente : la section reste perpendiculaire, comme un vrai chevron.`, do: `Outil <b>Poutre</b> : 2 clics pour l'axe, puis un profil (bois 63×175, IPE…) et les Z.`, wait: (c) => G.shapes().filter(x => x.sweep && x.sweep.perp).length > c.n, init: (c) => { c.n = G.shapes().filter(x => x.sweep && x.sweep.perp).length; } },
         { title: 'La toiture', target: 'btn-solid-roof', tip: 'Toiture<br><small>ou TOI + Espace</small>', why: `Couvrir le bâtiment en une fois : un ou deux pans, à la bonne hauteur, avec les <b>pignons</b> fermés sous le toit.`,
           do: ol('Outil <b>Toiture</b> : 2 coins autour du bâtiment.', 'Choisissez <b>2 pans</b>, égout 2,50 et faîtage 5,00.', 'Cochez <b>Combler les pignons</b>, puis <b>Créer le toit</b>.'), wait: (c) => G.kind('roof') > c.n, init: (c) => { c.n = G.kind('roof'); } },
-        { title: 'Admirez', target: 'btn-view3d', tip: 'Vue 3D', why: `Le moment de vérité : mur percé, poutre, toiture et pignons.`, do: `Ouvrez la <b>vue 3D</b> et tournez autour.`, wait: () => G.is3D() },
+        { title: 'Admirez', target: '#rose-svg .rose-eye', tip: 'Vue 3D', why: `Le moment de vérité : mur percé, poutre, toiture et pignons.`, do: `Ouvrez la <b>vue 3D</b> et tournez autour.`, wait: () => G.is3D() },
         { title: 'Dieu de MomoCAD !', why: `Booléens, impression 3D, murs, portes et fenêtres, poutres et toitures : vous avez fait le tour complet de MomoCAD, du terrain au bâtiment.`, more: `Il n'y a pas de niveau au-dessus… pour l'instant.`, last: true },
     ];
 
@@ -358,11 +390,11 @@
 
     // catalogue des tutos (affiché dans le guide, onglet « Apprendre avec Momo »)
     const TUTOS = [
-        { id: 'base', level: 'Débutant', title: 'Les outils de base', desc: 'Dessiner à la cote (droite, rectangle, cercle, ellipse, arc, polygone, polyligne, hachure, point), sélectionner (clic, fenêtre, lasso), puis déplacer, copier, tourner, décaler, couper, prolonger, longueur, couper au point, joindre, échelle, étirer, miroir, arrondir, chanfrein', minutes: 25, steps: BASE },
-        { id: 'adv', level: 'Initié', title: 'Les outils avancés', desc: 'Accroches (tangente, proche), Ortho, suivi polaire, ortho projeté, calques, réglages avec Y, réseau, diviser, mesurer, plume, textes et cotes (rayon, diamètre, angle), blocs, murs, métré, aperçu', minutes: 30, steps: ADV },
+        { id: 'base', level: 'Débutant', title: 'Les outils de base — le logo MOMOCAD', desc: 'Exercice : redessiner le logo MOMOCAD lettre par lettre. Polyligne, miroir, joindre, cercle, sélection en fenêtre, copier, arc, droite, couper, rectangle, éclater, arrondir, longueur, décaler, hachure', minutes: 25, steps: BASE, setup: () => setupExercise(-1, 29.5, -2.5, 5) },
+        { id: 'adv', level: 'Initié', title: 'Les outils avancés — un petit parking', desc: 'Exercice : le plan d\'un parking. Calque, accroches, suivi polaire, réseau de places, arbres plantés avec Diviser, cotes, regard et cote de diamètre, texte, infobulle, mesure, métré et aperçu', minutes: 25, steps: ADV, setup: () => setupExercise(-1, 24, -3, 15.5) },
         { id: 'param', level: 'Expert', title: 'Le paramétrage', desc: 'Paramètres ⛯ (plan, impression, cartouche, fond de plan, présentation), catalogue produits et prix, calques avancés, gabarit d\'entreprise', minutes: 15, steps: PARAM },
         { id: 'cub', level: 'Maître', title: 'Les cubatures', desc: 'Terrain naturel, 3D, courbes de niveau, plateformes et talus, structure, cubatures et rapport PDF, profil en long, métré chiffré', minutes: 25, steps: CUB },
-        { id: 'model', level: 'Seigneur', title: 'La modélisation 3D', desc: 'Palette Modélisation : pavé, tube, révolution, balayage, élever, poser sur, incliner, sélection dans la vue 3D, volumes au métré', minutes: 20, steps: MODEL },
+        { id: 'model', level: 'Seigneur', title: 'La modélisation 3D', desc: 'Palette Modélisation : pavé, tube, révolution, balayage, élever, poser sur, incliner, peindre en textures, sélection dans la vue 3D, volumes au métré', minutes: 20, steps: MODEL },
         { id: 'build', level: 'Dieu', title: 'Pièces et bâtiment', desc: 'Booléens, export STL pour l\'impression 3D, murs, fenêtres et portes (largeur, sens d\'ouverture), poutres, toiture 1 ou 2 pans avec pignons', minutes: 25, steps: BUILD },
     ];
     let STEPS = BASE, done = [];
@@ -395,7 +427,8 @@
         const btns = [];
         if (idx > 0) btns.push(`<button class="mt-arw" data-a="prev" title="Étape précédente">◀</button>`);
         btns.push(`<button class="mt-arw${ready ? ' go' : ''}" data-a="next" title="${s.last ? 'Terminer' : ready ? 'Étape suivante' : 'Passer cette étape'}">▶</button>`);
-        const doHtml = (s.do || s.say) ? `<div class="mt-do"><span class="mt-lab">${hasWait ? 'À vous' : 'Comment faire'}</span>${s.do || s.say}${s.action ? `<div><button class="mt-link" data-a="act">${s.action.label}</button></div>` : ''}</div>` : (s.action ? `<button class="mt-link" data-a="act">${s.action.label}</button>` : '');
+        const doTxt = typeof s.do === 'function' ? s.do() : (s.do || s.say);
+        const doHtml = doTxt ? `<div class="mt-do"><span class="mt-lab">${hasWait ? 'À vous' : 'Comment faire'}</span>${doTxt}${s.action ? `<div><button class="mt-link" data-a="act">${s.action.label}</button></div>` : ''}</div>` : (s.action ? `<button class="mt-link" data-a="act">${s.action.label}</button>` : '');
         const state = hasWait ? (ok ? `<div id="mt-state" class="ok">✓ ${BRAVO[idx % BRAVO.length]} Étape réussie — passez à la suite avec ▶ quand vous êtes prêt.</div>` : `<div id="mt-state" class="wait">⏳ À vous de jouer… l'étape se cochera toute seule.</div>`) : '';
         bubble.classList.toggle('done', ok);
         bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Étape ${idx + 1} / ${n}</span><button class="mt-x" data-a="x" title="Arrêter la visite">✕</button></div>
@@ -417,12 +450,15 @@
     }
     function place() {
         const pp = document.getElementById('properties-popup'), host = root.parentElement.getBoundingClientRect();
-        let right = (pp && !pp.classList.contains('hidden') && pp.offsetWidth ? pp.offsetWidth + 40 : 16), mini = false;
-        root.style.left = ''; root.style.right = right + 'px';
+        // panneau des propriétés ouvert (en bas à droite) : Momo se pose au-dessus, sans glisser sur le dessin
+        const ppOn = pp && !pp.classList.contains('hidden') && pp.offsetWidth, ppr = ppOn ? pp.getBoundingClientRect() : null;
+        let right = 16, mini = false;
+        root.style.left = ''; root.style.right = right + 'px'; root.style.bottom = ppr ? Math.max(52, host.bottom - ppr.top + 10) + 'px' : '52px';
+        bubble.style.maxHeight = Math.max(220, host.height - (parseFloat(root.style.bottom) || 52) - 20) + 'px';
         const mc = modalCard();
         if (mc) {
             if (bubble.offsetHeight) lastH = bubble.offsetHeight;
-            const W = 520, H = Math.max(lastH || 260, 140), zr = host.right - right, zb = host.bottom - 52;
+            const W = 520, H = Math.max(lastH || 260, 140), zr = host.right - right, zb = host.bottom - (parseFloat(root.style.bottom) || 52);
             const rr = { left: zr - W, right: zr, top: zb - H, bottom: zb };
             const over = !(rr.right < mc.left || rr.left > mc.right || rr.bottom < mc.top || rr.top > mc.bottom);
             if (over) {
@@ -442,10 +478,16 @@
         if (s.tip) { tip.innerHTML = s.tip; tip.style.display = 'block'; const th = tip.offsetHeight, tw = tip.offsetWidth; let L = r.right + 14; if (L + tw > window.innerWidth - 8) L = Math.max(8, r.left - tw - 14); tip.style.left = L + 'px'; tip.style.top = Math.max(6, r.top + r.height / 2 - th / 2) + 'px'; }
         else tip.style.display = 'none';
     }
+    function setGhost() {
+        const items = [];
+        STEPS.forEach((st, j) => { if (!st.ghost || j > idx) return; (st.ghost() || []).forEach(it => { it.cur = j === idx; if (typeof it.label === 'function') it.label = it.label(); items.push(it); }); });
+        window.tutoGhost = items.length ? { items, pts: [].concat(...items.filter(it => it.cur).map(it => it.snap || [])) } : null;
+        try { invalidateCache(); draw(); } catch (e) {}
+    }
     function go(i) {
         idx = Math.max(0, Math.min(i, STEPS.length - 1)); ctx = {};
         const s = STEPS[idx]; if (s.init) s.init(ctx);
-        render();
+        setGhost(); render();
     }
     function tick() {
         if (!root || !root.isConnected) return stop();
@@ -458,7 +500,7 @@
         }
     }
     function start(id) {
-        const T = TUTOS.find(t => t.id === id) || TUTOS[0]; STEPS = T.steps; done = [];
+        const T = TUTOS.find(t => t.id === id) || TUTOS[0]; STEPS = T.steps; done = []; if (T.setup) T.setup();
         if (root && root.isConnected) { go(0); return; }
         build(); go(0);
         clearInterval(timer); timer = setInterval(tick, 250);
@@ -467,6 +509,7 @@
     function stop() {
         clearInterval(timer); timer = null;
         [root, ring, tip].forEach(e => e && e.remove()); root = null;
+        window.tutoGhost = null; try { draw(); } catch (e) {}
         window.removeEventListener('resize', place);
     }
     window.MomoTuto = { start, stop, list: TUTOS };
