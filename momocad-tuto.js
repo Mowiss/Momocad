@@ -326,7 +326,7 @@
           why: `Le <b>pavé</b> est le volume le plus simple : un massif, une dalle, un socle. On le dessine comme un rectangle, puis on lui donne sa hauteur.`,
           do: () => ol('Outil <b>Pavé</b>, cliquez le coin jaune.', `Tapez ${K(U(2))} ${SP} puis ${K(U(2))} ${SP}.`, `Dans la fenêtre : hauteur ${K('0,2')}, <b>Appliquer</b>.`),
           wait: () => { const d = dalle(); return !!d && mmNear(+d.solid.H, 200); } },
-        { title: 'L\'anneau du regard', target: 'btn-solid-tube', tip: 'Tube<br><small>ou TU + Espace</small>', ghost: () => [gc([1, 1], 0.6, { label: () => 'rayon ' + U(0.6) + ' · h 1,50 · paroi 0,10', lp: W(1.6, 1.6) })],
+        { title: 'L\'anneau du regard', props: true, target: 'btn-solid-tube', tip: 'Tube<br><small>ou TU + Espace</small>', ghost: () => [gc([1, 1], 0.6, { label: () => 'rayon ' + U(0.6) + ' · h 1,50 · paroi 0,10', lp: W(1.6, 1.6) })],
           why: `Le <b>tube</b> est un cylindre creux : un regard, une buse, un fourreau. Son volume de béton s'affiche dans les propriétés.`,
           do: () => ol('Outil <b>Tube</b>, cliquez le centre jaune.', `Tapez le rayon ${K(U(0.6))} ${SP}.`, `Dans la fenêtre : hauteur ${K('1,5')}, épaisseur de paroi ${K('0,1')}, <b>Appliquer</b>.`),
           wait: () => { const t = regard(); return !!t && mmNear(+t.solid.H, 1500) && mmNear(+t.solid.e, 100); } },
@@ -796,8 +796,9 @@
             'Percer : soustraire': [() => G.mode() === 'bool'],
             'La cabane : les murs': [J.mode('wall'), () => { const C = gv(() => wallChain); return G.mode() === 'wall' && !!C && C.pts.length >= 4 && CAB.every((p, i) => near(C.pts[i], W(...p))); }, () => !!wallGroup()],
             'La hauteur des murs': [() => G.sel().some(x => x.wallMat) && G.shown('selparam-modal')],
-            'La fenêtre': [() => G.mode() === 'opening' && !!gv(() => openA) && near(openA, W(8.5, 0)), J.typed(1.2)],
-            'La porte': [() => G.mode() === 'opening' && !!gv(() => openA) && near(openA, W(12, 1)), J.typed(0.9)],
+            'La fenêtre': [() => G.mode() === 'opening' && !!gv(() => openA) && near(openA, W(8.5, 0)), J.typed(1.2) , () => openings().some(o => o.a && o.b && Math.abs(Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) - mw(1.2)) <= mw(0.03))],
+            'La porte': [() => G.mode() === 'opening' && !!gv(() => openA) && near(openA, W(12, 1)), J.typed(0.9) , () => openings().some(o => o.a && o.b && near(o.a, W(12, 1)) && Math.abs(Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) - mw(0.9)) <= mw(0.03))],
+
             'La panne faîtière': [() => G.shapes().some(s => s.type === 'line' && s.sweep && s.sweep.perp && ((near({ x: s.x1, y: s.y1 }, W(7, 2)) && near({ x: s.x2, y: s.y2 }, W(12, 2))) || (near({ x: s.x1, y: s.y1 }, W(12, 2)) && near({ x: s.x2, y: s.y2 }, W(7, 2))))), () => G.shown('selparam-modal')],
             'Le toit deux pans': [() => J.solid('roof')() && J.start([6.7, -0.3], 'rect')(), () => G.modalHas('Toiture') || !!roofPans()],
             'Les tuiles': [() => gv(() => texPaint && texPaint.tex) === 'tuile'],
@@ -837,7 +838,7 @@
     .mt-arw.go { background:#22c55e; color:#052e16; animation: mt-go 1.2s ease-in-out infinite; } .mt-arw.go:hover { background:#4ade80; }
     @keyframes mt-go { 0%,100% { box-shadow:0 0 0 0 #22c55e66; } 50% { box-shadow:0 0 0 7px #22c55e00; } }
     .mt-link { border:0; background:#065f46; color:#d1fae5; border-radius:8px; padding:6px 10px; font-weight:700; font-size:13px; cursor:pointer; margin-top:8px; }
-    #mt-root.mini #mt-bubble { display:none; } #mt-root.mini.peek #mt-bubble { display:block; }
+    #mt-root.col { flex-direction:column; align-items:flex-end; } #mt-root.under #mt-bubble { opacity:.13; pointer-events:none; transition: opacity .2s; } #mt-root.under:hover #mt-bubble { opacity:1; pointer-events:auto; } #mt-root.mini #mt-bubble { display:none; } #mt-root.mini.peek #mt-bubble { display:block; }
     #mt-root.mini #mt-momo { width:62px; height:76px; }
     #mt-dot { display:none; position:absolute; top:-4px; right:-4px; background:#7c3aed; color:#fff; font-size:11px; font-weight:800; border-radius:10px; padding:1px 6px; pointer-events:none; }
     #mt-root.mini:not(.peek) #mt-dot { display:block; } #mt-dot.ok { background:#22c55e; color:#052e16; }
@@ -955,25 +956,38 @@
         return null;
     }
     function place() {
-        const pp = document.getElementById('properties-popup'), host = root.parentElement.getBoundingClientRect();
-        // panneau des propriétés ouvert (en bas à droite) : Momo se pose au-dessus, sans glisser sur le dessin
-        const ppOn = pp && !pp.classList.contains('hidden') && pp.offsetWidth, ppr = ppOn ? pp.getBoundingClientRect() : null;
-        let right = 16, mini = false;
-        root.style.left = ''; root.style.right = right + 'px'; root.style.bottom = ppr ? Math.max(52, host.bottom - ppr.top + 10) + 'px' : '52px';
-        bubble.style.maxHeight = Math.max(220, host.height - (parseFloat(root.style.bottom) || 52) - 20) + 'px';
+        const host = root.parentElement.getBoundingClientRect(), s0 = STEPS[idx] || {}, BOT = 52, MOMO = 112;
+        // par défaut : en bas à droite, PAR-DESSUS le cadre des propriétés (il ne gêne pas) ;
+        // on ne l'évite que si l'étape demande de le lire (props: true)
+        const pp = document.getElementById('properties-popup'), ppOn = s0.props && pp && !pp.classList.contains('hidden') && pp.offsetWidth;
+        let under = false, col = false, mini = false, right = 16, bottom = ppOn ? Math.max(BOT, host.bottom - pp.getBoundingClientRect().top + 10) : BOT, bw = 400, maxH = host.height - bottom - 20;
         const mc = modalCard();
         if (mc) {
-            if (bubble.offsetHeight) lastH = bubble.offsetHeight;
-            const W = 520, H = Math.max(lastH || 260, 140), zr = host.right - right, zb = host.bottom - (parseFloat(root.style.bottom) || 52);
-            const rr = { left: zr - W, right: zr, top: zb - H, bottom: zb };
-            const over = !(rr.right < mc.left || rr.left > mc.right || rr.bottom < mc.top || rr.top > mc.bottom);
-            if (over && mc.side) { mini = true; root.style.right = (host.right - mc.left + 12) + 'px'; }   // panneau d'outil à droite : Momo se fait petit à côté, le dessin reste visible (clic sur Momo = relire)
-            else if (over) {
-                if (mc.left - host.left >= W + 24) { root.style.right = (host.right - mc.left + 12) + 'px'; }
-                else if (host.right - mc.right >= W + 24) { root.style.right = '16px'; }
-                else { mini = true; root.style.right = 'auto'; root.style.left = '8px'; }
-            }
+            // une fenêtre est ouverte : Momo reste ouvert, mais sa bulle prend la forme de la place libre autour d'elle
+            const g = 12, fullB = host.bottom - BOT, top = host.top + 8, keep = Math.max(host.left + 8, host.right - 620);   // keep : au-delà, c'est la zone de dessin de l'exercice
+            const raw = [
+                { L: mc.right + g, R: host.right - 8, T: top, B: fullB },
+                { L: keep, R: mc.left - g, T: top, B: fullB },
+                { L: keep, R: host.right - 8, T: mc.bottom + g, B: fullB },
+                { L: keep, R: host.right - 8, T: top, B: mc.top - g },
+            ];
+            const zones = [];
+            raw.forEach(z => {
+                const W = z.R - z.L, H = z.B - z.T;
+                zones.push(Object.assign({ col: false, w: Math.min(440, W - MOMO), h: H }, z));        // bulle à gauche de Momo
+                zones.push(Object.assign({ col: true, w: Math.min(440, W - 8), h: H - 128 }, z));      // bulle au-dessus de Momo (zone étroite)
+            });
+            const ok = zones.filter(z => z.w >= 220 && z.h >= 160);
+            ok.sort((a, b) => (Math.min(b.h, 560) * Math.min(b.w, 400) - (b.col ? 1 : 0)) - (Math.min(a.h, 560) * Math.min(a.w, 400) - (a.col ? 1 : 0)));
+            const z = ok[0];
+            if (z) { bw = z.w; maxH = z.h; right = host.right - z.R; bottom = host.bottom - z.B; col = z.col; }
+            else under = true;   // vraiment pas de place : la bulle passe sous la fenêtre ; survoler Momo la fait revenir dessus
         }
+        bubble.style.width = Math.round(bw) + 'px'; bubble.style.maxWidth = 'none';
+        bubble.style.maxHeight = Math.max(150, Math.round(maxH)) + 'px';
+        root.style.left = ''; root.style.right = Math.round(right) + 'px'; root.style.bottom = Math.round(bottom) + 'px';
+        root.classList.toggle('col', col);
+        root.classList.toggle('under', under);
         root.classList.toggle('mini', mini); if (!mini) root.classList.remove('peek');
         const R = resolveTarget(), t = R.el, s = STEPS[idx];
         if (!t) { ring.style.display = 'none'; tip.style.display = 'none'; return; }
@@ -1025,8 +1039,10 @@
         try { if (typedInput && String(typedInput).length) jal.typed = true; } catch (e) {}
         const fin = !!done[idx], st = STEPS[idx];
         if (st && st.jal) {   // contrôle en direct : coché si valide ET toutes les lignes d'avant valides
-            let prev = true;
-            lis.forEach((li, i) => { let v = fin; if (!v && i < st.jal.length) { try { v = !!st.jal[i](jal); } catch (e) { v = false; } } v = v && prev; prev = v; jal.ok[i] = v; li.classList.toggle('ck', v); });
+            // une ligne est validée par son propre contrôle, ou par une ligne suivante validée (le geste d'avant est forcément fait)
+            const own = lis.map((li, i) => { if (fin) return true; if (i >= st.jal.length) return false; try { return !!st.jal[i](jal); } catch (e) { return false; } });
+            let after = false; for (let i = own.length - 1; i >= 0; i--) { after = after || own[i]; jal.ok[i] = after; }
+            lis.forEach((li, i) => li.classList.toggle('ck', !!jal.ok[i]));
             return;
         }
         const raw = jal.rules.map((r, i) => fin || (r.k === 'tool' && jal.tool) || (r.k === 'sel' && jal.sel) || (r.k === 'clk' && jal.clicks >= r.n) || (r.k === 'typ' && jal.typed) );
