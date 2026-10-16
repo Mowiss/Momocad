@@ -9441,9 +9441,12 @@ setTimeout(done,3600);
 
         // --- HISTORIQUE & ÉTAT ---
         let shapesHistory = []; let historyStep = -1;
-        function saveState() { try { fillNewZ(); tagNewSolid(); } catch (e) { console.error(e); } invalidateCache(); if (historyStep < shapesHistory.length - 1) shapesHistory = shapesHistory.slice(0, historyStep + 1); shapesHistory.push({ shapes: JSON.parse(JSON.stringify(shapes)), layers: JSON.parse(JSON.stringify(layers)), activeLayerId }); historyStep++; }
-        function undo() { invalidateCache(); if (historyStep > 0) { historyStep--; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
-        function redo() { invalidateCache(); if (historyStep < shapesHistory.length - 1) { historyStep++; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
+        // la vue 3D ouverte suit le plan : toute modification (outil, annuler, refaire) la reconstruit
+        let sync3DT = null;
+        function sync3D() { if (typeof is3DOpen !== 'function' || !is3DOpen()) return; clearTimeout(sync3DT); sync3DT = setTimeout(() => { try { if (is3DOpen()) { build3DScene(); render3D(); } } catch (e) {} }, 40); }
+        function saveState() { sync3D(); try { fillNewZ(); tagNewSolid(); } catch (e) { console.error(e); } invalidateCache(); if (historyStep < shapesHistory.length - 1) shapesHistory = shapesHistory.slice(0, historyStep + 1); shapesHistory.push({ shapes: JSON.parse(JSON.stringify(shapes)), layers: JSON.parse(JSON.stringify(layers)), activeLayerId }); historyStep++; }
+        function undo() { sync3D(); invalidateCache(); if (historyStep > 0) { historyStep--; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
+        function redo() { sync3D(); invalidateCache(); if (historyStep < shapesHistory.length - 1) { historyStep++; let state = shapesHistory[historyStep]; shapes = JSON.parse(JSON.stringify(state.shapes)); layers = JSON.parse(JSON.stringify(state.layers)); activeLayerId = state.activeLayerId; selectedShapes = []; updateLayerUI(); draw(); } }
 
         function copySelection() { if (selectedShapes.length > 0) { clipboard = JSON.parse(JSON.stringify(selectedShapes)); let bbox = getShapesBoundingBox(clipboard); clipboardBasePoint = bbox ? {x: bbox.centerX, y: bbox.centerY} : {x: 0, y: 0}; } }
         function cutSelection() { if (selectedShapes.length > 0) { copySelection(); shapes = shapes.filter(s => !selectedShapes.includes(s)); selectedShapes = []; saveState(); draw(); } }

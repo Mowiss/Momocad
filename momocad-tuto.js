@@ -276,7 +276,7 @@
     }
     const CUB = [
         { title: 'Le terrassement du parking', why: `Niveau <b>maître</b> : une vraie petite étude de terrassement. On pose le parking de l'Initié sur un terrain en pente, on règle sa plateforme, ses talus et sa structure, puis on sort les <b>cubatures</b>, le <b>profil en long</b> et le <b>métré chiffré</b>.`,
-          do: `Il faut d'abord un <b>terrain naturel</b> : en vrai, c'est le levé du géomètre (DXF, CSV…). Ici, je vous en crée un de 40 × 40 m, avec une pente et une petite bosse.`, action: { label: '▸ Créer le terrain d\'exercice', fn: demoTerrain }, wait: terrHere,
+          do: `Il faut d'abord un <b>terrain naturel</b> : en vrai, c'est le levé du géomètre (DXF, CSV…). Ici, je vous en crée un de 40 × 40 m, avec une pente et une petite bosse.`, action: { label: '▸ Créer le terrain d\'exercice', fn: demoTerrain }, wait: terrHere, ghost: () => [gp(RECT(0, 0, 40, 40), true, { label: 'terrain 40 × 40 m', lp: W(0, 40.5), snap: [] })],
           more: `Le modèle en pointillés reste le même principe : jaune = maintenant, vert = fait.` },
         { title: 'Compléter le levé : un point topo', target: 'btn-topo', tip: 'Point topo<br><small>ou PT + Espace</small>', ghost: () => [gpt([12.5, 32.5], { label: 'Z 102,40', lp: W(12.8, 33) })],
           why: `Un point coté porte une altitude Z. Le géomètre en oublie parfois un, ou on relève un regard sur place : on l'ajoute à la main et le terrain se recalcule avec lui.`,
@@ -450,6 +450,266 @@
         { title: 'Dieu de MomoCAD !', why: `Une pièce percée prête à imprimer, une cabane complète avec ses ouvertures, sa panne et son toit : vous avez fait le tour de MomoCAD, du terrain au bâtiment.`, more: `Il n'y a pas de niveau au-dessus… pour l'instant.`, last: true },
     ];
 
+    // ---------- la voix de Momo : ce qu'il dit à chaque étape (prioritaire sur les textes des étapes) ----------
+    // why = ce que Momo raconte (pourquoi, à quoi ça sert) · do = « À toi » · more = son aparté
+    const HUMAN = {
+        base: {
+            'Bonjour, je suis Momo !': { why: `Salut ! Bon, alors : aujourd'hui on apprend les outils de base, mais pas avec des exercices tout secs. On va <b>redessiner le logo MOMOCAD</b>, lettre par lettre, et chaque lettre va t'apprendre un outil.`,
+                do: `Regarde le plan : le modèle est tracé en <b>pointillés</b>. En <b style="color:#fbbf24">jaune</b>, ce qu'on dessine maintenant ; en <b style="color:#4ade80">vert</b>, ce qui est déjà fait. Les points jaunes <b>attirent ta souris</b> : vise-les.<br>Je coche l'étape ✓ seulement quand ton dessin colle au modèle. Ensuite c'est toi qui avances avec ${K('▶')}, à ton rythme.`,
+                more: `Le mieux, c'est de partir d'un plan vierge. Et ici, tout se mesure en mètres.` },
+            'Se déplacer dans le plan': { why: `Avant de dessiner, on apprend à regarder. Note bien ces trois gestes, tu vas t'en servir tout le temps.`,
+                do: `<ul><li><b>molette</b> : tu zoomes, autour du curseur ;</li><li><b>clic molette maintenu</b> : tu fais glisser le plan ;</li><li><b>double-clic molette</b> : tu vois tout.</li></ul>Essaie un peu, puis reviens : le logo t'attend au milieu de l'écran.` },
+            'Le M, première moitié': { why: `On commence par le M. Petite astuce : il est symétrique, alors on n'en dessine que <b>la moitié</b>. Pour ça, on prend la <b>polyligne</b> : plusieurs segments d'un seul tenant, qui forment un seul objet. C'est l'outil des bordures, des réseaux… et des lettres.`,
+                do: ol('Prends l\'outil <b>Polyligne</b>.', 'Clique les 3 points jaunes : en bas à gauche, en haut, puis le milieu.', `Appuie sur ${SP} pour finir.`),
+                more: `${SP}, c'est la touche qui valide presque tout dans MomoCAD. Prends le réflexe !` },
+            'Le M, l\'autre moitié en miroir': { why: `Super, la moitié est là ! Maintenant on fait apparaître l'autre avec la <b>copie miroir</b> : elle reflète ton dessin de l'autre côté d'un axe. Résultat parfaitement symétrique, sans rien recalculer.`,
+                do: ol('Clique la demi-lettre pour la sélectionner.', 'Prends <b>Copie miroir</b>.', 'Clique les 2 points jaunes de l\'axe vertical.', `${SP} : le reflet apparaît, et l'original reste en place.`) },
+            'Le M, d\'un seul morceau': { why: `Ton M a deux morceaux qui se touchent au milieu. On va les <b>joindre</b> en une seule polyligne. Note bien pourquoi c'est important : un seul objet, c'est un seul clic pour le sélectionner, et une seule longueur au métré.`,
+                do: ol(`Sélectionne les deux moitiés : clic sur l'une, puis ${K('Maj')} + clic sur l'autre.`, 'Clique <b>Joindre</b>.') },
+            'Le O': { why: `Le M est fini, bravo ! On passe au O : un <b>cercle</b>. Sur un vrai plan, c'est un regard, un arbre, un giratoire…`,
+                do: () => ol('Prends l\'outil <b>Cercle</b>.', 'Clique le <b>centre</b> (le point jaune).', `Tape le rayon ${K(U(2))} puis ${SP}.`),
+                more: `Taper la valeur au clavier, c'est LE réflexe à prendre : ton dessin est juste au millimètre, pas « à peu près ».` },
+            'Sélectionner M et O ensemble': { why: `On a « MO ». Et tu sais quoi ? Pour faire « MOMO », pas besoin de redessiner : on va copier. Mais d'abord, il faut <b>sélectionner</b> le M et le O ensemble. Un <b>clic dans le vide, puis un 2<sup>e</sup> clic</b> trace une fenêtre : tout ce qui est entièrement dedans est pris.`,
+                do: ol(`${K('Échap')} pour revenir à la sélection.`, 'Clique un coin de la fenêtre jaune, relâche, puis clique le coin opposé.', 'Le M et le O passent en rose : ils sont sélectionnés.'),
+                more: `Il existe deux autres gestes : un clic directement sur un objet, ou bouton maintenu en glissant pour tracer un <b>lasso</b> à main levée.` },
+            'MOMO : copier M et O': { why: `Parfait ! Maintenant on <b>copie</b> : le dessin est reproduit ailleurs, et l'original ne bouge pas. Note bien le principe, il revient partout : un <b>point de départ</b>, puis un <b>point d'arrivée</b>.`,
+                do: ol('M et O toujours en rose, prends <b>Copier</b>.', 'Clique le point de départ : le coin en bas à gauche du M.', 'Clique l\'arrivée : le point jaune au bout de la flèche.', `${SP} pour finir.`),
+                more: () => `Tu peux aussi taper la distance (${U(8.5)}) au lieu de cliquer l'arrivée.` },
+            'Le C': { why: `Et voilà « MOMO » ! On attaque le C avec l'<b>arc</b>. Sur un chantier, c'est une bordure courbe, un rayon de giration… Ici, trois quarts de cercle.`,
+                do: ol('Prends l\'outil <b>Arc</b>.', 'Clique le <b>centre</b> (le point jaune du milieu).', 'Clique le <b>départ</b> : le point jaune en bas à droite.', `Tourne la souris autour du centre, <b>par le bas puis vers la gauche</b> : l'arc suit ton geste. Clique le point jaune <b>en haut</b> à droite.`),
+                more: `Autre façon, au clavier : après le départ, tape l'angle ${K('270')} puis ${SP}.` },
+            'Le A': { why: `Joli C ! Pour le A, on reprend la polyligne : ce sont juste ses deux jambes.`,
+                do: ol('Prends <b>Polyligne</b>.', 'Clique les 3 points jaunes.', `${SP} pour finir.`) },
+            'La barre du A, trop longue': { why: `Il manque la barre du A. On la trace avec la <b>droite</b>, le trait le plus simple… et on la fait exprès <b>trop longue</b>. Pourquoi ? Tu vas voir : l'outil d'après la recoupe pile au bon endroit.`,
+                do: ol('Prends <b>Droite</b>.', 'Clique les 2 points jaunes : elle dépasse des deux côtés du A, c\'est normal.') },
+            'Couper ce qui dépasse': { why: `Voilà la magie : <b>Couper</b>. Tu cliques le morceau en trop, il disparaît jusqu'au trait qui le croise. Note bien l'intérêt : plus besoin de viser les croisements au millimètre, on trace large et on nettoie.`,
+                do: ol('Prends <b>Couper</b>.', 'Clique le bout qui dépasse à <b>gauche</b> du A, puis celui qui dépasse à <b>droite</b>.') },
+            'Le D, d\'abord un rectangle': { why: `Plus que le D ! On part d'un <b>rectangle</b> : bâtiment, place de parking, emprise… Ses dimensions se tapent au clavier, comme le rayon du cercle.`,
+                do: () => ol('Prends <b>Rectangle</b>.', 'Clique le coin en bas à gauche (le point jaune).', `Souris vers le haut à droite, tape ${K(U(2.5))} ${SP} pour la largeur, puis ${K(U(4))} ${SP} pour la hauteur.`) },
+            'Éclater le rectangle': { why: `Un rectangle, c'est un seul objet. Pour arrondir ses angles, il faut d'abord le <b>décomposer</b> en 4 traits indépendants : c'est le rôle d'<b>Éclater</b>.`,
+                do: ol('Clique le rectangle pour le sélectionner.', 'Clique <b>Éclater</b>, juste à côté du cadenas Grouper.') },
+            'Arrondir le haut du D': { why: `On donne maintenant au D sa panse ronde avec <b>Arrondir</b> : il raccorde deux traits par un arc bien tangent. C'est l'outil des angles de bordure et des rayons de giration.`,
+                do: () => ol('Prends <b>Arrondir</b>.', 'Clique le côté <b>du haut</b>, puis le côté <b>de droite</b>.', `Tape le rayon ${K(U(1.25))} puis ${SP}.`) },
+            'Arrondir le bas du D': { why: `C'est bien ! Même geste pour l'angle du bas.`,
+                do: () => ol('Clique le côté <b>du bas</b>, puis le côté <b>de droite</b>.', `${SP} tout seul reprend le dernier rayon (${U(1.25)}) : pratique quand on enchaîne.`) },
+            'Le soulignement': { why: `Toutes les lettres sont là ! On finit par un double soulignement. D'abord une <b>droite à la cote</b> : tu cliques le départ, tu tapes la longueur, et elle part dans la direction de ta souris.`,
+                do: () => ol('Prends <b>Droite</b>, clique le point jaune de départ.', `Garde ${K('Maj')} enfoncée (trait bien horizontal), souris vers la droite.`, `Tape ${K(U(20))} puis ${SP}.`) },
+            'Le soulignement à la bonne longueur': { why: `Oups, elle est trop courte ! Pas de panique, on ne la redessine pas : <b>Longueur</b> donne une longueur exacte à un trait qui existe déjà.`,
+                do: () => ol('Prends <b>Longueur</b>.', `Tape ${K(U(28.5))} puis ${SP} : c'est la longueur totale que tu veux.`, 'Clique près du bout <b>droit</b> du trait : il s\'allonge.') },
+            'Doubler le soulignement': { why: `Pour doubler le trait, on utilise <b>Décaler</b> : une copie parallèle, à une distance précise. Note bien cet outil, en VRD il sert tout le temps : bordure, trottoir, fil d'eau…`,
+                do: () => ol(`Prends <b>Décaler</b>, tape la distance ${K(U(0.5))} puis ${SP}.`, 'Clique le soulignement.', 'Clique <b>en dessous</b> : la copie apparaît.') },
+            'Remplir les O': { why: `Dernière touche : on remplit les O avec la <b>hachure</b>. Elle remplit une zone fermée et te donne sa surface. Sur un plan : un enrobé, un espace vert, une dalle…`,
+                do: ol('Prends <b>Hachure</b>.', 'Clique <b>à l\'intérieur</b> du premier O, puis du second.', 'Regarde en bas de l\'écran : la surface s\'affiche.') },
+            'Votre logo !': { why: `Regarde ce que tu as fait : <b>MOMOCAD</b>, dessiné à la cote ! En chemin, tu as utilisé 15 outils : polyligne, miroir, joindre, cercle, sélection, copier, arc, droite, couper, rectangle, éclater, arrondir, longueur, décaler et hachure. Franchement, bravo.`,
+                do: `Double-clic molette pour tout voir. Et retiens ces raccourcis de survie : ${K('Ctrl')}+${K('Z')} annule, ${K('Ctrl')}+${K('Y')} refait, ${K('Suppr')} efface la sélection.`,
+                more: `Prochain tuto : <b>Les outils avancés</b> (niveau Initié). On dessinera un petit parking, avec calques, réseau, cotes et blocs.` },
+        },
+        adv: {
+            'Les outils avancés': { why: `Te revoilà ! Cette fois, on passe à un vrai petit projet : <b>un parking</b>. On va le monter comme au bureau : un calque propre, l'emprise, un accès en biais, les places, une haie, les cotes, un regard, les textes… puis on contrôle et on sort le métré.`,
+                do: `Même principe que pour le logo : le modèle en pointillés, jaune = maintenant, vert = fait. Je coche quand ton dessin colle.`,
+                more: `Si tu n'as pas fait « Les outils de base », commence par lui : ce sera plus confortable.` },
+            'Les points d\'accroche': { why: `D'abord, un mot sur les <b>accroches</b>, parce que c'est important. Un trait qui « tombe presque » sur un autre, ça fausse les surfaces, les hachures et les cubatures. Les accroches font sauter ton curseur pile sur le bout d'un trait, son milieu, un centre, un croisement…`,
+                do: `Regarde la barre jaune en haut : un bouton par type d'accroche, allumé = actif. Le petit repère n'apparaît que pendant un tracé, pas quand tu sélectionnes.` },
+            'Un calque Parking': { why: `Bon, alors on commence par ranger. Les <b>calques</b>, c'est comme des transparents posés les uns sur les autres : chacun sa couleur, son trait… et surtout, note bien : <b>le métré compte par calque</b>. Un dessin bien rangé, c'est un métré juste.`,
+                do: ol('Ouvre le gestionnaire de calques.', `Tape <b>Parking</b> dans « Nouveau calque », puis ${K('Entrée')}.`, 'Il devient le calque actif. Ferme le gestionnaire.'),
+                more: `Ici, c'est ${K('Entrée')} qui valide : la barre d'espace sert à écrire le nom.` },
+            'L\'emprise du parking': { why: `Parfait, tout ce qu'on dessine va maintenant sur le calque Parking. On trace le contour : 20 m sur 12.`,
+                do: () => ol('Prends <b>Rectangle</b>, clique le coin jaune.', `Souris en haut à droite, tape ${K(U(20))} ${SP} puis ${K(U(12))} ${SP}.`) },
+            'L\'accès en biais (suivi polaire)': { why: `Maintenant l'accès, en biais à 45°. Pas besoin de sortir la calculette : le <b>suivi polaire</b> aimante ton trait sur les angles ronds (15°, 30°, 45°…).`,
+                do: () => ol(`Allume le suivi polaire avec ${K('F10')} (l'Ortho ${K('F8')} doit être éteint).`, 'Prends <b>Droite</b>, clique le point jaune sur le bord droit.', 'Approche la souris vers 45°, en haut à droite : une ligne pointillée bleue apparaît.', `Tape ${K(U(4))} puis ${SP}.`) },
+            'Une place de parking': { why: `On dessine une place de parking, une seule pour l'instant. Une place standard, c'est 2,50 × 5,00 m.`,
+                do: () => ol('Prends <b>Rectangle</b>, clique le coin jaune.', `Tape ${K(U(2.5))} ${SP} puis ${K(U(5))} ${SP}.`) },
+            'Six places d\'un coup : le réseau': { why: `Une place, c'est bien ; six, c'est mieux ! Plutôt que de copier six fois, on fait un <b>réseau</b> : il répète un objet de façon régulière, d'un coup, avec un aperçu en direct. Places, plots, bornes, candélabres…`,
+                do: () => ol('Sélectionne la place.', 'Prends <b>Réseau</b>, onglet <b>Grille</b>.', `<b>6</b> colonnes, <b>1</b> ligne, écart entre colonnes ${K(U(2.5))}.`, 'Vérifie l\'aperçu, puis <b>Créer</b>.') },
+            'La limite plantée': { why: `C'est bien ! Le long du parking, on va planter une haie d'arbres. On commence par tracer sa ligne.`,
+                do: ol('Prends <b>Droite</b>.', 'Clique les 2 points jaunes.') },
+            'Planter les arbres : diviser': { why: `Et maintenant on plante, avec <b>Diviser</b> : il jalonne un tracé sans le couper. Sur un chantier, c'est un regard tous les 50 m ou un candélabre tous les 25 m. Ici, un arbre tous les 5 m.`,
+                do: ol('Prends <b>Diviser</b>, clique la ligne plantée.', 'Choisis <b>En parts égales</b> : 4 parts.', 'Que poser : <b>❖ Bloc</b> → « Arbre feuillu ».', 'Décoche « aux deux bouts », puis <b>Poser</b>.') },
+            'Coter la largeur': { why: `On passe à la cotation. Une <b>cote</b> affiche une distance sur le plan. Note bien son gros avantage : si tu déplaces ses points, elle se met à jour toute seule.`,
+                do: ol('Prends <b>Cote ortho</b>.', 'Clique les deux coins du bas de l\'emprise.', 'Clique sous le parking pour placer la ligne de cote.') },
+            'Le regard': { why: `On ajoute un regard d'eaux pluviales au milieu de l'allée. Un cercle : tu connais, maintenant !`,
+                do: () => ol('Prends <b>Cercle</b>, clique le centre jaune.', `Tape ${K(U(0.5))} puis ${SP}.`) },
+            'Coter le regard': { why: `Pour dire sa taille sur le plan, on lui met une <b>cote de diamètre</b> (celle de rayon est juste à côté). Regard, bassin, giration…`,
+                do: ol('Prends <b>Cote de diamètre</b>.', 'Clique le regard.', 'Place le texte à l\'extérieur et clique.') },
+            'Le nom du parking': { why: `Un plan doit se lire tout seul, sans toi à côté pour l'expliquer. Alors on nomme l'ouvrage.`,
+                do: `Prends <b>Texte</b> : clique au milieu du parking, tape <b>PARKING</b>, puis ${K('Entrée')}.` },
+            'Signaler l\'entrée': { why: `Maintenant, on montre par où on entre. L'<b>infobulle</b> est une étiquette reliée par une flèche à ce qu'elle désigne. On va écrire « Entrée » à côté de l'accès en biais.`,
+                do: ol('Prends <b>Infobulle</b>.', '1<sup>er</sup> clic : la <b>pointe de la flèche</b>, sur le point jaune au milieu de l\'accès.', '2<sup>e</sup> clic : la <b>place de l\'étiquette</b>, sur le second point jaune.', `Une zone de texte s'ouvre : écris le mot <b>Entrée</b>, puis appuie sur la touche ${K('Entrée')} pour valider.`),
+                more: `Oui, le mot et la touche ont le même nom, c'est un hasard ! On écrit « Entrée », puis on valide avec la touche ${K('Entrée')}.` },
+            'Contrôler : mesurer': { why: `Le dessin est fini. Avant d'envoyer un plan, on vérifie toujours : note bien ce réflexe. <b>Mesurer</b> te donne distances, angle et surface <b>sans rien dessiner</b>.`,
+                do: () => `Prends <b>Mesurer</b> et clique deux coins opposés de l'emprise. La diagonale s'affiche : environ ${U(23.32)} ${UN()}.` },
+            'Le métré': { why: `Et voilà la récompense : le <b>métré</b> transforme ton dessin en quantités, calque par calque. Longueurs, surfaces, nombres d'objets : tout est compté.`,
+                do: `Ouvre le <b>Σ Métré</b> et retrouve le calque Parking. « Copier (tableur) » le colle directement dans un devis.` },
+            'L\'aperçu': { why: `Dernière étape : voir la feuille exactement comme elle sortira de l'imprimante.`,
+                do: `Ferme le métré, puis <b>Aperçu</b>. Molette = échelle, ${SP} = portrait ou paysage, ${K('Entrée')} = imprimer, ${K('Échap')} = quitter.` },
+            'Bravo, vous êtes initié !': { title: 'Bravo, tu es initié !', why: `Tu viens de monter un vrai petit plan : calque, emprise, accès au suivi polaire, places en réseau, arbres jalonnés, cotes, regard, textes, contrôle et métré. Chapeau !`,
+                do: `Pense à l'enregistrer avec ${K('Ctrl')}+${K('S')} (.mmc). Le DXF, lui, sert à l'échanger avec les autres.`,
+                more: `Prochain tuto : <b>Le paramétrage</b> (niveau Expert).` },
+        },
+        param: {
+            'Le paramétrage': { why: `Niveau <b>expert</b> ! Ici, on ne dessine pas : on règle MomoCAD pour qu'il sorte des plans « maison ». Tes formats, ton cartouche et ton logo, tes prix, tes calques… et à la fin, on range tout dans un <b>gabarit</b> à partager avec l'équipe.` },
+            'Les paramètres': { why: `Bon, alors on commence par la fenêtre des <b>Paramètres</b> : tous les réglages généraux y sont réunis, rangés en onglets.`,
+                do: `Ouvre les <b>Paramètres</b> : le bouton ⛯ tout en haut à droite.` },
+            'Onglet Plan': { why: `Premier onglet, <b>Plan</b> : la <b>précision d'affichage</b> (combien de décimales pour les longueurs et les cotes) et le carreau de la grille. Une cote au centimètre se lit bien mieux qu'avec six décimales !`,
+                do: `Dans l'onglet <b>Plan</b>, change la précision avec <b>+</b> ou <b>−</b>.`, more: `Toutes les longueurs sont en mètres : rien à régler côté unité.` },
+            'Onglet Impression': { why: `C'est bien ! Onglet <b>Impression</b> maintenant : le format de feuille (A5 à A0), l'orientation et le type de fichier (PDF, JPEG, PNG) de l'impression rapide.`,
+                do: `Ouvre l'onglet <b>Impression</b> et jette un œil à l'aperçu de la feuille.` },
+            'Le cartouche': { why: `Le <b>cartouche</b>, c'est la signature du plan : titre, client, dessinateur, indice de révision et <b>logo</b> de l'entreprise. Note bien : un cartouche pas à jour, ça finit toujours par semer la confusion sur un chantier.`,
+                do: `Ouvre l'onglet <b>Cartouche</b> et tape un <b>titre de plan</b>.` },
+            'Fond de plan': { why: `Onglet <b>Fond de plan</b> : la carte posée sous ton dessin (satellite, photo IGN, plan) et les calques qui viennent avec : cadastre, communes, courbes, routes… et même le terrain IGN en points cotés.`,
+                do: `Ouvre l'onglet <b>Fond de plan</b>.` },
+            'Présentation': { why: `Onglet <b>Présentation</b> : la feuille des planches de mise en page. Format, orientation, marges, traits de pliage.`,
+                do: `Ouvre l'onglet <b>Présentation</b>.` },
+            'Le catalogue produits': { why: `Et voilà l'onglet le plus précieux : <b>tes prix</b>. Terrassement en déblai et en remblai, puis chaque matériau avec sa densité, son foisonnement et son prix. Note bien : c'est lui qui chiffre automatiquement les structures et le métré.`,
+                do: `Onglet <b>Produits</b> : saisis un prix, par exemple pour la GNT 0/31,5.` },
+            'Valider': { why: `On valide : les réglages s'appliquent, restent sur ce poste, et partent avec le plan quand tu l'enregistres.`, do: `Clique <b>Valider</b>.` },
+            'Calques avancés': { why: `Parfait ! On passe aux <b>calques</b> : ils ont des réglages fins qui font toute la différence sur un plan imprimé.`,
+                do: `Ouvre le <b>gestionnaire de calques</b>.` },
+            'Une ligne avec texte': { why: `Tu sais, ces réseaux où le trait porte son nom : ---EU Ø160---EU Ø160--- ? C'est un <b>type de ligne avec texte</b>. Lisible même imprimé en noir et blanc.`,
+                do: ol('Sur un calque, dans la colonne <b>Trait</b>, choisis le type de ligne <b>-T-</b>.', `La case <b>Libellé</b>, juste à droite, s'allume : tape le texte (par exemple EU Ø160), puis ${K('Entrée')}.`) },
+            'Hachures et points': { why: `Chaque calque a aussi son motif de hachure, sa taille de texte et le style de ses points topo (symbole, matricule, altitude). Une fois réglé, tu n'y penses plus.`,
+                do: `Change le motif de hachure d'un calque.` },
+            'Le gabarit d\'entreprise': { why: `Et maintenant, le plus malin : tout ce que tu viens de régler se garde dans un <b>gabarit .gbt</b>. Calques, paramètres, cartouche et logo, accroches, blocs, catalogue produits… Partagé, il donne à toute l'équipe les mêmes plans et les mêmes prix.`,
+                do: `Menu fichier › <b>Enregistrer le gabarit</b>. Les collègues font <b>Charger un gabarit</b>, et le dernier chargé revient tout seul au démarrage.` },
+            'Bravo, vous êtes expert !': { title: 'Bravo, tu es expert !', why: `Ton MomoCAD est réglé « maison » : paramètres, cartouche, prix, calques et gabarit. Tes plans auront tous la même allure, et tes devis les mêmes prix.`,
+                more: `Prochain tuto : <b>Les cubatures</b> (niveau Maître).` },
+        },
+        cub: {
+            'Le terrassement du parking': { why: `Niveau <b>maître</b> ! Tu te souviens du parking de l'Initié ? Bon, alors cette fois on le pose sur un vrai terrain en pente, et on fait l'étude de terrassement complète : plateforme, talus, structure, puis les <b>cubatures</b>, le <b>profil en long</b> et le <b>métré chiffré</b>.`,
+                do: `Il nous faut d'abord un <b>terrain naturel</b>. En vrai, c'est le levé du géomètre (DXF, CSV…). Ici, je t'en crée un de 40 × 40 m, avec une pente et une petite bosse. Clique le bouton !`,
+                more: `Le modèle en pointillés marche comme d'habitude : jaune = maintenant, vert = fait.` },
+            'Compléter le levé : un point topo': { why: `Premier réflexe : on complète le levé. Il arrive que le géomètre oublie un point, ou qu'on relève un regard sur place. Un <b>point topo</b> porte une altitude Z, et le terrain se recalcule avec lui.`,
+                do: () => ol('Prends <b>Point topo</b>, clique le centre du rond jaune.', `Tape l'altitude ${K('102,4')} puis ${SP}.`),
+                more: `Survole un point coté : son Z s'affiche en bas à droite.` },
+            'Lire le terrain en 3D': { why: `Avant de concevoir quoi que ce soit, on <b>comprend le terrain</b>. Note bien l'importance de ce coup d'œil : où sont les bosses, dans quel sens ça penche, où il faudra creuser…`,
+                do: `Clique la bulle <b>œil 3D</b> près de la rosace. Glisser = tourner, molette = zoom ; <b>Aberration ×</b> exagère le relief. Repère la bosse.<br>Puis <b>referme la vue 3D</b> (bulle œil ou ${K('Échap')}) : la suite se fait sur le plan.` },
+            'Les courbes de niveau': { why: `De retour sur le plan, on lit le relief à plat avec les <b>courbes de niveau</b>, comme sur une carte IGN : serrées, ça monte fort ; espacées, c'est plat.`,
+                do: `Prends <b>Courbes de niveau</b> : équidistance ${K('0,5')}, puis génère.` },
+            'L\'emprise du parking': { why: `C'est bien ! Maintenant on pose le projet. La <b>plateforme</b>, c'est la forme du projet à son altitude : un parking, une dalle, une voirie. On commence par son contour.`,
+                do: () => ol('Prends <b>Rectangle</b>, clique le coin jaune.', `Souris en haut à droite, tape ${K(U(20))} ${SP} puis ${K(U(12))} ${SP}.`) },
+            'Le niveau du parking': { why: `On donne au parking son altitude finie : 102,00. Et regarde bien ce qui se passe : MomoCAD dessine aussitôt les <b>talus</b> jusqu'au terrain, <span style="color:#fca5a5">rouges en déblai</span> (on creuse) et <span style="color:#93c5fd">bleus en remblai</span> (on apporte).`,
+                do: ol('Sélectionne le rectangle et tape ' + K('Y') + '.', `Chapitre <b>Plateforme</b> : nom <b>Parking</b>, Z de tous les sommets ${K('102')}.`, '<b>Appliquer</b>.') },
+            'Adoucir le remblai': { why: `La pente des talus dépend du sol : 3/2 en remblai courant, 1/1 en déblai bien tenu. Note bien qu'un talus plus doux prend plus de place… et change les volumes. On adoucit le remblai.`,
+                do: ol(`Rouvre ${K('Y')} sur la plateforme, chapitre <b>Talus</b>.`, 'Pente de <b>remblai</b> : <b>2/1</b> (2 m à plat pour 1 m de haut).', '<b>Appliquer</b>, et regarde les talus bleus s\'élargir.'),
+                more: `Une plateforme <b>inclinée</b> (une rampe) se règle au même endroit : un Z par sommet.` },
+            'La structure de chaussée': { why: `Sous l'enrobé, il y a des couches : GNT, géotextile… On les décrit dans la <b>structure</b>. MomoCAD les quantifie (volume, tonnage, prix) et terrasse au <b>fond de forme</b>, sous la dernière couche.`,
+                do: ol(`${K('Y')} sur la plateforme, chapitre <b>▤ Structure</b>.`, 'Ajoute <b>GNT 0/31,5</b> sur 20 cm et <b>GNT 0/80</b> sur 30 cm.', '<b>Appliquer</b>.') },
+            'Lancer les cubatures': { why: `Tout est prêt, on lance le calcul ! Les <b>cubatures</b> donnent les volumes de déblai et de remblai, plateforme par plateforme, talus et structure compris.`,
+                do: `Clique <b>Cubatures</b> : coche <b>Parking</b>, puis <b>2. Résultats</b>.` },
+            'Lire les résultats': { why: `Regarde : le parking est à cheval sur la bosse, alors il y a du déblai d'un côté et du remblai de l'autre. Le <b>solde</b> te dit s'il faudra évacuer ou apporter de la terre. C'est le chiffre qu'on va te demander en premier !`,
+                do: `<ul><li><b>PDF</b> : le rapport, avec vue en plan cotée et vues 3D ;</li><li><b>Copier (tableur)</b> : pour le devis ;</li><li><b>Tracer sur le plan</b> : la limite entre déblai et remblai.</li></ul>` },
+            'Le profil en long': { why: `On fait maintenant une coupe : le <b>profil en long</b>. Il montre le terrain et le projet le long d'un axe, avec son tableau de cotes. D'un coup d'œil, tu vois où on creuse et où on remblaie.`,
+                do: () => ol('Prends <b>Profil en long</b>.', `Clique les 2 points jaunes de l'axe, puis ${SP}.`) },
+            'Le métré chiffré': { why: `Et pour finir, la synthèse pour le devis : le <b>métré chiffré</b>. Déblai, remblai, chaque produit de la structure, avec tes prix et le <b>total HT</b>.`,
+                do: `Ferme le profil, puis ouvre le <b>Σ Métré</b> : tableau « Terrassement et matériaux ».` },
+            'Maître du terrassement !': { why: `Bravo, tu es maître du terrassement ! Levé complété, relief lu, plateforme calée à 102,00, talus réglés, structure, cubatures, profil et métré chiffré : c'est le circuit complet d'une vraie étude.`,
+                more: `Prochain tuto : <b>La modélisation 3D</b> (niveau Seigneur).` },
+        },
+        model: {
+            'La modélisation 3D': { why: `Niveau <b>seigneur</b> ! On passe en volume, avec un vrai ouvrage : <b>un regard en béton</b>. Sa dalle, son anneau, son couvercle, la bordure autour et une petite rampe d'accès. De quoi visualiser, métrer en m³… ou imprimer en 3D.`,
+                do: `Le modèle est en pointillés, vu de dessus. Je coche chaque étape quand le volume est juste : bonne place, bonne taille, bonne hauteur.` },
+            'La palette Modélisation': { why: `Bon, alors on commence par sortir les outils. La palette <b>Modélisation</b> est repliée au démarrage, pour ne pas encombrer l'écran.`,
+                do: `Clique son titre pour la déplier.` },
+            'La dalle de fond': { why: `On commence par le bas : la dalle de fond. Le <b>pavé</b>, c'est le volume le plus simple : un massif, une dalle, un socle. Tu le dessines comme un rectangle, puis tu lui donnes sa hauteur.`,
+                do: () => ol('Prends <b>Pavé</b>, clique le coin jaune.', `Tape ${K(U(2))} ${SP} puis ${K(U(2))} ${SP}.`, `Dans la fenêtre : hauteur ${K('0,2')}, puis <b>Appliquer</b>.`) },
+            'L\'anneau du regard': { why: `C'est bien ! Maintenant l'anneau du regard, avec le <b>tube</b> : un cylindre creux. Regard, buse, fourreau… et son volume de béton s'affiche dans les propriétés.`,
+                do: () => ol('Prends <b>Tube</b>, clique le centre jaune.', `Tape le rayon ${K(U(0.6))} ${SP}.`, `Dans la fenêtre : hauteur ${K('1,5')}, épaisseur de paroi ${K('0,1')}, puis <b>Appliquer</b>.`) },
+            'Poser le regard sur sa dalle': { why: `Petit souci : la dalle et l'anneau partent du même niveau, alors ils se traversent. <b>Poser sur</b> règle ça : il cale un objet pile sur un autre, sans calculer de hauteur.`,
+                do: ol('Prends <b>Poser sur</b>.', 'Clique le <b>bord du regard</b> : c\'est l\'objet à poser.', 'Clique la <b>dalle</b>, dans un coin, en dehors du regard.') },
+            'Le couvercle : sa demi-coupe': { why: `Au tour du couvercle. Note bien la méthode, elle sert pour tous les objets ronds : on dessine sa <b>demi-coupe</b>, la moitié de sa section vue de côté. Ici, 0,70 de rayon (il déborde de l'anneau) et 0,15 d'épaisseur.`,
+                do: () => ol('Prends <b>Rectangle</b>, clique le coin jaune.', `Tape ${K(U(0.7))} ${SP} puis ${K(U(0.15))} ${SP}.`) },
+            'Le couvercle : la révolution': { why: `Et maintenant, la magie : la <b>révolution</b> fait tourner ta demi-coupe autour d'un axe vertical. Tu obtiens un volume rond, même compliqué : regard avec feuillure, cuve, poteau…`,
+                do: ol('Prends <b>Révolution</b>, clique le rectangle.', 'Clique le point jaune de l\'<b>axe</b> (le bord gauche de la coupe).', 'Clique le <b>centre du regard</b> : le couvercle s\'y pose.'),
+                more: `Une fois le volume créé, la demi-coupe ne sert plus : tu peux l'effacer.` },
+            'Monter le couvercle': { why: `Le couvercle est né au pied du regard : il faut le monter. <b>Élever</b> déplace un objet vers le haut ou le bas, d'une hauteur précise. Fais le calcul avec moi : 0,20 de dalle + 1,50 d'anneau = <b>1,70</b>.`,
+                do: ol('Sélectionne le couvercle (clic sur son bord).', `Prends <b>Élever</b> : tape ${K('1,7')} puis ${SP}.`) },
+            'Le tracé de la bordure': { why: `Le regard est complet ! On l'entoure d'une bordure sur trois côtés. On commence par dessiner son <b>tracé</b>, comme une ligne au sol.`,
+                do: ol('Prends <b>Polyligne</b>.', `Clique les 4 points jaunes dans l'ordre, puis ${SP}.`) },
+            'La bordure : le balayage': { why: `Le <b>balayage</b> fait suivre un profil le long d'un tracé : bordure de trottoir, caniveau, tuyau… et il calcule le volume de béton.`,
+                do: ol('Prends <b>Balayage</b> et clique la polyligne : une bordure la suit.', 'Dans la fenêtre, garde la bordure <b>T2</b> ou essaie un autre profil.') },
+            'La rampe d\'accès': { why: `Il manque une petite dalle à côté du regard, pour y accéder. Encore un pavé : tu connais le geste !`,
+                do: () => ol('Prends <b>Pavé</b>, clique le coin jaune.', `Tape ${K(U(1.5))} ${SP} puis ${K(U(2))} ${SP}.`, `Hauteur ${K('0,15')}, puis <b>Appliquer</b>.`) },
+            'Pencher la rampe': { why: `On fait descendre la rampe vers le regard avec <b>Incliner</b> : il fait pencher un volume. Une dalle en pente, une pièce biaise…`,
+                do: ol('Prends <b>Incliner</b>, clique la rampe.', `Chapitre « Inclinaison », <b>Autour de X</b> : ${K('8')}, puis <b>Appliquer</b>.`) },
+            'Habiller l\'ouvrage': { why: `Maintenant, on habille la maquette. Les <b>textures</b> la rendent lisible : béton, brique, bois, tuiles, enrobé, pelouse… Et elles sont posées en vraie grandeur : un pavé fait la taille d'un vrai pavé.`,
+                do: ol('Prends <b>Peindre</b> : une fenêtre de textures s\'ouvre à droite.', 'Choisis <b>Béton</b> et clique le couvercle (vu de dessus, il cache le regard).', 'Choisis <b>Pavés</b> et clique la rampe.'),
+                more: `Dans la vue 3D, tu peux peindre chaque volume, même caché en plan : essaie sur le regard. La <b>pipette</b> reprend la texture d'un volume, la <b>gomme</b> lui rend la couleur du calque.` },
+            'Admirer et choisir en 3D': { why: `Le moment de vérité ! Et la vue 3D ne sert pas qu'à admirer : tu peux y cliquer un volume pour le régler.`,
+                do: `Ouvre la <b>vue 3D</b> (bulle œil près de la rosace) et tourne autour du regard. Clique le couvercle sans glisser : il passe en rose.<br>Ensuite, <b>referme la vue 3D</b> (bulle œil ou ${K('Échap')}).` },
+            'Les volumes au métré': { why: `Et pour le devis, le métré compte les m³ de béton, calque par calque : dalle, anneau, couvercle, bordure.`,
+                do: `De retour sur le plan, ouvre le <b>Σ Métré</b> : colonne <b>Volumes 3D</b>.` },
+            'Seigneur de la 3D !': { why: `Bravo, tu es seigneur de la 3D ! Un regard complet : dalle, anneau posé dessus, couvercle tourné et monté à sa place, bordure balayée, rampe inclinée, textures, et ses m³ au métré.`,
+                more: `Dernier tuto : <b>Pièces et bâtiment</b> (niveau Dieu).` },
+        },
+        build: {
+            'Pièces et bâtiment': { why: `Niveau <b>dieu</b>, le dernier ! On va faire deux choses. D'abord une <b>pièce à imprimer en 3D</b> : une équerre de fixation percée, faite en combinant des volumes. Ensuite, on construit une <b>cabane</b> : murs, fenêtre, porte, panne faîtière et toit deux pans.`,
+                do: `Comme d'habitude : le modèle en pointillés, et je coche quand c'est juste. Déplie la palette <b>Modélisation</b> si elle est repliée.` },
+            'L\'équerre : première branche': { why: `On commence par l'équerre. Note bien la logique : une pièce se construit comme un jeu de cubes, avec des volumes simples qu'on soude ou qu'on creuse ensuite. Première branche : un pavé.`,
+                do: () => ol('Prends <b>Pavé</b>, clique le coin jaune.', `Tape ${K(U(4))} ${SP} puis ${K(U(1))} ${SP}.`, `Hauteur ${K('0,5')}, puis <b>Appliquer</b>.`) },
+            'L\'équerre : seconde branche': { why: `C'est bien ! Seconde branche maintenant. Elle chevauche la première dans le coin : c'est voulu, on va les souder.`,
+                do: () => ol('Prends <b>Pavé</b>, même coin jaune.', `Tape ${K(U(1))} ${SP} puis ${K(U(3))} ${SP}.`, `Hauteur ${K('0,5')}, puis <b>Appliquer</b>.`) },
+            'Souder les deux branches': { why: `L'<b>union</b> fusionne plusieurs volumes en une seule pièce, sans la partie en double au milieu. Indispensable pour l'impression 3D : l'imprimante veut une pièce d'un seul bloc.`,
+                do: ol(`Sélectionne les deux pavés : clic, puis ${K('Maj')} + clic.`, 'Prends <b>Union</b>.') },
+            'Le trou de fixation': { why: `Il faut un trou pour la vis. Pour percer, on dessine d'abord le volume <b>à enlever</b> : un cylindre qui traverse la pièce de part en part.`,
+                do: () => ol('Prends <b>Cylindre</b>, clique le centre jaune.', `Tape ${K(U(0.25))} ${SP}.`, 'Garde la hauteur de 1 m (plus haute que la pièce), puis <b>Appliquer</b>.') },
+            'Percer : soustraire': { why: `Et maintenant on perce, avec <b>Soustraire</b> : il retire un volume d'un autre. Percer, encocher, réserver un passage, dans n'importe quelle direction.`,
+                do: ol('Prends <b>Soustraire</b>.', 'Clique la pièce (celle qu\'on garde), puis le cylindre (celui qu\'on retire).') },
+            'Le troisième booléen': { why: `Il existe un troisième outil de la même famille : <b>Intersecter</b>. Il ne garde que la partie commune de deux volumes. Par exemple, une sphère et un pavé donnent un dôme coupé net.`,
+                do: `Pas besoin ici : retiens juste qu'il existe, à côté de l'Union et de la Soustraction.` },
+            'Envoyer à l\'imprimante 3D': { why: `Ton équerre est prête ! Pour l'imprimer, on l'exporte au format <b>STL</b> : il part tel quel dans le logiciel d'une imprimante 3D.`,
+                do: `Sélectionne l'équerre, puis menu fichier › <b>Exporter en STL</b> : « La sélection seulement », millimètres, « Poser à l'origine ».` },
+            'La cabane : les murs': { why: `Bon, alors place au bâtiment ! On commence par les murs. Un mur porte son matériau (parpaing, brique, béton…) : il se hachure en plan et deviendra un volume percé en 3D. Et quand tu les traces en chaîne, les angles se raccordent tout seuls.`,
+                do: ol('Catalogue de blocs, onglet <b>🧱 Parois</b> : choisis un mur.', 'Clique les 4 coins jaunes dans l\'ordre…', '…puis à nouveau le premier : le contour se referme.', `${K('Échap')}.`) },
+            'La hauteur des murs': { why: `Note bien ce point, on l'oublie souvent : en plan, un mur n'a pas de hauteur. On lui donne un <b>niveau bas</b> et un <b>niveau haut</b> pour qu'il existe en 3D, et que les ouvertures le percent.`,
+                do: ol(`Clique un mur (toute la chaîne se sélectionne), puis ${K('Y')}.`, 'Niveau bas <b>0</b>, niveau haut <b>2,50</b>, puis <b>Appliquer</b>.') },
+            'La fenêtre': { why: `On perce la fenêtre, proprement : au bon endroit et à la bonne largeur. Tu accroches le début, tu tapes la largeur.`,
+                do: () => ol('Prends <b>Ouverture</b>, clique le point jaune sur le mur.', `Souris vers la droite, tape ${K(U(1.2))} ${SP}.`, 'Choisis <b>Fenêtre</b> (allège 1,00, hauteur 1,25), puis <b>Valider</b>.') },
+            'La porte': { why: `C'est bien ! Maintenant la porte. Elle se dessine avec son battant : tu choisis le côté de la charnière et le sens d'ouverture. Pratique pour vérifier qu'elle ne tape dans rien !`,
+                do: () => ol('Prends <b>Ouverture</b>, clique le point jaune.', `Souris vers le haut, tape ${K(U(0.9))} ${SP}.`, 'Choisis <b>Porte</b>, puis la charnière et le sens d\'ouverture (vers l\'intérieur), et <b>Valider</b>.'),
+                more: `Double-clic sur une ouverture pour la modifier.` },
+            'La panne faîtière': { why: `Avant le toit, on pose ce qui le porte : la <b>panne faîtière</b>. L'outil <b>Poutre</b> fait du bois ou de l'acier, droit ou en pente, et sa section reste perpendiculaire, comme un vrai chevron.`,
+                do: ol('Prends <b>Poutre</b>, clique les 2 points jaunes.', 'Dans la fenêtre, garde le bois 63×175.', 'Chapitre <b>Altitudes de l\'axe</b> : Z départ et Z arrivée <b>4,70</b>, puis <b>Appliquer</b>.') },
+            'Le toit deux pans': { why: `Et maintenant on couvre la cabane, en une seule fois : deux pans à la bonne hauteur, débord compris, avec les <b>pignons</b> fermés sous le toit.`,
+                do: () => ol('Prends <b>Toiture</b>, clique le coin jaune.', `Tape ${K(U(5.6))} ${SP} puis ${K(U(4.6))} ${SP}.`, '<b>2 pans</b>, faîtage parallèle <b>au grand côté</b>, égout <b>2,50</b>, faîtage <b>5,00</b>.', 'Coche <b>Combler les pignons</b>, puis <b>Créer le toit</b>.') },
+            'Les tuiles': { why: `La touche finale : une couverture en tuiles, à l'échelle.`,
+                do: ol('Prends <b>Peindre</b>, choisis <b>Tuiles</b>.', 'Clique les deux pans du toit.') },
+            'Admirez': { title: 'Admire !', why: `Le moment de vérité : murs percés, porte, fenêtre, panne, toit et pignons… et l'équerre juste à côté. Va voir ça !`,
+                do: `Ouvre la <b>vue 3D</b> et fais le tour de la cabane. Puis <b>referme-la</b> (bulle œil ou ${K('Échap')}) pour revenir au plan.` },
+            'Dieu de MomoCAD !': { why: `Bravo, tu es le dieu de MomoCAD ! Une pièce percée prête à imprimer, une cabane complète avec ses ouvertures, sa panne et son toit. Tu as fait le tour, du terrain au bâtiment.`,
+                more: `Il n'y a pas de niveau au-dessus… pour l'instant !` },
+        },
+    };
+    function applyVoice(id, steps) {
+        const V = HUMAN[id]; if (!V) return;
+        steps.forEach(s => { const v = V[s.title]; if (v) Object.assign(s, v); });
+    }
+
+    // ---------- confettis : Momo fête chaque étape réussie ----------
+    function confetti() {
+        try {
+            if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const r = (momo || root).getBoundingClientRect(), x0 = r.left + r.width / 2, y0 = r.top + r.height * 0.3;
+            const cv = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+            cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:90';
+            cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; document.body.appendChild(cv);
+            const c = cv.getContext('2d'); c.scale(dpr, dpr);
+            const COL = ['#f59e0b', '#22c55e', '#7c3aed', '#38bdf8', '#f43f5e', '#fde047', '#a78bfa'];
+            const P = Array.from({ length: 90 }, () => { const a = -Math.PI / 2 + (Math.random() - 0.6) * 1.9, v = 6 + Math.random() * 8;
+                return { x: x0, y: y0, vx: Math.cos(a) * v, vy: Math.sin(a) * v, w: 5 + Math.random() * 6, h: 3 + Math.random() * 4, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, col: COL[(Math.random() * COL.length) | 0], round: Math.random() < 0.25 }; });
+            const t0 = performance.now();
+            (function frame(t) {
+                const k = (t - t0) / 1600; c.clearRect(0, 0, innerWidth, innerHeight);
+                if (k >= 1) { cv.remove(); return; }
+                c.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
+                P.forEach(p => { p.vy += 0.32; p.vx *= 0.985; p.vy *= 0.985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+                    c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.fillStyle = p.col;
+                    if (p.round) { c.beginPath(); c.arc(0, 0, p.h / 1.4, 0, 2 * Math.PI); c.fill(); } else c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 1.7)) + 1);
+                    c.restore(); });
+                requestAnimationFrame(frame);
+            })(t0);
+        } catch (e) {}
+    }
+
     // ---------- interface ----------
     const CSS = `
     #mt-root { position:absolute; right:16px; bottom:52px; z-index:80; display:flex; align-items:flex-end; gap:10px; pointer-events:none; transition:right .25s; font-family: system-ui, 'Segoe UI', sans-serif; }
@@ -549,7 +809,7 @@
         if (a === 'act') { const s = STEPS[idx]; if (s.action) s.action.fn(); return; }
         if (a === 'next') { if (STEPS[idx].last) return stop(); return go(idx + 1); }
     }
-    const BRAVO = ['Bravo !', 'Parfait !', 'Bien joué !', 'Exactement !', 'Super !', 'C\'est ça !'];
+    const BRAVO = ['Bravo, c\'est exactement ça !', 'Nickel !', 'Bien joué !', 'Impeccable !', 'Trop fort !', 'Yes, parfait !', 'Joli coup !', 'C\'est tout bon !'];
     function render() {
         const s = STEPS[idx], n = STEPS.length, ok = !!done[idx], hasWait = typeof s.wait === 'function';
         const ready = ok || !hasWait;
@@ -557,16 +817,16 @@
         if (idx > 0) btns.push(`<button class="mt-arw" data-a="prev" title="Étape précédente">◀</button>`);
         btns.push(`<button class="mt-arw${ready ? ' go' : ''}" data-a="next" title="${s.last ? 'Terminer' : ready ? 'Étape suivante' : 'Passer cette étape'}">▶</button>`);
         const doTxt = typeof s.do === 'function' ? s.do() : (s.do || s.say);
-        const doHtml = doTxt ? `<div class="mt-do"><span class="mt-lab">${hasWait ? 'À vous' : 'Comment faire'}</span>${doTxt}${s.action ? `<div><button class="mt-link" data-a="act">${s.action.label}</button></div>` : ''}</div>` : (s.action ? `<button class="mt-link" data-a="act">${s.action.label}</button>` : '');
-        const back3D = G.is3D() && !s.in3D && !s.last && !ok ? `<div class="mt-more" style="border-left-color:#38bdf8;color:#bae6fd;background:#38bdf814">↩ Cette étape se fait sur le plan : refermez d'abord la vue 3D (bulle œil ou ${K('Échap')}).</div>` : '';
-        const state = hasWait ? (ok ? `<div id="mt-state" class="ok">✓ ${BRAVO[idx % BRAVO.length]} Étape réussie — passez à la suite avec ▶ quand vous êtes prêt.</div>` : `<div id="mt-state" class="wait">⏳ À vous de jouer… l'étape se cochera toute seule.</div>`) : '';
+        const doHtml = doTxt ? `<div class="mt-do"><span class="mt-lab">${hasWait ? 'À toi' : 'Comment on fait'}</span>${doTxt}${s.action ? `<div><button class="mt-link" data-a="act">${s.action.label}</button></div>` : ''}</div>` : (s.action ? `<button class="mt-link" data-a="act">${s.action.label}</button>` : '');
+        const back3D = G.is3D() && !s.in3D && !s.last && !ok ? `<div class="mt-more" style="border-left-color:#38bdf8;color:#bae6fd;background:#38bdf814">↩ Attends, cette étape se fait sur le plan : referme d'abord la vue 3D (bulle œil ou ${K('Échap')}).</div>` : '';
+        const state = hasWait ? (ok ? `<div id="mt-state" class="ok">✓ ${BRAVO[idx % BRAVO.length]} Quand tu es prêt, clique ▶ et on continue.</div>` : `<div id="mt-state" class="wait">⏳ Vas-y, je regarde… je coche dès que c'est bon.</div>`) : '';
         bubble.classList.toggle('done', ok);
         const dot = root.querySelector('#mt-dot'); if (dot) { dot.textContent = ok ? '✓' : '…'; dot.classList.toggle('ok', ok); }
         bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Étape ${idx + 1} / ${n}</span><button class="mt-x" data-a="x" title="Arrêter la visite">✕</button></div>
             <div class="mt-t">${ok ? '<span class="mt-ck">✓</span>' : ''}${s.title}</div>
-            ${s.why ? `<div class="mt-why"><span class="mt-lab">À quoi ça sert</span>${s.why}</div>` : ''}
+            ${s.why ? `<div class="mt-why">${s.why}</div>` : ''}
             ${doHtml}
-            ${s.more ? `<div class="mt-more">💡 ${s.more}</div>` : ''}
+            ${s.more ? `<div class="mt-more">💡 ${typeof s.more === 'function' ? s.more() : s.more}</div>` : ''}
             ${back3D}${state}
             <div id="mt-bar"><i style="width:${Math.round((idx + (ready ? 1 : 0)) / n * 100)}%"></i></div><div id="mt-acts">${btns.join('')}</div>`;
         momo.classList.remove('talk'); void momo.getBoundingClientRect(); momo.classList.add('talk');
@@ -579,7 +839,7 @@
     function resolveTarget() {
         const s = STEPS[idx]; if (!s) return { el: null };
         // étape sur le plan alors que la vue 3D est ouverte : on montre d'abord comment la refermer
-        if (G.is3D() && !s.in3D && !s.last) { const eye = findEl('#v3-rose .rose-eye'); if (visible(eye)) return { el: eye, tip: '↩ Refermez la vue 3D<br><small>œil ou Échap</small>', back: true }; }
+        if (G.is3D() && !s.in3D && !s.last) { const eye = findEl('#v3-rose .rose-eye'); if (visible(eye)) return { el: eye, tip: '↩ Referme la vue 3D<br><small>œil ou Échap</small>', back: true }; }
         if (!s.target) return { el: null };
         const sel = typeof s.target === 'function' ? s.target() : s.target, tipTxt = typeof s.tip === 'function' ? s.tip() : s.tip;
         const e = findEl(sel);
@@ -645,11 +905,11 @@
         if (s.tick) s.tick(ctx);
         if (s.wait && !done[idx]) {
             let ok = false; try { ok = s.wait(ctx); } catch (e) {}
-            if (ok) { done[idx] = true; render(); jump(); }   // l'étape se coche ; on avance quand on veut, avec ▶
+            if (ok) { done[idx] = true; render(); jump(); confetti(); }   // l'étape se coche ; on avance quand on veut, avec ▶
         }
     }
     function start(id) {
-        const T = TUTOS.find(t => t.id === id) || TUTOS[0]; STEPS = T.steps; done = []; if (T.setup) T.setup();
+        const T = TUTOS.find(t => t.id === id) || TUTOS[0]; applyVoice(T.id, T.steps); STEPS = T.steps; done = []; if (T.setup) T.setup();
         if (root && root.isConnected) { go(0); return; }
         build(); go(0);
         clearInterval(timer); timer = setInterval(tick, 250);
