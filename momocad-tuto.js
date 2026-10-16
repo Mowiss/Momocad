@@ -680,8 +680,8 @@
         },
     };
     function applyVoice(id, steps) {
-        const V = HUMAN[id]; if (!V) return;
-        steps.forEach(s => { const v = V[s.title]; if (v) Object.assign(s, v); });
+        const V = HUMAN[id] || {};
+        steps.forEach(s => { const v = V[s.title]; const jl = (JAL[id] || {})[s.title]; if (v) Object.assign(s, v); if (jl) s.jal = jl; });
     }
 
     // ---------- confettis : Momo fête chaque étape réussie ----------
@@ -710,6 +710,99 @@
         } catch (e) {}
     }
 
+    // ---------- jalons vérifiés en direct : chaque ligne de « À toi » a son contrôle ----------
+    // Une ligne est cochée si son contrôle est vrai ET que toutes les lignes d'avant le sont aussi ; sinon elle se décoche.
+    const gv = (f) => { try { return f(); } catch (e) { return undefined; } };
+    const uv = (v) => gv(() => v * 1000 / (UNIT_MM[currentUnit] || 1)) || v;
+    const num = (t) => gv(() => t2Num(t));
+    const J = {
+        btn: (id) => () => { const e = document.getElementById(id); return !!e && e.classList.contains('active'); },
+        mode: (m) => () => G.mode() === m,
+        solid: (k) => () => gv(() => solidTool) === k,
+        start: (p, m) => () => (!m || G.mode() === m) && !!gv(() => isDrawing) && near({ x: gv(() => startX), y: gv(() => startY) }, W(...p)),
+        typed: (v, raw) => () => { const t = gv(() => typedInput); if (!t) return false; const n = num(t); return isFinite(n) && Math.abs(n - (raw ? v : uv(v))) < 1e-6 + Math.abs(raw ? v : uv(v)) * 1e-6; },
+        pline: (pts) => () => { const C = gv(() => currentPolygon) || []; return G.mode() === 'pline' && C.length >= pts.length && pts.every((p, i) => near(C[i], W(...p))); },
+        selHas: (...f) => () => { const S = G.sel(); return f.every(g => { const o = g(); return !!o && S.includes(o); }); },
+        selAny: () => G.sel().length > 0,
+        shown: (id) => () => G.shown(id),
+        modal: (txt) => () => G.modalHas(txt),
+        clicks: (n) => (j) => j.clicks >= n,
+        res: (f) => () => !!f(),
+    };
+    const halfL = () => polyOf([[0, 0], [0, 4], [1.5, 2]], false), halfR = () => polyOf([[3, 0], [3, 4], [1.5, 2]], false);
+    const JAL = {
+        base: {
+            'Le M, première moitié': [J.mode('pline'), J.pline([[0, 0], [0, 4], [1.5, 2]])],
+            'Le M, l\'autre moitié en miroir': [J.selHas(halfL), J.mode('mirror'), () => { const a = gv(() => mirrorA), b = gv(() => mirrorB), X = W(1.5, 0).x, t = TOL(); return !!a && !!b && Math.abs(a.x - X) <= t && Math.abs(b.x - X) <= t; }],
+            'Le M, d\'un seul morceau': [J.selHas(halfL, halfR)],
+            'Le O': [J.mode('circle'), J.start([5.5, 2], 'circle'), J.typed(2)],
+            'Sélectionner M et O ensemble': [J.mode('select-box'), () => !!gv(() => isDrawing) && (near({ x: startX, y: startY }, W(-0.6, 4.6)) || near({ x: startX, y: startY }, W(7.9, -0.6))) || J.selHas(() => polyOf(M1, false), () => circleOf([5.5, 2], 2))(), J.selHas(() => polyOf(M1, false), () => circleOf([5.5, 2], 2))],
+            'MOMO : copier M et O': [() => J.selHas(() => polyOf(M1, false), () => circleOf([5.5, 2], 2))() && G.mode() === 'copy', () => G.mode() === 'copy' && near(gv(() => t2.cpBase) || { x: 1e18, y: 0 }, W(0, 0)), () => !!polyOf(M2, false) && !!circleOf([14, 2], 2)],
+            'Le C': [J.mode('arc'), () => G.mode() === 'arc' && gv(() => arcStep) >= 1 && near(arcCenter, W(19, 2)), () => G.mode() === 'arc' && gv(() => arcStep) >= 2 && near(arcP1, W(19 + 2 * Math.SQRT1_2, 2 - 2 * Math.SQRT1_2))],
+            'Le A': [J.mode('pline'), J.pline([[22, 0], [23.5, 4], [25, 0]])],
+            'La barre du A, trop longue': [J.mode('line')],
+            'Couper ce qui dépasse': [J.mode('trim')],
+            'Le D, d\'abord un rectangle': [J.mode('rect'), J.start([26, 0], 'rect')],
+            'Éclater le rectangle': [J.selHas(() => polyOf([[26, 0], [28.5, 0], [28.5, 4], [26, 4]], true))],
+            'Arrondir le haut du D': [J.mode('fillet'), () => G.mode() === 'fillet' && !!gv(() => filletA) && !!gv(() => filletB), J.typed(1.25)],
+            'Arrondir le bas du D': [() => G.mode() === 'fillet' && !!gv(() => filletA) && !!gv(() => filletB)],
+            'Le soulignement': [J.start([0, -1], 'line'), () => !!gv(() => isDrawing) && G.mode() === 'line' && (gv(() => shiftHeld) || G.ortho()) && gv(() => currentX) > gv(() => startX), J.typed(20)],
+            'Le soulignement à la bonne longueur': [J.mode('lengthen'), () => { const L = gv(() => t2.lenSpec); return G.mode() === 'lengthen' && !!L && L.kind === 'total' && Math.abs(L.v - uv(28.5)) < 1e-6; }],
+            'Doubler le soulignement': [() => G.mode() === 'offset' && J.typed(0.5)(), () => { const t = gv(() => offsetTarget), Y = W(0, -1).y; return G.mode() === 'offset' && !!t && t.type === 'line' && Math.abs(t.y1 - Y) <= TOL() && Math.abs(t.y2 - Y) <= TOL(); }],
+            'Remplir les O': [J.mode('hatch'), () => hatchAt([5.5, 2]) && hatchAt([14, 2])],
+        },
+        adv: {
+            'Un calque Parking': [() => G.shown('layer-modal') || !!parkLayer(), () => !!parkLayer() && G.active() === parkLayer().id],
+            'L\'emprise du parking': [J.start([0, 0], 'rect')],
+            'L\'accès en biais (suivi polaire)': [() => G.polar() && !G.ortho(), J.start([20, 4], 'line'), () => !!gv(() => isDrawing) && G.mode() === 'line' && Math.abs(Math.atan2(startY - currentY, currentX - startX) * 180 / Math.PI - 45) < 0.5, J.typed(4)],
+            'Une place de parking': [J.start([1, 0], 'rect')],
+            'Six places d\'un coup : le réseau': [J.selHas(() => polyOf(PLACE(0), true)), () => G.mode() === 'array' && gv(() => t2.arr.kind) === 'rect', () => { const A = gv(() => t2.arr); return G.mode() === 'array' && !!A && +A.nx === 6 && +A.ny === 1 && Math.abs(num(String(A.dx)) - uv(2.5)) < 1e-6; }],
+            'La limite plantée': [J.mode('line')],
+            'Planter les arbres : diviser': [() => G.mode() === 'divide' && !!gv(() => t2.div), () => gv(() => t2.div.mode) === 'n' && +gv(() => t2.div.n) === 4, () => gv(() => t2.div.what) === 'block' && /arbre/i.test(String(gv(() => t2.div.blk) || ''))],
+            'Coter la largeur': [J.mode('dim-ortho'), () => G.mode() === 'dim-ortho' && gv(() => dimStep) >= 2 && [dimP1, dimP2].every(q => q && (near(q, W(0, 0)) || near(q, W(20, 0))))],
+            'Le regard': [J.start([10, 9], 'circle'), J.typed(0.5)],
+            'Coter le regard': [J.mode('dim-dia'), () => G.mode() === 'dim-dia' && !!gv(() => t2.dr) && t2.dr.s === circleOf([10, 9], 0.5)],
+            'Signaler l\'entrée': [J.mode('detail'), () => G.mode() === 'detail' && gv(() => detailStep) >= 1 && near(detailTarget, W(...ACM)), () => G.mode() === 'detail' && gv(() => detailStep) >= 2],
+        },
+        param: {
+            'Une ligne avec texte': [() => G.layers().some(l => l.dash === 'text')],
+        },
+        cub: {
+            'Compléter le levé : un point topo': [() => { const t = gv(() => lastTopo); return G.mode() === 'topo' && !!t && near(t, W(12.5, 32.5)); }],
+            'L\'emprise du parking': [J.start([10, 14], 'rect')],
+            'Le niveau du parking': [J.selHas(() => polyOf(PLAT, true)), () => G.shown('selparam-modal') && G.val('sp-zall').replace(',', '.').trim() === '102'],
+            'Adoucir le remblai': [() => G.shown('selparam-modal') && J.selHas(() => polyOf(PLAT, true))(), () => G.shown('selparam-modal') && G.val('sp-kr') === '2/1'],
+            'La structure de chaussée': [() => G.shown('selparam-modal') && J.selHas(() => polyOf(PLAT, true))(), () => (gv(() => structEdit && structEdit.layers.length) || 0) >= 2],
+            'Le profil en long': [J.mode('profile')],
+        },
+        model: {
+            'La dalle de fond': [() => J.solid('box')() && J.start([0, 0], 'rect')(), () => !!dalle()],
+            'L\'anneau du regard': [() => J.solid('tube')() && J.start([1, 1], 'circle')(), () => !!regard()],
+            'Poser le regard sur sa dalle': [J.mode('stack'), () => G.mode() === 'stack' && (gv(() => stackObjs) || []).includes(regard())],
+            'Le couvercle : sa demi-coupe': [J.start([4, 0], 'rect')],
+            'Le couvercle : la révolution': [() => G.mode() === 'revolve' && gv(() => revProf) === polyOf(PROF, true), () => G.mode() === 'revolve' && !!gv(() => revAxis) && Math.abs(revAxis.x - W(4, 0).x) <= TOL()],
+            'Monter le couvercle': [J.selHas(couv)],
+            'Le tracé de la bordure': [J.mode('pline')],
+            'La bordure : le balayage': [() => { const p = polyOf(BORD, false); return !!p && !!p.sweep; }],
+            'La rampe d\'accès': [() => J.solid('box')() && J.start([-2.5, 0], 'rect')(), () => !!rampe()],
+            'Pencher la rampe': [() => J.selHas(rampe)() && G.shown('selparam-modal')],
+            'Habiller l\'ouvrage': [() => !!gv(() => texPaint), () => { const k = couv(); return !!k && k.tex === 'beton'; }, () => { const r = rampe(); return !!r && r.tex === 'paves'; }],
+        },
+        build: {
+            'L\'équerre : première branche': [() => J.solid('box')() && J.start([0, 0], 'rect')(), () => !!solidPoly(BR1, 'box')],
+            'L\'équerre : seconde branche': [() => J.solid('box')() && J.start([0, 0], 'rect')(), () => !!solidPoly(BR2, 'box')],
+            'Souder les deux branches': [J.selHas(() => solidPoly(BR1, 'box'), () => solidPoly(BR2, 'box'))],
+            'Le trou de fixation': [() => J.solid('cyl')() && J.start([2.5, 0.5], 'circle')(), () => !!solidCirc('cyl', [2.5, 0.5], 0.25)],
+            'Percer : soustraire': [() => G.mode() === 'bool'],
+            'La cabane : les murs': [J.mode('wall'), () => { const C = gv(() => wallChain); return G.mode() === 'wall' && !!C && C.pts.length >= 4 && CAB.every((p, i) => near(C.pts[i], W(...p))); }, () => !!wallGroup()],
+            'La hauteur des murs': [() => G.sel().some(x => x.wallMat) && G.shown('selparam-modal')],
+            'La fenêtre': [() => G.mode() === 'opening' && !!gv(() => openA) && near(openA, W(8.5, 0)), J.typed(1.2)],
+            'La porte': [() => G.mode() === 'opening' && !!gv(() => openA) && near(openA, W(12, 1)), J.typed(0.9)],
+            'La panne faîtière': [() => G.shapes().some(s => s.type === 'line' && s.sweep && s.sweep.perp && ((near({ x: s.x1, y: s.y1 }, W(7, 2)) && near({ x: s.x2, y: s.y2 }, W(12, 2))) || (near({ x: s.x1, y: s.y1 }, W(12, 2)) && near({ x: s.x2, y: s.y2 }, W(7, 2))))), () => G.shown('selparam-modal')],
+            'Le toit deux pans': [() => J.solid('roof')() && J.start([6.7, -0.3], 'rect')(), () => G.modalHas('Toiture') || !!roofPans()],
+            'Les tuiles': [() => gv(() => texPaint && texPaint.tex) === 'tuile'],
+        },
+    };
     // ---------- interface ----------
     const CSS = `
     #mt-root { position:absolute; right:16px; bottom:52px; z-index:80; display:flex; align-items:flex-end; gap:10px; pointer-events:none; transition:right .25s; font-family: system-ui, 'Segoe UI', sans-serif; }
@@ -793,7 +886,7 @@
         { id: 'build', level: 'Dieu', title: 'Pièces et bâtiment — une équerre et une cabane', desc: 'Exercice : une équerre percée à imprimer en 3D (union, soustraction, export STL), puis une cabane : murs, fenêtre, porte, panne faîtière, toit deux pans avec pignons, tuiles', minutes: 30, steps: BUILD, setup: () => setupExercise(-0.5, 12.8, -0.8, 4.8) },
     ];
     let STEPS = BASE, done = [];
-    let last3D = false, lastH = 0, root, bubble, ring, tip, momo, idx = 0, ctx = {}, timer = null;
+    let cele = [], last3D = false, lastH = 0, root, bubble, ring, tip, momo, idx = 0, ctx = {}, timer = null;
 
     function build() {
         if (!document.getElementById('mt-css')) { const st = document.createElement('style'); st.id = 'mt-css'; st.textContent = CSS; document.head.appendChild(st); }
@@ -930,7 +1023,12 @@
         if (['topo-modal', 'selparam-modal', 'layer-modal', 'cartouche-modal', 't2-panel'].some(id => G.shown(id)) || G.is3D()) { jal.tool = true; jal.modal = true; }
         if (G.sel().length) jal.sel = true;
         try { if (typedInput && String(typedInput).length) jal.typed = true; } catch (e) {}
-        const fin = !!done[idx];
+        const fin = !!done[idx], st = STEPS[idx];
+        if (st && st.jal) {   // contrôle en direct : coché si valide ET toutes les lignes d'avant valides
+            let prev = true;
+            lis.forEach((li, i) => { let v = fin; if (!v && i < st.jal.length) { try { v = !!st.jal[i](jal); } catch (e) { v = false; } } v = v && prev; prev = v; jal.ok[i] = v; li.classList.toggle('ck', v); });
+            return;
+        }
         const raw = jal.rules.map((r, i) => fin || (r.k === 'tool' && jal.tool) || (r.k === 'sel' && jal.sel) || (r.k === 'clk' && jal.clicks >= r.n) || (r.k === 'typ' && jal.typed) );
         // une ligne cochée coche aussi celles d'avant (on avance dans l'ordre)
         let any = false; for (let i = raw.length - 1; i >= 0; i--) { if (raw[i]) any = true; if (any) jal.ok[i] = true; }
@@ -949,13 +1047,15 @@
         const v3 = G.is3D(); if (v3 !== last3D) { last3D = v3; render(); }
         if (s.tick) s.tick(ctx);
         jalTick();
+        // étape de dessin : si le résultat est défait (annuler, effacé…), elle se décoche
+        if (s.wait && done[idx] && s.ghost) { let ok = true; try { ok = s.wait(ctx); } catch (e) {} if (!ok) { done[idx] = false; render(); } }
         if (s.wait && !done[idx]) {
             let ok = false; try { ok = s.wait(ctx); } catch (e) {}
-            if (ok) { done[idx] = true; render(); jump(); confetti(); }   // l'étape se coche ; on avance quand on veut, avec ▶
+            if (ok) { done[idx] = true; render(); jump(); if (!cele[idx]) { cele[idx] = true; confetti(); } }   // l'étape se coche ; on avance quand on veut, avec ▶
         }
     }
     function start(id) {
-        const T = TUTOS.find(t => t.id === id) || TUTOS[0]; applyVoice(T.id, T.steps); STEPS = T.steps; done = []; if (T.setup) T.setup();
+        const T = TUTOS.find(t => t.id === id) || TUTOS[0]; applyVoice(T.id, T.steps); STEPS = T.steps; done = []; cele = []; if (T.setup) T.setup();
         if (root && root.isConnected) { go(0); return; }
         build(); go(0);
         try { canvas.addEventListener('mousedown', jalClick, true); } catch (e) {}
