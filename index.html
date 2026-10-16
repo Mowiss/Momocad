@@ -1188,7 +1188,7 @@ setTimeout(done,3600);
                 if (lsvg) { const c = lsvg.cloneNode(true); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.removeAttribute('height'); const vb = (c.getAttribute('viewBox') || '0 0 6121 847').split(/\s+/).map(Number); c.setAttribute('width', vb[2]); c.setAttribute('height', vb[3]);
                     logo = '<img alt="MomoCAD" src="data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(c.outerHTML))) + '">'; }
                 const momo = (document.querySelector('#help-modal .hg-momo') || {}).outerHTML || '';
-                const tabs = [...document.querySelectorAll('#help-modal .hg-tab')].map(b => ({ id: b.dataset.ch, icon: (b.querySelector('.hg-ico') || {}).textContent || '', name: b.textContent.replace((b.querySelector('.hg-ico') || {}).textContent || '', '').trim() }));
+                const tabs = [...document.querySelectorAll('#help-modal .hg-tab')].filter(b => b.dataset.ch !== 'learn').map(b => ({ id: b.dataset.ch, icon: (b.querySelector('.hg-ico') || {}).textContent || '', name: b.textContent.replace((b.querySelector('.hg-ico') || {}).textContent || '', '').trim() }));
                 const E = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
                 const chapters = tabs.map((t, i) => {
                     const sec = document.querySelector('#help-modal .hg-ch[data-ch="' + t.id + '"]'); if (!sec) return null;
@@ -1250,7 +1250,7 @@ setTimeout(done,3600);
                 fr.srcdoc = html;
                 updateCommandMessageText('GUIDE : impression lancée (couverture, sommaire, ' + chapters.length + ' chapitres). Choisissez « Enregistrer en PDF » pour un fichier.');
             };
-            if (window.MomoTuto || typeof loadTuto !== 'function') go(); else loadTuto(() => go());
+            go();
         }
         function openHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); const q = document.getElementById('help-search'); q.value = ''; helpSearch(''); setTimeout(() => q.focus(), 30); }
         // Guide : un chapitre à la fois, recherche dans tous les chapitres
