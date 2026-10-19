@@ -226,27 +226,124 @@
     ];
 
     // ===================================================================== 3. LE PARAMÉTRAGE
+    // Chaque étape = des lignes « À toi », vérifiées en direct et dans l'ordre (une ligne se coche quand la précédente l'est et que son geste est fait).
+    const P = {};
+    const pv = (id) => G.val(id), pnum = (id) => parseFloat(String(pv(id)).replace(/\s/g, '').replace(',', '.'));
+    const pck = (id) => { const e = document.getElementById(id); return !!e && e.checked; };
+    const pgv = (f) => { try { return f(); } catch (e) { return undefined; } };
+    const tabSel = (t) => `#cartouche-modal .ps-tab[data-tab="${t}"]`;
+    const segSel = (f, v) => `#cartouche-modal [data-for="${f}"] button[data-v="${v}"]`;
+    const swSel = (id) => () => { const e = document.getElementById(id), l = e && e.closest('label'); return l && l.getBoundingClientRect().width ? l : '#cartouche-modal #' + id; };
+    const layEU = () => G.layers().find(l => /^eu\b/i.test(String(l.name || '').trim()));
+    const euRow = (q) => () => { const l = layEU(); if (!l || !G.shown('layer-modal')) return '#layer-modal #new-layer-name';
+        const n = [...document.querySelectorAll('#layers-list .lay-name')].find(x => x.textContent.trim() === l.name); return n ? (q ? n.parentElement.querySelector(q) : n) : '#layer-modal #new-layer-name'; };
+    const matOf = (code) => pgv(() => (matEdit || []).find(m => m.code === code)) || null;
+    if (typeof window.saveGabarit === 'function' && !window.saveGabarit.__tuto) {
+        const og = window.saveGabarit; window.saveGabarit = function () { P.gbt = true; return og.apply(this, arguments); }; window.saveGabarit.__tuto = true;
+    }
+    // items : [texte, cible, étiquette, contrôle]
+    function PS(o) {
+        const it = o.items, L = [];
+        const cur = () => it.find((x, i) => !L[i]) || it[it.length - 1];
+        return Object.assign({}, o, {
+            do: ol(...it.map(x => x[0])),
+            target: () => { const x = cur(); return typeof x[1] === 'function' ? x[1]() : x[1]; }, tip: () => cur()[2],
+            jal: it.map((x, i) => () => !!L[i]),
+            init: (c) => { L.length = 0; if (o.init) o.init(c); },
+            tick: (c) => { if (o.tick) o.tick(c); it.forEach((x, i) => { if (!L[i] && (i === 0 || L[i - 1])) { let ok = false; try { ok = !!x[3](); } catch (e) {} if (ok) L[i] = true; } }); },
+            wait: () => it.every((x, i) => L[i]),
+        });
+    }
     const PARAM = [
-        { title: 'Le paramétrage', why: `Niveau <b>expert</b> : on règle MomoCAD pour qu'il sorte des plans « maison » — vos formats, votre cartouche et votre logo, vos prix, vos calques — et on garde tout dans un <b>gabarit</b> partagé avec l'équipe.` },
-        { title: 'Les paramètres', target: 'btn-print-settings', tip: 'Paramètres ⛯', why: `Tous les réglages généraux sont réunis dans une seule fenêtre, rangée en onglets.`, do: `Ouvrez les <b>Paramètres</b> : bouton ⛯ tout en haut à droite.`, wait: () => G.shown('cartouche-modal') },
-        { title: 'Onglet Plan', target: '#cartouche-modal .ps-tab[data-tab="plan"]', tip: 'Onglet Plan', why: `La <b>précision d'affichage</b> (nombre de décimales des longueurs et des cotes) et le carreau de la <b>grille</b>. Une cote au centimètre près se lit mieux qu'avec six décimales.`,
-          do: `Dans l'onglet <b>Plan</b>, changez la précision avec <b>+</b> ou <b>−</b>.`, more: `Toutes les longueurs sont en mètres : rien à régler côté unité.`, wait: (c) => G.psTab() === 'plan' && G.val('ps-decimals') !== c.d, init: (c) => { c.d = G.val('ps-decimals'); }, tick: (c) => { if (G.psTab() !== 'plan') c.d = G.val('ps-decimals'); } },
-        { title: 'Onglet Impression', target: '#cartouche-modal .ps-tab[data-tab="print"]', tip: 'Onglet Impression', why: `Le format de feuille (A5 à A0), l'orientation et le fichier produit (PDF, JPEG, PNG) de l'impression rapide.`, do: `Ouvrez l'onglet <b>Impression</b> et regardez l'aperçu de la feuille.`, wait: () => G.psTab() === 'print' },
-        { title: 'Le cartouche', target: '#cartouche-modal .ps-tab[data-tab="cart"]', tip: 'Onglet Cartouche', why: `Le cartouche signe le plan : titre, client, dessinateur, indice de révision et <b>logo</b> de l'entreprise.`,
-          do: `Ouvrez l'onglet <b>Cartouche</b> et tapez un <b>titre de plan</b>.`, wait: (c) => G.psTab() === 'cart' && G.val('cartouche-plan') !== c.v, init: (c) => { c.v = G.val('cartouche-plan'); }, tick: (c) => { if (G.psTab() !== 'cart') c.v = G.val('cartouche-plan'); } },
-        { title: 'Fond de plan', target: '#cartouche-modal .ps-tab[data-tab="fond"]', tip: 'Onglet Fond de plan', why: `La carte posée sous le plan (satellite, photo IGN, plan) et les calques qui viennent avec : cadastre, communes, courbes, routes… et le terrain IGN en points cotés.`, do: `Ouvrez l'onglet <b>Fond de plan</b>.`, wait: () => G.psTab() === 'fond' },
-        { title: 'Présentation', target: '#cartouche-modal .ps-tab[data-tab="pres"]', tip: 'Onglet Présentation', why: `La feuille des planches de mise en page : format, orientation, marges, traits de pliage.`, do: `Ouvrez l'onglet <b>Présentation</b>.`, wait: () => G.psTab() === 'pres' },
-        { title: 'Le catalogue produits', target: '#cartouche-modal .ps-tab[data-tab="mat"]', tip: 'Onglet Produits', why: `Vos <b>prix</b> : terrassement en déblai et en remblai, puis chaque matériau (densité, foisonnement, prix). Ils chiffrent automatiquement les structures et le métré.`,
-          do: `Onglet <b>Produits</b> : saisissez un prix, par exemple pour la GNT 0/31,5.`, wait: () => { try { return G.psTab() === 'mat' && (matEdit || []).some(m => +m.prix > 0); } catch (e) { return false; } } },
-        { title: 'Valider', target: '#cartouche-modal button[onclick="applyCartouche()"]', tip: 'Valider', why: `Les réglages s'appliquent, restent sur ce poste et partent avec le plan.`, do: `Cliquez <b>Valider</b>.`, wait: (c) => c.open && !G.shown('cartouche-modal'), tick: (c) => { if (G.shown('cartouche-modal')) c.open = true; } },
-        { title: 'Calques avancés', target: 'button[onclick="openLayerModal()"]', tip: 'Gérer les calques', why: `Les calques ont des réglages fins qui font la différence sur un plan imprimé.`, do: `Ouvrez le <b>gestionnaire de calques</b>.`, wait: () => G.shown('layer-modal') },
-        { title: 'Une ligne avec texte', target: () => G.layers().some(l => l.dash === 'text') ? '#layer-modal input[title^="Texte répété"]:not([disabled])' : '#layer-modal select[title="Type de ligne"]', tip: () => G.layers().some(l => l.dash === 'text') ? 'Libellé : tapez le texte<br><small>puis Entrée</small>' : 'Type de ligne : choisissez -T-', why: `Pour un réseau, le trait porte son nom : ---EU Ø160---EU Ø160---. Lisible même en noir et blanc.`,
-          do: ol('Sur un calque, dans la colonne <b>Trait</b>, choisissez le type de ligne <b>-T-</b>.', `La case <b>Libellé</b> juste à droite s'allume : tapez le texte (ex. EU Ø160), puis ${K('Entrée')}.`), wait: () => G.layers().some(l => l.dash === 'text' && (l.ltText || '').trim()) },
-        { title: 'Hachures et points', target: '#layer-modal select[title="Hachure"]', tip: 'Hachure du calque', why: `Chaque calque a son motif de hachure, sa taille de texte et le style de ses points topo (symbole, matricule, altitude).`,
-          do: `Changez le motif de hachure d'un calque.`, wait: (c) => JSON.stringify(G.layers().map(l => l.hatch || '')) !== c.h, init: (c) => { c.h = JSON.stringify(G.layers().map(l => l.hatch || '')); } },
-        { title: 'Le gabarit d\'entreprise', target: 'btn-dxf-menu', tip: 'Menu fichier', why: `Tout ce réglage se garde dans un <b>gabarit .gbt</b> : calques, paramètres, cartouche et logo, accroches, blocs et catalogue produits. Partagé, il donne à toute l'équipe les mêmes plans et les mêmes prix.`,
-          do: `Menu fichier › <b>Enregistrer le gabarit</b>. Les autres font <b>Charger un gabarit</b> ; le dernier chargé revient tout seul au démarrage.` },
-        { title: 'Bravo, vous êtes expert !', why: `Votre MomoCAD est réglé « maison » : paramètres, cartouche, prix, calques et gabarit.`, more: `Prochain tuto : <b>Les cubatures</b> (niveau Maître).`, last: true },
+        { title: 'Le paramétrage', why: `Niveau <b>expert</b> ! Aujourd'hui, on ne dessine pas : on règle MomoCAD pour qu'il travaille <b>comme toi et ton entreprise</b>. Pense à un plan qui part en consultation : le format, le cartouche, le logo, la façon d'afficher les cotes, les prix du devis… Tout ça, on le règle une fois, ici, et ensuite chaque plan sort pareil sans que tu y penses.`,
+          more: `Je vais prendre mon temps : pour chaque réglage, je t'explique <b>à quoi il sert vraiment</b> sur un chantier, et c'est toi qui le manipules. Chaque ligne du cadre « À toi » se coche dès que c'est bon. Compte une bonne vingtaine de minutes.` },
+        PS({ title: 'La fenêtre des Paramètres', why: `Tous les réglages généraux sont rangés au même endroit : le bouton <b>⛯</b>, tout en haut à droite. Il ouvre un grand tiroir qui glisse depuis la droite. À gauche, les <b>onglets</b> ; à droite, les réglages de l'onglet choisi ; et tout en bas, <b>Annuler</b> et <b>Valider</b>.`,
+          items: [['Clique sur le bouton <b>Paramètres ⛯</b>, tout en haut à droite.', 'btn-print-settings', 'Paramètres ⛯', () => G.shown('cartouche-modal')]],
+          more: `Rien n'est appliqué tant que tu n'as pas cliqué <b>Valider</b> : tu peux tout essayer sans risque, <b>Annuler</b> remet tout comme avant. On validera ensemble, à la fin du tour.` }),
+        PS({ title: 'Plan : la précision d\'affichage', why: `Premier onglet, <b>Plan</b>. La <b>précision d'affichage</b>, c'est le nombre de chiffres après la virgule dans tout ce que MomoCAD t'écrit : les cotes, les propriétés d'un objet, les mesures, le métré. Attention, ce n'est que l'<b>affichage</b> : ton dessin garde toujours sa précision complète, rien n'est arrondi dans le fichier.`,
+          init: () => { P.saw3 = false; }, tick: () => { if (G.psTab() === 'plan' && +pv('ps-decimals') >= 3) P.saw3 = true; },
+          items: [['Clique sur l\'onglet <b>Plan</b>, à gauche.', tabSel('plan'), 'Onglet Plan', () => G.psTab() === 'plan'],
+                  ['Monte à <b>3 décimales</b> avec le bouton <b>+</b>. Regarde la case verte : elle affiche maintenant le millimètre.', '#cartouche-modal button[onclick="psDecimals(1)"]', '+ : une décimale de plus', () => P.saw3],
+                  ['Redescends à <b>2 décimales</b> avec le bouton <b>−</b> : le centimètre.', '#cartouche-modal button[onclick="psDecimals(-1)"]', '− : une décimale de moins', () => G.psTab() === 'plan' && pv('ps-decimals') === '2']],
+          more: `Mon conseil : <b>2 décimales</b> (le centimètre) pour la VRD et le terrassement, <b>3</b> (le millimètre) pour la topo ou un ouvrage. Au-delà, on se noie dans les chiffres. Et toutes les longueurs sont en <b>mètres</b> : aucune unité à régler.` }),
+        PS({ title: 'Plan : la grille', why: `Juste en dessous, le <b>carreau de la grille</b> : l'écart entre deux traits du quadrillage du fond, en mètres. C'est un repère pour l'œil, rien de plus : la grille ne force pas tes clics (ça, c'est le travail des accroches). Et MomoCAD est malin : quand tu dézoomes et que les carreaux deviennent trop petits à l'écran, il n'en dessine plus qu'un sur dix.`,
+          items: [['Clique dans la case <b>Carreau de la grille</b>, efface ce qu\'il y a, et tape <b>1</b> : un carreau d\'un mètre, pratique pour un parking ou une voirie.', '#cartouche-modal #ps-grid', 'Carreau de la grille : tape 1', () => G.psTab() === 'plan' && pnum('ps-grid') === 1]],
+          more: `Sur un plan de masse, 5 ou 10 m conviennent aussi. Ce réglage s'appliquera quand on validera.` }),
+        PS({ title: 'Impression : la feuille', why: `Onglet <b>Impression</b> : ce sont les réglages de l'<b>impression rapide</b>, le bouton appareil photo en haut de l'écran. Tu choisis le <b>format</b> de la feuille, son <b>orientation</b> et le <b>fichier</b> qui sort. À droite, l'aperçu te montre la feuille avec son cartouche.`,
+          items: [['Clique sur l\'onglet <b>Impression</b>.', tabSel('print'), 'Onglet Impression', () => G.psTab() === 'print'],
+                  ['Choisis le format <b>A3</b> : le format roi des plans de chantier, lisible, et qui tient dans une sacoche.', segSel('ps-paper', 'A3'), 'Format A3', () => pv('ps-paper') === 'A3'],
+                  ['Passe en <b>Paysage</b>.', segSel('ps-orient', 'landscape'), 'Paysage', () => pv('ps-orient') === 'landscape'],
+                  ['Vérifie que le fichier produit est bien <b>PDF</b> (clique dessus sinon).', segSel('ps-output', 'pdf'), 'PDF', () => pv('ps-output') === 'pdf']],
+          more: `Pourquoi le PDF ? Parce qu'il garde l'<b>échelle exacte</b> : imprimé en A3, ton 1:200 mesure vraiment 1:200 au réglet. Les images (JPEG, PNG) sont en 200 dpi environ : parfait pour coller un extrait dans un mémoire technique ou un mail, mais pas pour mesurer. Et en mode impression, ${K('Espace')} fait pivoter la feuille sans repasser par ici.` }),
+        PS({ title: 'Le cartouche : le modèle', why: `Onglet <b>Cartouche</b>. Le cartouche, c'est la <b>carte d'identité du plan</b> : qui l'a dessiné, pour qui, pour quel chantier, et surtout <b>quelle version</b>. Sur un chantier, deux plans qui se ressemblent mais n'ont pas le même indice, c'est la source de la moitié des embrouilles. Alors on le soigne !`,
+          items: [['Clique sur l\'onglet <b>Cartouche</b>.', tabSel('cart'), 'Onglet Cartouche', () => G.psTab() === 'cart'],
+                  ['Vérifie que l\'interrupteur <b>Imprimer le cartouche</b> est allumé (bleu) ; clique dessus sinon.', swSel('ps-cartouche'), 'Imprimer le cartouche', () => pck('ps-cartouche')],
+                  ['Clique sur le modèle <b>A4 grands plans</b> et regarde l\'aperçu : il devient un vrai cartouche de grand plan, avec toutes ses cases.', segSel('ps-carttype', 'a4'), 'Modèle A4', () => pv('ps-carttype') === 'a4']],
+          more: `Deux modèles : le <b>minimaliste</b> (70 × 20 mm), discret, pour les petits formats, et l'<b>A4</b>, un cartouche complet à la taille d'une feuille A4, pour les plans en A2 et plus grands. Si tu imprimes en A3 avec le modèle A4, MomoCAD repasse tout seul au minimaliste : pas de cartouche qui mange la moitié de ta feuille.` }),
+        PS({ title: 'Le cartouche : les cases', why: `Maintenant, on remplit. Chaque case a son rôle, je te l'explique ligne par ligne. Regarde l'aperçu à droite : il se met à jour pendant que tu tapes.`,
+          init: () => { P.plan0 = pv('cartouche-plan'); },
+          items: [['<b>Nom du plan</b> : ce que montre la feuille, par exemple « Plan de masse – VRD ». Sur le modèle A4, il peut tenir sur deux lignes.', '#cartouche-modal #cartouche-plan', 'Nom du plan', () => pv('cartouche-plan').trim() !== '' && pv('cartouche-plan') !== P.plan0],
+                  ['<b>Indice</b> : la version du plan. On commence à <b>A</b>, puis à chaque modification diffusée on passe à B, C… Tape <b>A</b>.', '#cartouche-modal #cartouche-indice', 'Indice : tape A', () => /^[A-Z]$/i.test(pv('cartouche-indice').trim())],
+                  ['<b>Client</b> : celui pour qui tu travailles, en clair (la commune, le promoteur…).', '#cartouche-modal #cartouche-client', 'Client', () => pv('cartouche-client').trim() !== ''],
+                  ['<b>Dessinateur</b> : ton nom ou tes initiales. Comme ça, on sait qui appeler !', '#cartouche-modal #cartouche-draftsman', 'Dessinateur', () => pv('cartouche-draftsman').trim() !== '']],
+          more: `Les autres cases du modèle A4 (chantier, maître d'ouvrage, maître d'œuvre, conducteur de travaux, phase : AVP, PRO, EXE…) se remplissent pareil. Remplis-les si tu veux : l'aperçu suit en direct.` }),
+        PS({ title: 'Le cartouche : les indices', why: `Le <b>tableau des indices</b>, c'est l'historique du plan : chaque ligne dit quelle version, quand, et ce qui a changé (« A – Première diffusion », « B – Ajout du réseau EP »…). Quand le conducteur de travaux a un doute sur le plan qu'il a en main, c'est là qu'il regarde.`,
+          init: () => { P.r0 = (pgv(() => psRevs.length) || 0); },
+          items: [['Descends un peu dans le cartouche et clique sur <b>+ Ajouter un indice</b> : MomoCAD crée la ligne A, datée d\'aujourd\'hui, avec « Première diffusion ».', '#cartouche-modal button[onclick="psRevAdd()"]', '+ Ajouter un indice', () => (pgv(() => psRevs.length) || 0) > P.r0 || (pgv(() => psRevs.length) || 0) >= (pgv(() => CART_REV_ROWS) || 99)]],
+          more: `Le <b>logo</b> se met juste en dessous : « Choisir une image… », puis tu le recadres. Il est gardé dans le gabarit, donc toute l'équipe l'aura. Pas besoin de le faire maintenant.` }),
+        PS({ title: 'Fond de plan', why: `Onglet <b>Fond de plan</b> : ici, tu choisis la carte qui viendra se glisser <b>sous</b> ton dessin quand tu utiliseras l'outil Fond de carte. Satellite, photo aérienne de l'IGN, plan des rues ou carte IGN : à toi de voir ce qui t'aide le plus.`,
+          items: [['Clique sur l\'onglet <b>Fond de plan</b>.', tabSel('fond'), 'Onglet Fond de plan', () => G.psTab() === 'fond'],
+                  ['Choisis <b>Photo IGN</b> : l\'orthophoto, la plus nette en France pour repérer les bordures, les regards, les arbres.', segSel('ps-bmbase', 'ortho'), 'Photo IGN', () => pv('ps-bmbase') === 'ortho'],
+                  ['Plus bas, allume <b>Courbes de niveau</b> : d\'un coup d\'œil, tu sais si le terrain monte ou descend.', swSel('ps-ov-courbes'), 'Courbes de niveau', () => pck('ps-ov-courbes')]],
+          more: `Ces <b>calques superposés</b> (cadastre, communes, pentes, courbes, cours d'eau, routes) sont téléchargés avec chaque nouveau fond ; le cadastre l'est toujours. Encore plus bas, <b>Points cotés du terrain (IGN)</b> pose une grille de points avec leur altitude : génial pour un avant-projet sans géomètre… mais ça ne remplace jamais un vrai levé ! Il faut Internet pour tout ça.` }),
+        PS({ title: 'Présentation : les planches', why: `Onglet <b>Présentation</b> : c'est la feuille des <b>planches de mise en page</b>, celles où tu composes plusieurs vues de ton plan à des échelles différentes (vue d'ensemble, détail, coupe). Rien à voir avec l'impression rapide : ici, on prépare les vrais grands plans.`,
+          items: [['Clique sur l\'onglet <b>Présentation</b>.', tabSel('pres'), 'Onglet Présentation', () => G.psTab() === 'pres'],
+                  ['Choisis le format <b>A1</b>.', segSel('ps-lppaper', 'A1'), 'Format A1', () => pv('ps-lppaper') === 'A1'],
+                  ['Allume les <b>Traits de pliage</b> : des repères sur les bords pour plier la feuille au format A4, cartouche dessus. Le plan rentre dans un classeur, et on lit le cartouche sans déplier.', swSel('ps-lpfold'), 'Traits de pliage', () => pck('ps-lpfold')],
+                  ['Mets une <b>marge</b> de <b>10</b> mm : c\'est le cadre de la feuille, et l\'imprimante ne le rognera pas.', '#cartouche-modal #ps-lpmargin', 'Marge : tape 10', () => pnum('ps-lpmargin') === 10]],
+          more: `Ce format devient aussi celui des <b>nouveaux plans</b>. Les fenêtres déjà tracées sur une planche, elles, gardent leur place en millimètres.` }),
+        PS({ title: 'Momo IA', why: `L'onglet <b>Momo IA</b>, c'est mon côté aide de chantier ! Avec une clé Gemini (gratuite pour commencer), je réponds à tes questions directement dans MomoCAD, et je peux même travailler sur ton plan.`,
+          items: [['Clique sur l\'onglet <b>Momo IA</b> et regarde ce qu\'on peut y régler.', tabSel('ia'), 'Onglet Momo IA', () => G.psTab() === 'ia']],
+          more: `Le réglage important, c'est <b>ce que j'ai le droit de faire</b> : lecture seule ; je demande avant chaque modification (c'est ce que je te conseille : tu vois chaque action et tu dis Autoriser ou Refuser) ; ou je modifie sans demander. Tout ce que je fais s'annule avec ${K('Ctrl')}+${K('Z')}. Et ta clé reste sur ton poste : elle ne part ni dans le plan, ni dans le gabarit.` }),
+        PS({ title: 'Les produits : tes prix', why: `Onglet <b>Produits</b> : ton <b>catalogue de prix</b>. C'est lui qui transforme les volumes en euros dans les cubatures et le métré. Chaque colonne a son sens :<ul style="margin:6px 0 0 16px;list-style:disc"><li><b>t/m³</b> : la densité <b>en place</b>. Une GNT compactée pèse environ 2,1 t/m³ : 10 m³ en place, c'est 21 t à commander.</li><li><b>Fois.</b> : le foisonnement. Une terre qu'on creuse gonfle : avec 1,25, 100 m³ en place font 125 m³ dans les camions. C'est ce qui compte pour les rotations et la décharge.</li><li><b>Prix</b> et son <b>unité</b> (la tonne, le m³ ou le m²) : MomoCAD fait la conversion tout seul.</li><li>La case <b>m²</b>, au bout : pour un produit sans épaisseur, comme un géotextile.</li></ul>`,
+          items: [['Clique sur l\'onglet <b>Produits</b>.', tabSel('mat'), 'Onglet Produits', () => G.psTab() === 'mat'],
+                  ['Les deux premières lignes, c\'est le <b>terrassement</b>. Dans la colonne <b>Prix</b> du <b>DÉBLAI</b>, tape <b>12</b> (€ le m³), puis ' + K('Entrée') + '.', '#ps-mat-box .mat-terr input:nth-of-type(3)', 'Prix du déblai : 12', () => +((matOf('__DEB') || {}).prix) > 0],
+                  ['Dans la case <b>Filtrer…</b>, tape <b>0/31</b> : seule la grave 0/31,5 reste (avec le terrassement).', '#cartouche-modal #ps-mat-q', 'Filtrer : tape 0/31', () => /0\/31/.test(pv('ps-mat-q'))],
+                  ['Donne un prix à la <b>Grave non traitée 0/31,5</b> : tape <b>28</b> (€ la tonne) dans sa colonne <b>Prix</b>, puis ' + K('Entrée') + '.', () => { const r = [...document.querySelectorAll('#ps-mat-box .mat-grid:not(.mat-terr)')].find(x => /0\/31/.test((x.querySelector('input') || {}).value || '')); return (r && r.querySelectorAll('input')[3]) || '#cartouche-modal #ps-mat-q'; }, 'Prix de la GNT 0/31,5', () => +((matOf('GNT_0_315') || {}).prix) > 0]],
+          more: `Les montants apparaissent dans les cubatures et dans Σ Métré. Le catalogue est enregistré sur ce poste et dans le gabarit : toute l'équipe chiffre aux mêmes prix.` }),
+        PS({ title: 'Valider', why: `On a fait le tour des paramètres ! Maintenant on <b>valide</b> : tout s'applique d'un coup. Les réglages sont gardés sur ce poste, et ils partent aussi dans le fichier .mmc quand tu enregistres ton plan : un collègue qui l'ouvre retrouve ton cartouche et tes formats.`,
+          items: [['Clique sur <b>Valider</b>, tout en bas du tiroir.', '#cartouche-modal button[onclick="applyCartouche()"]', 'Valider', () => !G.shown('cartouche-modal') && pgv(() => printSettings.paper) === 'A3']],
+          more: `Si tu as cliqué Annuler par erreur, pas de panique : rouvre ⛯ et refais les réglages, je t'attends.` }),
+        PS({ title: 'Les calques : le tableau', why: `Deuxième grand chantier : les <b>calques</b>. Tu les connais déjà, mais chaque calque a des réglages fins qui font qu'un plan imprimé se lit tout seul, même en noir et blanc.`,
+          items: [['Clique sur le bouton <b>Gérer les calques</b>, en haut à gauche.', 'button[onclick="openLayerModal()"]', 'Gérer les calques', () => G.shown('layer-modal')]],
+          more: `Une ligne par calque. De gauche à droite : l'<b>œil</b> (afficher / masquer), le <b>nom</b> (clic = calque actif, double-clic = renommer), la <b>couleur</b>, le <b>trait</b>, le <b>libellé</b>, l'<b>épaisseur</b>, la taille des <b>textes</b>, la <b>hachure</b> et son <b>échelle</b>, et le style des <b>points topo</b>. On va tous les utiliser.` }),
+        PS({ title: 'Un calque pour les eaux usées', why: `On va créer un vrai calque de réseau, comme sur un plan d'exécution : les <b>eaux usées</b>, en PVC Ø160. Un réseau par calque, c'est la règle : on peut le masquer, l'imprimer à part, et le métré te donne sa longueur.`,
+          tick: () => { const l = layEU(); if (l && P.euCol0 === undefined) P.euCol0 = l.color; },
+          init: () => { P.euCol0 = undefined; },
+          items: [['En bas du tiroir, clique dans la case <b>Nouveau calque…</b> et tape <b>EU</b>.', '#layer-modal #new-layer-name', 'Nouveau calque : tape EU', () => !!layEU() || /^eu$/i.test(pv('new-layer-name').trim())],
+                  ['Clique sur <b>Ajouter</b> (ou ' + K('Entrée') + ') : le calque EU apparaît dans la liste, et il devient le calque actif.', '#layer-modal button[onclick="addLayer()"]', 'Ajouter', () => !!layEU()],
+                  ['Clique sur le petit carré de <b>couleur</b> de la ligne EU et choisis un <b>rouge</b> ou un <b>marron</b> : la couleur habituelle des eaux usées.', euRow('input.lay-color'), 'Couleur du calque EU', () => !!layEU() && P.euCol0 !== undefined && layEU().color !== P.euCol0]],
+          more: `Les couleurs les plus courantes : eaux usées en rouge ou marron, eaux pluviales en vert, eau potable en bleu, électricité en rouge vif, télécom en vert ou violet… Garde toujours les mêmes : l'œil s'habitue vite.` }),
+        PS({ title: 'Le trait qui porte son nom', why: `Tu as déjà vu ces réseaux où le trait dit ce qu'il est : ---EU Ø160---EU Ø160---. C'est le type de ligne <b>-T-</b> : le texte est répété tout le long du trait, dans la couleur du calque. Imprimé en noir et blanc ou photocopié dix fois, ça reste lisible. Et l'<b>épaisseur</b> fait la hiérarchie : les réseaux à créer bien marqués, l'existant en trait fin.`,
+          items: [['Sur la ligne <b>EU</b>, colonne <b>Trait</b> : choisis <b>-T-</b>.', euRow('select[title="Type de ligne"]'), 'Trait : -T-', () => (layEU() || {}).dash === 'text'],
+                  ['La case <b>Libellé</b> juste à droite s\'allume : tape <b>EU Ø160</b>, puis ' + K('Entrée') + '.', euRow('input[title^="Texte répété"]'), 'Libellé : EU Ø160', () => /160/.test((layEU() || {}).ltText || '')],
+                  ['Colonne <b>Ép.</b> : mets <b>2</b>, pour que le réseau ressorte bien.', euRow('input[title="Épaisseur"]'), 'Épaisseur : 2', () => Math.abs(((layEU() || {}).width || 1) - 2) < 1e-6]] }),
+        PS({ title: 'Textes et hachures du calque', why: `Deux réglages encore, qu'on oublie souvent :<ul style="margin:6px 0 0 16px;list-style:disc"><li><b>Texte mm</b> : vide (« auto »), les textes du calque gardent la même taille à l'écran quel que soit le zoom, comme les cotes. Avec une valeur, ils ont une hauteur fixe <b>en mm sur le papier</b> : pratique pour des étiquettes qui doivent toutes faire 2,5 mm à l'impression.</li><li><b>Hachure</b> et <b>Éch.</b> : le motif utilisé quand tu hachures sur ce calque, et l'écartement de ses traits (1 = 3 mm, 2 = 6 mm). Fini les hachures toutes noires à l'impression !</li></ul>`,
+          items: [['Sur la ligne <b>EU</b>, colonne <b>Hachure</b> : choisis <b>XX Croisé</b>.', euRow('select[title="Hachure"]'), 'Hachure : XX Croisé', () => (layEU() || {}).hatch === 'cross'],
+                  ['Colonne <b>Éch.</b>, juste à droite : tape <b>2</b>, puis ' + K('Entrée') + ' : des carreaux deux fois plus grands.', euRow('input[title^="Échelle de hachure"]'), 'Échelle : 2', () => +pgv(() => layerHatchScaleOf(layEU())) === 2]] }),
+        PS({ title: 'Le style des points topo', why: `Le dernier bouton de la ligne, c'est le <b>style des points topo</b> du calque : le symbole (croix, rond, triangle…), sa taille, et les étiquettes : le <b>matricule</b> du point, son <b>altitude</b>, son <b>code</b>. Un levé de géomètre de 500 points devient lisible en deux clics… ou illisible si tout est allumé !`,
+          init: () => { P.sym0 = pgv(() => ptStyleOf(layEU().id).sym); },
+          items: [['Sur la ligne <b>EU</b>, clique sur le bouton <b>Points</b>, tout à droite.', euRow('button[title^="Apparence des points topo"]'), 'Points topo du calque', () => G.shown('pt-style-pop')],
+                  ['Change le <b>symbole</b> en cliquant un autre carré, et regarde l\'aperçu au-dessus.', '#pt-style-pop', 'Choisis un symbole', () => { const s = pgv(() => ptStyleOf(layEU().id).sym); return s !== undefined && s !== P.sym0; }],
+                  ['Referme la petite fenêtre (sa croix, ou le bouton bleu).', '#pt-style-pop button[onclick="closePtStyle()"]', 'Fermer', () => !G.shown('pt-style-pop')]] }),
+        PS({ title: 'Le gabarit d\'entreprise', why: `Et maintenant, le plus malin de tout : ce que tu viens de régler, tu le ranges dans un <b>gabarit</b> (un fichier .gbt). Dedans : les calques et leurs styles, les paramètres, le cartouche et le logo, les accroches, tes blocs et le catalogue de prix. Tu le poses sur le serveur, chaque collègue le charge… et toute l'équipe sort les mêmes plans, aux mêmes prix.`,
+          init: () => { P.gbt = false; },
+          items: [['Referme le gestionnaire de calques (sa croix, ou ' + K('Échap') + ').', '#layer-modal button[onclick="closeLayerModal()"]', 'Fermer les calques', () => !G.shown('layer-modal')],
+                  ['Clique sur le bouton du <b>menu fichier</b> (la disquette, en haut).', 'btn-dxf-menu', 'Menu fichier', () => G.shown('menu-dxf') || P.gbt],
+                  ['Clique sur <b>Enregistrer le gabarit (.gbt)…</b> et range le fichier là où l\'équipe le trouvera.', '#menu-dxf button[onclick*="saveGabarit"]', 'Enregistrer le gabarit', () => P.gbt]],
+          more: `Tes collègues font <b>Charger un gabarit</b>, dans le même menu. Le dernier gabarit chargé revient <b>tout seul</b> à chaque démarrage : on le charge une fois, et c'est réglé.` }),
+        { title: 'Bravo, tu es expert !', why: `Ton MomoCAD est réglé « maison » ! Et surtout, tu sais maintenant à quoi sert chaque réglage : la précision et la grille, la feuille, le cartouche et ses indices, le fond de plan, les planches, mes droits, les prix, les calques et le gabarit.`,
+          more: `Prochain tuto : <b>Les cubatures</b> (niveau Maître). Et tes prix de déblai et de GNT vont servir !`, last: true },
     ];
 
     // ---------- outils de contrôle des exercices 3D ----------
@@ -547,34 +644,6 @@
                 do: `Pense à l'enregistrer avec ${K('Ctrl')}+${K('S')} (.mmc). Le DXF, lui, sert à l'échanger avec les autres.`,
                 more: `Prochain tuto : <b>Le paramétrage</b> (niveau Expert).` },
         },
-        param: {
-            'Le paramétrage': { why: `Niveau <b>expert</b> ! Ici, on ne dessine pas : on règle MomoCAD pour qu'il sorte des plans « maison ». Tes formats, ton cartouche et ton logo, tes prix, tes calques… et à la fin, on range tout dans un <b>gabarit</b> à partager avec l'équipe.` },
-            'Les paramètres': { why: `Bon, alors on commence par la fenêtre des <b>Paramètres</b> : tous les réglages généraux y sont réunis, rangés en onglets.`,
-                do: `Clique sur le bouton <b>Paramètres ⛯</b>, tout en haut à droite.`},
-            'Onglet Plan': { why: `Premier onglet, <b>Plan</b> : la <b>précision d'affichage</b> (combien de décimales pour les longueurs et les cotes) et le carreau de la grille. Une cote au centimètre se lit bien mieux qu'avec six décimales !`,
-                do: ol('Clique sur l\'onglet <b>Plan</b>, à gauche.', 'Change la précision avec les boutons <b>+</b> ou <b>−</b>.'), more: `Toutes les longueurs sont en mètres : rien à régler côté unité.` },
-            'Onglet Impression': { why: `C'est bien ! Onglet <b>Impression</b> maintenant : le format de feuille (A5 à A0), l'orientation et le type de fichier (PDF, JPEG, PNG) de l'impression rapide.`,
-                do: ol('Clique sur l\'onglet <b>Impression</b>.', 'Jette un œil à l\'aperçu de la feuille.')},
-            'Le cartouche': { why: `Le <b>cartouche</b>, c'est la signature du plan : titre, client, dessinateur, indice de révision et <b>logo</b> de l'entreprise. Note bien : un cartouche pas à jour, ça finit toujours par semer la confusion sur un chantier.`,
-                do: ol('Clique sur l\'onglet <b>Cartouche</b>.', 'Clique dans la case <b>Titre du plan</b> et tape un titre.')},
-            'Fond de plan': { why: `Onglet <b>Fond de plan</b> : la carte posée sous ton dessin (satellite, photo IGN, plan) et les calques qui viennent avec : cadastre, communes, courbes, routes… et même le terrain IGN en points cotés.`,
-                do: `Clique sur l'onglet <b>Fond de plan</b>.`},
-            'Présentation': { why: `Onglet <b>Présentation</b> : la feuille des planches de mise en page. Format, orientation, marges, traits de pliage.`,
-                do: `Clique sur l'onglet <b>Présentation</b>.`},
-            'Le catalogue produits': { why: `Et voilà l'onglet le plus précieux : <b>tes prix</b>. Terrassement en déblai et en remblai, puis chaque matériau avec sa densité, son foisonnement et son prix. Note bien : c'est lui qui chiffre automatiquement les structures et le métré.`,
-                do: ol('Clique sur l\'onglet <b>Produits</b>.', 'Clique dans la case <b>Prix</b> d\'un matériau (par exemple la GNT 0/31,5) et tape un prix.')},
-            'Valider': { why: `On valide : les réglages s'appliquent, restent sur ce poste, et partent avec le plan quand tu l'enregistres.`, do: `Clique sur le bouton <b>Valider</b>, en bas de la fenêtre.`},
-            'Calques avancés': { why: `Parfait ! On passe aux <b>calques</b> : ils ont des réglages fins qui font toute la différence sur un plan imprimé.`,
-                do: `Clique sur le bouton <b>Gérer les calques</b>, en haut.`},
-            'Une ligne avec texte': { why: `Tu sais, ces réseaux où le trait porte son nom : ---EU Ø160---EU Ø160--- ? C'est un <b>type de ligne avec texte</b>. Lisible même imprimé en noir et blanc.`,
-                do: ol('Sur la ligne d\'un calque, colonne <b>Trait</b> : clique sur la liste et choisis le type de ligne <b>-T-</b>.', `La case <b>Libellé</b>, juste à droite, s'allume : clique dedans, tape le texte (par exemple EU Ø160), puis ${K('Entrée')}.`)},
-            'Hachures et points': { why: `Chaque calque a aussi son motif de hachure, sa taille de texte et le style de ses points topo (symbole, matricule, altitude). Une fois réglé, tu n'y penses plus.`,
-                do: `Colonne <b>Hachure</b> d'un calque : clique sur la liste et choisis un autre motif.`},
-            'Le gabarit d\'entreprise': { why: `Et maintenant, le plus malin : tout ce que tu viens de régler se garde dans un <b>gabarit .gbt</b>. Calques, paramètres, cartouche et logo, accroches, blocs, catalogue produits… Partagé, il donne à toute l'équipe les mêmes plans et les mêmes prix.`,
-                do: `Clique sur le bouton du <b>menu fichier</b> (disquette), puis sur <b>Enregistrer le gabarit</b>. Les collègues font <b>Charger un gabarit</b>, et le dernier chargé revient tout seul au démarrage.`},
-            'Bravo, vous êtes expert !': { title: 'Bravo, tu es expert !', why: `Ton MomoCAD est réglé « maison » : paramètres, cartouche, prix, calques et gabarit. Tes plans auront tous la même allure, et tes devis les mêmes prix.`,
-                more: `Prochain tuto : <b>Les cubatures</b> (niveau Maître).` },
-        },
         cub: {
             'Le terrassement du parking': { why: `Niveau <b>maître</b> ! Tu te souviens du parking de l'Initié ? Bon, alors cette fois on le pose sur un vrai terrain en pente, et on fait l'étude de terrassement complète : plateforme, talus, structure, puis les <b>cubatures</b>, le <b>profil en long</b> et le <b>métré chiffré</b>.`,
                 do: `Il nous faut d'abord un <b>terrain naturel</b>. En vrai, c'est le levé du géomètre (DXF, CSV…). Ici, je t'en crée un de 40 × 40 m, avec une pente et une petite bosse. Clique sur le bouton !`,
@@ -771,13 +840,6 @@
             'Contrôler : mesurer': [J.mode('measure')],
             'L\'aperçu': [() => !G.shown('topo-modal'), () => G.mode() === 'preview'],
         },
-        param: {
-            'Onglet Plan': [() => G.psTab() === 'plan'],
-            'Onglet Impression': [() => G.psTab() === 'print'],
-            'Le cartouche': [() => G.psTab() === 'cart'],
-            'Le catalogue produits': [() => G.psTab() === 'mat'],
-            'Une ligne avec texte': [() => G.layers().some(l => l.dash === 'text')],
-        },
         cub: {
             'Compléter le levé : un point topo': [J.mode('topo'), () => { const t = gv(() => lastTopo); return G.mode() === 'topo' && !!t && near(t, W(12.5, 32.5)); }],
             'Les courbes de niveau': [() => G.modalHas('niveau')],
@@ -916,7 +978,7 @@
     const TUTOS = [
         { id: 'base', level: 'Débutant', title: 'Les outils de base — le logo MOMOCAD', desc: 'Exercice : redessiner le logo MOMOCAD lettre par lettre. Polyligne, miroir, joindre, cercle, sélection en fenêtre, copier, arc, droite, couper, rectangle, éclater, arrondir, longueur, décaler, hachure', minutes: 25, steps: BASE, setup: () => setupExercise(-1, 29.5, -2.5, 5) },
         { id: 'adv', level: 'Initié', title: 'Les outils avancés — un petit parking', desc: 'Exercice : le plan d\'un parking. Calque, accroches, suivi polaire, réseau de places, arbres plantés avec Diviser, cotes, regard et cote de diamètre, texte, infobulle, mesure, métré et aperçu', minutes: 25, steps: ADV, setup: () => setupExercise(-1, 24, -3, 15.5, 380) },
-        { id: 'param', level: 'Expert', title: 'Le paramétrage', desc: 'Paramètres ⛯ (plan, impression, cartouche, fond de plan, présentation), catalogue produits et prix, calques avancés, gabarit d\'entreprise', minutes: 15, steps: PARAM },
+        { id: 'param', level: 'Expert', title: 'Le paramétrage', desc: 'Paramètres ⛯ expliqués réglage par réglage : précision et grille, impression, cartouche et indices, fond de plan, planches, Momo IA, catalogue de prix ; calques avancés (ligne -T-, hachures, points topo) et gabarit d\'entreprise', minutes: 25, steps: PARAM },
         { id: 'cub', level: 'Maître', title: 'Les cubatures — le terrassement du parking', desc: 'Exercice : caler le parking sur un terrain en pente. Point topo, vue 3D, courbes de niveau, plateforme à 102,00, talus, structure de chaussée, cubatures et rapport PDF, profil en long, métré chiffré', minutes: 25, steps: CUB, setup: () => setupExercise(-2, 42, -2, 42, 380) },
         { id: 'model', level: 'Seigneur', title: 'La modélisation 3D — un regard en béton', desc: 'Exercice : un regard complet. Pavé, tube, poser sur, révolution, élever, balayage, incliner, peindre en textures, sélection dans la vue 3D, volumes au métré', minutes: 25, steps: MODEL, setup: () => setupExercise(-3, 5.2, -1, 3, 380) },
         { id: 'build', level: 'Dieu', title: 'Pièces et bâtiment — une équerre et une cabane', desc: 'Exercice : une équerre percée à imprimer en 3D (union, soustraction, export STL), puis une cabane : murs, fenêtre, porte, panne faîtière, toit deux pans avec pignons, tuiles', minutes: 30, steps: BUILD, setup: () => setupExercise(-0.5, 12.8, -0.8, 4.8, 380) },
@@ -1000,7 +1062,8 @@
         const btns = [];
         if (idx > 0) btns.push(`<button class="mt-arw" data-a="prev" title="Étape précédente">◀</button>`);
         btns.push(`<button class="mt-arw${ready ? ' go' : ''}" data-a="next" title="${s.last ? 'Terminer' : ready ? 'Étape suivante' : 'Passer cette étape'}">▶</button>`);
-        const doTxt = typeof s.do === 'function' ? s.do() : (s.do || s.say);
+        let doTxt = typeof s.do === 'function' ? s.do() : (s.do || s.say);
+        if (doTxt && hasWait && !/<ol[\s>]/.test(doTxt)) doTxt = ol(doTxt);   // même une action seule a sa case à cocher
         const doHtml = doTxt ? `<div class="mt-do"><span class="mt-lab">${hasWait ? 'À toi' : 'Comment on fait'}</span>${doTxt}${s.action ? `<div><button class="mt-link" data-a="act">${s.action.label}</button></div>` : ''}</div>` : (s.action ? `<button class="mt-link" data-a="act">${s.action.label}</button>` : '');
         const back3D = G.is3D() && !s.in3D && !s.last && !ok ? `<div class="mt-more" style="border-left-color:#38bdf8;color:#bae6fd;background:#38bdf814">↩ Attends, cette étape se fait sur le plan : referme d'abord la vue 3D (bulle œil ou ${K('Échap')}).</div>` : '';
         const state = hasWait ? (ok ? `<div id="mt-state" class="ok">✓ ${BRAVO[idx % BRAVO.length]} Quand tu es prêt, clique ▶ et on continue.</div>` : `<div id="mt-state" class="wait">⏳ Vas-y, je regarde… je coche dès que c'est bon.</div>`) : '';
@@ -1017,7 +1080,7 @@
         bubble.scrollTop = 0; place(); if (jal) { jal.rules = null; jalTick(); }
     }
     // la cible peut être dans une fenêtre fermée : on montre alors le bouton qui la rouvre
-    const OPENERS = [['#cartouche-modal', 'btn-print-settings', '↩ Rouvrir les Paramètres ⛯'], ['#layer-modal', 'button[onclick="openLayerModal()"]', '↩ Rouvrir le gestionnaire de calques']];
+    const OPENERS = [['#cartouche-modal', 'btn-print-settings', '↩ Rouvrir les Paramètres ⛯'], ['#menu-dxf', 'btn-dxf-menu', '↩ Rouvrir le menu fichier'], ['#layer-modal', 'button[onclick="openLayerModal()"]', '↩ Rouvrir le gestionnaire de calques']];
     const findEl = (sel) => !sel ? null : (sel instanceof Element ? sel : document.getElementById(sel) || (/[\[\.#\s]/.test(sel) ? document.querySelector(sel) : null));
     const visible = (e) => { if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
     function resolveTarget() {
@@ -1112,6 +1175,7 @@
         if (G.sel().length) jal.sel = true;
         try { if (typedInput && String(typedInput).length) jal.typed = true; } catch (e) {}
         const fin = !!done[idx], st = STEPS[idx];
+        if (st && !st.jal && lis.length === 1) { lis[0].classList.toggle('ck', fin); return; }   // une seule action : cochée quand l'étape est réussie
         if (st && st.jal) {   // contrôle en direct : coché si valide ET toutes les lignes d'avant valides
             // une ligne est validée par son propre contrôle, ou par une ligne suivante validée (le geste d'avant est forcément fait)
             const own = lis.map((li, i) => { if (fin) return true; if (i >= st.jal.length) return false; try { return !!st.jal[i](jal); } catch (e) { return false; } });
