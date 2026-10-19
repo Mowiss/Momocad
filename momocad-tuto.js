@@ -1043,7 +1043,7 @@
     function renderMenu() {
         hatSet(view === 'home' ? 'cap' : 'toque');   // à l'accueil, Momo porte sa casquette ; pour les tutos, sa toque
         bubble.classList.remove('done');
-        const dot = root.querySelector('#mt-dot'); if (dot) { dot.textContent = '?'; dot.classList.remove('ok'); }
+        const dot = root.querySelector('#mt-dot'); if (dot) { dot.textContent = '…'; dot.classList.remove('ok'); }
         const E = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
         if (view === 'home') {
             bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Momo</span>${headBtns('Réduire la bulle')}</div>
