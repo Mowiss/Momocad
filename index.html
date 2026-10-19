@@ -322,6 +322,10 @@
 #help-modal { --dw: 1040px; } #topo-modal { --dw: 1040px; } #basemap-modal { --dw: 960px; } #crop-modal { --dw: 960px; } #layer-modal { --dw: 900px; }
 #t2-panel { --dw: 380px; } #snap-modal { --dw: 420px; } #menu-dxf { --dw: 420px; } #menu-blocks { --dw: 520px; }
 #layer-modal #layers-list { max-height: none !important; }
+#menu-blocks:not(.hidden) { display: flex !important; flex-direction: column; }
+#menu-blocks #blk-grid { max-height: none !important; flex: 1 1 auto; min-height: 0; align-content: start; }
+/* l'ombre ne déborde qu'à gauche : le tiroir passe sous l'en-tête et la ligne de commande, pas dessus */
+.mc-drawer > div:first-child, .mc-drawer-p { clip-path: inset(0 0 0 -80px); }
 </style>
 </head>
 <body class="flex flex-col h-screen relative">
@@ -11713,11 +11717,12 @@ ${G.guide}`;
                         else if (s.type === 'mesh') b = meshCorners(s).every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
                         else if (s.type === 'basemap') b = isPointInRect(s.x - s.r, s.y - s.r, startX, startY, currentX-startX, currentY-startY) && isPointInRect(s.x + s.r, s.y + s.r, startX, startY, currentX-startX, currentY-startY);
                         else if (s.type === 'hatch') b = s.loops[0].every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY));
+                        else { const K = t2KeyPts(s); b = K.length > 0 && K.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY)); }   // infobulles, étiquettes… : tous leurs points dans la fenêtre
                         if (b && !selectedShapes.includes(s)) selectedShapes.push(s);
                     });
                     selectedShapes = expandGroups(selectedShapes);
                 }
-                isDrawing = false; draw();
+                isDrawing = false; draw(); try { updateCommandMessage(); } catch (e) {}
             }
         });
 
