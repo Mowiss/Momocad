@@ -916,6 +916,13 @@
     .mt-arw.go { background:#22c55e; color:#052e16; animation: mt-go 1.2s ease-in-out infinite; } .mt-arw.go:hover { background:#4ade80; }
     @keyframes mt-go { 0%,100% { box-shadow:0 0 0 0 #22c55e66; } 50% { box-shadow:0 0 0 7px #22c55e00; } }
     .mt-link { border:0; background:#065f46; color:#d1fae5; border-radius:8px; padding:6px 10px; font-weight:700; font-size:13px; cursor:pointer; margin-top:8px; }
+    /* barre de défilement discrète, dans les tons de Momo */
+    #mt-bubble { scrollbar-width: thin; scrollbar-color: rgba(167,139,250,.45) transparent; }
+    #mt-bubble::-webkit-scrollbar { width: 6px; }
+    #mt-bubble::-webkit-scrollbar-track { background: transparent; margin: 14px 0; }
+    #mt-bubble::-webkit-scrollbar-thumb { background: rgba(167,139,250,.35); border-radius: 6px; }
+    #mt-bubble::-webkit-scrollbar-thumb:hover { background: rgba(167,139,250,.7); }
+    #mt-bubble::-webkit-scrollbar-button { display: none; height: 0; }
     #mt-root.open #mt-bubble { display:block; }
     #mt-momo .mt-hat-cap { display:none; } #mt-root.cap #mt-momo .mt-hat-cap { display:inline; } #mt-root.cap #mt-momo .mt-hat-toque { display:none; }
     #mt-bubble .mt-menu { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
