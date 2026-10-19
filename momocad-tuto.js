@@ -70,11 +70,12 @@
     const ga = (c, r, a0, a1, o) => { const C = W(...c), R = mw(r), P = (d) => W(c[0] + r * Math.cos(d * Math.PI / 180), c[1] + r * Math.sin(d * Math.PI / 180)); return Object.assign({ t: 'arc', c: C, r: R, a0: -a1 * Math.PI / 180, a1: -a0 * Math.PI / 180, snap: [C, P(a0), P(a1)] }, o || {}); };
     const garrow = (a, b, o) => Object.assign({ t: 'arrow', a: W(...a), b: W(...b), snap: [W(...a), W(...b)] }, o || {});
     // place l'exercice au centre de la vue et cadre le modèle (xmin..xmax, ymin..ymax en m) à gauche de Momo
-    function setupExercise(x0, x1, y0, y1) {
+    function setupExercise(x0, x1, y0, y1, padR) {   // padR : place gardée à droite (rosace, fenêtres d'outils)
         try {
             if (typeof setMode === 'function') setMode('select-box');
             // zone libre : à gauche de la bulle de Momo (≈ 560 px à droite)
-            const Wd = canvas.width, Hd = canvas.height, zw = Math.max(300, Wd - 600), sx = 40 + zw / 2, sy = Hd * 0.45, z = Math.min(zw / mw(x1 - x0), (Hd * 0.8) / mw(y1 - y0));
+            const Wd = canvas.width, Hd = canvas.height, zw = Math.max(300, Wd - 460 - (padR || 150)), sx = 460 + zw / 2,   // entre la bulle de Momo (à gauche) et les fenêtres d'outils (à droite)
+            sy = Hd * 0.45, z = Math.min(zw / mw(x1 - x0), (Hd * 0.8) / mw(y1 - y0));
             camera.zoom = z; const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
             const w0 = screenToWorld(sx, sy); A = { x: Math.round(w0.x / mw(1)) * mw(1) - mw(cx), y: Math.round(w0.y / mw(1)) * mw(1) + mw(cy) };
             const C = W(cx, cy); camera.x = sx - C.x * z; camera.y = sy - C.y * z; draw();
@@ -237,7 +238,6 @@
         { title: 'Présentation', target: '#cartouche-modal .ps-tab[data-tab="pres"]', tip: 'Onglet Présentation', why: `La feuille des planches de mise en page : format, orientation, marges, traits de pliage.`, do: `Ouvrez l'onglet <b>Présentation</b>.`, wait: () => G.psTab() === 'pres' },
         { title: 'Le catalogue produits', target: '#cartouche-modal .ps-tab[data-tab="mat"]', tip: 'Onglet Produits', why: `Vos <b>prix</b> : terrassement en déblai et en remblai, puis chaque matériau (densité, foisonnement, prix). Ils chiffrent automatiquement les structures et le métré.`,
           do: `Onglet <b>Produits</b> : saisissez un prix, par exemple pour la GNT 0/31,5.`, wait: () => { try { return G.psTab() === 'mat' && (matEdit || []).some(m => +m.prix > 0); } catch (e) { return false; } } },
-        { title: 'Momo, aide de chantier', target: '#cartouche-modal .ps-tab[data-tab="ia"]', tip: 'Onglet Assistant', why: '', do: '', wait: () => G.psTab() === 'ia' },
         { title: 'Valider', target: '#cartouche-modal button[onclick="applyCartouche()"]', tip: 'Valider', why: `Les réglages s'appliquent, restent sur ce poste et partent avec le plan.`, do: `Cliquez <b>Valider</b>.`, wait: (c) => c.open && !G.shown('cartouche-modal'), tick: (c) => { if (G.shown('cartouche-modal')) c.open = true; } },
         { title: 'Calques avancés', target: 'button[onclick="openLayerModal()"]', tip: 'Gérer les calques', why: `Les calques ont des réglages fins qui font la différence sur un plan imprimé.`, do: `Ouvrez le <b>gestionnaire de calques</b>.`, wait: () => G.shown('layer-modal') },
         { title: 'Une ligne avec texte', target: () => G.layers().some(l => l.dash === 'text') ? '#layer-modal input[title^="Texte répété"]:not([disabled])' : '#layer-modal select[title="Type de ligne"]', tip: () => G.layers().some(l => l.dash === 'text') ? 'Libellé : tapez le texte<br><small>puis Entrée</small>' : 'Type de ligne : choisissez -T-', why: `Pour un réseau, le trait porte son nom : ---EU Ø160---EU Ø160---. Lisible même en noir et blanc.`,
@@ -456,7 +456,7 @@
     const HUMAN = {
         base: {
             'Bonjour, je suis Momo !': { why: `Salut ! Bon, alors : aujourd'hui on apprend les outils de base, mais pas avec des exercices tout secs. On va <b>redessiner le logo MOMOCAD</b>, lettre par lettre, et chaque lettre va t'apprendre un outil.`,
-                do: `Regarde le plan : le modèle est tracé en <b>pointillés</b>. En <b style="color:#fbbf24">jaune</b>, ce qu'on dessine maintenant ; en <b style="color:#4ade80">vert</b>, ce qui est déjà fait. Les points jaunes <b>attirent ta souris</b> : vise-les.<br>Je coche l'étape ✓ seulement quand ton dessin colle au modèle. Ensuite c'est toi qui avances avec ${K('▶')}, à ton rythme.`,
+                do: `Regarde le plan : le modèle est tracé en <b>pointillés</b>. En <b style="color:#fbbf24">jaune</b>, ce qu'on dessine maintenant ; en <b style="color:#4ade80">vert</b>, ce qui est déjà fait. Les points jaunes <b>attirent ta souris</b> : vise-les.<br>Je coche l'étape ✓ seulement quand ton dessin colle au modèle. Ensuite c'est toi qui avances avec ${K('▶')}, à ton rythme.<br>La croix ✕ me replie derrière la barre de commande : clique sur ma toque pour me rouvrir. L'épingle garde ma bulle par-dessus tous les menus.`,
                 more: `Le mieux, c'est de partir d'un plan vierge. Et ici, tout se mesure en mètres.` },
             'Se déplacer dans le plan': { why: `Avant de dessiner, on apprend à regarder. Note bien ces trois gestes, tu vas t'en servir tout le temps.`,
                 do: `<ul><li><b>molette</b> : tu zoomes, autour du curseur ;</li><li><b>clic molette maintenu</b> : tu fais glisser le plan ;</li><li><b>double-clic molette</b> : tu vois tout.</li></ul>Essaie un peu, puis reviens : le logo t'attend au milieu de l'écran.` },
@@ -563,9 +563,6 @@
                 do: `Clique sur l'onglet <b>Présentation</b>.`},
             'Le catalogue produits': { why: `Et voilà l'onglet le plus précieux : <b>tes prix</b>. Terrassement en déblai et en remblai, puis chaque matériau avec sa densité, son foisonnement et son prix. Note bien : c'est lui qui chiffre automatiquement les structures et le métré.`,
                 do: ol('Clique sur l\'onglet <b>Produits</b>.', 'Clique dans la case <b>Prix</b> d\'un matériau (par exemple la GNT 0/31,5) et tape un prix.')},
-            'Momo, aide de chantier': { why: `Et ça, c'est mon onglet préféré 😄. Avec une <b>clé Gemini</b> (gratuite pour commencer), je deviens ton <b>aide de chantier</b> : je mets mon casque, je reste dans un coin du plan, et tu me poses tes questions en français. Comment faire telle chose, combien de m³ sur ton plan, quelle pente de talus…`,
-                do: ol('Clique sur l\'onglet <b>Assistant</b>.', 'Clique sur le bouton <b>🔑 Obtenir ma clé sur Google AI Studio</b> : crée ta clé et copie-la.', 'Colle-la dans la case <b>Clé API</b>, clique sur <b>Tester</b>, puis coche <b>Momo toujours là</b>.'),
-                more: `Ta clé reste sur ton poste : elle ne part jamais dans le plan ni dans le gabarit. Pas de clé sous la main ? Ouvre juste l'onglet, tu pourras la mettre plus tard.` },
             'Valider': { why: `On valide : les réglages s'appliquent, restent sur ce poste, et partent avec le plan quand tu l'enregistres.`, do: `Clique sur le bouton <b>Valider</b>, en bas de la fenêtre.`},
             'Calques avancés': { why: `Parfait ! On passe aux <b>calques</b> : ils ont des réglages fins qui font toute la différence sur un plan imprimé.`,
                 do: `Clique sur le bouton <b>Gérer les calques</b>, en haut.`},
@@ -779,7 +776,6 @@
             'Onglet Impression': [() => G.psTab() === 'print'],
             'Le cartouche': [() => G.psTab() === 'cart'],
             'Le catalogue produits': [() => G.psTab() === 'mat'],
-            'Momo, aide de chantier': [() => G.psTab() === 'ia', () => !!gv(() => iaCfg.key)],
             'Une ligne avec texte': [() => G.layers().some(l => l.dash === 'text')],
         },
         cub: {
@@ -826,8 +822,8 @@
     };
     // ---------- interface ----------
     const CSS = `
-    #mt-root { position:absolute; right:16px; bottom:52px; z-index:80; display:flex; align-items:flex-end; gap:10px; pointer-events:none; transition:right .25s; font-family: system-ui, 'Segoe UI', sans-serif; }
-    #mt-bubble { pointer-events:auto; position:relative; width:400px; max-width:calc(100vw - 260px); max-height:calc(100vh - 170px); overflow:auto; background:#111827f5; color:#e5e7eb; border:1.5px solid #7c3aed; border-radius:16px; padding:14px 16px 12px; font-size:14px; line-height:1.55; box-shadow:0 12px 32px #0009; backdrop-filter: blur(4px); transition: border-color .3s; }
+    #mt-root { position:absolute; inset:0; pointer-events:none; font-family: system-ui, 'Segoe UI', sans-serif; }
+    #mt-bubble { display:none; z-index:80; pointer-events:auto; position:absolute; left:10px; bottom:118px; width:400px; max-width:calc(100vw - 260px); max-height:calc(100vh - 170px); overflow:auto; background:#111827f5; color:#e5e7eb; border:1.5px solid #7c3aed; border-radius:16px; padding:14px 16px 12px; font-size:14px; line-height:1.55; box-shadow:0 12px 32px #0009; backdrop-filter: blur(4px); transition: border-color .3s; }
     #mt-bubble.done { border-color:#22c55e; }
     #mt-bubble .mt-h { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
     #mt-bubble .mt-n { color:#a78bfa; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; }
@@ -858,11 +854,25 @@
     .mt-arw.go { background:#22c55e; color:#052e16; animation: mt-go 1.2s ease-in-out infinite; } .mt-arw.go:hover { background:#4ade80; }
     @keyframes mt-go { 0%,100% { box-shadow:0 0 0 0 #22c55e66; } 50% { box-shadow:0 0 0 7px #22c55e00; } }
     .mt-link { border:0; background:#065f46; color:#d1fae5; border-radius:8px; padding:6px 10px; font-weight:700; font-size:13px; cursor:pointer; margin-top:8px; }
-    #mt-root.col { flex-direction:column; align-items:flex-end; } #mt-root.under #mt-bubble { opacity:.13; pointer-events:none; transition: opacity .2s; } #mt-root.under:hover #mt-bubble { opacity:1; pointer-events:auto; } #mt-root.mini #mt-bubble { display:none; } #mt-root.mini.peek #mt-bubble { display:block; }
-    #mt-root.mini #mt-momo { width:62px; height:76px; }
-    #mt-dot { display:none; position:absolute; top:-4px; right:-4px; background:#7c3aed; color:#fff; font-size:11px; font-weight:800; border-radius:10px; padding:1px 6px; pointer-events:none; }
-    #mt-root.mini:not(.peek) #mt-dot { display:block; } #mt-dot.ok { background:#22c55e; color:#052e16; }
-    #mt-momo { pointer-events:auto; width:92px; height:112px; cursor:pointer; filter: drop-shadow(0 6px 10px #0008); animation: mt-float 3.2s ease-in-out infinite; }
+    #mt-root.open #mt-bubble { display:block; }
+    #mt-momo .mt-hat-cap { display:none; } #mt-root.cap #mt-momo .mt-hat-cap { display:inline; } #mt-root.cap #mt-momo .mt-hat-toque { display:none; }
+    #mt-bubble .mt-menu { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+    #mt-bubble .mt-tu { display:grid; grid-template-columns:auto 1fr; gap:2px 8px; align-items:center; text-align:left; background:#1f2937; border:1px solid #374151; border-radius:10px; padding:7px 10px; color:#e5e7eb; cursor:pointer; }
+    #mt-bubble .mt-tu:hover { border-color:#7c3aed; background:#2e1065; }
+    #mt-bubble .mt-lvl { grid-row:span 2; font-size:10.5px; font-weight:800; color:#fff; border-radius:6px; padding:2px 6px; text-transform:uppercase; letter-spacing:.03em; }
+    #mt-bubble .mt-tt { font-weight:700; font-size:13.5px; color:#fff; } #mt-bubble .mt-td { font-size:11.5px; color:#9ca3af; }
+    #mt-bubble .mt-big { grid-template-columns:auto 1fr; padding:10px 12px; } #mt-bubble .mt-big .mt-ico { grid-row:span 2; font-size:26px; }
+    #mt-bubble .mt-ia:hover { border-color:#eab308; background:#422006; }
+    #mt-bubble .mt-menu-b { font-size:15px; margin-right:4px; vertical-align:middle; }
+    #mt-root.pinned #mt-bubble { z-index:100; border-style:double; border-width:3px; }
+    #mt-bubble .mt-pin { display:inline-flex; color:#6b7280; } #mt-bubble .mt-pin:hover { color:#fff; } #mt-bubble .mt-pin.on { color:#fbbf24; transform:rotate(-30deg); }
+    #mt-root.under #mt-bubble { opacity:.13; pointer-events:none; transition: opacity .2s; } #mt-root.under #mt-dock:hover + #mt-bubble { opacity:1; pointer-events:auto; }
+    /* Momo docké derrière la barre de commande : on ne voit que sa toque ; survolé, il sort les yeux ; ouvert, il sort en entier */
+    #mt-dock { position:absolute; left:10px; bottom:0; z-index:25; width:64px; height:78px; pointer-events:auto; cursor:pointer; transform:translateY(20px); transition:transform .28s cubic-bezier(.3,1.4,.5,1); }
+    #mt-dock:hover { transform:translateY(-6px); } #mt-root.open #mt-dock { transform:translateY(-36px); }
+    #mt-dot { display:none; position:absolute; top:-6px; right:-10px; background:#7c3aed; color:#fff; font-size:11px; font-weight:800; border-radius:10px; padding:0 6px; line-height:18px; pointer-events:none; }
+    #mt-root:not(.open) #mt-dot { display:block; } #mt-dot.ok { background:#22c55e; color:#052e16; }
+    #mt-momo { width:64px; height:78px; display:block; filter: drop-shadow(0 4px 6px #0008); }
     #mt-momo.jump { animation: mt-jump .6s ease-out; }
     #mt-momo .mt-eye { transform-box: fill-box; transform-origin:center; animation: mt-blink 4.6s infinite; }
     #mt-momo .mt-mouth { transform-box: fill-box; transform-origin:center top; }
@@ -885,13 +895,18 @@
     // Momo : la toque de diplômé posée sur le visage O O / M du logo
     const MOMO_SVG = `<svg id="mt-momo" viewBox="0 0 100 122" xmlns="http://www.w3.org/2000/svg" aria-label="Momo, la mascotte">
         <defs><linearGradient id="mtCapTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d5bc4"/><stop offset="1" stop-color="#3f2f86"/></linearGradient>
-        <linearGradient id="mtCap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2c78"/><stop offset="1" stop-color="#271c55"/></linearGradient></defs>
-        <path d="M27 24 Q50 32 73 24 L71 40 Q50 47 29 40 Z" fill="url(#mtCap)"/>
+        <linearGradient id="mtCap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2c78"/><stop offset="1" stop-color="#271c55"/></linearGradient><linearGradient id="mtBase" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+        <g class="mt-hat-toque"><path d="M27 24 Q50 32 73 24 L71 40 Q50 47 29 40 Z" fill="url(#mtCap)"/>
         <path d="M50 4 L94 20 L50 34 L6 20 Z" fill="url(#mtCapTop)" stroke="#2a1f5c" stroke-width="1.2" stroke-linejoin="round"/>
         <path d="M6 20 L50 34 L94 20 L94 22.5 L50 36.5 L6 22.5 Z" fill="#2a1f5c"/>
         <circle cx="50" cy="19" r="2.6" fill="#f59e0b"/>
         <g class="mt-tassel"><path d="M50 19 Q60 21 66 22 L66 44" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="M63 43 L69 43 L70 52 L62 52 Z" fill="#f59e0b"/><circle cx="66" cy="54" r="4.2" fill="#fb923c"/></g>
+        <path d="M63 43 L69 43 L70 52 L62 52 Z" fill="#f59e0b"/><circle cx="66" cy="54" r="4.2" fill="#fb923c"/></g></g>
+        <g class="mt-hat-cap" transform="rotate(-14 50 34)"><path d="M24 41 Q22 13 52 12 Q80 13 80 41 Z" fill="url(#mtBase)" stroke="#1e3a8a" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M52 12 Q46 26 47 41 M66 15 Q70 28 68 41" fill="none" stroke="#1e40af" stroke-width="1.2" opacity=".75"/>
+        <ellipse cx="52" cy="12.5" rx="3.6" ry="2.2" fill="#1e3a8a"/>
+        <path d="M80 39 Q94 37 99 42 Q96 47 80 45 Z" fill="#1e40af" stroke="#172554" stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M23 40 Q52 46 81 40 L81 44 Q52 50 23 44 Z" fill="#1d4ed8" stroke="#172554" stroke-width="1"/></g>
         <circle class="mt-eye" cx="32" cy="64" r="11" fill="none" stroke="#a1a1aa" stroke-width="6.5"/>
         <circle class="mt-eye" cx="68" cy="64" r="11" fill="none" stroke="#a1a1aa" stroke-width="6.5"/>
         <path class="mt-mouth" d="M36 116 L36 88 L50 104 L64 88 L64 116" fill="none" stroke="#a1a1aa" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
@@ -900,37 +915,77 @@
     // catalogue des tutos (affiché dans le guide, onglet « Apprendre avec Momo »)
     const TUTOS = [
         { id: 'base', level: 'Débutant', title: 'Les outils de base — le logo MOMOCAD', desc: 'Exercice : redessiner le logo MOMOCAD lettre par lettre. Polyligne, miroir, joindre, cercle, sélection en fenêtre, copier, arc, droite, couper, rectangle, éclater, arrondir, longueur, décaler, hachure', minutes: 25, steps: BASE, setup: () => setupExercise(-1, 29.5, -2.5, 5) },
-        { id: 'adv', level: 'Initié', title: 'Les outils avancés — un petit parking', desc: 'Exercice : le plan d\'un parking. Calque, accroches, suivi polaire, réseau de places, arbres plantés avec Diviser, cotes, regard et cote de diamètre, texte, infobulle, mesure, métré et aperçu', minutes: 25, steps: ADV, setup: () => setupExercise(-1, 24, -3, 15.5) },
-        { id: 'param', level: 'Expert', title: 'Le paramétrage', desc: 'Paramètres ⛯ (plan, impression, cartouche, fond de plan, présentation), catalogue produits et prix, Momo aide de chantier, calques avancés, gabarit d\'entreprise', minutes: 15, steps: PARAM },
-        { id: 'cub', level: 'Maître', title: 'Les cubatures — le terrassement du parking', desc: 'Exercice : caler le parking sur un terrain en pente. Point topo, vue 3D, courbes de niveau, plateforme à 102,00, talus, structure de chaussée, cubatures et rapport PDF, profil en long, métré chiffré', minutes: 25, steps: CUB, setup: () => setupExercise(-2, 42, -2, 42) },
-        { id: 'model', level: 'Seigneur', title: 'La modélisation 3D — un regard en béton', desc: 'Exercice : un regard complet. Pavé, tube, poser sur, révolution, élever, balayage, incliner, peindre en textures, sélection dans la vue 3D, volumes au métré', minutes: 25, steps: MODEL, setup: () => setupExercise(-3, 5.2, -1, 3) },
-        { id: 'build', level: 'Dieu', title: 'Pièces et bâtiment — une équerre et une cabane', desc: 'Exercice : une équerre percée à imprimer en 3D (union, soustraction, export STL), puis une cabane : murs, fenêtre, porte, panne faîtière, toit deux pans avec pignons, tuiles', minutes: 30, steps: BUILD, setup: () => setupExercise(-0.5, 12.8, -0.8, 4.8) },
+        { id: 'adv', level: 'Initié', title: 'Les outils avancés — un petit parking', desc: 'Exercice : le plan d\'un parking. Calque, accroches, suivi polaire, réseau de places, arbres plantés avec Diviser, cotes, regard et cote de diamètre, texte, infobulle, mesure, métré et aperçu', minutes: 25, steps: ADV, setup: () => setupExercise(-1, 24, -3, 15.5, 380) },
+        { id: 'param', level: 'Expert', title: 'Le paramétrage', desc: 'Paramètres ⛯ (plan, impression, cartouche, fond de plan, présentation), catalogue produits et prix, calques avancés, gabarit d\'entreprise', minutes: 15, steps: PARAM },
+        { id: 'cub', level: 'Maître', title: 'Les cubatures — le terrassement du parking', desc: 'Exercice : caler le parking sur un terrain en pente. Point topo, vue 3D, courbes de niveau, plateforme à 102,00, talus, structure de chaussée, cubatures et rapport PDF, profil en long, métré chiffré', minutes: 25, steps: CUB, setup: () => setupExercise(-2, 42, -2, 42, 380) },
+        { id: 'model', level: 'Seigneur', title: 'La modélisation 3D — un regard en béton', desc: 'Exercice : un regard complet. Pavé, tube, poser sur, révolution, élever, balayage, incliner, peindre en textures, sélection dans la vue 3D, volumes au métré', minutes: 25, steps: MODEL, setup: () => setupExercise(-3, 5.2, -1, 3, 380) },
+        { id: 'build', level: 'Dieu', title: 'Pièces et bâtiment — une équerre et une cabane', desc: 'Exercice : une équerre percée à imprimer en 3D (union, soustraction, export STL), puis une cabane : murs, fenêtre, porte, panne faîtière, toit deux pans avec pignons, tuiles', minutes: 30, steps: BUILD, setup: () => setupExercise(-0.5, 12.8, -0.8, 4.8, 380) },
     ];
-    let STEPS = BASE, done = [];
-    let cele = [], last3D = false, lastH = 0, root, bubble, ring, tip, momo, idx = 0, ctx = {}, timer = null;
+    let STEPS = null, done = [];   // STEPS null : Momo est actif, sans tuto en cours (menu)
+    let view = 'home', menuMsg = '', pinned = false, cele = [], last3D = false, lastH = 0, root, bubble, ring, tip, momo, idx = 0, ctx = {}, timer = null;
 
     function build() {
         if (!document.getElementById('mt-css')) { const st = document.createElement('style'); st.id = 'mt-css'; st.textContent = CSS; document.head.appendChild(st); }
         const host = document.getElementById('canvas-container') || document.body;
         root = document.createElement('div'); root.id = 'mt-root';
-        root.innerHTML = `<div id="mt-bubble"></div><div style="position:relative;pointer-events:auto;">${MOMO_SVG}<span id="mt-dot">…</span></div>`;
+        root.innerHTML = `<div id="mt-dock" title="Momo, ton prof : clique pour ouvrir ou refermer sa bulle">${MOMO_SVG}<span id="mt-dot">…</span></div><div id="mt-bubble"></div>`;
         host.appendChild(root);
         bubble = root.querySelector('#mt-bubble'); momo = root.querySelector('#mt-momo');
-        momo.addEventListener('click', () => { if (root.classList.contains('mini')) { root.classList.toggle('peek'); return; } jump(); });
+        root.querySelector('#mt-dock').addEventListener('click', () => setOpen(!root.classList.contains('open')));
         ring = document.createElement('div'); ring.id = 'mt-ring'; document.body.appendChild(ring);
         tip = document.createElement('div'); tip.id = 'mt-tip'; document.body.appendChild(tip);
         bubble.addEventListener('click', (e) => { const b = e.target.closest('button[data-a]'); if (!b) return; e.stopPropagation(); act(b.dataset.a); });
         bubble.addEventListener('mousedown', (e) => e.stopPropagation());
     }
+    // ouvrir / replier la bulle (une seule bulle ouverte à la fois : le prof ou l'aide de chantier)
+    function setOpen(v) {
+        if (!root) return; root.classList.toggle('open', !!v);
+        if (v) { try { if (typeof mcToggle === 'function' && document.getElementById('mc-root') && document.getElementById('mc-root').classList.contains('open')) mcToggle(false); } catch (e) {} render(); }
+        place();
+    }
     function jump() { momo.classList.remove('jump'); void momo.getBoundingClientRect(); momo.classList.add('jump'); }
     function act(a) {
-        if (a === 'x') return stop();
+        if (a === 'pin') { pinned = !pinned; root.classList.toggle('pinned', pinned); render(); return; }
+        if (a === 'x') return setOpen(false);
+        if (a.startsWith('t:')) return start(a.slice(2));   // la croix replie Momo
+        if (a === 'list' || a === 'home') { view = a; menuMsg = ''; return render(); }
+        if (a === 'ia') { if (typeof momoGoIA === 'function') momoGoIA(); return; }
+        if (!STEPS) return;
         if (a === 'prev') return go(Math.max(0, idx - 1));
         if (a === 'act') { const s = STEPS[idx]; if (s.action) s.action.fn(); return; }
-        if (a === 'next') { if (STEPS[idx].last) return stop(); return go(idx + 1); }
+        if (a === 'next') { if (STEPS[idx].last) { menuMsg = 'Bravo, tuto terminé ! 🎉'; view = 'list'; return toMenu(); } return go(idx + 1); }
+        if (a === 'menu') { menuMsg = ''; view = 'list'; return toMenu(); }
+        if (a.startsWith('t:')) return start(a.slice(2));
     }
     const BRAVO = ['Bravo, c\'est exactement ça !', 'Nickel !', 'Bien joué !', 'Impeccable !', 'Trop fort !', 'Yes, parfait !', 'Joli coup !', 'C\'est tout bon !'];
+    const LVL_COL = { 'Débutant': '#15803d', 'Initié': '#0369a1', 'Expert': '#b45309', 'Maître': '#b91c1c', 'Seigneur': '#6d28d9', 'Dieu': 'linear-gradient(90deg,#a16207,#eab308)' };
+    const PIN_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/></svg>';
+    const headBtns = (xTitle) => `<span style="display:flex;gap:6px;align-items:center"><button class="mt-x mt-pin${pinned ? ' on' : ''}" data-a="pin" title="${pinned ? 'Désépingler' : 'Épingler : la bulle reste par-dessus tous les menus'}">${PIN_SVG}</button><button class="mt-x" data-a="x" title="${xTitle}">✕</button></span>`;
+    // pas de tuto en cours : Momo propose de choisir un tuto, depuis sa bulle
+    function renderMenu() {
+        root.classList.toggle('cap', view === 'home');   // à l'accueil, Momo porte sa casquette ; pour les tutos, sa toque
+        bubble.classList.remove('done');
+        const dot = root.querySelector('#mt-dot'); if (dot) { dot.textContent = '?'; dot.classList.remove('ok'); }
+        const E = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        if (view === 'home') {
+            bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Momo</span>${headBtns('Replier Momo')}</div>
+                <div class="mt-t">${menuMsg || 'Salut, moi c\'est Momo ! 👋'}</div>
+                <div class="mt-why">Qu'est-ce qu'on fait ensemble ?</div>
+                <div class="mt-menu">
+                    <button type="button" class="mt-tu mt-big" data-a="list"><span class="mt-ico">🎓</span><span class="mt-tt">Apprendre avec un tuto</span><span class="mt-td">Six niveaux, du logo MOMOCAD à la cabane en 3D : je te guide geste par geste.</span></button>
+                    <button type="button" class="mt-tu mt-big mt-ia" data-a="ia"><span class="mt-ico">👷</span><span class="mt-tt">Poser une question à Momo IA</span><span class="mt-td">Mon côté aide de chantier : une IA qui répond sur MomoCAD et sur ton plan. Il faut une clé Gemini (gratuite pour commencer).</span></button>
+                </div>`;
+            place(); return;
+        }
+        bubble.innerHTML = `<div class="mt-h"><span class="mt-n"><button class="mt-x mt-menu-b" data-a="home" title="Retour">←</button> Les tutos</span>${headBtns('Replier Momo')}</div>
+            <div class="mt-t">${menuMsg || 'Quel tuto on fait ? 🎓'}</div>
+            <div class="mt-why">On dessine pour de vrai, une action à la fois : je te montre le bouton, tu fais le geste, je coche ✓. Avec moi, tu vas devenir un vrai <b>cador de la DAO</b>.</div>
+            <div class="mt-menu">${TUTOS.map(t => `<button type="button" class="mt-tu" data-a="t:${t.id}"><span class="mt-lvl" style="background:${LVL_COL[t.level] || '#374151'}">${E(t.level)}</span><span class="mt-tt">${E(t.title)}</span><span class="mt-td">${t.steps.length} étapes · ${t.minutes} min</span></button>`).join('')}</div>`;
+        place();
+    }
     function render() {
+        if (!STEPS) return renderMenu();
+        root.classList.remove('cap');
         const s = STEPS[idx], n = STEPS.length, ok = !!done[idx], hasWait = typeof s.wait === 'function';
         const ready = ok || !hasWait;
         const btns = [];
@@ -942,7 +997,7 @@
         const state = hasWait ? (ok ? `<div id="mt-state" class="ok">✓ ${BRAVO[idx % BRAVO.length]} Quand tu es prêt, clique ▶ et on continue.</div>` : `<div id="mt-state" class="wait">⏳ Vas-y, je regarde… je coche dès que c'est bon.</div>`) : '';
         bubble.classList.toggle('done', ok);
         const dot = root.querySelector('#mt-dot'); if (dot) { dot.textContent = ok ? '✓' : '…'; dot.classList.toggle('ok', ok); }
-        bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Étape ${idx + 1} / ${n}</span><button class="mt-x" data-a="x" title="Arrêter la visite">✕</button></div>
+        bubble.innerHTML = `<div class="mt-h"><span class="mt-n"><button class="mt-x mt-menu-b" data-a="menu" title="Changer de tuto">☰</button> Étape ${idx + 1} / ${n}</span>${headBtns('Replier Momo (le tuto continue)')}</div>
             <div class="mt-t">${ok ? '<span class="mt-ck">✓</span>' : ''}${s.title}</div>
             ${s.why ? `<div class="mt-why">${s.why}</div>` : ''}
             ${doHtml}
@@ -976,39 +1031,29 @@
         return null;
     }
     function place() {
-        const host = root.parentElement.getBoundingClientRect(), s0 = STEPS[idx] || {}, BOT = 52, MOMO = 112;
-        // par défaut : en bas à droite, PAR-DESSUS le cadre des propriétés (il ne gêne pas) ;
-        // on ne l'évite que si l'étape demande de le lire (props: true)
-        const pp = document.getElementById('properties-popup'), ppOn = s0.props && pp && !pp.classList.contains('hidden') && pp.offsetWidth;
-        let under = false, col = false, mini = false, right = 16, bottom = ppOn ? Math.max(BOT, host.bottom - pp.getBoundingClientRect().top + 10) : BOT, bw = 400, maxH = host.height - bottom - 20;
-        const mc = modalCard();
+        if (root.style.display === 'none') return;
+        const host = root.parentElement.getBoundingClientRect(), BOT = 118, DL = 10;
+        let under = false, left = DL, bottom = BOT, bw = 400, maxH = host.height - BOT - 20;
+        const mc = pinned ? null : modalCard();   // épinglée : elle reste à sa place, par-dessus les menus
         if (mc) {
-            // une fenêtre est ouverte : Momo reste ouvert, mais sa bulle prend la forme de la place libre autour d'elle
-            const g = 12, fullB = host.bottom - BOT, top = host.top + 8, keep = Math.max(host.left + 8, host.right - 620);   // keep : au-delà, c'est la zone de dessin de l'exercice
+            // une fenêtre est ouverte : la bulle prend la forme de la place libre autour d'elle
+            const g = 12, fullB = host.bottom - BOT, top = host.top + 8;
             const raw = [
+                { L: host.left + DL, R: mc.left - g, T: top, B: fullB },
                 { L: mc.right + g, R: host.right - 8, T: top, B: fullB },
-                { L: keep, R: mc.left - g, T: top, B: fullB },
-                { L: keep, R: host.right - 8, T: mc.bottom + g, B: fullB },
-                { L: keep, R: host.right - 8, T: top, B: mc.top - g },
-            ];
-            const zones = [];
-            raw.forEach(z => {
-                const W = z.R - z.L, H = z.B - z.T;
-                zones.push(Object.assign({ col: false, w: Math.min(440, W - MOMO), h: H }, z));        // bulle à gauche de Momo
-                zones.push(Object.assign({ col: true, w: Math.min(440, W - 8), h: H - 128 }, z));      // bulle au-dessus de Momo (zone étroite)
-            });
-            const ok = zones.filter(z => z.w >= 220 && z.h >= 160);
-            ok.sort((a, b) => (Math.min(b.h, 560) * Math.min(b.w, 400) - (b.col ? 1 : 0)) - (Math.min(a.h, 560) * Math.min(a.w, 400) - (a.col ? 1 : 0)));
-            const z = ok[0];
-            if (z) { bw = z.w; maxH = z.h; right = host.right - z.R; bottom = host.bottom - z.B; col = z.col; }
+                { L: host.left + DL, R: host.right - 8, T: mc.bottom + g, B: fullB },
+                { L: host.left + DL, R: host.right - 8, T: top, B: mc.top - g },
+            ].map(z => Object.assign(z, { w: Math.min(440, z.R - z.L - 8), h: z.B - z.T })).filter(z => z.w >= 220 && z.h >= 160);
+            raw.sort((a, b) => Math.min(b.h, 560) * Math.min(b.w, 400) - Math.min(a.h, 560) * Math.min(a.w, 400));
+            const z = raw[0];
+            if (z) { bw = z.w; maxH = z.h; left = z.L - host.left; bottom = host.bottom - z.B; }
             else under = true;   // vraiment pas de place : la bulle passe sous la fenêtre ; survoler Momo la fait revenir dessus
         }
         bubble.style.width = Math.round(bw) + 'px'; bubble.style.maxWidth = 'none';
         bubble.style.maxHeight = Math.max(150, Math.round(maxH)) + 'px';
-        root.style.left = ''; root.style.right = Math.round(right) + 'px'; root.style.bottom = Math.round(bottom) + 'px';
-        root.classList.toggle('col', col);
+        bubble.style.left = Math.round(left) + 'px'; bubble.style.bottom = Math.round(bottom) + 'px';
         root.classList.toggle('under', under);
-        root.classList.toggle('mini', mini); if (!mini) root.classList.remove('peek');
+        if (!STEPS) { ring.style.display = 'none'; tip.style.display = 'none'; return; }
         const R = resolveTarget(), t = R.el, s = STEPS[idx];
         if (!t) { ring.style.display = 'none'; tip.style.display = 'none'; return; }
         if (!t.offsetParent) { const pal = t.closest('.pal'); if (pal && pal.dataset.pal && typeof togglePal === 'function' && pal.classList.contains('closed')) togglePal(pal.dataset.pal); }
@@ -1021,7 +1066,7 @@
     }
     function setGhost() {
         const items = [];
-        STEPS.forEach((st, j) => { if (!st.ghost || j > idx) return; (st.ghost() || []).forEach(it => { it.cur = j === idx; if (typeof it.label === 'function') it.label = it.label(); items.push(it); }); });
+        (STEPS || []).forEach((st, j) => { if (!st.ghost || j > idx) return; (st.ghost() || []).forEach(it => { it.cur = j === idx; if (typeof it.label === 'function') it.label = it.label(); items.push(it); }); });
         window.tutoGhost = items.length ? { items, pts: [].concat(...items.filter(it => it.cur).map(it => it.snap || [])) } : null;
         try { invalidateCache(); draw(); } catch (e) {}
     }
@@ -1077,8 +1122,9 @@
         setGhost(); render();
     }
     function tick() {
-        if (!root || !root.isConnected) return stop();
+        if (!root || !root.isConnected) return disable();
         place();
+        if (!STEPS) return;
         const s = STEPS[idx];
         const v3 = G.is3D(); if (v3 !== last3D) { last3D = v3; render(); }
         if (s.tick) s.tick(ctx);
@@ -1090,20 +1136,36 @@
             if (ok) { done[idx] = true; render(); jump(); if (!cele[idx]) { cele[idx] = true; confetti(); } }   // l'étape se coche ; on avance quand on veut, avec ▶
         }
     }
-    function start(id) {
-        const T = TUTOS.find(t => t.id === id) || TUTOS[0]; applyVoice(T.id, T.steps); STEPS = T.steps; done = []; cele = []; if (T.setup) T.setup();
-        if (root && root.isConnected) { go(0); return; }
-        build(); go(0);
+    function ensure() {
+        if (root && root.isConnected) return;
+        build(); STEPS = null; view = 'home'; render();
         try { canvas.addEventListener('mousedown', jalClick, true); } catch (e) {}
         clearInterval(timer); timer = setInterval(tick, 250);
         window.addEventListener('resize', place);
     }
-    function stop() {
-        clearInterval(timer); timer = null;
+    // activer Momo (depuis le guide) : il attend derrière la barre de commande, prêt à proposer un tuto
+    function enable(open) { ensure(); if (open) setOpen(true); }
+    function start(id) {
+        ensure(); setVisible(true); try { if (typeof momoUseTuto === 'function') momoUseTuto(); } catch (e) {}
+        const T = TUTOS.find(t => t.id === id) || TUTOS[0]; applyVoice(T.id, T.steps); STEPS = T.steps; done = []; cele = []; if (T.setup) T.setup();
+        go(0); setOpen(true);
+    }
+    // fin du tuto (ou « changer de tuto ») : Momo reste là et repropose le menu
+    function toMenu() {
+        STEPS = null; done = []; window.tutoGhost = null; try { draw(); } catch (e) {}
+        if (ring) ring.style.display = 'none'; if (tip) tip.style.display = 'none';
+        if (root) { render(); setOpen(true); }
+    }
+    function stop() { menuMsg = ''; if (root && root.isConnected) toMenu(); }
+    // désactiver Momo (depuis le guide) : il disparaît complètement
+    function disable() {
+        clearInterval(timer); timer = null; STEPS = null;
         [root, ring, tip].forEach(e => e && e.remove()); root = null;
         window.tutoGhost = null; try { draw(); } catch (e) {}
         try { canvas.removeEventListener('mousedown', jalClick, true); } catch (e) {}
         window.removeEventListener('resize', place);
     }
-    window.MomoTuto = { start, stop, list: TUTOS, rules: jalRules };
+    function setVisible(v) { if (root) { root.style.display = v ? '' : 'none'; if (!v) { ring.style.display = 'none'; tip.style.display = 'none'; } } }
+    function home() { ensure(); setVisible(true); if (!STEPS) { view = 'home'; menuMsg = ''; render(); } setOpen(true); }
+    window.MomoTuto = { version: 3, start, stop, enable, disable, setVisible, home, enabled: () => !!(root && root.isConnected), list: TUTOS, rules: jalRules, open: () => setOpen(true), collapse: () => setOpen(false), current: () => (root && root.isConnected && STEPS) ? { title: (TUTOS.find(t => t.steps === STEPS) || {}).title, step: idx + 1, n: STEPS.length } : null };
 })();
