@@ -269,6 +269,9 @@
 #mc-momo svg { width:100%; height:100%; filter:drop-shadow(0 4px 6px #0008); }
 #mc-momo:hover { transform:translateY(-6px); }
 #mc-root.open #mc-momo { transform:translateY(-36px); }
+/* réduit et occupé : une petite étiquette dit ce qu'il fait (clic = ouvrir la bulle) */
+#mc-mini { display:none; pointer-events:auto; cursor:pointer; position:absolute; left:84px; bottom:calc(var(--mc-bot, 40px) + 8px); z-index:26; background:#1e3a8a; color:#dbeafe; border:1px solid #3b82f6; border-radius:10px; padding:4px 10px; font-size:12px; white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.4); }
+#mc-root.busy:not(.open) #mc-mini { display:block; }
 #mc-momo.think svg { animation: mc-think .9s ease-in-out infinite; transform-origin:50% 80%; }
 #mc-hint { position:absolute; top:-6px; right:-10px; background:#eab308; color:#111827; font-weight:900; font-size:12px; border-radius:10px; padding:0 6px; line-height:18px; }
 #mc-root.open #mc-hint { display:none; }
@@ -298,12 +301,12 @@
 #mc-panel .mc-h { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#1f2937; border-bottom:1px solid #374151; font-weight:800; color:#fde047; }
 #mc-panel .mc-h button { background:none; border:0; color:#9ca3af; font-size:15px; cursor:pointer; margin-left:8px; } #mc-panel .mc-h button:hover { color:#fff; }
 /* barre de défilement discrète dans les bulles de Momo IA */
-#mc-log, #mc-set { scrollbar-width: thin; scrollbar-color: rgba(167,139,250,.45) transparent; }
-#mc-log::-webkit-scrollbar, #mc-set::-webkit-scrollbar { width: 6px; }
-#mc-log::-webkit-scrollbar-track, #mc-set::-webkit-scrollbar-track { background: transparent; margin: 14px 0; }
-#mc-log::-webkit-scrollbar-thumb, #mc-set::-webkit-scrollbar-thumb { background: rgba(167,139,250,.35); border-radius: 6px; }
-#mc-log::-webkit-scrollbar-thumb:hover, #mc-set::-webkit-scrollbar-thumb:hover { background: rgba(167,139,250,.7); }
-#mc-log::-webkit-scrollbar-button, #mc-set::-webkit-scrollbar-button { display: none; height: 0; }
+#mc-log, #mc-set, #mc-q { scrollbar-width: thin; scrollbar-color: rgba(167,139,250,.45) transparent; }
+#mc-log::-webkit-scrollbar, #mc-set::-webkit-scrollbar, #mc-q::-webkit-scrollbar { width: 6px; }
+#mc-log::-webkit-scrollbar-track, #mc-set::-webkit-scrollbar-track, #mc-q::-webkit-scrollbar-track { background: transparent; margin: 14px 0; }
+#mc-log::-webkit-scrollbar-thumb, #mc-set::-webkit-scrollbar-thumb, #mc-q::-webkit-scrollbar-thumb { background: rgba(167,139,250,.35); border-radius: 6px; }
+#mc-log::-webkit-scrollbar-thumb:hover, #mc-set::-webkit-scrollbar-thumb:hover, #mc-q::-webkit-scrollbar-thumb:hover { background: rgba(167,139,250,.7); }
+#mc-log::-webkit-scrollbar-button, #mc-set::-webkit-scrollbar-button, #mc-q::-webkit-scrollbar-button { display: none; height: 0; }
 #mc-log { flex:1; overflow-y:auto; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
 .mc-m { max-width:92%; padding:7px 10px; border-radius:12px; }
 .mc-m p { margin:0 0 4px; } .mc-m p:last-child { margin-bottom:0; } .mc-m ul { margin:2px 0 4px; padding-left:18px; list-style:disc; } .mc-m li { margin:1px 0; }
@@ -319,6 +322,7 @@
 .mc-in textarea { flex:1; resize:none; background:#1f2937; color:#fff; border:1px solid #4b5563; border-radius:8px; padding:6px 8px; font-size:13px; outline:none; }
 .mc-in textarea:focus { border-color:#eab308; }
 .mc-in button { width:40px; border-radius:8px; border:0; background:#eab308; color:#111827; font-size:16px; font-weight:900; cursor:pointer; } .mc-in button:hover { background:#facc15; }
+.mc-status { color:#c4b5fd; font-style:italic; display:flex; align-items:center; gap:6px; } .mc-status i { display:inline-block; font-style:normal; animation: mcGear 1.4s linear infinite; } .mc-st-t { color:#6b7280; font-size:11px; font-style:normal; }
 .mc-in button.stop { background:#dc2626; color:#fff; font-size:18px; } .mc-in button.stop:hover { background:#ef4444; }
 .mc-ring { position:fixed; z-index:95; pointer-events:none; border:2px solid #eab308; border-radius:8px; box-shadow:0 0 0 4px #eab30844, 0 0 18px #eab308aa; animation: mc-pulse 1s ease-in-out infinite; }
 @keyframes mc-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
@@ -8635,11 +8639,13 @@ ${G.guide}`;
                     <div id="mc-set"></div><div id="mc-log"></div>
                     <div id="mc-sugg"></div>
                     <div class="mc-in"><textarea id="mc-q" rows="2" placeholder="Pose ta question… (Entrée pour envoyer)"></textarea><button type="button" id="mc-send" title="Envoyer" onclick="mcSendBtn()">➤</button></div></div>
-                    <div id="mc-momo" title="Momo, aide de chantier : clique pour lui parler">${MC_SVG}<span id="mc-hint">…</span></div>`;
+                    <div id="mc-momo" title="Momo, aide de chantier : clique pour lui parler">${MC_SVG}<span id="mc-hint">…</span></div><div id="mc-mini" title="Clique pour voir ce que fait Momo"></div>`;
                 (document.getElementById('canvas-container') || document.body).appendChild(r);
                 r.querySelector('#mc-momo').addEventListener('click', () => mcToggle());
+                r.querySelector('#mc-mini').addEventListener('click', () => mcToggle(true));
                 const q = r.querySelector('#mc-q');
                 ['keydown', 'keyup', 'keypress'].forEach(ev => r.addEventListener(ev, e => e.stopPropagation()));
+                q.addEventListener('input', () => { q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight + 2, 130) + 'px'; });
                 q.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); mcSend(); } if (e.key === 'Escape') { e.preventDefault(); mcToggle(false); } });
                 r.addEventListener('mousedown', e => e.stopPropagation());
                 r.addEventListener('wheel', e => e.stopPropagation());
@@ -8669,7 +8675,7 @@ ${G.guide}`;
             setTimeout(mcHint, 0);
             const log = document.getElementById('mc-log'), sg = document.getElementById('mc-sugg'); if (!log) return;
             if (!mcMsgs.length) log.innerHTML = `<div class="mc-m mc-a"><p>Salut ! C'est Momo, version chantier 👷. Pose-moi une question sur MomoCAD ou sur ton plan : je vois tes calques, tes quantités et tes cubatures.</p></div>`;
-            else log.innerHTML = mcMsgs.map((m, mi) => `<div class="mc-m ${m.role === 'user' ? 'mc-u' : 'mc-a'}${m.err ? ' mc-err' : ''}">${m.role === 'user' ? '<p>' + iaEsc(m.text).replace(/\n/g, '<br>') + '</p>' : (m.text || !(m.acts && m.acts.length) ? mcMd(m.text || '…') : '') + mcActs(m, mi)}</div>`).join('');
+            else log.innerHTML = mcMsgs.map((m, mi) => `<div class="mc-m ${m.role === 'user' ? 'mc-u' : 'mc-a'}${m.err ? ' mc-err' : ''}">${m.role === 'user' ? '<p>' + iaEsc(m.text).replace(/\n/g, '<br>') + '</p>' : (m.text || !(m.acts && m.acts.length) ? (m.text ? mcMd(m.text) : (mcBusy && mi === mcMsgs.length - 1 ? '' : mcMd('…'))) : '') + mcActs(m, mi) + (mcBusy && m.role !== 'user' && mi === mcMsgs.length - 1 ? `<p class="mc-status"><i>⚙️</i> <span id="mc-st">${iaEsc(mcSt.txt)}</span> <span id="mc-st-t" class="mc-st-t">${Math.round((Date.now() - mcSt.t0) / 1000)} s</span></p>` : '')}</div>`).join('');
             log.scrollTop = log.scrollHeight;
             if (sg) sg.innerHTML = mcMsgs.length ? '' : ['Résume mon métré', 'Comment je coterais un regard ?', 'Vérifie mon plan avant impression', 'Quelle pente de talus en remblai ?'].map(t => `<button type="button">${t}</button>`).join('');
         }
@@ -8692,6 +8698,20 @@ ${G.guide}`;
         function mcHistTrim() { const u = []; mcHist.forEach((c, k) => { if (c.role === 'user' && c.parts.some(p => p.text)) u.push(k); }); if (u.length > 10) mcHist = mcHist.slice(u[u.length - 10]); }
         // pendant qu'il travaille, le bouton d'envoi devient un carré ■ : un clic arrête tout (requête en cours, autorisations en attente)
         let mcAbort = null;
+        // ce que Momo est en train de faire, affiché tant qu'il n'a rien écrit ; + chien de garde : 90 s sans rien recevoir = on arrête
+        const mcSt = { txt: '', t0: 0, last: 0, timer: null, timedOut: false, paused: 0 };
+        function mcStatus(t) { mcSt.txt = t; mcSt.last = Date.now(); const e = document.getElementById('mc-st'); if (e) e.textContent = t; mcMini(); }
+        function mcMini() {
+            const r = mcEl(); if (r) r.classList.toggle('busy', !!mcBusy);
+            const m = document.getElementById('mc-mini'); if (m) m.textContent = '⚙️ ' + (mcSt.txt || 'Je réfléchis…') + ' ' + Math.round((Date.now() - mcSt.t0) / 1000) + ' s';
+        }
+        function mcStTick() {
+            const sec = Math.round((Date.now() - mcSt.t0) / 1000);
+            const e = document.getElementById('mc-st-t'); if (e) e.textContent = sec + ' s'; mcMini();
+            const asking = mcMsgs.some(m => (m.acts || []).some(x => x.answer));
+            if (mcBusy && !asking && Date.now() - mcSt.last > 150000) { mcSt.timedOut = 'silence'; mcStop(); }
+            else if (mcBusy && !asking && Date.now() - mcSt.t0 - mcSt.paused > 300000) { mcSt.timedOut = 'long'; mcStop(); }
+        }
         function mcSendBtn() { if (mcBusy) mcStop(); else mcSend(); }
         function mcStop() {
             if (!mcBusy) return; mcStopped = true; try { if (mcAbort) mcAbort.abort(); } catch (e) {}
@@ -8702,15 +8722,16 @@ ${G.guide}`;
         async function mcSend() {
             const q = document.getElementById('mc-q'); if (!q || mcBusy) return; const text = q.value.trim(); if (!text) return;
             if (!iaCfg.key) { mcSettings(true); return; }
-            q.value = ''; mcMsgs.push({ role: 'user', text }); const a = { role: 'assistant', text: '', acts: [] }; mcMsgs.push(a); mcBusy = true; mcRenderLog(); mcHint();
+            q.value = ''; q.style.height = ''; mcMsgs.push({ role: 'user', text }); const a = { role: 'assistant', text: '', acts: [] }; mcMsgs.push(a); mcBusy = true; mcRenderLog(); mcHint();
             const momo = document.getElementById('mc-momo'); if (momo) momo.classList.add('think');
             mcHist.forEach(c => { if (c.parts.some(p => p.inlineData)) c.parts = c.parts.map(p => p.inlineData ? { text: '[image déjà regardée plus haut : la regarder à nouveau si besoin]' } : p); });
             mcHist.push({ role: 'user', parts: [{ text }] }); mcHistTrim();
             const h0 = mcHist.length - 1; mcStopped = false; mcAbort = new AbortController(); mcBtnUpd();
+            mcSt.t0 = Date.now(); mcSt.paused = 0; mcSt.timedOut = false; mcStatus('J\'envoie ta question…'); clearInterval(mcSt.timer); mcSt.timer = setInterval(mcStTick, 1000);
             try {
                 let before = '';
                 for (let round = 0; round < 20; round++) {   // plusieurs tours : il peut tracer en plusieurs morceaux, regarder le résultat et corriger
-                    const sys = iaSystem() + '\n\n=== RÉSUMÉ DU PLAN EN COURS ===\n' + iaPlan();
+                    const sys = iaSystem() + '\n\n=== RÉSUMÉ DU PLAN EN COURS ===\n' + iaPlan(); if (round) mcStatus('Je réfléchis… (étape ' + (round + 1) + ')');
                     const r = await (iaCfg.provider === 'claude' ? iaClaude : iaGemini)(mcHist, sys, iaCfg.perm === 'off' ? (agImgs().length ? AG_TOOLS.filter(t => t.name === 'regarder_image') : null) : AG_TOOLS, (t) => { a.text = before + t; mcRenderLog(); });
                     mcHist.push({ role: 'model', parts: r.parts });
                     before = a.text ? a.text + '\n' : '';
@@ -8723,9 +8744,9 @@ ${G.guide}`;
                 }
                 if (!a.text.trim() && !a.acts.length) a.text = '…';
             } catch (e) {
-              if (mcStopped || e.name === 'AbortError' || e.message === '__stop') { a.text = (a.text ? a.text + '\n' : '') + '⏹ Arrêté.' + (a.acts.some(x => x.state === 'ok') ? ' Ce qui a déjà été fait reste sur le plan (Ctrl+Z pour l\'annuler).' : ''); mcHist = mcHist.slice(0, h0); }
+              if (mcStopped || e.name === 'AbortError' || e.message === '__stop') { a.text = (a.text ? a.text + '\n' : '') + (mcSt.timedOut === 'silence' ? '⏱ Pas de réponse depuis 2 min 30 : le service est peut-être saturé, ou ton quota est atteint. Réessaie dans un moment, ou change de modèle dans ⛯ Paramètres › Momo IA.' : mcSt.timedOut === 'long' ? '⏱ J\'ai travaillé 5 minutes sans finir : je m\'arrête là. Ce qui est tracé reste sur le plan. Demande-moi la suite en plus petits morceaux (par exemple « continue le décalque à droite »).' : '⏹ Arrêté.') + (a.acts.some(x => x.state === 'ok') ? ' Ce qui a déjà été fait reste sur le plan (Ctrl+Z pour l\'annuler).' : ''); mcHist = mcHist.slice(0, h0); }
               else { a.text = (a.text ? a.text + '\n' : '') + '⚠️ ' + e.message; a.err = true; mcHist = mcHist.filter(c => !(c.role === 'user' && c.parts.some(p => p.text === text))); if (/Clé API refusée|Aucune clé/.test(e.message)) setTimeout(() => mcSettings(true), 1600); } }
-            mcBusy = false; mcAbort = null; mcBtnUpd(); if (momo) momo.classList.remove('think'); if (!mcOpen) mcNews = true; mcRenderLog(); mcHint();
+            clearInterval(mcSt.timer); mcBusy = false; mcMini(); mcAbort = null; mcBtnUpd(); if (momo) momo.classList.remove('think'); if (!mcOpen) mcNews = true; mcRenderLog(); mcHint();
         }
 
         // =====================================================================
@@ -8832,11 +8853,11 @@ ${G.guide}`;
             const n = call.name, a = call.args || {};
             let desc; try { desc = agDescr(n, a); } catch (e) { desc = n; }
             msg.acts = msg.acts || [];
-            const act = { desc, state: 'wait' }; msg.acts.push(act); mcRenderLog();
+            const act = { desc, state: 'wait' }; msg.acts.push(act); mcRenderLog(); mcStatus(n === 'regarder_image' ? 'Je regarde l\'image…' : 'Je travaille sur ton plan…');
             const needAsk = iaCfg.perm === 'ask' && !agAllowSession && !['selectionner', 'regarder_image'].includes(n);
             if (needAsk) {
-                act.state = 'ask'; mcRenderLog();
-                const v = await new Promise(res => { act.answer = res; });
+                act.state = 'ask'; mcRenderLog(); const tw = Date.now();
+                const v = await new Promise(res => { act.answer = res; }); mcSt.paused += Date.now() - tw; mcSt.last = Date.now();
                 if (v === 'session') agAllowSession = true;
                 if (v === 'no') { act.state = 'no'; mcRenderLog(); return { ok: false, refuse: 'L\'utilisateur a refusé cette modification.' }; }
             }
@@ -8853,11 +8874,12 @@ ${G.guide}`;
             try { res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(iaCfg.model) + ':streamGenerateContent?alt=sse', { method: 'POST', signal: mcAbort ? mcAbort.signal : undefined, headers: { 'content-type': 'application/json', 'x-goog-api-key': iaCfg.key }, body: JSON.stringify(body) }); }
             catch (e) { if (e.name === 'AbortError') throw e; throw new Error('Pas de connexion au service (Internet coupé, ou réseau qui bloque l\'accès).'); }
             if (!res.ok) { let b = null; try { b = await res.json(); } catch (e) {} throw new Error(iaErr(res.status, b)); }
+            if (!/étape/.test(mcSt.txt)) mcStatus('Je réfléchis…'); else mcSt.last = Date.now();
             const parts = [], calls = []; let text = '';
             const rd = res.body.getReader(), dec = new TextDecoder(); let buf = '';
             for (;;) {
                 const { value, done } = await rd.read(); if (done) break;
-                buf += dec.decode(value, { stream: true }); let i;
+                buf += dec.decode(value, { stream: true }); let i; mcSt.last = Date.now();
                 while ((i = buf.indexOf('\n')) >= 0) {
                     const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
                     if (!line.startsWith('data:')) continue; let j; try { j = JSON.parse(line.slice(5).trim()); } catch (e) { continue; }
@@ -8895,18 +8917,20 @@ ${G.guide}`;
             try { res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal: mcAbort ? mcAbort.signal : undefined, headers: { 'content-type': 'application/json', 'x-api-key': iaCfg.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: JSON.stringify(body) }); }
             catch (e) { if (e.name === 'AbortError') throw e; throw new Error('Pas de connexion au service (Internet coupé, ou réseau qui bloque l\'accès).'); }
             if (!res.ok) { let b = null; try { b = await res.json(); } catch (e) {} throw new Error(iaErr(res.status, b)); }
+            if (!/étape/.test(mcSt.txt)) mcStatus('Je réfléchis…'); else mcSt.last = Date.now();
             const blocks = []; let text = '';
             const rd = res.body.getReader(), dec = new TextDecoder(); let buf = '';
             for (;;) {
                 const { value, done } = await rd.read(); if (done) break;
-                buf += dec.decode(value, { stream: true }); let i;
+                buf += dec.decode(value, { stream: true }); let i; mcSt.last = Date.now();
                 while ((i = buf.indexOf('\n')) >= 0) {
                     const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
                     if (!line.startsWith('data:')) continue; let j; try { j = JSON.parse(line.slice(5).trim()); } catch (e) { continue; }
+                    if (j.type === 'content_block_start' && j.content_block && j.content_block.type === 'tool_use') mcStatus(/tracer/.test(j.content_block.name) ? 'Je prépare un tracé…' : 'Je prépare une action…');
                     if (j.type === 'content_block_start') blocks[j.index] = Object.assign({ json: '' }, j.content_block);
                     else if (j.type === 'content_block_delta') { const b = blocks[j.index]; if (!b) continue;
                         if (j.delta.type === 'text_delta') { b.text = (b.text || '') + j.delta.text; text += j.delta.text; if (onDelta) onDelta(text); }
-                        else if (j.delta.type === 'input_json_delta') b.json += j.delta.partial_json; }
+                        else if (j.delta.type === 'input_json_delta') { b.json += j.delta.partial_json; if (/tracer/.test(b.name || '')) { const n = (b.json.match(/"x"/g) || []).length; if (n) mcStatus('Je prépare un tracé… ' + n + ' points'); } } }
                     else if (j.type === 'error') throw new Error('Erreur du service : ' + ((j.error && j.error.message) || 'inconnue'));
                 }
             }
