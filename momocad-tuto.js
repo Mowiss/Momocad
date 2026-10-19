@@ -456,7 +456,7 @@
     const HUMAN = {
         base: {
             'Bonjour, je suis Momo !': { why: `Salut ! Bon, alors : aujourd'hui on apprend les outils de base, mais pas avec des exercices tout secs. On va <b>redessiner le logo MOMOCAD</b>, lettre par lettre, et chaque lettre va t'apprendre un outil.`,
-                do: `Regarde le plan : le modèle est tracé en <b>pointillés</b>. En <b style="color:#fbbf24">jaune</b>, ce qu'on dessine maintenant ; en <b style="color:#4ade80">vert</b>, ce qui est déjà fait. Les points jaunes <b>attirent ta souris</b> : vise-les.<br>Je coche l'étape ✓ seulement quand ton dessin colle au modèle. Ensuite c'est toi qui avances avec ${K('▶')}, à ton rythme.<br>La croix ✕ me replie derrière la barre de commande : clique sur ma toque pour me rouvrir. L'épingle garde ma bulle par-dessus tous les menus.`,
+                do: `Regarde le plan : le modèle est tracé en <b>pointillés</b>. En <b style="color:#fbbf24">jaune</b>, ce qu'on dessine maintenant ; en <b style="color:#4ade80">vert</b>, ce qui est déjà fait. Les points jaunes <b>attirent ta souris</b> : vise-les.<br>Je coche l'étape ✓ seulement quand ton dessin colle au modèle. Ensuite c'est toi qui avances avec ${K('▶')}, à ton rythme.<br>En haut de ma bulle : la <b>maison</b> revient au choix (tuto ou question), l'<b>épingle</b> fige ma bulle par-dessus tous les menus, le <b>trait</b> la réduit : je me cache derrière la barre de commande, clique sur mon chapeau pour me rouvrir.`,
                 more: `Le mieux, c'est de partir d'un plan vierge. Et ici, tout se mesure en mètres.` },
             'Se déplacer dans le plan': { why: `Avant de dessiner, on apprend à regarder. Note bien ces trois gestes, tu vas t'en servir tout le temps.`,
                 do: `<ul><li><b>molette</b> : tu zoomes, autour du curseur ;</li><li><b>clic molette maintenu</b> : tu fais glisser le plan ;</li><li><b>double-clic molette</b> : tu vois tout.</li></ul>Essaie un peu, puis reviens : le logo t'attend au milieu de l'écran.` },
@@ -948,7 +948,8 @@
         if (a === 'pin') { pinned = !pinned; root.classList.toggle('pinned', pinned); render(); return; }
         if (a === 'x') return setOpen(false);
         if (a.startsWith('t:')) return start(a.slice(2));   // la croix replie Momo
-        if (a === 'list' || a === 'home') { view = a; menuMsg = ''; return render(); }
+        if (a === 'home') { menuMsg = ''; view = 'home'; if (STEPS) return toMenu(); return render(); }
+        if (a === 'list') { view = a; menuMsg = ''; return render(); }
         if (a === 'ia') { if (typeof momoGoIA === 'function') momoGoIA(); return; }
         if (!STEPS) return;
         if (a === 'prev') return go(Math.max(0, idx - 1));
@@ -960,15 +961,23 @@
     const BRAVO = ['Bravo, c\'est exactement ça !', 'Nickel !', 'Bien joué !', 'Impeccable !', 'Trop fort !', 'Yes, parfait !', 'Joli coup !', 'C\'est tout bon !'];
     const LVL_COL = { 'Débutant': '#15803d', 'Initié': '#0369a1', 'Expert': '#b45309', 'Maître': '#b91c1c', 'Seigneur': '#6d28d9', 'Dieu': 'linear-gradient(90deg,#a16207,#eab308)' };
     const PIN_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/></svg>';
-    const headBtns = (xTitle) => `<span style="display:flex;gap:6px;align-items:center"><button class="mt-x mt-pin${pinned ? ' on' : ''}" data-a="pin" title="${pinned ? 'Désépingler' : 'Épingler : la bulle reste par-dessus tous les menus'}">${PIN_SVG}</button><button class="mt-x" data-a="x" title="${xTitle}">✕</button></span>`;
+    const HOME_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>', MIN_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 18h14"/></svg>';
+    // en haut de la bulle : HOME (retour au choix de Momo) · PIN (figer la bulle par-dessus tout) · RÉDUIRE (Momo se cache derrière la barre)
+    const headBtns = (xTitle) => `<span style="display:flex;gap:6px;align-items:center"><button class="mt-x" data-a="home" title="Retour au choix : tuto ou question">${HOME_SVG}</button><button class="mt-x mt-pin${pinned ? ' on' : ''}" data-a="pin" title="${pinned ? 'Désépingler la bulle' : 'Épingler : la bulle reste figée par-dessus tous les menus'}">${PIN_SVG}</button><button class="mt-x" data-a="x" title="${xTitle}">${MIN_SVG}</button></span>`;
     // pas de tuto en cours : Momo propose de choisir un tuto, depuis sa bulle
+    let hatNow = '';
+    function hatSet(h) {
+        root.classList.toggle('cap', h === 'cap');
+        if (hatNow && hatNow !== h && root.style.display !== 'none' && typeof momoTransform === 'function') momoTransform(root.querySelector('#mt-dock'));
+        hatNow = h;
+    }
     function renderMenu() {
-        root.classList.toggle('cap', view === 'home');   // à l'accueil, Momo porte sa casquette ; pour les tutos, sa toque
+        hatSet(view === 'home' ? 'cap' : 'toque');   // à l'accueil, Momo porte sa casquette ; pour les tutos, sa toque
         bubble.classList.remove('done');
         const dot = root.querySelector('#mt-dot'); if (dot) { dot.textContent = '?'; dot.classList.remove('ok'); }
         const E = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
         if (view === 'home') {
-            bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Momo</span>${headBtns('Replier Momo')}</div>
+            bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Momo</span>${headBtns('Réduire la bulle')}</div>
                 <div class="mt-t">${menuMsg || 'Salut, moi c\'est Momo ! 👋'}</div>
                 <div class="mt-why">Qu'est-ce qu'on fait ensemble ?</div>
                 <div class="mt-menu">
@@ -977,7 +986,7 @@
                 </div>`;
             place(); return;
         }
-        bubble.innerHTML = `<div class="mt-h"><span class="mt-n"><button class="mt-x mt-menu-b" data-a="home" title="Retour">←</button> Les tutos</span>${headBtns('Replier Momo')}</div>
+        bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Les tutos</span>${headBtns('Réduire la bulle')}</div>
             <div class="mt-t">${menuMsg || 'Quel tuto on fait ? 🎓'}</div>
             <div class="mt-why">On dessine pour de vrai, une action à la fois : je te montre le bouton, tu fais le geste, je coche ✓. Avec moi, tu vas devenir un vrai <b>cador de la DAO</b>.</div>
             <div class="mt-menu">${TUTOS.map(t => `<button type="button" class="mt-tu" data-a="t:${t.id}"><span class="mt-lvl" style="background:${LVL_COL[t.level] || '#374151'}">${E(t.level)}</span><span class="mt-tt">${E(t.title)}</span><span class="mt-td">${t.steps.length} étapes · ${t.minutes} min</span></button>`).join('')}</div>`;
@@ -985,7 +994,7 @@
     }
     function render() {
         if (!STEPS) return renderMenu();
-        root.classList.remove('cap');
+        hatSet('toque');
         const s = STEPS[idx], n = STEPS.length, ok = !!done[idx], hasWait = typeof s.wait === 'function';
         const ready = ok || !hasWait;
         const btns = [];
@@ -997,7 +1006,7 @@
         const state = hasWait ? (ok ? `<div id="mt-state" class="ok">✓ ${BRAVO[idx % BRAVO.length]} Quand tu es prêt, clique ▶ et on continue.</div>` : `<div id="mt-state" class="wait">⏳ Vas-y, je regarde… je coche dès que c'est bon.</div>`) : '';
         bubble.classList.toggle('done', ok);
         const dot = root.querySelector('#mt-dot'); if (dot) { dot.textContent = ok ? '✓' : '…'; dot.classList.toggle('ok', ok); }
-        bubble.innerHTML = `<div class="mt-h"><span class="mt-n"><button class="mt-x mt-menu-b" data-a="menu" title="Changer de tuto">☰</button> Étape ${idx + 1} / ${n}</span>${headBtns('Replier Momo (le tuto continue)')}</div>
+        bubble.innerHTML = `<div class="mt-h"><span class="mt-n">Étape ${idx + 1} / ${n}</span>${headBtns('Réduire la bulle (le tuto continue)')}</div>
             <div class="mt-t">${ok ? '<span class="mt-ck">✓</span>' : ''}${s.title}</div>
             ${s.why ? `<div class="mt-why">${s.why}</div>` : ''}
             ${doHtml}
