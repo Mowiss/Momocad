@@ -326,7 +326,7 @@
 .mc-drawer-p { position: fixed !important; top: var(--mc-top, 0px) !important; right: 0 !important; bottom: var(--mc-bot, 0px) !important; left: auto !important; margin: 0 !important;
   width: min(var(--dw, 760px), 94vw) !important; max-width: none !important; height: auto !important; max-height: none !important; overflow: auto; z-index: 75 !important;
   border-radius: 0 !important; border-right: 0 !important; border-top: 0 !important; border-bottom: 0 !important; box-shadow: -18px 0 50px rgba(0,0,0,.55) !important; animation: mcDrawerIn .26s cubic-bezier(.2,.8,.2,1); }
-#help-modal { --dw: 1040px; } #topo-modal { --dw: 1040px; } #basemap-modal { --dw: 960px; } #crop-modal { --dw: 960px; } #layer-modal { --dw: 900px; }
+#help-modal { --dw: 1040px; } #topo-modal { --dw: 1040px; } #selparam-modal { --dw: 560px; } #bgimg-modal { --dw: 560px; } #basemap-modal { --dw: 960px; } #crop-modal { --dw: 960px; } #layer-modal { --dw: 900px; }
 #t2-panel { --dw: 380px; } #snap-modal { --dw: 420px; } #menu-dxf { --dw: 420px; } #menu-blocks { --dw: 520px; }
 #layer-modal #layers-list { max-height: none !important; }
 #menu-blocks:not(.hidden) { display: flex !important; flex-direction: column; }
@@ -2927,6 +2927,8 @@ setTimeout(done,3600);
             const a = document.getElementById('tm-actions'); a.innerHTML = '';
             (actions || []).forEach(([label, fn, primary]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = fn;
                 b.style.cssText = 'border:0;border-radius:6px;padding:7px 14px;cursor:pointer;color:#fff;background:' + (primary ? '#2563eb' : '#4b5563'); a.appendChild(b); });
+            // largeur du tiroir selon le contenu : grands tableaux et graphiques en large, petits réglages en étroit
+            document.getElementById('topo-modal').style.setProperty('--dw', /Métré|Cubatures|Profil/.test(title) ? '1040px' : '460px');
             document.getElementById('topo-modal').style.display = 'flex';
         }
         function closeTopoModal() { document.getElementById('topo-modal').style.display = 'none'; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
