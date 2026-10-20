@@ -510,7 +510,7 @@
                   [`Tape ${K('2,8')} puis ${SP} : la parallèle d'en face.`, null, '', () => clHas('h', 2.8)],
                   [`${K('Échap')} pour changer d'arête, puis clique le <b>bord gauche</b> de la dalle.`, null, '', () => { const d = gv(() => CL2.dir); return clHas('v', 0.2) || (!!d && Math.abs(d.x) < 1e-6); }],
                   [`Souris dans la dalle, tape ${K('0,2')} ${SP}, puis ${K('3,8')} ${SP}.`, null, '', () => clHas('v', 0.2) && clHas('v', 3.8)]],
-          more: `${K('Suppr')} dans l'outil efface tous les traits d'un coup. Ils ne sont pas enregistrés dans le plan : ce sont des outils, pas des dessins.` }),
+          more: `Avec ${K('Maj')} enfoncée au clic, le trait est <b>perpendiculaire</b> à l'arête. Pour effacer : ${K('Ctrl')} + clic sur un trait, ${K('Suppr')} pour tous, ou la pastille « ✕ traits de construction » en haut du plan. Ils ne sont pas enregistrés dans le plan : ce sont des outils, pas des dessins.` }),
         PS({ title: 'Les poteaux', ghost: () => [[0.2, 0.2], [3.8, 0.2], [3.8, 2.8], [0.2, 2.8]].map(c => gc(c, 0.1, { snap: [W(...c)] })),
           why: `Les quatre croisements des traits sont eactement là où vont les poteaux : il suffit de cliquer, l'accroche fait le reste.`,
           items: [['Clique sur l\'outil <b>Poteau</b>.', 'btn-poteau', 'Poteau<br><small>ou POT + Espace</small>', () => G.mode() === 'poteau'],
