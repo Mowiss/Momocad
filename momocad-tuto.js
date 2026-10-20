@@ -73,6 +73,8 @@
     function setupExercise(x0, x1, y0, y1, padR) {   // padR : place gardée à droite (rosace, fenêtres d'outils)
         try {
             if (typeof setMode === 'function') setMode('select-box');
+            // les exercices se font en mètres : on y passe si le dessin était dans une autre unité
+            if (typeof printSettings !== 'undefined' && printSettings.unit !== 'm') { printSettings.unit = 'm'; applyUnitSettings(); try { refreshGridField(); updateCursorCoords(); } catch (e) {} }
             // zone libre : à gauche de la bulle de Momo (≈ 560 px à droite)
             const Wd = canvas.width, Hd = canvas.height, zw = Math.max(300, Wd - 460 - (padR || 150)), sx = 460 + zw / 2,   // entre la bulle de Momo (à gauche) et les fenêtres d'outils (à droite)
             sy = Hd * 0.45, z = Math.min(zw / mw(x1 - x0), (Hd * 0.8) / mw(y1 - y0));
@@ -93,7 +95,7 @@
     const BASE = [
         { title: 'Bonjour, je suis Momo !', why: `On va apprendre les outils de base <b>en dessinant pour de vrai</b> : ensemble, on va redessiner le <b>logo MOMOCAD</b>, lettre par lettre. Chaque outil sert à quelque chose dans le logo.`,
           do: `Le modèle est tracé en <b>pointillés</b> sur le plan : en <b style="color:#fbbf24">jaune</b> ce qu'il faut dessiner maintenant, en <b style="color:#4ade80">vert</b> ce qui est fait. Ses points jaunes <b>s'accrochent</b> : visez-les.<br>L'étape se coche ✓ seulement si votre dessin correspond au modèle. Vous avancez avec ${K('▶')}.`,
-          more: `Un plan vierge est idéal. Les longueurs sont en mètres.` },
+          more: `Un plan vierge est idéal. Les longueurs sont en mètres (le tuto règle l'unité du dessin sur m).` },
         { title: 'Se déplacer dans le plan', why: `Avant de dessiner, il faut savoir regarder : zoomer sur un détail, revenir à l'ensemble.`,
           do: `<ul><li><b>molette</b> = zoomer, autour du curseur ;</li><li><b>clic molette maintenu</b> = faire glisser le plan ;</li><li><b>double-clic molette</b> = tout voir.</li></ul>Le modèle du logo est déjà au milieu de l'écran.` },
         // M : demi-M, miroir, joindre
@@ -265,8 +267,8 @@
           items: [['Clique sur l\'onglet <b>Plan</b>, à gauche.', tabSel('plan'), 'Onglet Plan', () => G.psTab() === 'plan'],
                   ['Monte à <b>3 décimales</b> avec le bouton <b>+</b>. Regarde la case verte : elle affiche maintenant le millimètre.', '#cartouche-modal button[onclick="psDecimals(1)"]', '+ : une décimale de plus', () => P.saw3],
                   ['Redescends à <b>2 décimales</b> avec le bouton <b>−</b> : le centimètre.', '#cartouche-modal button[onclick="psDecimals(-1)"]', '− : une décimale de moins', () => G.psTab() === 'plan' && pv('ps-decimals') === '2']],
-          more: `Mon conseil : <b>2 décimales</b> (le centimètre) pour la VRD et le terrassement, <b>3</b> (le millimètre) pour la topo ou un ouvrage. Au-delà, on se noie dans les chiffres. Et toutes les longueurs sont en <b>mètres</b> : aucune unité à régler.` }),
-        PS({ title: 'Plan : la grille', why: `Juste en dessous, le <b>carreau de la grille</b> : l'écart entre deux traits du quadrillage du fond, en mètres. C'est un repère pour l'œil, rien de plus : la grille ne force pas tes clics (ça, c'est le travail des accroches). Et MomoCAD est malin : quand tu dézoomes et que les carreaux deviennent trop petits à l'écran, il n'en dessine plus qu'un sur dix.`,
+          more: `Mon conseil : <b>2 décimales</b> (le centimètre) pour la VRD et le terrassement, <b>3</b> (le millimètre) pour la topo ou un ouvrage. Au-dessus, la ligne <b>Unité du dessin</b> (m, cm ou mm) dit ce que vaut 1 unité tracée : on reste en <b>m</b> pour ce tuto.` }),
+        PS({ title: 'Plan : la grille', why: `Juste en dessous, le <b>carreau de la grille</b> : l'écart entre deux traits du quadrillage du fond, dans l'unité du dessin. C'est un repère pour l'œil, rien de plus : la grille ne force pas tes clics (ça, c'est le travail des accroches). Et MomoCAD est malin : quand tu dézoomes et que les carreaux deviennent trop petits à l'écran, il n'en dessine plus qu'un sur dix.`,
           items: [['Clique dans la case <b>Carreau de la grille</b>, efface ce qu\'il y a, et tape <b>1</b> : un carreau d\'un mètre, pratique pour un parking ou une voirie.', '#cartouche-modal #ps-grid', 'Carreau de la grille : tape 1', () => G.psTab() === 'plan' && pnum('ps-grid') === 1]],
           more: `Sur un plan de masse, 5 ou 10 m conviennent aussi. Ce réglage s'appliquera quand on validera.` }),
         PS({ title: 'Impression : la feuille', why: `Onglet <b>Impression</b> : ce sont les réglages de l'<b>impression rapide</b>, le bouton appareil photo en haut de l'écran. Tu choisis le <b>format</b> de la feuille, son <b>orientation</b> et le <b>fichier</b> qui sort. À droite, l'aperçu te montre la feuille avec son cartouche.`,
@@ -410,67 +412,9 @@
         { title: 'Maître du terrassement !', why: `Levé complété, relief lu, plateforme calée à 102,00, talus réglés, structure, cubatures, profil et métré chiffré : le circuit complet d'une étude de terrassement.`, more: `Prochain tuto : <b>La modélisation 3D</b> (niveau Seigneur).`, last: true },
     ];
 
-    // ===================================================================== 5. SEIGNEUR : un regard en béton
-    // modèle (m) : dalle 0..2 × 0..2 (0,20) ; regard centre 1,1 r 0,60 h 1,50 paroi 0,10 ; profil du couvercle 4..4,7 × 0..0,15, axe x = 4 ;
-    //              bordure en U ; rampe -2,5..-1 × 0..2 (0,15) inclinée
-    const DALLE = RECT(0, 0, 2, 2), RAMPE = RECT(-2.5, 0, -1, 2), PROF = RECT(4, 0, 4.7, 0.15), BORD = [[-0.5, 2.5], [-0.5, -0.5], [2.5, -0.5], [2.5, 2.5]];
-    const dalle = () => solidPoly(DALLE, 'box'), regard = () => solidCirc('tube', [1, 1], 0.6), couv = () => solidCirc('rev', [1, 1], 0.7), rampe = () => solidPoly(RAMPE, 'box');
-    const topOf = (s) => zOf(s) + ((s && s.solid && +s.solid.H) || 0);
-    const MODEL = [
-        { title: 'La modélisation 3D', why: `Niveau <b>seigneur</b> : on passe en volume avec un vrai ouvrage, <b>un regard en béton</b> : sa dalle, son anneau, son couvercle, la bordure autour et une petite rampe d'accès. Utile pour visualiser, métrer en m³ ou imprimer en 3D.`,
-          do: `Le modèle est en pointillés sur le plan, vu de dessus. Chaque étape se coche quand le volume est juste : bonne place, bonne taille, bonne hauteur.` },
-        { title: 'La palette Modélisation', target: '.pal[data-pal="model"] .pal-h', tip: 'Palette Modélisation', why: `Elle est repliée au démarrage pour ne pas encombrer l'écran.`, do: `Cliquez son titre pour la déplier.`, wait: () => G.palOpen('model') },
-        { title: 'La dalle de fond', target: 'btn-solid-box', tip: 'Pavé<br><small>ou PA + Espace</small>', ghost: () => [gp(DALLE, true, { label: () => U(2) + ' × ' + U(2) + ', épaisseur 0,20', lp: W(2, 2), snap: [W(0, 0)] })],
-          why: `Le <b>pavé</b> est le volume le plus simple : un massif, une dalle, un socle. On le dessine comme un rectangle, puis on lui donne sa hauteur.`,
-          do: () => ol('Outil <b>Pavé</b>, cliquez le coin jaune.', `Tapez ${K(U(2))} ${SP} puis ${K(U(2))} ${SP}.`, `Dans la fenêtre : hauteur ${K('0,2')}, <b>Appliquer</b>.`),
-          wait: () => { const d = dalle(); return !!d && mmNear(+d.solid.H, 200); } },
-        { title: 'L\'anneau du regard', props: true, target: 'btn-solid-tube', tip: 'Tube<br><small>ou TU + Espace</small>', ghost: () => [gc([1, 1], 0.6, { label: () => 'rayon ' + U(0.6) + ' · h 1,50 · paroi 0,10', lp: W(1.6, 1.6) })],
-          why: `Le <b>tube</b> est un cylindre creux : un regard, une buse, un fourreau. Son volume de béton s'affiche dans les propriétés.`,
-          do: () => ol('Outil <b>Tube</b>, cliquez le centre jaune.', `Tapez le rayon ${K(U(0.6))} ${SP}.`, `Dans la fenêtre : hauteur ${K('1,5')}, épaisseur de paroi ${K('0,1')}, <b>Appliquer</b>.`),
-          wait: () => { const t = regard(); return !!t && mmNear(+t.solid.H, 1500) && mmNear(+t.solid.e, 100); } },
-        { title: 'Poser le regard sur sa dalle', target: 'btn-stack', tip: 'Poser sur<br><small>ou PS + Espace</small>', ghost: () => [garrow([1, 1.6], [1.7, 0.3], { label: 'le regard… sur la dalle', lp: W(1.7, 0.3) })],
-          why: `Pour l'instant le regard et la dalle partent du même niveau : ils se traversent. <b>Poser sur</b> cale un objet pile sur un autre, sans calculer de hauteur.`,
-          do: ol('Outil <b>Poser sur</b>.', 'Cliquez le <b>bord du regard</b> (l\'objet à poser).', 'Cliquez la <b>dalle</b>, dans un coin, hors du regard.'),
-          wait: () => { const d = dalle(), t = regard(); return !!d && !!t && mmNear(zOf(t), topOf(d)); } },
-        { title: 'Le couvercle : sa demi-coupe', target: 'btn-rect', tip: 'Rectangle', ghost: () => [gp(PROF, true, { label: () => U(0.7) + ' × ' + U(0.15), lp: W(4.7, 0.15), snap: [W(4, 0)] })],
-          why: `Un objet rond se dessine par sa <b>demi-coupe</b> : la moitié de sa section, vue de côté. Ici le couvercle : 0,70 de rayon (il déborde de l'anneau) et 0,15 d'épaisseur.`,
-          do: () => ol('Outil <b>Rectangle</b>, cliquez le coin jaune.', `Tapez ${K(U(0.7))} ${SP} puis ${K(U(0.15))} ${SP}.`), wait: () => !!polyOf(PROF, true) },
-        { title: 'Le couvercle : la révolution', target: 'btn-revolve', tip: 'Révolution<br><small>ou RV + Espace</small>', ghost: () => [gl([4, -0.4], [4, 0.6], { label: 'axe', lp: W(4, 0.6), snap: [W(4, -0.4)] }), gc([1, 1], 0.7, { label: 'posé ici', lp: W(1, 1.8), snap: [W(1, 1)] })],
-          why: `La <b>révolution</b> fait tourner la demi-coupe autour d'un axe vertical : on obtient un volume rond, même compliqué (regard avec feuillure, cuve, poteau).`,
-          do: ol('Outil <b>Révolution</b>, cliquez le rectangle.', 'Cliquez le point jaune de l\'<b>axe</b> (le bord gauche de la coupe).', 'Cliquez le <b>centre du regard</b> : le couvercle s\'y pose.'), more: `Une fois le volume créé, la demi-coupe ne sert plus : on peut l'effacer.`,
-          wait: () => !!couv() },
-        { title: 'Monter le couvercle', target: 'btn-elevate', tip: 'Élever<br><small>ou EL + Espace</small>', ghost: () => [gc([1, 1], 0.7, { label: '+ 1,70 m', lp: W(1.7, 1.7), snap: [] })],
-          why: `Le couvercle est né au pied du regard. <b>Élever</b> monte ou descend un objet d'une hauteur précise : 0,20 de dalle + 1,50 d'anneau = <b>1,70</b>.`,
-          do: ol('Sélectionnez le couvercle (clic sur son bord).', `Outil <b>Élever</b> : tapez ${K('1,7')} puis ${SP}.`),
-          wait: () => { const t = regard(), k = couv(); return !!t && !!k && mmNear(zOf(k), topOf(t)); } },
-        { title: 'Le tracé de la bordure', target: 'btn-pline', tip: 'Polyligne', ghost: () => [gp(BORD, false, { label: '4 points, puis Espace', lp: W(2.5, 2.5) })],
-          why: `Une bordure entoure le regard sur trois côtés. On dessine d'abord son <b>tracé</b>, comme une ligne au sol.`,
-          do: ol('Outil <b>Polyligne</b>.', 'Cliquez les 4 points jaunes dans l\'ordre, puis ' + SP + '.'), wait: () => !!polyOf(BORD, false) },
-        { title: 'La bordure : le balayage', target: 'btn-sweep', tip: 'Balayage<br><small>ou BA + Espace</small>', ghost: () => [gp(BORD, false)],
-          why: `Le <b>balayage</b> fait suivre un profil le long d'un tracé : bordure de trottoir, caniveau, tuyau. Le volume de béton est calculé.`,
-          do: ol('Outil <b>Balayage</b>, cliquez la polyligne : une bordure la suit.', 'Dans la fenêtre, gardez la bordure <b>T2</b> ou essayez un autre profil.'), wait: () => { const p = polyOf(BORD, false); return !!p && !!p.sweep; } },
-        { title: 'La rampe d\'accès', target: 'btn-solid-box', tip: 'Pavé', ghost: () => [gp(RAMPE, true, { label: () => U(1.5) + ' × ' + U(2) + ', épaisseur 0,15', lp: W(-2.5, 2.3), snap: [W(-2.5, 0)] })],
-          why: `Une petite dalle à côté du regard, pour y accéder. Encore un pavé.`,
-          do: () => ol('Outil <b>Pavé</b>, cliquez le coin jaune.', `Tapez ${K(U(1.5))} ${SP} puis ${K(U(2))} ${SP}.`, `Hauteur ${K('0,15')}, <b>Appliquer</b>.`),
-          wait: () => { const r = rampe(); return !!r && mmNear(+r.solid.H, 150); } },
-        { title: 'Pencher la rampe', target: 'btn-tilt', tip: 'Incliner<br><small>ou IN + Espace</small>', ghost: () => [gp(RAMPE, true, { label: 'inclinaison 8°', lp: W(-2.5, 2.3), snap: [] })],
-          why: `<b>Incliner</b> fait pencher un volume : une dalle en pente, une pièce biaise. La rampe descend vers le regard.`,
-          do: ol('Outil <b>Incliner</b>, cliquez la rampe.', `Chapitre « Inclinaison », <b>Autour de X</b> : ${K('8')}, <b>Appliquer</b>.`),
-          wait: () => { const r = rampe(); return !!r && !!r.solid.tilt && (Math.abs(r.solid.tilt.x) >= 1 || Math.abs(r.solid.tilt.y) >= 1); } },
-        { title: 'Habiller l\'ouvrage', in3D: true, target: 'btn-paint', tip: 'Peindre<br><small>ou PEI + Espace</small>', ghost: () => [gc([1, 1], 0.7, { label: 'Béton', lp: W(1, 1), snap: [] }), gp(RAMPE, true, { label: 'Pavés', lp: W(-1.75, 1), snap: [] })],
-          why: `Les <b>textures</b> rendent une maquette lisible : béton, brique, bois, tuiles, enrobé, pelouse… Elles sont posées en vraie grandeur : un pavé fait la taille d'un vrai pavé.`,
-          do: ol('Outil <b>Peindre</b> : une fenêtre de textures s\'ouvre à droite.', 'Choisissez <b>Béton</b>, cliquez le couvercle (vu de dessus, il cache le regard).', 'Choisissez <b>Pavés</b>, cliquez la rampe.'), more: `Dans la vue 3D, on peut peindre chaque volume, même caché en plan : essayez le regard. La <b>pipette</b> reprend la texture d'un volume, la <b>gomme</b> rend la couleur du calque.`,
-          wait: () => { const k = couv(), r = rampe(); return !!k && !!r && k.tex === 'beton' && r.tex === 'paves'; } },
-        { title: 'Admirer et choisir en 3D', target: () => G.is3D() ? '#v3-rose .rose-eye' : '#rose-svg .rose-eye', tip: () => G.is3D() ? 'Refermer la vue 3D<br><small>œil ou Échap</small>' : 'Vue 3D<br><small>ou VU + Espace</small>', in3D: true, why: `La vue 3D sert aussi à travailler : on y clique un volume pour le régler.`,
-          do: `Ouvrez la <b>vue 3D</b> (bulle œil près de la rosace), tournez autour du regard, puis cliquez le couvercle (sans glisser) : il passe en rose. Ensuite <b>refermez la vue 3D</b> (bulle œil ou ${K('Échap')}).`, tick: (c) => { if (G.is3D() && G.sel().length > 0) c.seen = true; }, wait: (c) => c.seen && !G.is3D() },
-        { title: 'Les volumes au métré', target: 'btn-metre', tip: 'Métré', why: `Les m³ de béton par calque, prêts pour le devis : dalle, anneau, couvercle, bordure.`, do: `De retour sur le plan, <b>Σ Métré</b> : colonne <b>Volumes 3D</b>.`, wait: () => G.modalHas('Volumes 3D') },
-        { title: 'Seigneur de la 3D !', why: `Un regard complet : dalle, anneau posé dessus, couvercle tourné et monté à sa place, bordure balayée, rampe inclinée, textures, et ses m³ au métré.`, more: `Dernier tuto : <b>Pièces et bâtiment</b> (niveau Dieu).`, last: true },
-    ];
-
-    // ===================================================================== 6. DIEU : une équerre à imprimer, puis une cabane
-    // modèle (m) : équerre = pavés 0..4 × 0..1 et 0..1 × 0..3 (h 0,50), trou centre 2,5 / 0,5 r 0,25 ;
-    //              cabane 7..12 × 0..4, murs 0 → 2,50, fenêtre sud depuis 8,5 (1,20), porte est depuis y = 1 (0,90), panne y = 2 à 4,70, toit 6,7..12,3 × -0,3..4,3
-    const BR1 = RECT(0, 0, 4, 1), BR2 = RECT(0, 0, 1, 3), CAB = [[7, 0], [12, 0], [12, 4], [7, 4]], TOIT = RECT(6.7, -0.3, 12.3, 4.3);
+    // ===================================================================== 5. SEIGNEUR : une cabane
+    // modèle (m) : cabane 7..12 × 0..4, murs 0 → 2,50, fenêtre sud depuis 8,5 (1,20), porte est depuis y = 1 (0,90), panne y = 2 à 4,70, toit 6,7..12,3 × -0,3..4,3
+    const CAB = [[7, 0], [12, 0], [12, 4], [7, 4]], TOIT = RECT(6.7, -0.3, 12.3, 4.3);
     const wallGroup = () => {   // la chaîne de murs refermée qui passe par les 4 coins de la cabane
         const H = G.shapes().filter(x => x.type === 'hatch' && x.wallMat && x.groupId && x.loops), byG = {};
         H.forEach(h => { (byG[h.groupId] = byG[h.groupId] || []).push(h); });
@@ -492,34 +436,19 @@
             const depth = Math.max(...P.map(q => Math.abs((q.x - a.x) * nx + (q.y - a.y) * ny))), rise = (+r.solid.p || 0) / 100 * (depth / mw(1)) * 1000;
             return Math.abs(rise - 2500) <= 60; });
     };
-    const BUILD = [
-        { title: 'Pièces et bâtiment', why: `Niveau <b>dieu</b>, en deux temps. D'abord une <b>pièce à imprimer en 3D</b> : une équerre de fixation percée, faite en combinant des volumes. Puis une <b>cabane</b> : murs, fenêtre, porte, panne faîtière et toit deux pans.`,
-          do: `Comme d'habitude, le modèle est en pointillés et chaque étape se coche quand c'est juste. Dépliez la palette <b>Modélisation</b> si elle est repliée.` },
-        { title: 'L\'équerre : première branche', target: 'btn-solid-box', tip: 'Pavé', ghost: () => [gp(BR1, true, { label: () => U(4) + ' × ' + U(1) + ', h 0,50', lp: W(4, 1), snap: [W(0, 0)] })],
-          why: `Une pièce se construit comme un jeu de cubes : des volumes simples qu'on assemble ou qu'on creuse ensuite.`,
-          do: () => ol('Outil <b>Pavé</b>, cliquez le coin jaune.', `Tapez ${K(U(4))} ${SP} puis ${K(U(1))} ${SP}.`, `Hauteur ${K('0,5')}, <b>Appliquer</b>.`),
-          wait: () => { const b = solidPoly(BR1, 'box'); return !!b && mmNear(+b.solid.H, 500); } },
-        { title: 'L\'équerre : seconde branche', target: 'btn-solid-box', tip: 'Pavé', ghost: () => [gp(BR2, true, { label: () => U(1) + ' × ' + U(3) + ', h 0,50', lp: W(1, 3), snap: [W(0, 0)] })],
-          why: `La seconde branche chevauche la première dans le coin : c'est voulu, l'union va les souder.`,
-          do: () => ol('Outil <b>Pavé</b>, même coin jaune.', `Tapez ${K(U(1))} ${SP} puis ${K(U(3))} ${SP}.`, `Hauteur ${K('0,5')}, <b>Appliquer</b>.`),
-          wait: () => { const b = solidPoly(BR2, 'box'); return !!b && mmNear(+b.solid.H, 500); } },
-        { title: 'Souder les deux branches', target: 'btn-bool-union', tip: 'Union<br><small>ou UN + Espace</small>', ghost: () => [gp([[0, 0], [4, 0], [4, 1], [1, 1], [1, 3], [0, 3]], true, { label: 'une seule pièce', lp: W(1, 3), snap: [] })],
-          why: `L'<b>union</b> fusionne plusieurs volumes en une seule pièce, sans la partie en double au milieu. Indispensable pour l'impression 3D.`,
-          do: ol('Sélectionnez les deux pavés (clic sur l\'un, puis clic sur l\'autre).', 'Outil <b>Union</b>.'), wait: (c) => G.named('Union') > c.n, init: (c) => { c.n = G.named('Union'); } },
-        { title: 'Le trou de fixation', target: 'btn-solid-cyl', tip: 'Cylindre<br><small>ou CY + Espace</small>', ghost: () => [gc([2.5, 0.5], 0.25, { label: () => 'rayon ' + U(0.25), lp: W(2.8, 0.9) })],
-          why: `Pour percer, on dessine d'abord le volume <b>à enlever</b> : un cylindre qui traverse la pièce de part en part.`,
-          do: () => ol('Outil <b>Cylindre</b>, cliquez le centre jaune.', `Tapez ${K(U(0.25))} ${SP}.`, 'Gardez la hauteur de 1 m (plus haute que la pièce), <b>Appliquer</b>.'),
-          wait: () => !!solidCirc('cyl', [2.5, 0.5], 0.25) },
-        { title: 'Percer : soustraire', target: 'btn-bool-sub', tip: 'Soustraire<br><small>ou SU + Espace</small>', ghost: () => [gc([2.5, 0.5], 0.25, { snap: [] })],
-          why: `<b>Soustraire</b> retire un volume d'un autre : percer, encocher, réserver un passage, dans n'importe quelle direction.`,
-          do: ol('Outil <b>Soustraire</b>.', 'Cliquez la pièce (à garder), puis le cylindre (à retirer).'), wait: (c) => G.named('Soustraction') > c.n, init: (c) => { c.n = G.named('Soustraction'); } },
-        { title: 'Le troisième booléen', target: 'btn-bool-inter', tip: 'Intersecter<br><small>ou IS + Espace</small>', why: `<b>Intersecter</b> ne garde que la partie commune de deux volumes. Par exemple une sphère et un pavé donnent un dôme coupé net.`,
-          do: `Pas besoin ici : retenez qu'il existe, à côté de l'Union et de la Soustraction.` },
-        { title: 'Envoyer à l\'imprimante 3D', target: 'btn-dxf-menu', tip: 'Menu fichier', why: `Le format <b>STL</b> part tel quel dans le logiciel d'une imprimante 3D.`,
-          do: `Sélectionnez l'équerre, menu fichier › <b>Exporter en STL</b> : « La sélection seulement », millimètres, « Poser à l'origine ».`, wait: () => G.modalHas('Exporter en STL') },
-        { title: 'La cabane : les murs', target: 'btn-blocks', tip: 'Catalogue › 🧱 Parois', ghost: () => [gp(CAB, true, { label: () => U(5) + ' × ' + U(4), lp: W(12, 4) })],
+    const topOf = (s) => zOf(s) + ((s && s.solid && +s.solid.H) || 0);
+    const MODEL = [
+        { title: 'Le bâtiment : une cabane', why: `Niveau <b>seigneur</b> ! On passe au bâtiment avec une vraie petite construction : <b>une cabane</b> de 5 × 4 m. Sa dalle, ses murs, une fenêtre, une porte, la panne faîtière, un toit deux pans et ses tuiles. À la fin, on fait le tour en 3D.`,
+          do: `Le modèle est en pointillés, vu de dessus. Je coche chaque étape quand c'est juste. Déplie la palette <b>Bâtiment</b> si elle est repliée : clique son titre, à gauche.` },
+        PS({ title: 'La dalle', ghost: () => [gp(CAB, true, { label: () => U(5) + ' × ' + U(4) + ', ép. 0,20', lp: W(12, 4), snap: [W(7, 0)] })],
+          why: `On commence par le sol : la <b>dalle</b>. C'est un pavé de 20 cm d'épaisseur, posé sur le contour du bâtiment. Note bien : si tu as déjà un contour fermé dessiné, tu le sélectionnes avant de cliquer l'outil, et il devient la dalle.`,
+          items: [['Clique sur l\'outil <b>Dalle</b>, dans la palette Bâtiment.', 'btn-dalle', 'Dalle<br><small>ou DA + Espace</small>', () => G.mode() === 'rect' && !!gv(() => solidDalle)],
+                  ['Clique sur le coin jaune, en bas à gauche.', null, '', () => J.start([7, 0], 'rect')() || !!solidPoly(CAB, 'box')],
+                  [`Amène la souris en haut à droite, tape ${K('5')} puis ${SP}, puis ${K('4')} puis ${SP}.`, null, '', () => { const d = solidPoly(CAB, 'box'); return !!d && mmNear(+d.solid.H, 200); }]],
+          more: `L'épaisseur, l'altitude et le contour se règlent après coup avec ${K('Y')}.` }),
+        { title: 'La cabane : les murs', target: 'btn-paroi', tip: 'Paroi', ghost: () => [gp(CAB, true, { label: () => U(5) + ' × ' + U(4), lp: W(12, 4) })],
           why: `Le mur porte son matériau (parpaing, brique, béton…) : il se hachure en plan et deviendra un volume percé en 3D. En chaîne, les angles se raccordent tout seuls.`,
-          do: ol('Catalogue de blocs, onglet <b>🧱 Parois</b>, choisissez un mur.', 'Cliquez les 4 coins jaunes dans l\'ordre…', '…puis à nouveau le premier : le contour se referme.', `${K('Échap')}.`),
+          do: ol('Bouton <b>Paroi</b> (palette Bâtiment), choisissez un mur.', 'Cliquez les 4 coins jaunes dans l\'ordre…', '…puis à nouveau le premier : le contour se referme.', `${K('Échap')}.`),
           wait: () => !!wallGroup() },
         { title: 'La hauteur des murs', ghost: () => [gp(CAB, true, { label: 'bas 0 · haut 2,50', lp: W(9.5, 2), snap: [] })],
           why: `En plan, un mur n'a pas de hauteur. On lui donne un <b>niveau bas</b> et un <b>niveau haut</b> pour qu'il existe en 3D et que les ouvertures le percent.`,
@@ -545,7 +474,69 @@
           why: `La touche finale : une couverture en tuiles, à l'échelle.`,
           do: ol('Outil <b>Peindre</b>, choisissez <b>Tuiles</b>.', 'Cliquez les deux pans du toit.'), wait: () => { const L = roofPans(); return !!L && L.every(r => r.tex === 'tuile'); } },
         { title: 'Admirez', target: () => G.is3D() ? '#v3-rose .rose-eye' : '#rose-svg .rose-eye', tip: () => G.is3D() ? 'Refermer la vue 3D<br><small>œil ou Échap</small>' : 'Vue 3D<br><small>ou VU + Espace</small>', in3D: true, why: `Le moment de vérité : murs percés, porte, fenêtre, panne, toit et pignons… et l'équerre à côté.`, do: `Ouvrez la <b>vue 3D</b> et faites le tour de la cabane, puis <b>refermez-la</b> (bulle œil ou ${K('Échap')}) pour revenir au plan.`, tick: (c) => { if (G.is3D()) c.seen = true; }, wait: (c) => c.seen && !G.is3D() },
-        { title: 'Dieu de MomoCAD !', why: `Une pièce percée prête à imprimer, une cabane complète avec ses ouvertures, sa panne et son toit : vous avez fait le tour de MomoCAD, du terrain au bâtiment.`, more: `Il n'y a pas de niveau au-dessus… pour l'instant.`, last: true },
+        { title: 'Seigneur du bâtiment !', why: `Bravo, tu es seigneur du bâtiment ! Une cabane complète : dalle, murs avec leur matériau, fenêtre, porte, panne faîtière, toit deux pans avec ses pignons, et ses tuiles.`, more: `Dernier tuto : <b>Construire juste — une pergola</b> (niveau Dieu) : traits de construction, coupe, mesures et collisions.`, last: true },
+    ];
+
+    // ===================================================================== 6. DIEU : une pergola
+    // modèle (m) : dalle 0..4 × 0..3 ; traits de construction à 0,20 des bords ; poteaux aux croisements ; poutres y = 0,20 et 2,80 ; coupe x = 2
+    const PERG = RECT(0, 0, 4, 3);
+    const clHas = (axis, v) => { try { return D3C.lines.some(L => { const x = mmToWorld(L.p.x * 1000), y = -mmToWorld(L.p.y * 1000), dx = L.d.x, dy = -L.d.y, P = W(axis === 'h' ? 0 : v, axis === 'h' ? v : 0), tol = mw(0.01);
+        return axis === 'h' ? Math.abs(dy) < 1e-6 && Math.abs(y - P.y) <= tol : Math.abs(dx) < 1e-6 && Math.abs(x - P.x) <= tol; }); } catch (e) { return false; } };
+    const potCount = () => [[0.2, 0.2], [3.8, 0.2], [3.8, 2.8], [0.2, 2.8]].filter(c => G.shapes().some(s => s.name === 'Poteau' && s.points && near(polyCentroid(s.points), W(...c)))).length;
+    const beamList = () => G.shapes().filter(s => s.type === 'line' && s.sweep && s.sweep.perp);
+    const beamCount = () => beamList().length;
+    const beamOn = (y) => beamList().some(s => { const a = W(0.2, y), b = W(3.8, y); return (near({ x: s.x1, y: s.y1 }, a) && near({ x: s.x2, y: s.y2 }, b)) || (near({ x: s.x1, y: s.y1 }, b) && near({ x: s.x2, y: s.y2 }, a)); });
+    const cutDone = () => G.shapes().some(s => s.cutName);
+
+    const BUILD = [
+        { title: 'Construire juste : une pergola', why: `Niveau <b>dieu</b>, le dernier ! On construit une pergola de 4 × 3 m : une dalle, quatre poteaux placés au centimètre grâce aux <b>traits de construction</b>, deux poutres. Puis on la contrôle comme un pro : une <b>coupe</b>, des <b>mesures en 3D</b> et le <b>contrôle des collisions</b>.`,
+          do: `Comme d'habitude : le modèle en pointillés, et je coche chaque ligne quand c'est juste. Déplie la palette <b>Bâtiment</b> si besoin.` },
+        PS({ title: 'La dalle de la pergola', ghost: () => [gp(PERG, true, { label: () => U(4) + ' × ' + U(3), lp: W(4, 3), snap: [W(0, 0)] })],
+          why: `D'abord le sol : une dalle de 4 × 3 m. Tu connais le geste depuis la cabane.`,
+          items: [['Clique sur l\'outil <b>Dalle</b>.', 'btn-dalle', 'Dalle', () => G.mode() === 'rect' && !!gv(() => solidDalle)],
+                  ['Clique sur le coin jaune.', null, '', () => J.start([0, 0], 'rect')() || !!solidPoly(PERG, 'box')],
+                  [`Souris en haut à droite, tape ${K('4')} ${SP} puis ${K('3')} ${SP}.`, null, '', () => !!solidPoly(PERG, 'box')]] }),
+        PS({ title: 'Les repères : traits de construction', ghost: () => [gl([-1, 0.2], [5, 0.2], { snap: [] }), gl([-1, 2.8], [5, 2.8], { snap: [] }), gl([0.2, -1], [0.2, 4], { snap: [] }), gl([3.8, -1], [3.8, 4], { snap: [] })],
+          why: `Les poteaux sont en retrait de 20 cm du bord de la dalle. Plutôt que de calculer leurs coordonnées, on trace des <b>traits de construction</b> : des droites infinies parallèles aux bords, qui ne sont pas des dessins (aucun calque, rien à l'impression). Leurs croisements deviennent des points d'accroche.`,
+          items: [['Clique sur l\'outil <b>Trait de construction</b> (palette Bâtiment).', 'btn-cline2', 'Trait de construction', () => G.mode() === 'cline2'],
+                  ['Clique sur le <b>bord bas</b> de la dalle : c\'est l\'arête de référence.', null, '', () => { const d = gv(() => CL2.dir); return !!d && Math.abs(d.y) < 1e-6; }],
+                  [`Souris <b>dans</b> la dalle (au-dessus du bord), tape ${K('0,2')} puis ${SP}.`, null, '', () => clHas('h', 0.2)],
+                  [`Tape ${K('2,8')} puis ${SP} : la parallèle d'en face.`, null, '', () => clHas('h', 2.8)],
+                  [`${K('Échap')} pour changer d'arête, puis clique le <b>bord gauche</b> de la dalle.`, null, '', () => { const d = gv(() => CL2.dir); return clHas('v', 0.2) || (!!d && Math.abs(d.x) < 1e-6); }],
+                  [`Souris dans la dalle, tape ${K('0,2')} ${SP}, puis ${K('3,8')} ${SP}.`, null, '', () => clHas('v', 0.2) && clHas('v', 3.8)]],
+          more: `${K('Suppr')} dans l'outil efface tous les traits d'un coup. Ils ne sont pas enregistrés dans le plan : ce sont des outils, pas des dessins.` }),
+        PS({ title: 'Les poteaux', ghost: () => [[0.2, 0.2], [3.8, 0.2], [3.8, 2.8], [0.2, 2.8]].map(c => gc(c, 0.1, { snap: [W(...c)] })),
+          why: `Les quatre croisements des traits sont eactement là où vont les poteaux : il suffit de cliquer, l'accroche fait le reste.`,
+          items: [['Clique sur l\'outil <b>Poteau</b>.', 'btn-poteau', 'Poteau<br><small>ou POT + Espace</small>', () => G.mode() === 'poteau'],
+                  ['Clique sur un croisement de traits (le carré d\'accroche s\'y pose).', null, '', () => potCount() >= 1],
+                  ['Clique les trois autres croisements, puis ' + K('Échap') + '.', null, '', () => potCount() >= 4]],
+          more: `Chaque poteau fait 20 × 20 cm et 2,50 m : section et hauteur se règlent avec ${K('Y')}.` }),
+        PS({ title: 'Les poutres', ghost: () => [gl([0.2, 0.2], [3.8, 0.2], { label: 'Z 2,50' }), gl([0.2, 2.8], [3.8, 2.8], { label: 'Z 2,50' })],
+          why: `Deux poutres relient les poteaux deux à deux. Par défaut, une poutre est posée à 2,50 m : la hauteur de nos poteaux.`,
+          items: [['Clique sur l\'outil <b>Poutre</b>.', 'btn-solid-beam', 'Poutre<br><small>ou PO + Espace</small>', () => J.solid('beam')() || beamCount() >= 1],
+                  ['Clique les deux poteaux du bas (au centre), puis valide la fenêtre (bois 63×175, Appliquer).', null, '', () => beamOn(0.2)],
+                  ['Rouvre l\'outil Poutre et fais pareil avec les deux poteaux du haut.', null, '', () => beamOn(2.8)]] }),
+        PS({ title: 'La coupe', ghost: () => [gl([2, -1], [2, 4], { label: 'coupe A-A' })],
+          why: `Une <b>coupe</b> montre le bâtiment tranché : les épaisseurs, les hauteurs, ce qui porte quoi. MomoCAD la dessine sous le plan, sur le calque « Coupes », avec ses éléments coupés hachurés.`,
+          items: [['Clique sur l\'outil <b>Trait de coupe</b>.', 'btn-cut', 'Trait de coupe<br><small>ou CO + Espace</small>', () => G.mode() === 'cut'],
+                  ['Clique les deux bouts jaunes de la ligne de coupe.', null, '', () => !!gv(() => CUT.b) || cutDone()],
+                  ['Clique à droite de la ligne : c\'est le côté vers lequel on regarde.', null, '', () => cutDone()]],
+          more: `Fais défiler vers le bas : la coupe A-A est sous le plan. Elle forme un groupe : elle se déplace d'un bloc et se pose dans une mise en page.` }),
+        PS({ title: 'Regarder en 3D', in3D: true,
+          why: `La vue 3D est un visualiseur : on y tourne autour du projet, on mesure, on contrôle. Pas de dessin dedans, tout se construit en plan.`,
+          items: [['Clique sur la bulle <b>œil 3D</b>, près de la rosace.', () => G.is3D() ? null : '#rose-svg .rose-eye', 'Vue 3D<br><small>ou VU + Espace</small>', () => G.is3D()]],
+          more: `La flèche sous la rosace fait tourner d'un quart de tour autour du projet.` }),
+        PS({ title: 'Mesurer en 3D', in3D: true,
+          why: `Une hauteur sous poutre, ça se vérifie. En 3D, la mesure s'accroche aux sommets (carré jaune), aux milieux d'arêtes (triangle) et aux surfaces (rond bleu).`,
+          items: [['Clique sur <b>📏 Mesurer</b>, en haut de la vue 3D.', '#v3-mes-btn', 'Mesurer', () => G.mode() === 'measure'],
+                  ['Clique sur le dessus de la dalle, puis sous une poutre : lis la distance et le ΔZ en bas.', null, '', () => (window.d3Measured || 0) > P.m0]],
+          init: () => { P.m0 = window.d3Measured || 0; } }),
+        PS({ title: 'Les collisions', in3D: true,
+          why: `Dernier contrôle, le plus précieux avant de commander : les <b>collisions</b>. Nos poteaux partent du sol, donc ils traversent la dalle ; et leur tête rentre dans les poutres. MomoCAD va les trouver.`,
+          items: [['Clique sur <b>⚠ Collisions</b>, en haut de la vue 3D.', '#v3-col-btn', 'Collisions', () => (gv(() => d3Col.length) || 0) > 0],
+                  ['Regarde les volumes rouges, et clique une ligne du tiroir : les deux objets se sélectionnent.', '#t2-panel', '', () => G.sel().length >= 2]],
+          more: `Pour corriger, on poserait les poteaux sur la dalle (${K('Y')} : altitude 0,20) et on les arrêterait sous les poutres, puis <b>Recontrôler</b>.` }),
+        { title: 'Dieu de MomoCAD !', why: `Bravo, tu es le dieu de MomoCAD ! Une pergola placée au centimètre avec les traits de construction, coupée, mesurée et contrôlée : tu sais construire juste, du terrain au bâtiment.`, more: `Il n'y a pas de niveau au-dessus… pour l'instant !`, last: true },
     ];
 
     // ---------- la voix de Momo : ce qu'il dit à chaque étape (prioritaire sur les textes des étapes) ----------
@@ -554,7 +545,7 @@
         base: {
             'Bonjour, je suis Momo !': { why: `Salut ! Bon, alors : aujourd'hui on apprend les outils de base, mais pas avec des exercices tout secs. On va <b>redessiner le logo MOMOCAD</b>, lettre par lettre, et chaque lettre va t'apprendre un outil.`,
                 do: `Regarde le plan : le modèle est tracé en <b>pointillés</b>. En <b style="color:#fbbf24">jaune</b>, ce qu'on dessine maintenant ; en <b style="color:#4ade80">vert</b>, ce qui est déjà fait. Les points jaunes <b>attirent ta souris</b> : vise-les.<br>Je coche l'étape ✓ seulement quand ton dessin colle au modèle. Ensuite c'est toi qui avances avec ${K('▶')}, à ton rythme.<br>En haut de ma bulle : la <b>maison</b> revient au choix (tuto ou question), l'<b>épingle</b> fige ma bulle par-dessus tous les menus, le <b>trait</b> la réduit : je me cache derrière la barre de commande, clique sur mon chapeau pour me rouvrir.`,
-                more: `Le mieux, c'est de partir d'un plan vierge. Et ici, tout se mesure en mètres.` },
+                more: `Le mieux, c'est de partir d'un plan vierge. Et ici, tout se mesure en mètres : je règle l'unité du dessin pour toi.` },
             'Se déplacer dans le plan': { why: `Avant de dessiner, on apprend à regarder. Note bien ces trois gestes, tu vas t'en servir tout le temps.`,
                 do: `<ul><li><b>molette</b> : tu zoomes, autour du curseur ;</li><li><b>clic molette maintenu</b> : tu fais glisser le plan ;</li><li><b>double-clic molette</b> : tu vois tout.</li></ul>Essaie un peu, puis reviens : le logo t'attend au milieu de l'écran.` },
             'Le M, première moitié': { why: `On commence par le M. Petite astuce : il est symétrique, alors on n'en dessine que <b>la moitié</b>. Pour ça, on prend la <b>polyligne</b> : plusieurs segments d'un seul tenant, qui forment un seul objet. C'est l'outil des bordures, des réseaux… et des lettres.`,
@@ -676,60 +667,8 @@
                 more: `Prochain tuto : <b>La modélisation 3D</b> (niveau Seigneur).` },
         },
         model: {
-            'La modélisation 3D': { why: `Niveau <b>seigneur</b> ! On passe en volume, avec un vrai ouvrage : <b>un regard en béton</b>. Sa dalle, son anneau, son couvercle, la bordure autour et une petite rampe d'accès. De quoi visualiser, métrer en m³… ou imprimer en 3D.`,
-                do: `Le modèle est en pointillés, vu de dessus. Je coche chaque étape quand le volume est juste : bonne place, bonne taille, bonne hauteur.` },
-            'La palette Modélisation': { why: `Bon, alors on commence par sortir les outils. La palette <b>Modélisation</b> est repliée au démarrage, pour ne pas encombrer l'écran.`,
-                do: `Clique sur le titre <b>Modélisation</b>, dans les palettes à gauche, pour la déplier.`},
-            'La dalle de fond': { why: `On commence par le bas : la dalle de fond. Le <b>pavé</b>, c'est le volume le plus simple : un massif, une dalle, un socle. Tu le dessines comme un rectangle, puis tu lui donnes sa hauteur.`,
-                do: () => ol('Clique sur l\'outil <b>Pavé</b>.', 'Clique sur le point jaune : le coin de la dalle.', `Amène la souris en haut à droite, tape ${K(U(2))} au clavier, puis ${SP}.`, `Tape ${K(U(2))}, puis ${SP}.`, `Dans la fenêtre qui s'ouvre : hauteur ${K('0,2')}, puis clique sur <b>Appliquer</b>.`)},
-            'L\'anneau du regard': { why: `C'est bien ! Maintenant l'anneau du regard, avec le <b>tube</b> : un cylindre creux. Regard, buse, fourreau… et son volume de béton s'affiche dans les propriétés.`,
-                do: () => ol('Clique sur l\'outil <b>Tube</b>.', 'Clique sur le centre jaune.', `Tape le rayon ${K(U(0.6))} au clavier, puis ${SP}.`, `Dans la fenêtre : hauteur ${K('1,5')}, épaisseur de paroi ${K('0,1')}, puis clique sur <b>Appliquer</b>.`)},
-            'Poser le regard sur sa dalle': { why: `Petit souci : la dalle et l'anneau partent du même niveau, alors ils se traversent. <b>Poser sur</b> règle ça : il cale un objet pile sur un autre, sans calculer de hauteur.`,
-                do: ol('Clique sur l\'outil <b>Poser sur</b>.', 'Clique sur le <b>bord du regard</b> : c\'est l\'objet à poser.', 'Clique sur la <b>dalle</b>, dans un coin, en dehors du regard.')},
-            'Le couvercle : sa demi-coupe': { why: `Au tour du couvercle. Note bien la méthode, elle sert pour tous les objets ronds : on dessine sa <b>demi-coupe</b>, la moitié de sa section vue de côté. Ici, 0,70 de rayon (il déborde de l'anneau) et 0,15 d'épaisseur.`,
-                do: () => ol('Clique sur l\'outil <b>Rectangle</b>.', 'Clique sur le point jaune.', `Amène la souris en haut à droite, tape ${K(U(0.7))} au clavier, puis ${SP}.`, `Tape ${K(U(0.15))}, puis ${SP}.`)},
-            'Le couvercle : la révolution': { why: `Et maintenant, la magie : la <b>révolution</b> fait tourner ta demi-coupe autour d'un axe vertical. Tu obtiens un volume rond, même compliqué : regard avec feuillure, cuve, poteau…`,
-                do: ol('Clique sur l\'outil <b>Révolution</b>.', 'Clique sur le rectangle de la demi-coupe.', 'Clique sur le point jaune de l\'<b>axe</b> : le bord gauche de la coupe.', 'Clique sur le <b>centre du regard</b> : le couvercle s\'y pose.'),
-                more: `Une fois le volume créé, la demi-coupe ne sert plus : tu peux l'effacer.` },
-            'Monter le couvercle': { why: `Le couvercle est né au pied du regard : il faut le monter. <b>Élever</b> déplace un objet vers le haut ou le bas, d'une hauteur précise. Fais le calcul avec moi : 0,20 de dalle + 1,50 d'anneau = <b>1,70</b>.`,
-                do: ol('Sélectionne le couvercle : clique sur son bord.', 'Clique sur l\'outil <b>Élever</b>.', `Tape ${K('1,7')} dans la case ΔZ, puis ${SP}.`)},
-            'Le tracé de la bordure': { why: `Le regard est complet ! On l'entoure d'une bordure sur trois côtés. On commence par dessiner son <b>tracé</b>, comme une ligne au sol.`,
-                do: ol('Clique sur l\'outil <b>Polyligne</b>.', 'Clique sur les 4 points jaunes, dans l\'ordre.', `Appuie sur ${SP} pour terminer.`)},
-            'La bordure : le balayage': { why: `Le <b>balayage</b> fait suivre un profil le long d'un tracé : bordure de trottoir, caniveau, tuyau… et il calcule le volume de béton.`,
-                do: ol('Clique sur l\'outil <b>Balayage</b>.', 'Clique sur la polyligne : une bordure la suit.', 'Dans la fenêtre, garde la bordure <b>T2</b> ou essaie un autre profil.')},
-            'La rampe d\'accès': { why: `Il manque une petite dalle à côté du regard, pour y accéder. Encore un pavé : tu connais le geste !`,
-                do: () => ol('Clique sur l\'outil <b>Pavé</b>.', 'Clique sur le point jaune.', `Amène la souris en haut à droite, tape ${K(U(1.5))} au clavier, puis ${SP}.`, `Tape ${K(U(2))}, puis ${SP}.`, `Dans la fenêtre : hauteur ${K('0,15')}, puis clique sur <b>Appliquer</b>.`)},
-            'Pencher la rampe': { why: `On fait descendre la rampe vers le regard avec <b>Incliner</b> : il fait pencher un volume. Une dalle en pente, une pièce biaise…`,
-                do: ol('Clique sur l\'outil <b>Incliner</b>.', 'Clique sur la rampe : la fenêtre de réglage s\'ouvre.', `Chapitre « Inclinaison », case <b>Autour de X</b> : ${K('8')}, puis clique sur <b>Appliquer</b>.`)},
-            'Habiller l\'ouvrage': { why: `Maintenant, on habille la maquette. Les <b>textures</b> la rendent lisible : béton, brique, bois, tuiles, enrobé, pelouse… Et elles sont posées en vraie grandeur : un pavé fait la taille d'un vrai pavé.`,
-                do: ol('Clique sur l\'outil <b>Peindre</b>.', 'Dans la fenêtre des textures, clique sur <b>Béton</b>, puis sur le couvercle (vu de dessus, il cache le regard).', 'Clique sur <b>Pavés</b>, puis sur la rampe.'),
-                more: `Dans la vue 3D, tu peux peindre chaque volume, même caché en plan : essaie sur le regard. La <b>pipette</b> reprend la texture d'un volume, la <b>gomme</b> lui rend la couleur du calque.` },
-            'Admirer et choisir en 3D': { why: `Le moment de vérité ! Et la vue 3D ne sert pas qu'à admirer : tu peux y cliquer un volume pour le régler.`,
-                do: ol('Clique sur la bulle <b>œil 3D</b>, près de la rosace.', 'Tourne autour du regard (glisser), puis clique sur le couvercle sans glisser : il passe en rose.', `Referme la vue 3D : bulle œil ou ${K('Échap')}.`)},
-            'Les volumes au métré': { why: `Et pour le devis, le métré compte les m³ de béton, calque par calque : dalle, anneau, couvercle, bordure.`,
-                do: `Clique sur le bouton <b>Σ Métré</b> : regarde la colonne <b>Volumes 3D</b>.`},
-            'Seigneur de la 3D !': { why: `Bravo, tu es seigneur de la 3D ! Un regard complet : dalle, anneau posé dessus, couvercle tourné et monté à sa place, bordure balayée, rampe inclinée, textures, et ses m³ au métré.`,
-                more: `Dernier tuto : <b>Pièces et bâtiment</b> (niveau Dieu).` },
-        },
-        build: {
-            'Pièces et bâtiment': { why: `Niveau <b>dieu</b>, le dernier ! On va faire deux choses. D'abord une <b>pièce à imprimer en 3D</b> : une équerre de fixation percée, faite en combinant des volumes. Ensuite, on construit une <b>cabane</b> : murs, fenêtre, porte, panne faîtière et toit deux pans.`,
-                do: `Comme d'habitude : le modèle en pointillés, et je coche quand c'est juste. Déplie la palette <b>Modélisation</b> si elle est repliée.` },
-            'L\'équerre : première branche': { why: `On commence par l'équerre. Note bien la logique : une pièce se construit comme un jeu de cubes, avec des volumes simples qu'on soude ou qu'on creuse ensuite. Première branche : un pavé.`,
-                do: () => ol('Clique sur l\'outil <b>Pavé</b>.', 'Clique sur le point jaune.', `Amène la souris en haut à droite, tape ${K(U(4))} au clavier, puis ${SP}.`, `Tape ${K(U(1))}, puis ${SP}.`, `Dans la fenêtre : hauteur ${K('0,5')}, puis clique sur <b>Appliquer</b>.`)},
-            'L\'équerre : seconde branche': { why: `C'est bien ! Seconde branche maintenant. Elle chevauche la première dans le coin : c'est voulu, on va les souder.`,
-                do: () => ol('Clique sur l\'outil <b>Pavé</b>.', 'Clique sur le même point jaune.', `Amène la souris en haut à droite, tape ${K(U(1))} au clavier, puis ${SP}.`, `Tape ${K(U(3))}, puis ${SP}.`, `Dans la fenêtre : hauteur ${K('0,5')}, puis clique sur <b>Appliquer</b>.`)},
-            'Souder les deux branches': { why: `L'<b>union</b> fusionne plusieurs volumes en une seule pièce, sans la partie en double au milieu. Indispensable pour l'impression 3D : l'imprimante veut une pièce d'un seul bloc.`,
-                do: ol(`Sélectionne les deux pavés : clique sur l'un, puis sur l'autre : chaque clic ajoute à la sélection.`, 'Clique sur l\'outil <b>Union</b>.')},
-            'Le trou de fixation': { why: `Il faut un trou pour la vis. Pour percer, on dessine d'abord le volume <b>à enlever</b> : un cylindre qui traverse la pièce de part en part.`,
-                do: () => ol('Clique sur l\'outil <b>Cylindre</b>.', 'Clique sur le centre jaune.', `Tape le rayon ${K(U(0.25))} au clavier, puis ${SP}.`, 'Dans la fenêtre, garde la hauteur de 1 m (plus haute que la pièce), puis clique sur <b>Appliquer</b>.')},
-            'Percer : soustraire': { why: `Et maintenant on perce, avec <b>Soustraire</b> : il retire un volume d'un autre. Percer, encocher, réserver un passage, dans n'importe quelle direction.`,
-                do: ol('Clique sur l\'outil <b>Soustraire</b>.', 'Clique sur la pièce : celle qu\'on garde.', 'Clique sur le cylindre : celui qu\'on retire.')},
-            'Le troisième booléen': { why: `Il existe un troisième outil de la même famille : <b>Intersecter</b>. Il ne garde que la partie commune de deux volumes. Par exemple, une sphère et un pavé donnent un dôme coupé net.`,
-                do: `Pas besoin ici : retiens juste qu'il existe, à côté de l'Union et de la Soustraction.` },
-            'Envoyer à l\'imprimante 3D': { why: `Ton équerre est prête ! Pour l'imprimer, on l'exporte au format <b>STL</b> : il part tel quel dans le logiciel d'une imprimante 3D.`,
-                do: ol('Sélectionne l\'équerre : clique dessus.', 'Clique sur le bouton du <b>menu fichier</b>, puis sur <b>Exporter en STL</b>.', 'Choisis « La sélection seulement », millimètres, « Poser à l\'origine ».')},
             'La cabane : les murs': { why: `Bon, alors place au bâtiment ! On commence par les murs. Un mur porte son matériau (parpaing, brique, béton…) : il se hachure en plan et deviendra un volume percé en 3D. Et quand tu les traces en chaîne, les angles se raccordent tout seuls.`,
-                do: ol('Clique sur le bouton <b>Catalogue de blocs</b>, onglet <b>🧱 Parois</b>, puis sur un mur.', 'Clique sur les 4 coins jaunes, dans l\'ordre…', '…puis à nouveau sur le premier : le contour se referme.', `Appuie sur ${K('Échap')}.`)},
+                do: ol('Clique sur le bouton <b>Paroi</b> (palette Bâtiment), puis sur un mur dans le tiroir.', 'Clique sur les 4 coins jaunes, dans l\'ordre…', '…puis à nouveau sur le premier : le contour se referme.', `Appuie sur ${K('Échap')}.`)},
             'La hauteur des murs': { why: `Note bien ce point, on l'oublie souvent : en plan, un mur n'a pas de hauteur. On lui donne un <b>niveau bas</b> et un <b>niveau haut</b> pour qu'il existe en 3D, et que les ouvertures le percent.`,
                 do: ol('Sélectionne les murs : clique sur l\'un d\'eux, toute la chaîne passe en rose.', `Appuie sur ${K('Y')} : la fenêtre de réglage s'ouvre.`, 'Niveau bas <b>0</b>, niveau haut <b>2,50</b>, puis clique sur <b>Appliquer</b>.')},
             'La fenêtre': { why: `On perce la fenêtre, proprement : au bon endroit et à la bonne largeur. Tu accroches le début, tu tapes la largeur.`,
@@ -743,10 +682,10 @@
                 do: () => ol('Clique sur l\'outil <b>Toiture</b>.', 'Clique sur le point jaune.', `Amène la souris en haut à droite, tape ${K(U(5.6))} au clavier, puis ${SP}.`, `Tape ${K(U(4.6))}, puis ${SP}.`, 'Dans la fenêtre : <b>2 pans</b>, faîtage parallèle <b>au grand côté</b>, égout <b>2,50</b>, faîtage <b>5,00</b>.', 'Coche <b>Combler les pignons</b>, puis clique sur <b>Créer le toit</b>.')},
             'Les tuiles': { why: `La touche finale : une couverture en tuiles, à l'échelle.`,
                 do: ol('Clique sur l\'outil <b>Peindre</b>.', 'Dans la fenêtre des textures, clique sur <b>Tuiles</b>.', 'Clique sur les deux pans du toit.')},
-            'Admirez': { title: 'Admire !', why: `Le moment de vérité : murs percés, porte, fenêtre, panne, toit et pignons… et l'équerre juste à côté. Va voir ça !`,
+            'Admirez': { title: 'Admire !', why: `Le moment de vérité : murs percés, porte, fenêtre, panne, toit et pignons… Fais-en le tour !`,
                 do: ol('Clique sur la bulle <b>œil 3D</b>, près de la rosace.', 'Fais le tour de la cabane : glisser = tourner, molette = zoom.', `Referme la vue 3D : bulle œil ou ${K('Échap')}.`)},
-            'Dieu de MomoCAD !': { why: `Bravo, tu es le dieu de MomoCAD ! Une pièce percée prête à imprimer, une cabane complète avec ses ouvertures, sa panne et son toit. Tu as fait le tour, du terrain au bâtiment.`,
-                more: `Il n'y a pas de niveau au-dessus… pour l'instant !` },
+        },
+        build: {
         },
     };
     function applyVoice(id, steps) {
@@ -852,26 +791,6 @@
             'Le métré chiffré': [() => !G.modalHas('Profil')],
         },
         model: {
-            'La dalle de fond': [J.solid('box'), () => J.solid('box')() && J.start([0, 0], 'rect')(), () => J.solid('box')() && rectW(), () => !!dalle()],
-            'L\'anneau du regard': [J.solid('tube'), () => J.solid('tube')() && J.start([1, 1], 'circle')(), () => !!regard()],
-            'Poser le regard sur sa dalle': [J.mode('stack'), () => G.mode() === 'stack' && (gv(() => stackObjs) || []).includes(regard())],
-            'Le couvercle : sa demi-coupe': [J.mode('rect'), J.start([4, 0], 'rect'), rectW],
-            'Le couvercle : la révolution': [J.mode('revolve'), () => G.mode() === 'revolve' && gv(() => revProf) === polyOf(PROF, true), () => G.mode() === 'revolve' && !!gv(() => revAxis) && Math.abs(revAxis.x - W(4, 0).x) <= TOL()],
-            'Monter le couvercle': [J.selHas(couv), () => G.modalHas('Élever') && J.selHas(couv)()],
-            'Le tracé de la bordure': [J.mode('pline'), J.pline(BORD)],
-            'La bordure : le balayage': [J.mode('sweep'), () => { const p = polyOf(BORD, false); return !!p && !!p.sweep; }],
-            'La rampe d\'accès': [J.solid('box'), () => J.solid('box')() && J.start([-2.5, 0], 'rect')(), () => J.solid('box')() && rectW(), () => !!rampe()],
-            'Pencher la rampe': [() => G.mode() === 'tilt' || (J.selHas(rampe)() && G.shown('selparam-modal')), () => J.selHas(rampe)() && G.shown('selparam-modal')],
-            'Habiller l\'ouvrage': [() => !!gv(() => texPaint), () => { const k = couv(); return !!k && k.tex === 'beton'; }, () => { const r = rampe(); return !!r && r.tex === 'paves'; }],
-            'Admirer et choisir en 3D': [() => G.is3D(), () => G.is3D() && G.sel().length > 0],
-        },
-        build: {
-            'L\'équerre : première branche': [J.solid('box'), () => J.solid('box')() && J.start([0, 0], 'rect')(), () => J.solid('box')() && rectW(), () => !!solidPoly(BR1, 'box')],
-            'L\'équerre : seconde branche': [J.solid('box'), () => J.solid('box')() && J.start([0, 0], 'rect')(), () => J.solid('box')() && rectW(), () => !!solidPoly(BR2, 'box')],
-            'Souder les deux branches': [J.selHas(() => solidPoly(BR1, 'box'), () => solidPoly(BR2, 'box'))],
-            'Le trou de fixation': [J.solid('cyl'), () => J.solid('cyl')() && J.start([2.5, 0.5], 'circle')(), () => !!solidCirc('cyl', [2.5, 0.5], 0.25)],
-            'Percer : soustraire': [() => G.mode() === 'bool', () => G.mode() === 'bool' && !!gv(() => boolA)],
-            'Envoyer à l\'imprimante 3D': [() => G.sel().some(x => x.type === 'mesh')],
             'La cabane : les murs': [J.mode('wall'), () => { const C = gv(() => wallChain); return G.mode() === 'wall' && !!C && C.pts.length >= 4 && CAB.every((p, i) => near(C.pts[i], W(...p))); }, () => !!wallGroup()],
             'La hauteur des murs': [() => G.sel().some(x => x.wallMat), () => G.sel().some(x => x.wallMat) && G.shown('selparam-modal')],
             'La fenêtre': [J.mode('opening'), () => G.mode() === 'opening' && !!gv(() => openA) && near(openA, W(8.5, 0)), () => J.typed(1.2)() || openings().some(o => o.a && o.b && Math.abs(Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) - mw(1.2)) <= mw(0.03))],
@@ -880,6 +799,8 @@
             'Le toit deux pans': [J.solid('roof'), () => J.solid('roof')() && J.start([6.7, -0.3], 'rect')(), () => J.solid('roof')() && rectW(), () => G.modalHas('Toiture') || !!roofPans(), () => !!roofPans()],
             'Les tuiles': [() => !!gv(() => texPaint), () => gv(() => texPaint && texPaint.tex) === 'tuile'],
             'Admirez': [() => G.is3D()],
+        },
+        build: {
         },
     };
     // ---------- interface ----------
@@ -987,8 +908,8 @@
         { id: 'adv', level: 'Initié', title: 'Les outils avancés — un petit parking', desc: 'Exercice : le plan d\'un parking. Calque, accroches, suivi polaire, réseau de places, arbres plantés avec Diviser, cotes, regard et cote de diamètre, texte, infobulle, mesure, métré et aperçu', minutes: 25, steps: ADV, setup: () => setupExercise(-1, 24, -3, 15.5, 380) },
         { id: 'param', level: 'Expert', title: 'Le paramétrage', desc: 'Paramètres ⛯ expliqués réglage par réglage : précision et grille, impression, cartouche et indices, fond de plan, planches, Momo IA, catalogue de prix ; calques avancés (ligne -T-, hachures, points topo) et gabarit d\'entreprise', minutes: 25, steps: PARAM },
         { id: 'cub', level: 'Maître', title: 'Les cubatures — le terrassement du parking', desc: 'Exercice : caler le parking sur un terrain en pente. Point topo, vue 3D, courbes de niveau, plateforme à 102,00, talus, structure de chaussée, cubatures et rapport PDF, profil en long, métré chiffré', minutes: 25, steps: CUB, setup: () => setupExercise(-2, 42, -2, 42, 380) },
-        { id: 'model', level: 'Seigneur', title: 'La modélisation 3D — un regard en béton', desc: 'Exercice : un regard complet. Pavé, tube, poser sur, révolution, élever, balayage, incliner, peindre en textures, sélection dans la vue 3D, volumes au métré', minutes: 25, steps: MODEL, setup: () => setupExercise(-3, 5.2, -1, 3, 380) },
-        { id: 'build', level: 'Dieu', title: 'Pièces et bâtiment — une équerre et une cabane', desc: 'Exercice : une équerre percée à imprimer en 3D (union, soustraction, export STL), puis une cabane : murs, fenêtre, porte, panne faîtière, toit deux pans avec pignons, tuiles', minutes: 30, steps: BUILD, setup: () => setupExercise(-0.5, 12.8, -0.8, 4.8, 380) },
+        { id: 'model', level: 'Seigneur', title: 'Le bâtiment — une cabane', desc: 'Exercice : une cabane de 5 × 4 m. Dalle, parois, hauteur des murs, fenêtre, porte, panne faîtière, toit deux pans avec pignons, tuiles, tour en 3D', minutes: 25, steps: MODEL, setup: () => setupExercise(6.2, 12.8, -0.8, 4.8, 380) },
+        { id: 'build', level: 'Dieu', title: 'Construire juste — une pergola', desc: 'Exercice : une pergola de 4 × 3 m. Dalle, traits de construction parallèles, poteaux aux croisements, poutres, trait de coupe, mesure et contrôle des collisions dans la vue 3D', minutes: 25, steps: BUILD, setup: () => setupExercise(-1.2, 5.2, -1.5, 4.5, 380) },
     ];
     let STEPS = null, done = [];   // STEPS null : Momo est actif, sans tuto en cours (menu)
     let view = 'home', menuMsg = '', pinned = false, cele = [], last3D = false, lastH = 0, root, bubble, ring, tip, momo, idx = 0, ctx = {}, timer = null;
