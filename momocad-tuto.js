@@ -117,7 +117,7 @@
           wait: () => !!circleOf([5.5, 2], 2) },
         // sélection fenêtre + copier
         { title: 'Sélectionner M et O ensemble', target: 'btn-select-box', tip: 'Sélection<br><small>ou Échap</small>', ghost: () => [gp([[-0.6, -0.6], [7.9, -0.6], [7.9, 4.6], [-0.6, 4.6]], true, { label: 'clic ici… puis là', lp: W(-0.6, 4.6), snap: [W(-0.6, 4.6), W(7.9, -0.6)] })],
-          why: `Pour agir sur plusieurs objets, on les sélectionne ensemble. Un <b>clic dans le vide, puis un 2<sup>e</sup> clic</b> trace une <b>fenêtre</b> : tout ce qui est entièrement dedans est pris.`,
+          why: `Pour agir sur plusieurs objets, on les sélectionne ensemble. Un <b>clic dans le vide, puis un 2<sup>e</sup> clic</b> trace une <b>fenêtre</b> : tracée vers la droite (rose), tout ce qui est entièrement dedans est pris ; vers la gauche (verte), tout ce qu'elle touche.`,
           do: ol(`${K('Échap')} pour l'outil Sélection.`, 'Cliquez un coin de la fenêtre jaune, relâchez, puis cliquez le coin opposé.', 'Le M et le O passent en rose.'),
           more: `Autres gestes : un clic sur un objet ; ou bouton maintenu en glissant = un <b>lasso</b> à main levée.`,
           wait: () => { const m = polyOf(M1, false), o = circleOf([5.5, 2], 2); return !!m && !!o && G.sel().includes(m) && G.sel().includes(o); } },
@@ -567,7 +567,7 @@
             'Le O': { why: `Le M est fini, bravo ! On passe au O : un <b>cercle</b>. Sur un vrai plan, c'est un regard, un arbre, un giratoire…`,
                 do: () => ol('Clique sur l\'outil <b>Cercle</b>.', 'Clique sur le <b>centre</b> : le point jaune.', `Tape le rayon ${K(U(2))} au clavier, puis appuie sur ${SP}.`),
                 more: `Taper la valeur au clavier, c'est LE réflexe à prendre : ton dessin est juste au millimètre, pas « à peu près ».` },
-            'Sélectionner M et O ensemble': { why: `On a « MO ». Et tu sais quoi ? Pour faire « MOMO », pas besoin de redessiner : on va copier. Mais d'abord, il faut <b>sélectionner</b> le M et le O ensemble. Un <b>clic dans le vide, puis un 2<sup>e</sup> clic</b> trace une fenêtre : tout ce qui est entièrement dedans est pris.`,
+            'Sélectionner M et O ensemble': { why: `On a « MO ». Et tu sais quoi ? Pour faire « MOMO », pas besoin de redessiner : on va copier. Mais d'abord, il faut <b>sélectionner</b> le M et le O ensemble. Un <b>clic dans le vide, puis un 2<sup>e</sup> clic</b> trace une fenêtre : tout ce qui est entièrement dedans est pris. Petite astuce : tracée vers la gauche, la fenêtre devient verte et prend tout ce qu'elle touche.`,
                 do: ol(`Appuie sur ${K('Échap')} : tu reviens à l'outil Sélection.`, 'Clique sur un coin de la fenêtre jaune, relâche, puis clique sur le coin opposé.', 'Le M et le O passent en rose : ils sont sélectionnés.'),
                 more: `Il existe deux autres gestes : un clic directement sur un objet, ou bouton maintenu en glissant pour tracer un <b>lasso</b> à main levée.` },
             'MOMO : copier M et O': { why: `Parfait ! Maintenant on <b>copie</b> : le dessin est reproduit ailleurs, et l'original ne bouge pas. Note bien le principe, il revient partout : un <b>point de départ</b>, puis un <b>point d'arrivée</b>.`,

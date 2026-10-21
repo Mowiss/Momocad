@@ -105,7 +105,17 @@ module.exports = { name: 'edition', run: async (H, t) => {
     { const all = await ev(() => shapes.filter(s => s.type === 'line').map(s => [s.x1, s.y1, s.x2, s.y2].map((v, k) => +((k % 2 ? -1 : 1) * worldToMm(v) / 1000).toFixed(2))));
       t.ok('chanfrein : pan coupé de 1 m sur chaque droite', all.some(q => (near(q, [74, 20, 75, 21], 0.01) || near(q, [75, 21, 74, 20], 0.01))), JSON.stringify(all.filter(q => q[0] >= 70 && q[1] >= 20))); }
 
+    // sélection par fenêtre : vers la droite (rose) = objets entièrement dedans ; vers la gauche (verte) = tout ce qu'elle touche
+    await ev(() => { shapes = []; selectedShapes = []; saveState(); draw(); });
+    await mk({ type: 'line', x1: 2, y1: 22, x2: 12, y2: 22 }); await mk({ type: 'circle', x: 6, y: 26, r: 1 }); await mk({ type: 'poly', pts: [[20, 20], [30, 20], [30, 28], [20, 28]] });
+    const win = async (a, b) => { await ev(() => { setMode('select-box'); selectedShapes = []; draw(); }); const A = await H.W(...a), B = await H.W(...b);
+        await H.click(A); await p.mouse.move((A.x + B.x) / 2, (A.y + B.y) / 2, { steps: 4 }); await H.click(B); await H.wait(150);
+        return ev(() => selectedShapes.map(s => s.type).sort().join(',')); };
+    t.eq('fenêtre vers la droite : seul le cercle entièrement dedans', await win([4, 24], [9, 29]), 'circle');
+    t.eq('capture vers la gauche : le cercle, la droite qu\'elle touche et le rectangle qu\'elle traverse', await win([24, 29], [4, 21]), 'circle,line,poly');
+    await reset();
+
     // supprimer la sélection
-    n = await N(); await pick(51, 0); await H.press('Delete'); await reset();
+    await mk({ type: 'poly', open: true, pts: [[50, 0], [52, 0]] }); n = await N(); await pick(51, 0); await H.press('Delete'); await reset();
     t.ok('Suppr efface l\'objet sélectionné', (await N()) === n - 1);
 } };
