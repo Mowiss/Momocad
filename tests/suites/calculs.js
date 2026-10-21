@@ -41,6 +41,11 @@ module.exports = { name: 'calculs', run: async (H, t) => {
       t.ok('récapitulatif : remblai périphérique compté à part', Math.abs(r.RP - rp) < 0.01, JSON.stringify(r));
       const cards = await ev(async () => { openCubatureDialog(); cubGo(2); await new Promise(r => setTimeout(r, 600)); const L = [...document.querySelectorAll('#cb-res > div:first-child > div > div:first-child')].map(d => d.textContent); closeTopoModal && closeTopoModal(); return L; }).catch(e => ['err ' + e.message]);
       t.ok('récapitulatif : cases Remblai et Remblai périphérique', cards.includes('Remblai') && cards.includes('Remblai périphérique'), JSON.stringify(cards)); }
+      // en 3D : le remblai périphérique se montre en volume, son dessus au niveau fini (99,50)
+      const rp3 = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 900)); document.querySelector('[data-for="v3-rp"]').click(); await new Promise(r => setTimeout(r, 400));
+          let top = null, n = 0; V3.root.traverse(o => { if (o.userData.rp) { n++; const a = o.geometry.attributes.position.array; let mx = -1e9; for (let i = 2; i < a.length; i += 3) mx = Math.max(mx, a[i]); top = mx / V3.exag + V3.zmin; } });
+          document.querySelector('[data-for="v3-rp"]').click(); close3D(); return { n, top }; });
+      t.ok('3D : remblai périphérique affiché, dessus à 99,50', rp3.n === 1 && Math.abs(rp3.top - 99.5) < 0.01, JSON.stringify(rp3));
 
     // métré : longueur d'une droite et d'une polyligne, surface d'un rectangle
     await ev(() => { shapes = []; const m = mmToWorld(1000);
