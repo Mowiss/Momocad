@@ -17,6 +17,11 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     await ev(() => { document.querySelector('[data-for="v3-hz"]').click(); }); await H.wait(300);
     const hz1 = await ev(() => V3.hz && V3.hz.visible && V3.hz.userData.seed); await ev(() => v3NewHorizon()); await H.wait(200);
     t.ok('horizon affiché, et un nouveau à la demande', hz1 && await ev((a) => V3.hz.userData.seed !== a, hz1), hz1);
+    const kinds = await ev(() => ['montagne', 'ville', 'plaine', 'village'].map(k => { v3HzType(k); return V3.hz.userData.key.split(':')[0] + (V3.hz.userData.lights ? '+nuit' : ''); }));
+    t.eq('horizon : quatre paysages (la ville et le village s\'éclairent la nuit)', kinds, ['montagne', 'ville+nuit', 'plaine', 'village+nuit']);
+    const pano = await ev(async () => { const c = document.createElement('canvas'); c.width = 512; c.height = 256; c.getContext('2d').fillRect(0, 0, 512, 256); const b = await new Promise(r => c.toBlob(r));
+        const ok = await v3PanoFromBlob(b, false); v3HzType('photo'); const r = [ok, V3.pano.visible, V3.hz.visible, V3.gnd.visible]; v3HzType('montagne'); return r; });
+    t.eq('photo 360° : remplace ciel et horizon', pano, [true, true, false, false]);
     await ev(() => { document.querySelector('[data-for="v3-hz"]').click(); document.querySelector('[data-for="v3-sky"]').click(); }); await H.wait(300);
     t.ok('ciel et horizon masqués', await ev(() => !V3.sky.visible && !V3.hz.visible));
     await ev(() => { document.querySelector('[data-for="v3-nat"]').click(); close3D(); });

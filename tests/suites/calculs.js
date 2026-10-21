@@ -52,6 +52,11 @@ module.exports = { name: 'calculs', run: async (H, t) => {
           document.querySelector('[data-for="v3-bg"]').click(); const d0 = dr(); document.querySelector('[data-for="v3-bg"]').click(); shapes.shift();
           close3D(); return { n, top, pts: [on, off], drape: [d1, d0] }; });
       t.ok('3D : fond de carte drapé sur le terrain (pas d\'image à plat), masqué avec son bouton', rp3.drape[0][0] === 1 && rp3.drape[0][1] === 0 && rp3.drape[1][0] === 0 && rp3.drape[1][1] === 0, JSON.stringify(rp3.drape));
+      // vue iso / façade du plan : le maillage du terrain reste dessiné autour des plateformes (hors plateforme et talus)
+      const wire = await ev(() => { build3DScene(); let n = 0; const ox = V3.root.position.x, oy = V3.root.position.y;
+          V3.root.traverse(o => { if (!o.isLineSegments) return; const a = o.geometry.attributes.position.array; for (let i = 0; i < a.length; i += 6) { const x = (a[i] + a[i + 3]) / 2, y = (a[i + 1] + a[i + 4]) / 2;
+              if (x > 12 && x < 48 && y > 8 && y < 32 && !(x > 19 && x < 41 && y > 14 && y < 26)) n++; } }); build3DScene(); return n; });
+      t.ok('vue iso du plan : maillage du terrain présent autour de la plateforme', wire > 20, wire);
       t.ok('3D : cotes de niveau masquées → points et fils masqués aussi', rp3.pts[0] > 0 && rp3.pts[1] === 0, JSON.stringify(rp3.pts));
       t.ok('3D : remblai périphérique affiché, dessus à 99,50', rp3.n === 1 && Math.abs(rp3.top - 99.5) < 0.01, JSON.stringify(rp3));
 
