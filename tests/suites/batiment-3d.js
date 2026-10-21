@@ -21,7 +21,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.ok('ciel et horizon masqués', await ev(() => !V3.sky.visible && !V3.hz.visible));
     await ev(() => { document.querySelector('[data-for="v3-nat"]').click(); close3D(); });
     // façade : la vue de côté est rendue par le moteur 3D
-    await ev(() => setView2D(0, 0)); await H.wait(1500);
+    await ev(() => setView2D(0, 0)); await H.wait(1500); await p.waitForFunction(() => !view2dAnim, null, { timeout: 15000 }); await H.wait(300);
     const f = await ev(() => { const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height; const x = c.getContext('2d'); const ok = ortho3D(x, 0, 0, mmToWorld(1) * camera.zoom);
         const d = x.getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; return { ok, n }; });
     t.ok('vue de façade dessinée (murs, toit, menuiseries)', f.ok && f.n > 600, JSON.stringify(f));

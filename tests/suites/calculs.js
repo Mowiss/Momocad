@@ -44,7 +44,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
       // en 3D : le remblai périphérique se montre en volume, son dessus au niveau fini (99,50)
       const rp3 = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 900)); document.querySelector('[data-for="v3-rp"]').click(); await new Promise(r => setTimeout(r, 400));
           let top = null, n = 0; V3.root.traverse(o => { if (o.userData.rp) { n++; const a = o.geometry.attributes.position.array; let mx = -1e9; for (let i = 2; i < a.length; i += 3) mx = Math.max(mx, a[i]); top = mx / V3.exag + V3.zmin; } });
-          document.querySelector('[data-for="v3-rp"]').click(); close3D(); return { n, top }; });
+          document.querySelector('[data-for="v3-rp"]').click();
+          const cnt = () => { let k = 0; V3.root.traverse(o => { if (o.isPoints) k++; }); return k; }, on = cnt(); document.querySelector('[data-for="v3-lab"]').click(); await new Promise(r => setTimeout(r, 300)); const off = cnt(); document.querySelector('[data-for="v3-lab"]').click();
+          close3D(); return { n, top, pts: [on, off] }; });
+      t.ok('3D : cotes de niveau masquées → points et fils masqués aussi', rp3.pts[0] > 0 && rp3.pts[1] === 0, JSON.stringify(rp3.pts));
       t.ok('3D : remblai périphérique affiché, dessus à 99,50', rp3.n === 1 && Math.abs(rp3.top - 99.5) < 0.01, JSON.stringify(rp3));
 
     // métré : longueur d'une droite et d'une polyligne, surface d'un rectangle
