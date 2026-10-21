@@ -19,4 +19,12 @@ module.exports = { name: 'hors-ligne', page: { offline: true }, run: async (H, t
     try { const [d] = await Promise.all([H.p.waitForEvent('download', { timeout: 20000 }), ev(c => performPrint(c.x, c.y), C)]); t.ok('impression PDF hors ligne', /\.pdf$/.test(d.suggestedFilename())); }
     catch (e) { t.ok('impression PDF hors ligne', false, e.message.split('\n')[0]); }
     await ev(() => setMode('select-box'));
+    // poste hors ligne : les fonctions qui ont besoin d'Internet le disent clairement
+    await H.ctx.setOffline(true); await H.wait(200);
+    await ev(() => { startBmPlace(); }); await H.wait(500);
+    t.ok('fond de carte hors ligne : message « besoin d\'Internet »', /Internet/.test(await ev(() => document.getElementById('command-text').textContent)), await ev(() => document.getElementById('command-text').textContent));
+    await ev(() => { try { closeBasemapModal && closeBasemapModal(); } catch (e) {} setMode('select-box'); });
+    const ia = await ev(() => { iaCfg.key = 'cle-de-test'; momoGoIA(); const q = document.getElementById('mc-q'); if (!q) return 'pas de champ'; q.value = 'Bonjour'; mcSend(); return (mcMsgs.at(-1) || {}).text || ''; });
+    t.ok('Momo IA hors ligne : message « besoin d\'Internet »', /Internet/.test(ia), ia);
+    await H.ctx.setOffline(false);
 } };
