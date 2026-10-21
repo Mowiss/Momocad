@@ -95,7 +95,7 @@
     const BASE = [
         { title: 'Bonjour, je suis Momo !', why: `On va apprendre les outils de base <b>en dessinant pour de vrai</b> : ensemble, on va redessiner le <b>logo MOMOCAD</b>, lettre par lettre. Chaque outil sert à quelque chose dans le logo.`,
           do: `Le modèle est tracé en <b>pointillés</b> sur le plan : en <b style="color:#fbbf24">jaune</b> ce qu'il faut dessiner maintenant, en <b style="color:#4ade80">vert</b> ce qui est fait. Ses points jaunes <b>s'accrochent</b> : visez-les.<br>L'étape se coche ✓ seulement si votre dessin correspond au modèle. Vous avancez avec ${K('▶')}.`,
-          more: `Un plan vierge est idéal. Les longueurs sont en mètres (le tuto règle l'unité du dessin sur m).` },
+          more: `Un plan vierge est idéal. Les longueurs sont en mètres (le tuto règle l'unité du dessin sur m). Et pas de panique si tu fermes l'onglet par erreur : MomoCAD range ton travail tout seul toutes les 2 minutes.` },
         { title: 'Se déplacer dans le plan', why: `Avant de dessiner, il faut savoir regarder : zoomer sur un détail, revenir à l'ensemble.`,
           do: `<ul><li><b>molette</b> = zoomer, autour du curseur ;</li><li><b>clic molette maintenu</b> = faire glisser le plan ;</li><li><b>double-clic molette</b> = tout voir.</li></ul>Le modèle du logo est déjà au milieu de l'écran.` },
         // M : demi-M, miroir, joindre
