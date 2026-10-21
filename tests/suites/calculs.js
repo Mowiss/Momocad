@@ -46,7 +46,12 @@ module.exports = { name: 'calculs', run: async (H, t) => {
           let top = null, n = 0; V3.root.traverse(o => { if (o.userData.rp) { n++; const a = o.geometry.attributes.position.array; let mx = -1e9; for (let i = 2; i < a.length; i += 3) mx = Math.max(mx, a[i]); top = mx / V3.exag + V3.zmin; } });
           document.querySelector('[data-for="v3-rp"]').click();
           const cnt = () => { let k = 0; V3.root.traverse(o => { if (o.isPoints) k++; }); return k; }, on = cnt(); document.querySelector('[data-for="v3-lab"]').click(); await new Promise(r => setTimeout(r, 300)); const off = cnt(); document.querySelector('[data-for="v3-lab"]').click();
-          close3D(); return { n, top, pts: [on, off] }; });
+          const m = mmToWorld(1000), c = document.createElement('canvas'); c.width = c.height = 64; c.getContext('2d').fillRect(0, 0, 64, 64); basemapStore['t-drape'] = c.toDataURL(); bmImg('t-drape'); await new Promise(r => setTimeout(r, 200));
+          shapes.unshift({ type: 'basemap', layerId: 'layer-0', x: 30 * m, y: -20 * m, r: 20 * m, mapId: 't-drape' }); build3DScene();
+          const dr = () => { let k = 0, flat = 0; V3.root.traverse(o => { if (o.userData.drape) k++; else if (o.isMesh && o.geometry.type === 'CircleGeometry') flat++; }); return [k, flat]; }, d1 = dr();
+          document.querySelector('[data-for="v3-bg"]').click(); const d0 = dr(); document.querySelector('[data-for="v3-bg"]').click(); shapes.shift();
+          close3D(); return { n, top, pts: [on, off], drape: [d1, d0] }; });
+      t.ok('3D : fond de carte drapé sur le terrain (pas d\'image à plat), masqué avec son bouton', rp3.drape[0][0] === 1 && rp3.drape[0][1] === 0 && rp3.drape[1][0] === 0 && rp3.drape[1][1] === 0, JSON.stringify(rp3.drape));
       t.ok('3D : cotes de niveau masquées → points et fils masqués aussi', rp3.pts[0] > 0 && rp3.pts[1] === 0, JSON.stringify(rp3.pts));
       t.ok('3D : remblai périphérique affiché, dessus à 99,50', rp3.n === 1 && Math.abs(rp3.top - 99.5) < 0.01, JSON.stringify(rp3));
 
