@@ -21,6 +21,8 @@ La commande se termine en erreur (code 1) dès qu'un contrôle échoue : prête 
 | fichiers | un plan riche enregistré puis rouvert en .mmc et en DXF : objets, altitudes, talus, tranchée, eau, cotes, points topo, calques, style des cotes |
 | calculs | cubatures (déblai, remblai, talus, recul, remblai périphérique) et métré comparés à des volumes calculés à la main |
 | sorties | impression rapide PDF et PNG, planche de présentation en PDF, métré en PDF |
+| sauvegarde | enregistrement automatique, proposition de récupération au redémarrage, historique des sauvegardes |
+| hors-ligne | sans aucun réseau : mise en forme, PDF, 3D, découpe, lecteur PDF et carte depuis le dossier `lib/` |
 
 Chaque suite échoue aussi si la page lève une erreur JavaScript ou une alerte imprévue.
 
@@ -30,5 +32,5 @@ Tout bug corrigé ajoute un contrôle qui l'aurait détecté.
 
 ## Prérequis
 
-Node.js et Playwright (Chromium). Les bibliothèques en ligne (mise en forme, 3D, PDF, carte) sont servies depuis `tests/vendor/` : la batterie tourne sans réseau.
+Node.js et Playwright (Chromium). Les bibliothèques en ligne (mise en forme, 3D, PDF, carte) sont servies depuis `tests/vendor/` : la batterie tourne sans réseau. La suite `hors-ligne` vérifie aussi le dossier `lib/` posé à côté de index.html.
 L'application testée est `../index.html` ; une autre peut être désignée avec la variable `MOMOCAD_APP=/chemin/index.html`.

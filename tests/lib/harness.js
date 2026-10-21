@@ -19,12 +19,14 @@ async function openPage(browser, opts = {}) {
     const errs = [], alerts = [], cons = [];
     p.on('pageerror', e => errs.push(e.message));
     p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|net::ERR|ERR_FAILED|blocked/i.test(m.text())) cons.push(m.text()); });
-    p.on('dialog', d => { alerts.push(d.type() + ': ' + d.message()); (opts.confirm !== false && d.type() === 'confirm') ? d.accept() : d.dismiss().catch(() => {}); });
+    p.on('dialog', d => { if (d.type() === 'beforeunload') return d.accept().catch(() => {});   // quitter la page malgré des modifications : voulu par le test
+        alerts.push(d.type() + ': ' + d.message()); (opts.confirm !== false && d.type() === 'confirm') ? d.accept() : d.dismiss().catch(() => {}); });
     // une seule règle réseau : bibliothèques servies en local, tout le reste coupé (Playwright donne la priorité à la dernière règle posée)
     const LOCAL = [[/cdn\.tailwindcss\.com/, 'tailwind.js'], [/three\.js\/r128\/three\.min\.js/, 'three.min.js'], [/jspdf\/2\.5\.1\/jspdf\.umd\.min\.js/, 'jspdf.umd.min.js'],
         [/polygon-clipping@0\.15\.7\//, 'polygon-clipping.umd.min.js'], [/leaflet@1\.9\.4\/dist\/leaflet\.js/, 'leaflet.js'], [/leaflet@1\.9\.4\/dist\/leaflet\.css/, 'leaflet.css']];
     await p.route(/^https?:\/\//, r => { const u = r.request().url(), m = LOCAL.find(([re]) => re.test(u));
-        if (!m) return r.abort(); return r.fulfill({ body: V(m[1]), contentType: m[1].endsWith('.css') ? 'text/css' : 'application/javascript' }); });
+        if (!m || opts.offline) return r.abort();   /* offline : aucun accès réseau, l'appli doit vivre avec son dossier lib/ */
+        return r.fulfill({ body: V(m[1]), contentType: m[1].endsWith('.css') ? 'text/css' : 'application/javascript' }); });
     if (opts.fresh !== false) await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
     await p.goto('file://' + APP);
     // le logo d'accueil couvre l'écran ~4 s : on attend qu'il parte (ou on le retire)
@@ -56,6 +58,9 @@ function helpers(pg, rec) {
         H.seq = []; return r[1]; };
     // plan vierge, en mètres, vue centrée sur 0,0 ; renvoie le calque actif
     H.blank = (pxPerM) => H.ev((k) => { if (typeof layoutOn !== 'undefined' && layoutOn) toggleLayout(false); setMode('select-box'); shapes = []; selectedShapes = []; geoOrigin = { x: 0, y: 0 }; invalidateCache(); camera.zoom = k / mmToWorld(1000); const r = canvas.getBoundingClientRect(); camera.x = 150; camera.y = r.height - 150; saveState(); draw(); return activeLayerId; }, pxPerM || 25);
+    // recharge la page (stockage du navigateur conservé) et attend qu'elle soit prête
+    H.reload = async () => { await p.reload(); await p.waitForFunction(() => typeof shapes !== 'undefined' && typeof draw === 'function', null, { timeout: 15000 });
+        await p.evaluate(() => { const s = document.getElementById('mc-splash'); if (s) s.remove(); }); await p.waitForTimeout(800); };
     return H;
 }
 
