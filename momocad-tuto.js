@@ -693,7 +693,7 @@
                 more: `Plus tard, ${K('Y')} sur le toit puis <b>Modifier la toiture</b> : débord, hauteurs, et une texture pour la couverture et une autre pour la sous-face de l'avancée.` },
             'Les tuiles': { why: `La touche finale : une couverture en tuiles, à l'échelle.`,
                 do: ol('Clique sur l\'outil <b>Peindre</b>.', 'Dans la fenêtre des textures, clique sur <b>Tuiles</b>.', 'Clique sur les deux pans du toit.')},
-            'Admirez': { title: 'Admire !', why: `Le moment de vérité : murs percés, porte, fenêtre, panne, toit et pignons… Fais-en le tour !`,
+            'Admirez': { title: 'Admire !', why: `Le moment de vérité : murs percés, porte, fenêtre, panne, toit et pignons… Fais-en le tour ! Et en plan, en vue de côté (X ou Y sur la rosace), tu as tes façades en traits, prêtes à coter.`,
                 do: ol('Clique sur la bulle <b>œil 3D</b>, près de la rosace.', 'Fais le tour de la cabane : glisser = tourner, molette = zoom.', `Referme la vue 3D : bulle œil ou ${K('Échap')}.`)},
         },
         build: {

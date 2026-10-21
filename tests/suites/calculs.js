@@ -11,7 +11,7 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         if (o.talus) pl.talus = o.talus; if (o.rp) pl.cubRP = o.rp; shapes.push(pl); invalidateCache(); saveState();
         const C = withModel(() => cubCompute()); if (C.err) return { err: C.err };
         const it = C.items[0];
-        return { D: +C.D.toFixed(3), Rm: +C.Rm.toFixed(3), plat: [+it.pr.deb.toFixed(3), +it.pr.rem.toFixed(3)], tal: it.tal ? [+it.tal.deb.toFixed(3), +it.tal.rem.toFixed(3)] : null,
+        return { D: +C.D.toFixed(3), Rm: +C.Rm.toFixed(3), RP: +(C.RP || 0).toFixed(3), plat: [+it.pr.deb.toFixed(3), +it.pr.rem.toFixed(3)], tal: it.tal ? [+it.tal.deb.toFixed(3), +it.tal.rem.toFixed(3)] : null,
             extra: it.extra.map(e => [e.lbl.split(' ')[0] + ' ' + (e.lbl.split(' ')[1] || ''), +e.deb.toFixed(3), +e.rem.toFixed(3), !!e.info]) };
     }, o);
     const pct = (got, want) => Math.abs(got - want) / want;
@@ -37,7 +37,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     //    V = ∫₀^0,5 (périmètre·t + 4t²) dt = 60 × 0,125 + 4 × 0,125 / 3 = 7,667 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 99500 } });
     { const rp = (r.extra || []).filter(e => e[0].startsWith('remblai') && !e[3]).reduce((a, e) => a + e[2], 0);
-      t.ok('remblai périphérique jusqu\'à 99,50 = 7,67 m³ (à 2 % près)', pct(rp, 7.667) < 0.02, rp.toFixed(3) + ' — ' + JSON.stringify(r.extra)); }
+      t.ok('remblai périphérique jusqu\'à 99,50 = 7,67 m³ (à 2 % près)', pct(rp, 7.667) < 0.02, rp.toFixed(3) + ' — ' + JSON.stringify(r.extra));
+      t.ok('récapitulatif : remblai périphérique compté à part', Math.abs(r.RP - rp) < 0.01, JSON.stringify(r));
+      const cards = await ev(async () => { openCubatureDialog(); cubGo(2); await new Promise(r => setTimeout(r, 600)); const L = [...document.querySelectorAll('#cb-res > div:first-child > div > div:first-child')].map(d => d.textContent); closeTopoModal && closeTopoModal(); return L; }).catch(e => ['err ' + e.message]);
+      t.ok('récapitulatif : cases Remblai et Remblai périphérique', cards.includes('Remblai') && cards.includes('Remblai périphérique'), JSON.stringify(cards)); }
 
     // métré : longueur d'une droite et d'une polyligne, surface d'un rectangle
     await ev(() => { shapes = []; const m = mmToWorld(1000);
