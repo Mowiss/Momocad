@@ -206,6 +206,7 @@
         { title: 'Coter la largeur', target: 'btn-dim-ortho', tip: 'Cote ortho', ghost: () => [gl([0, -2], [20, -2], { label: () => U(20) + ' ' + UN(), lp: W(10, -2), snap: [W(0, 0), W(20, 0)] })],
           why: `Une <b>cote</b> affiche une distance sur le plan, et se met à jour si l'on déplace ses points.`,
           do: ol('Outil <b>Cote ortho</b>.', 'Cliquez les deux coins du bas de l\'emprise.', 'Cliquez sous le parking pour placer la ligne de cote.'),
+          more: `L'allure des cotes (extrémités, traits, position et fond de la valeur) se règle dans Paramètres, onglet <b>Cotes</b>.`,
           wait: () => G.shapes().some(s => s.type === 'dim' && (() => { try { const g = dimGeom(s); return g && Math.abs(g.dist - mw(20)) <= TOL(); } catch (e) { return false; } })()) },
         { title: 'Le regard', target: 'btn-circle', tip: 'Cercle', ghost: () => [gc([10, 9], 0.5, { label: () => 'rayon ' + U(0.5), lp: W(10.5, 9.5) })],
           why: `Un regard d'eaux pluviales au milieu de l'allée.`, do: () => ol('Outil <b>Cercle</b>, cliquez le centre jaune.', `Tapez ${K(U(0.5))} puis ${SP}.`), wait: () => !!circleOf([10, 9], 0.5) },
@@ -533,7 +534,7 @@
         PS({ title: 'Regarder en 3D', in3D: true,
           why: `La vue 3D est un visualiseur : on y tourne autour du projet, on mesure, on contrôle. Pas de dessin dedans, tout se construit en plan.`,
           items: [['Clique sur la bulle <b>œil 3D</b>, près de la rosace.', () => G.is3D() ? null : '#rose-svg .rose-eye', 'Vue 3D<br><small>ou VU + Espace</small>', () => G.is3D()]],
-          more: `Les chevrons « et », de chaque côté de la rosace, font tourner d'un quart de tour autour du projet.` }),
+          more: `Les chevrons « et », de chaque côté de la rosace, font tourner d'un quart de tour autour du projet. Ceux du haut et du bas montent ou descendent ton point de vue : côté, iso, dessus.` }),
         PS({ title: 'Mesurer en 3D', in3D: true,
           why: `Une hauteur sous poutre, ça se vérifie. En 3D, la mesure s'accroche aux sommets (carré jaune), aux milieux d'arêtes (triangle) et aux surfaces (rond bleu).`,
           items: [['Clique sur <b>📏 Mesurer</b>, en haut de la vue 3D.', '#v3-mes-btn', 'Mesurer', () => G.mode() === 'measure'],
@@ -623,7 +624,8 @@
             'Planter les arbres : diviser': { why: `Et maintenant on plante, avec <b>Diviser</b> : il jalonne un tracé sans le couper. Sur un chantier, c'est un regard tous les 50 m ou un candélabre tous les 25 m. Ici, un arbre tous les 5 m.`,
                 do: ol('Clique sur l\'outil <b>Diviser</b>.', 'Clique sur la ligne plantée.', 'Dans la fenêtre, choisis <b>En parts égales</b> : 4 parts.', 'Que poser : <b>❖ Bloc</b>, puis « Arbre feuillu ».', 'Décoche « aux deux bouts », puis clique sur <b>Poser</b>.')},
             'Coter la largeur': { why: `On passe à la cotation. Une <b>cote</b> affiche une distance sur le plan. Note bien son gros avantage : si tu déplaces ses points, elle se met à jour toute seule.`,
-                do: ol('Clique sur l\'outil <b>Cote ortho</b>.', 'Clique sur les deux coins du bas de l\'emprise.', 'Clique sous le parking pour placer la ligne de cote.')},
+                do: ol('Clique sur l\'outil <b>Cote ortho</b>.', 'Clique sur les deux coins du bas de l\'emprise.', 'Clique sous le parking pour placer la ligne de cote.'),
+                more: `Flèches ou traits obliques, pointillés, traits d'accroche, valeur dans une pastille… Tu règles l'allure de toutes tes cotes dans Paramètres, onglet <b>Cotes</b>.` },
             'Le regard': { why: `On ajoute un regard d'eaux pluviales au milieu de l'allée. Un cercle : tu connais, maintenant !`,
                 do: () => ol('Clique sur l\'outil <b>Cercle</b>.', 'Clique sur le centre jaune.', `Tape le rayon ${K(U(0.5))} au clavier, puis ${SP}.`)},
             'Coter le regard': { why: `Pour dire sa taille sur le plan, on lui met une <b>cote de diamètre</b> (celle de rayon est juste à côté). Regard, bassin, giration…`,
@@ -868,7 +870,11 @@
     #mt-root.under #mt-bubble { opacity:.13; pointer-events:none; transition: opacity .2s; } #mt-root.under #mt-dock:hover + #mt-bubble { opacity:1; pointer-events:auto; }
     /* Momo docké derrière la barre de commande : on ne voit que sa toque ; survolé, il sort les yeux ; ouvert, il sort en entier */
     #mt-dock { position:absolute; left:10px; bottom:0; z-index:25; width:64px; height:78px; pointer-events:auto; cursor:pointer; transform:translateY(20px); transition:transform .28s cubic-bezier(.3,1.4,.5,1); }
-    #mt-dock:hover { transform:translateY(-6px); } #mt-root.open #mt-dock { transform:translateY(-36px); }
+    #mt-dock:hover, #mt-root.hello #mt-dock { transform:translateY(-6px); } #mt-root.open #mt-dock { transform:translateY(-36px); }
+    /* bonjour au démarrage : Momo sort les yeux et dit qu'il est là, 5 s */
+    #mt-hello { position:absolute; left:80px; bottom:58px; z-index:26; max-width:250px; background:#2e1065; color:#f5f3ff; border:2px solid #7c3aed; border-radius:14px; padding:9px 13px; font:600 13px/1.4 Arial, sans-serif; box-shadow:0 8px 20px #0009; cursor:pointer; pointer-events:auto; opacity:0; transform:translateY(8px) scale(.92); transform-origin:left bottom; transition:opacity .3s, transform .35s cubic-bezier(.3,1.5,.5,1); }
+    #mt-hello.on { opacity:1; transform:none; }
+    #mt-hello:before { content:''; position:absolute; left:-11px; bottom:12px; border:9px solid transparent; border-right-color:#7c3aed; border-left:0; }
     #mt-dot { display:none; position:absolute; top:-6px; right:-10px; background:#7c3aed; color:#fff; font-size:11px; font-weight:800; border-radius:10px; padding:0 6px; line-height:18px; pointer-events:none; }
     #mt-root:not(.open) #mt-dot { display:block; } #mt-dot.ok { background:#22c55e; color:#052e16; }
     #mt-momo { width:64px; height:78px; display:block; filter: drop-shadow(0 4px 6px #0008); }
@@ -938,10 +944,20 @@
     }
     // ouvrir / replier la bulle (une seule bulle ouverte à la fois : le prof ou l'aide de chantier)
     function setOpen(v) {
-        if (!root) return; root.classList.toggle('open', !!v);
+        if (!root) return; if (v) endHello(); root.classList.toggle('open', !!v);
         if (v) { try { if (typeof mcToggle === 'function' && document.getElementById('mc-root') && document.getElementById('mc-root').classList.contains('open')) mcToggle(false); } catch (e) {} render(); }
         place();
     }
+    let helloT = null;
+    function hello() {   // au démarrage : les yeux sortent, petite bulle « clique sur moi », 5 s
+        ensure(); if (!root || root.classList.contains('open') || STEPS) return;
+        let h = root.querySelector('#mt-hello');
+        if (!h) { h = document.createElement('div'); h.id = 'mt-hello'; h.textContent = "💡 Hey ! Si tu as besoin d'un coup de main, clique sur moi !";
+            h.addEventListener('click', (e) => { e.stopPropagation(); endHello(); setOpen(true); }); h.addEventListener('mousedown', (e) => e.stopPropagation()); root.appendChild(h); }
+        root.classList.add('hello'); requestAnimationFrame(() => h.classList.add('on'));
+        clearTimeout(helloT); helloT = setTimeout(endHello, 5000);
+    }
+    function endHello() { clearTimeout(helloT); if (!root) return; root.classList.remove('hello'); const h = root.querySelector('#mt-hello'); if (h) { h.classList.remove('on'); setTimeout(() => { if (h.parentNode && !h.classList.contains('on')) h.remove(); }, 350); } }
     function jump() { momo.classList.remove('jump'); void momo.getBoundingClientRect(); momo.classList.add('jump'); }
     function act(a) {
         if (a === 'pin') { pinned = !pinned; root.classList.toggle('pinned', pinned); render(); return; }
@@ -1177,5 +1193,5 @@
     }
     function setVisible(v) { if (root) { root.style.display = v ? '' : 'none'; if (!v) { ring.style.display = 'none'; tip.style.display = 'none'; } } }
     function home() { ensure(); setVisible(true); if (!STEPS) { view = 'home'; menuMsg = ''; render(); } setOpen(true); }
-    window.MomoTuto = { version: 3, start, stop, enable, disable, setVisible, home, enabled: () => !!(root && root.isConnected), list: TUTOS, rules: jalRules, open: () => setOpen(true), collapse: () => setOpen(false), current: () => (root && root.isConnected && STEPS) ? { title: (TUTOS.find(t => t.steps === STEPS) || {}).title, step: idx + 1, n: STEPS.length } : null };
+    window.MomoTuto = { version: 3, start, stop, enable, disable, setVisible, home, hello, enabled: () => !!(root && root.isConnected), list: TUTOS, rules: jalRules, open: () => setOpen(true), collapse: () => setOpen(false), current: () => (root && root.isConnected && STEPS) ? { title: (TUTOS.find(t => t.steps === STEPS) || {}).title, step: idx + 1, n: STEPS.length } : null };
 })();
