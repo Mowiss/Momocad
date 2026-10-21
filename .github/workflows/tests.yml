@@ -1,0 +1,21 @@
+name: Tests MomoCAD
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save playwright@1.48.2
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/run.js -j 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapport-tests
+          path: tests/out
