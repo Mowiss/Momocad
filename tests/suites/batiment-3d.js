@@ -22,6 +22,9 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     const pano = await ev(async () => { const c = document.createElement('canvas'); c.width = 512; c.height = 256; c.getContext('2d').fillRect(0, 0, 512, 256); const b = await new Promise(r => c.toBlob(r));
         const ok = await v3PanoFromBlob(b, false); v3HzType('photo'); const r = [ok, V3.pano.visible, V3.hz.visible, V3.gnd.visible]; v3HzType('montagne'); return r; });
     t.eq('photo 360° : remplace ciel et horizon', pano, [true, true, false, false]);
+    const cyl = await ev(async () => { const c = document.createElement('canvas'); c.width = 1300; c.height = 200; c.getContext('2d').fillRect(0, 0, 1300, 200); const b = await new Promise(r => c.toBlob(r));
+        await v3PanoFromBlob(b, false); v3HzType('photo'); const r = [V3.pano.visible, V3.panoC.visible]; v3HzType('montagne'); return r; });
+    t.eq('panorama de téléphone (très allongé) : posé sur un cylindre, pas étiré sur une bulle', cyl, [false, true]);
     await ev(() => { document.querySelector('[data-for="v3-hz"]').click(); document.querySelector('[data-for="v3-sky"]').click(); }); await H.wait(300);
     t.ok('ciel et horizon masqués', await ev(() => !V3.sky.visible && !V3.hz.visible));
     await ev(() => { document.querySelector('[data-for="v3-nat"]').click(); close3D(); });
