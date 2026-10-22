@@ -10,11 +10,10 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.ok('fenêtre : un vitrage', r.glass >= 1, JSON.stringify(r));
     t.ok('aucun tracé de plan dessiné par-dessus les volumes (toit, murs)', r.segs === 0, JSON.stringify(r));
     // rendu naturel et ciel
-    await ev(() => { document.querySelector('[data-for="v3-nat"]').click(); document.querySelector('[data-for="v3-sky"]').click(); }); await H.wait(800);
-    t.ok('ciel affiché', await ev(() => !!(V3.sky && V3.sky.visible)));
+    await ev(() => { document.querySelector('[data-for="v3-nat"]').click(); document.querySelector('[data-for="v3-hz"]').click(); }); await H.wait(800);
+    t.ok('ciel et paysage affichés avec le bouton Paysage', await ev(() => !!(V3.sky && V3.sky.visible)));
     const sun = await ev(() => { v3SetHour(9); const a = V3.sun.position.clone(); v3SetHour(18); const b = V3.sun.position.clone(); return [a.x, b.x]; });
     t.ok('le soleil suit l\'heure (matin à l\'est, soir à l\'ouest)', sun[0] > 0 && sun[1] < 0, JSON.stringify(sun));
-    await ev(() => { document.querySelector('[data-for="v3-hz"]').click(); }); await H.wait(300);
     const hz1 = await ev(() => V3.hz && V3.hz.visible && V3.hz.userData.seed); await ev(() => v3NewHorizon()); await H.wait(200);
     t.ok('horizon affiché, et un nouveau à la demande', hz1 && await ev((a) => V3.hz.userData.seed !== a, hz1), hz1);
     const kinds = await ev(() => ['montagne', 'ville', 'plaine', 'village'].map(k => { v3HzType(k); return V3.hz.userData.key.split(':')[0] + (V3.hz.userData.lights ? '+nuit' : ''); }));
@@ -25,7 +24,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     const cyl = await ev(async () => { const c = document.createElement('canvas'); c.width = 1300; c.height = 200; c.getContext('2d').fillRect(0, 0, 1300, 200); const b = await new Promise(r => c.toBlob(r));
         await v3PanoFromBlob(b, false); v3HzType('photo'); const r = [V3.pano.visible, V3.panoC.visible]; v3HzType('montagne'); return r; });
     t.eq('panorama de téléphone (très allongé) : posé sur un cylindre, pas étiré sur une bulle', cyl, [false, true]);
-    await ev(() => { document.querySelector('[data-for="v3-hz"]').click(); document.querySelector('[data-for="v3-sky"]').click(); }); await H.wait(300);
+    await ev(() => { document.querySelector('[data-for="v3-hz"]').click(); }); await H.wait(300);
     t.ok('ciel et horizon masqués', await ev(() => !V3.sky.visible && !V3.hz.visible));
     await ev(() => { document.querySelector('[data-for="v3-nat"]').click(); close3D(); });
     // façade : la vue de côté est rendue par le moteur 3D
