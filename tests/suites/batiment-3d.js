@@ -197,4 +197,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         for (let y = 0; y < canvas.height; y += 2) for (let x = 0; x < canvas.width; x += 2) { const k = (y * canvas.width + x) * 4; if (Math.abs(A[k] - B[k]) + Math.abs(A[k + 1] - B[k + 1]) + Math.abs(A[k + 2] - B[k + 2]) > 30) { if (Math.abs(y - wy) <= half + 3 * dpr) inB++; else outB++; } }
         const L = layers.find(l => l.id === shapes[0].layerId); shapes = []; saveState(); return { layer: L && L.name, hatch: inB > 200, clear: outB < 20 }; });
     t.eq('pinceau en plan : bande hachurée sur le calque Pinceau', bp, { layer: 'Pinceau', hatch: true, clear: true });
+    // villa (projet réel) : un talus ne revient jamais sur une autre plateforme ; un remblai se pose sur le déblai voisin (pas de falaise) ; toits : pas de cadre fantôme en plan
+    await ev(t => { loadProjectText(t, 'villa.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'villa.mmc'), 'utf8')); await H.wait(600);
+    const vl = await ev(() => { const FM = finishedModel(), M = (x, y) => FM.at(mmToWorld(x * 1000), -mmToWorld(y * 1000)), a = M(661, 631), b = M(657.8, 628.5); return { onP1: a.kind === 1 && a.gov === 1 && Math.abs(a.z - 457500) < 1, fill: b.z > 459300 }; });
+    t.eq('plateformes voisines : pas de retour de talus sur l\'autre plateforme, remblai continu sur le déblai voisin', vl, { onP1: true, fill: true });
+    const ph = await ev(() => { const m = mmToWorld(1000), base = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 0 })) };
+        const out = buildRoof(base, Object.assign({}, roofLast, { pans: 2, dir: 'long', he: 2.5, hf: 5, db: 0, fill: true })), pg = out.find(x => x.type === 'mesh');
+        const keep = shapes; shapes = []; camera.zoom = 40 / m; camera.x = 100; camera.y = 500; invalidateCache(); draw(); const A = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.slice();
+        shapes = [pg]; invalidateCache(); draw(); const B = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data; let d = 0; for (let i = 0; i < A.length; i += 16) if (A[i] !== B[i]) d++; shapes = keep; invalidateCache(); draw(); return { pignons: !!pg && pg.roofPart === 1, drawn: d }; });
+    t.eq('toiture en plan : les pignons ne laissent aucun cadre fantôme', ph, { pignons: true, drawn: 0 });
+    const th = await ev(() => { const m = mmToWorld(1000), base = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 455000 })) }; roofDialog(base, true);
+        const r = document.getElementById('rf-thr'), h = document.getElementById('rf-ht'); if (!r || !h) { closeTopoModal(); return null; } r.value = '3,50'; r.dispatchEvent(new Event('input')); const v = h.value; closeTopoModal(); return v; });
+    t.eq('toit terrasse : champ Hauteur du toit (depuis le pied des murs) qui règle le dessus de dalle', th, '458,50');
 } };
