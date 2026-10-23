@@ -235,4 +235,12 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     await ev(t => { loadProjectText(t, 'villa2.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'villa2.mmc'), 'utf8')); await H.wait(600);
     const v2 = await ev(() => { const FM = finishedModel(), M = (x, y) => FM.at(mmToWorld(x * 1000), -mmToWorld(y * 1000)), a = M(670, 597), b = M(683, 595.5); return { top: a.kind === 1 && a.gov === 2, noTalus: b.kind === 1 && b.gov === 2, buried: !!FM.P[3].segs }; });
     t.eq('plateforme tracée sous une plus haute : la haute reste, pas de talus en double', v2, { top: true, noTalus: true, buried: true });
+    // haut de paroi réglé par arête : à une cote finie, ou au terrain naturel (suit le niveau coupé)
+    const pzt = await ev(() => { shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = 0; i <= 12; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 300, zk: 1 });
+        const pl = { type: 'poly', layerId: 'layer-0', zk: 1, talus: { on: true, kD: '1/1', kR: '3/2', cx: true, edges: [{ off: true, pz: { m: 'fini', z: 99500 } }, null, { off: true, pz: { m: 'tn' } }, null] }, points: [[20, 15], [40, 15], [40, 25], [20, 25]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 99000 })) };
+        shapes.push(pl); invalidateCache(); tinCache = null; saveState(); build3DScene(); const tops = []; V3.root.traverse(o => { if (!o.userData.paroi) return; const a = o.geometry.attributes.position.array; for (let i = 0; i < a.length; i += 3) tops.push([a[i + 1], a[i + 2]]); });
+        const zmin = V3.zmin, cy0 = -15 + V3.root.position.y * 0, north = tops.filter(t => t[0] > -15.6 + 0 - 1e9); const zs = tops.map(t => Math.round((t[1] + zmin) * 100) / 100);
+        const r = { fini: zs.includes(99.5), tnRises: Math.max(...zs) > 102.2 }; shapes = []; saveState(); return r; });
+    t.eq('paroi : haut à une cote finie (99,50) ou au terrain naturel (monte avec lui)', pzt, { fini: true, tnRises: true });
 } };
