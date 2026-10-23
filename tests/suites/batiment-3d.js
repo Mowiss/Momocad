@@ -120,11 +120,11 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.eq('parois en angle : un voile continu (2 bouts seulement), arase horizontale malgré le terrain en pente', [pc.n, pc.caps, pc.flat], [1, 4, true]);
     t.ok('talus voisin d\'une paroi : il tourne l\'angle et revient le long du voile', pc.cone, JSON.stringify(pc));
     t.ok('paroi repeinte (Peindre) : texture posée sur le voile', pc.paint, JSON.stringify(pc));
-    // paroi cochée en réglage UNIFORME (fenêtre Y) : le côté devient vertical, sans talus
+    // réglage UNIFORME (fenêtre Y) : un seul interrupteur Paroi pour tout le contour (désignation et épaisseur communes)
     await ev(() => { const pl = shapes.find(x => x.talus); pl.talus = { on: true, kD: '1/1', kR: '3/2' }; selectedShapes = [pl]; saveState(); });
-    await H.Y({ 'tj-uoff-1': true });
-    const pu = await ev(() => { const pl = shapes.find(x => x.talus); tinCache = null; invalidateCache(); build3DScene(); let n = 0; V3.root.traverse(o => { if (o.userData.paroi) n++; }); return { cx: !!pl.talus.cx, off: (pl.talus.edges || []).map(e => !!(e && e.off)), n }; });
-    t.ok('paroi en réglage uniforme : côté 2-3 en paroi, voile béton en 3D', !pu.cx && pu.off[1] === true && pu.n === 1, JSON.stringify(pu));
+    await H.Y({ 'tj-uoffall': true, 'tj-upl': 'Mur', 'tj-upe': '0,30' });
+    const pu = await ev(() => { const pl = shapes.find(x => x.talus); tinCache = null; invalidateCache(); build3DScene(); let n = 0; V3.root.traverse(o => { if (o.userData.paroi) n++; }); return { cx: !!pl.talus.cx, off: (pl.talus.edges || []).map(e => !!(e && e.off && e.pl === 'Mur' && e.pe === 300)), n }; });
+    t.ok('paroi en réglage uniforme : tout le contour en paroi (un interrupteur), voile béton en 3D', !pu.cx && pu.off.every(Boolean) && pu.n === 1, JSON.stringify(pu));
 
     // toiture à pans : fenêtre à chapitres, complexe couche par couche (épaisseur = somme), textures posées à la main et gardées à la modification
     const rc = await ev(() => { shapes = []; const m = mmToWorld(1000); const base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, 6], [0, 6]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 0 })) }; shapes.push(base);
@@ -199,8 +199,8 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.eq('pinceau en plan : bande hachurée sur le calque Pinceau', bp, { layer: 'Pinceau', hatch: true, clear: true });
     // villa (projet réel) : un talus ne revient jamais sur une autre plateforme ; un remblai se pose sur le déblai voisin (pas de falaise) ; toits : pas de cadre fantôme en plan
     await ev(t => { loadProjectText(t, 'villa.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'villa.mmc'), 'utf8')); await H.wait(600);
-    const vl = await ev(() => { const FM = finishedModel(), M = (x, y) => FM.at(mmToWorld(x * 1000), -mmToWorld(y * 1000)), a = M(661, 631), b = M(657.8, 628.5); return { onP1: a.kind === 1 && a.gov === 1 && Math.abs(a.z - 457500) < 1, fill: b.z > 459300 }; });
-    t.eq('plateformes voisines : pas de retour de talus sur l\'autre plateforme, remblai continu sur le déblai voisin', vl, { onP1: true, fill: true });
+    const vl = await ev(() => { const FM = finishedModel(), M = (x, y) => FM.at(mmToWorld(x * 1000), -mmToWorld(y * 1000)), a = M(661, 631), b = M(657.8, 628.5); return { over: (a.kind === 4 && a.z > 457600) || (a.kind === 1 && a.gov === 1), fill: b.z > 459300 }; });
+    t.eq('plateformes voisines : talus modélisés ensemble (celui du dessus reste), remblai continu sur le déblai voisin', vl, { over: true, fill: true });
     const ph = await ev(() => { const m = mmToWorld(1000), base = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 0 })) };
         const out = buildRoof(base, Object.assign({}, roofLast, { pans: 2, dir: 'long', he: 2.5, hf: 5, db: 0, fill: true })), pg = out.find(x => x.type === 'mesh');
         const keep = shapes; shapes = []; camera.zoom = 40 / m; camera.x = 100; camera.y = 500; invalidateCache(); draw(); const A = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.slice();
@@ -224,4 +224,15 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const s = { type: 'poly', open: true, layerId: brushLayer(), points: [q, { x: q.x + mmToWorld(300), y: q.y }], width: 1, hatch: false, brush: { tex: 'galets', d: 300, h: 0.5, top: true, zs: [z, z] } }; shapes.push(s); v3BrushBuild(); let ovN = 0, n = 0; V3.root.traverse(x => { if (x.userData.brushOv === s) { n++; ovN += x.geometry.attributes.position.count; } });
         shapes = shapes.filter(x => x !== s); v3BrushBuild(); close3D(); return { n: n > 0, smaller: ovN < big.geometry.attributes.position.count }; });
     t.eq('pinceau : couche découpée autour du coup (moins de travail graphique)', bo, { n: true, smaller: true });
+    // paroi : épaisseur réglable (0,20 par défaut) ; en plan, la désignation est décalée du milieu de l'arête (pas sur les poignées ni la pastille)
+    const pe = await ev(() => { shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = 0; i <= 12; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
+        const pl = { type: 'poly', layerId: 'layer-0', zk: 1, talus: { on: true, kD: '1/1', kR: '3/2', cx: true, edges: [{ off: true, pe: 500 }, null, null, null] }, points: [[20, 15], [40, 15], [40, 25], [20, 25]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 99000 })) };
+        shapes.push(pl); invalidateCache(); tinCache = null; saveState(); if (!V3) init3D(); build3DScene(); let ys = []; V3.root.traverse(o => { if (o.userData.paroi) { o.geometry.computeBoundingBox(); ys.push(o.geometry.boundingBox.max.y - o.geometry.boundingBox.min.y); } });
+        camera.zoom = 20 / m; camera.x = 0; camera.y = 600; invalidateCache(); draw(); const lab = dimensionTextsToDraw.find(d => d.text === 'Paroi'); const r = { th: Math.round(ys[0] * 100) / 100, offMid: lab ? Math.abs(lab.worldX - 30 * m) > 2 * m : false }; shapes = []; saveState(); return r; });
+    t.eq('paroi : épaisseur réglée (0,50 m) et désignation hors des poignées', pe, { th: 0.5, offMid: true });
+    // talus modélisés ensemble : là où deux plateformes se recouvrent, la plus haute reste ; une plateforme tracée dessous n'y a ni talus ni paroi
+    await ev(t => { loadProjectText(t, 'villa2.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'villa2.mmc'), 'utf8')); await H.wait(600);
+    const v2 = await ev(() => { const FM = finishedModel(), M = (x, y) => FM.at(mmToWorld(x * 1000), -mmToWorld(y * 1000)), a = M(670, 597), b = M(683, 595.5); return { top: a.kind === 1 && a.gov === 2, noTalus: b.kind === 1 && b.gov === 2, buried: !!FM.P[3].segs }; });
+    t.eq('plateforme tracée sous une plus haute : la haute reste, pas de talus en double', v2, { top: true, noTalus: true, buried: true });
 } };
