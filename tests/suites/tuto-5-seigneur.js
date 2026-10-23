@@ -11,7 +11,7 @@ const D_=require('../lib/harness').OUT;  const {p,ev}=H; let P;
  P=await H.S(); await H.tool('btn-opening'); await H.click(P[0]); await p.mouse.move(P[0].x,P[0].y-40); await H.key('0,9 '); await p.waitForTimeout(200);
  await ev(()=>{ document.querySelector('input[name=op-k][value=porte]').click(); const b=[...document.querySelectorAll('#topo-modal button')].find(x=>x.textContent.trim()==='Valider'); b.click(); }); await H.state('porte'); await H.next();
  P=await H.S(); await H.tool('btn-solid-beam'); await H.click(P[0]); await H.click(P[1]); await p.waitForTimeout(200); await H.Y({'sp-z1':'4,7','sp-z2':'4,7'}); await H.state('poutre'); await H.next();
- P=await H.S(); await p.keyboard.press('Escape'); await H.tool('btn-solid-roof'); await H.click(P[0]); await p.mouse.move(P[0].x+60,P[0].y-60); await H.key('5 4 '); await p.waitForTimeout(300);
+ P=await H.S(); await p.keyboard.press('Escape'); await H.tool('btn-solid-roof'); for(const q of P.slice(0,4)) await H.click(q); await p.waitForTimeout(300);
  await ev(()=>{ document.querySelector('input[name=rf-p][value="2"]').click(); document.getElementById('rf-dir').value='long'; document.getElementById('rf-he').value='2,5'; document.getElementById('rf-hf').value='5'; document.getElementById('rf-fill').checked=true; document.getElementById('rf-db').value='0,3'; const b=[...document.querySelectorAll('#topo-modal button')].find(x=>/Créer le toit/.test(x.textContent)); b.click(); }); await H.state('toit'); await H.next();
  await ev(()=>{ shapes.filter(x=>x.solid&&x.solid.kind==='roof').forEach(r=>r.tex='tuile'); draw(); }); await H.state('tuiles'); await H.next();
  await ev(()=>toggle3D&&toggle3D()); await p.waitForTimeout(4000); await p.screenshot({path:D_+'/t240_3d.png'});
