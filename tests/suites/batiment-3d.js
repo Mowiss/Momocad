@@ -209,4 +209,19 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     const th = await ev(() => { const m = mmToWorld(1000), base = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 455000 })) }; roofDialog(base, true);
         const r = document.getElementById('rf-thr'), h = document.getElementById('rf-ht'); if (!r || !h) { closeTopoModal(); return null; } r.value = '3,50'; r.dispatchEvent(new Event('input')); const v = h.value; closeTopoModal(); return v; });
     t.eq('toit terrasse : champ Hauteur du toit (depuis le pied des murs) qui règle le dessus de dalle', th, '458,50');
+    // étages : RDC + TOIT au départ ; ▲ + crée R + 1 ; un mur tracé sur R + 1 y est rangé à sa hauteur ; sur le RDC, R + 1 et le toit sont masqués (plan et 3D) ; outil éteint : tout est visible
+    await ev(t => { loadProjectText(t, 'cabane.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'cabane.mmc'), 'utf8')); await H.wait(400);
+    const lv = await ev(async () => { const o = {}; document.getElementById('btn-etages').click(); o.start = lvlList().map(lvlName); o.box = getComputedStyle(document.getElementById('lvl-box')).display; lvlAdd(true); o.added = lvlList().map(lvlName);
+        const M = mmToWorld; startWall('w-beton20'); wallStart = { x: M(7000), y: -M(1000) }; wallAddTo(M(12000), -M(1000)); setMode('select-box'); await new Promise(r => setTimeout(r, 500));
+        const w = shapes.filter(isWallHatch).find(h => h.lvl && h.lvl !== 'rdc'), roof = shapes.find(x => x.roofDef); o.wall = !!w && w.wz.b === lvls[0].z + lvls[0].h;
+        lvlPick('rdc'); await open3D(); await new Promise(r => setTimeout(r, 800)); let inScene = false, roofIn = false; V3.root.traverse(x => { if (x.userData.shape === w) inScene = true; if (x.userData.shape === roof) roofIn = true; });
+        o.rdc = [lvlHidden(w), lvlHidden(roof), inScene, roofIn]; lvlToggle(false); o.off = [lvlHidden(w), lvlHidden(roof), getComputedStyle(document.getElementById('lvl-box')).display]; close3D(); return o; });
+    t.eq('étages : niveaux, mur rangé sur son étage, étages du dessus masqués', lv, { start: ['RDC', 'TOIT'], box: 'block', added: ['RDC', 'R + 1', 'TOIT'], wall: true, rdc: [true, true, false, false], off: [false, false, 'none'] });
+    // pinceau allégé : la couche de peinture ne reprend que les triangles proches du coup, pas toute la surface
+    const bo = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 600)); let big = null; V3.root.traverse(x => { if (x.isMesh && x.geometry && x.geometry.attributes.position && (!big || x.geometry.attributes.position.count > big.geometry.attributes.position.count) && !x.userData.brushOv) big = x; });
+        const bb = new THREE.Box3().setFromObject(big), c = bb.getCenter(new THREE.Vector3()), cx = -V3.root.position.x, cy = -V3.root.position.y;
+        const q = { x: mmToWorld((c.x + cx) * 1000), y: -mmToWorld((c.y + cy) * 1000) }, z = Math.round(((bb.max.z) / (V3.exag || 1) + (V3.zmin || 0)) * 1000);
+        const s = { type: 'poly', open: true, layerId: brushLayer(), points: [q, { x: q.x + mmToWorld(300), y: q.y }], width: 1, hatch: false, brush: { tex: 'galets', d: 300, h: 0.5, top: true, zs: [z, z] } }; shapes.push(s); v3BrushBuild(); let ovN = 0, n = 0; V3.root.traverse(x => { if (x.userData.brushOv === s) { n++; ovN += x.geometry.attributes.position.count; } });
+        shapes = shapes.filter(x => x !== s); v3BrushBuild(); close3D(); return { n: n > 0, smaller: ovN < big.geometry.attributes.position.count }; });
+    t.eq('pinceau : couche découpée autour du coup (moins de travail graphique)', bo, { n: true, smaller: true });
 } };
