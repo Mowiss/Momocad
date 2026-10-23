@@ -243,4 +243,22 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const zmin = V3.zmin, cy0 = -15 + V3.root.position.y * 0, north = tops.filter(t => t[0] > -15.6 + 0 - 1e9); const zs = tops.map(t => Math.round((t[1] + zmin) * 100) / 100);
         const r = { fini: zs.includes(99.5), tnRises: Math.max(...zs) > 102.2 }; shapes = []; saveState(); return r; });
     t.eq('paroi : haut à une cote finie (99,50) ou au terrain naturel (monte avec lui)', pzt, { fini: true, tnRises: true });
+    // outil Ajouter un point : sommet ajouté sur une plateforme (l'arête de talus est coupée en deux, même réglage) et sur une droite (coupée en deux droites qui se touchent)
+    const ap = await ev(() => { shapes = []; const m = mmToWorld(1000), pl = { type: 'poly', layerId: 'layer-0', zk: 1, talus: { on: true, kD: '1/1', kR: '3/2', cx: true, edges: [{ kD: '2/1' }, null, null, null] }, points: [[20, 15], [40, 15], [40, 25], [20, 25]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 99000 })) }, ln = { type: 'line', layerId: 'layer-0', x1: 0, y1: -40 * m, x2: 10 * m, y2: -40 * m };
+        shapes.push(pl, ln); saveState(); camera.zoom = 15 / m; camera.x = 0; camera.y = 800; setMode('addpt'); t2AddPt({ x: 27 * m, y: -15 * m }); t2AddPt({ x: 4 * m, y: -40 * m }); setMode('select-box');
+        const L = shapes.filter(x => x.type === 'line'); const r = { n: pl.points.length, e: pl.talus.edges.slice(0, 2).map(e => e && e.kD), lines: L.length, joined: L.length === 2 && Math.abs(L[0].x2 - L[1].x1) < 1e-9 }; shapes = []; saveState(); return r; });
+    t.eq('ajouter un point : arête de talus coupée en deux, droite coupée en deux', ap, { n: 5, e: ['2/1', '2/1'], lines: 2, joined: true });
+    // étages : + ajoute, − supprime l'étage en cours après confirmation (le RDC ne se supprime pas) ; texture gabions au catalogue
+    const ld = await ev(() => { lvls = null; lvlToggle(true); lvlAdd(); const a = lvlList().map(lvlName); lvlDelAsk(); const asked = /Supprimer l'étage/.test(document.getElementById('topo-modal').textContent);
+        [...document.querySelectorAll('#tm-actions button')].find(b => /^Supprimer/.test(b.textContent)).click(); const b = lvlList().map(lvlName); lvlPick('rdc'); lvlDelAsk(); const keep = lvlList().length; lvlToggle(false);
+        return { a, asked, b, keep, gab: !!TEX_LIB.find(t => t.id === 'gabions') && !!texCanvas('gabions') }; });
+    t.eq('étages : + ajoute, − supprime l\'étage en cours (confirmé), RDC gardé ; gabions au catalogue', ld, { a: ['RDC', 'R + 1', 'TOIT'], asked: true, b: ['RDC', 'TOIT'], keep: 2, gab: true });
+    // toit tourné avec le bâtiment : « Modifier la toiture » repart du contour tourné (pas de l'ancienne position)
+    const rr = await ev(() => { shapes = []; const m = mmToWorld(1000), base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 0 })) };
+        buildRoof(base, Object.assign({}, roofLast, { pans: 2, dir: 'long', he: 2.5, hf: 5, db: 0, fill: false })).forEach(x => shapes.push(x)); saveState();
+        shapes.forEach(x => applyRotationToShape(x, 0, 0, Math.PI / 2)); saveState(); const gid = shapes.find(x => x.roofDef).groupId, keep = roofDialog; let got = null; roofDialog = (b) => { got = b; }; try { roofEdit(gid); } finally { roofDialog = keep; }
+        if (!got) return false; const xs = got.points.map(q => q.x / m), ys = got.points.map(q => q.y / m), w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys); return Math.abs(w - 6) < 0.01 && Math.abs(h - 10) < 0.01; });
+    t.ok('toit tourné avec le bâtiment : la modification repart du contour tourné', rr);
+    const yr = await ev(() => { const g = shapes.find(x => x.roofDef).groupId; selectedShapes = shapes.filter(x => x.groupId === g); openSelectionParamModal(); const r = document.getElementById('topo-modal').style.display !== 'none' && !!document.getElementById('rf-svg') && document.getElementById('selparam-modal').classList.contains('hidden'); closeTopoModal(); return r; });
+    t.ok('Y sur une toiture : directement sa fenêtre complète (coupe cotée)', yr);
 } };

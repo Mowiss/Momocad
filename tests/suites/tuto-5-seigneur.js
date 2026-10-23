@@ -29,7 +29,7 @@ const D_=require('../lib/harness').OUT;  const {p,ev}=H; let P;
  console.log('shifted', await ev(()=>{ const o=shapes.flatMap(s=>s.openings||[])[0]; return (o.a.x/mmToWorld(1000)).toFixed(2); }));
  // modifier la toiture via Y
  await ev(()=>{ const r=shapes.find(s=>s.roofDef); selectedShapes=shapes.filter(s=>s.groupId===r.groupId); openSelectionParamModal(); }); await p.waitForTimeout(300);
- await ev(()=>{ [...document.querySelectorAll('#selparam-modal .sp-act')].find(b=>/Modifier la toiture/.test(b.textContent)).click(); }); await p.waitForTimeout(300);
+ console.log('roofdlg', await ev(()=>document.getElementById('topo-modal').style.display!=='none' && !!document.getElementById('rf-he') && !!document.getElementById('rf-svg')));
  await ev(()=>{ document.getElementById('rf-db').value='0,6'; [...document.querySelectorAll('#tm-actions button')].find(b=>/Mettre à jour/.test(b.textContent)).click(); }); await p.waitForTimeout(300);
  console.log('roof', await ev(()=>{ const R=shapes.filter(s=>s.solid&&s.solid.kind==='roof'); return R.length+' pans db '+R[0].roofDef.o.db+' texU '+R[0].texU; }));
  await H.next(); await H.state('fin');
