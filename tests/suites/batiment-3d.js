@@ -171,4 +171,30 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     for (const q of W2) await H.click(q); await H.wait(300);
     const tc = await ev(() => { const P = shapes.find(x => x.type === 'poly'); const m = !!document.querySelector('#topo-modal') && /Toiture/.test(document.querySelector('#topo-modal').textContent); closeTopoModal && closeTopoModal(); return [P ? P.points.length : 0, m, isDrawing]; });
     t.eq('toiture : le 4e sommet referme le contour et ouvre la fenêtre Toiture', tc, [4, true, false]);
+    // vue 3D : Y ouvre les réglages de l'objet cliqué (au-dessus de la 3D) ; double-clic sur une menuiserie : fenêtre Ouverture
+    await ev(t => { loadProjectText(t, 'cabane.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'cabane.mmc'), 'utf8')); await H.wait(400);
+    await ev(async () => { await open3D(); }); await H.wait(1500);
+    const y3 = await ev(() => { const w = shapes.find(isWallHatch); selectedShapes = [w]; V3.pickOp = null; v3ParamSel(); const m = document.getElementById('selparam-modal'), r = [!m.classList.contains('hidden'), +getComputedStyle(m).zIndex > +getComputedStyle(document.getElementById('view3d')).zIndex];
+        m.classList.add('hidden');
+        const host = shapes.find(x => (x.openings || []).length), o = host.openings[0]; let tagged = 0; V3.root.traverse(x => { if (x.userData.opening === o) tagged++; });
+        selectedShapes = [host]; V3.pickOp = { host, o }; v3ParamSel(); const op = document.getElementById('topo-modal').style.display !== 'none' && /Ouverture/.test(document.getElementById('topo-modal').textContent); closeTopoModal(); return r.concat([tagged > 0, op]); });
+    t.eq('vue 3D : Y ouvre les réglages par-dessus la 3D ; menuiserie cliquée → fenêtre Ouverture', y3, [true, true, true, true]);
+    // pinceau : un coup de pinceau à la souris dans la vue 3D, posé en couche transparente sur la surface touchée, sans devenir du terrain
+    await ev(async () => { await startBrush(); brushChoose('galets'); brushSet('d', 1); brushSet('h', 50); });
+    const R3 = await ev(() => { V3.az = Math.PI * 1.25; V3.el = 0.7; render3D(); const c = V3.renderer.domElement.getBoundingClientRect(); return { x: c.left + c.width / 2, y: c.top + c.height / 2 }; });
+    await p.mouse.move(R3.x - 40, R3.y); await p.mouse.down(); for (let i = 1; i <= 4; i++) await p.mouse.move(R3.x - 40 + i * 20, R3.y); await p.mouse.up(); await H.wait(500);
+    const br = await ev(() => { const S = shapes.filter(s => s.brush); let ov = 0; V3.root.traverse(o => { if (o.userData.brushOv) ov++; });
+        const r = { n: S.length, pts: S.length ? S[0].points.length > 1 : false, tex: S.length ? S[0].brush.tex : null, ov: ov > 0, notTerrain: !S.some(isPlateforme) && !tinNodes().some(nd => S.some(s => s.points.some(q => q.x === nd.x && q.y === nd.y))) };
+        brushStop(true); undo(); r.undo = !shapes.some(s => s.brush); return r; });
+    t.eq('pinceau : un coup posé en 3D (motif galets), affiché en couche, annulable', br, { n: 1, pts: true, tex: 'galets', ov: true, notTerrain: true, undo: true });
+    await ev(() => close3D());
+    // en plan : le coup de pinceau est une bande hachurée de la largeur du pinceau, sur le calque Pinceau
+    const bp = await ev(() => { const m = mmToWorld(1000); camera.zoom = 60 / m; camera.x = 200; camera.y = 400;
+        const snap = () => { invalidateCache(); draw(); return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data; };
+        shapes = []; const A = snap(); shapes.push({ type: 'poly', open: true, layerId: brushLayer(), points: [{ x: 0, y: 0 }, { x: 6 * m, y: 0 }], width: 1, hatch: false, name: 'Pinceau', brush: { tex: 'galets', d: 1000, h: 0.5, top: true, zs: [0, 0] } }); const B = snap();
+        // pixels changés : dans la bande (1 m = 60 px de large), et rien au-delà
+        const dpr = canvas.width / canvas.getBoundingClientRect().width; let inB = 0, outB = 0; const wy = worldToScreen(0, 0).y * dpr, half = 30 * dpr;
+        for (let y = 0; y < canvas.height; y += 2) for (let x = 0; x < canvas.width; x += 2) { const k = (y * canvas.width + x) * 4; if (Math.abs(A[k] - B[k]) + Math.abs(A[k + 1] - B[k + 1]) + Math.abs(A[k + 2] - B[k + 2]) > 30) { if (Math.abs(y - wy) <= half + 3 * dpr) inB++; else outB++; } }
+        const L = layers.find(l => l.id === shapes[0].layerId); shapes = []; saveState(); return { layer: L && L.name, hatch: inB > 200, clear: outB < 20 }; });
+    t.eq('pinceau en plan : bande hachurée sur le calque Pinceau', bp, { layer: 'Pinceau', hatch: true, clear: true });
 } };
