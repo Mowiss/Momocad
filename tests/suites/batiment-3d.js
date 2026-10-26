@@ -279,4 +279,10 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         let n = 0, area = 0; V3.root.traverse(o => { if (!o.userData.paroi) return; n++; const a = o.geometry.attributes.position.array; for (let i = 0; i + 8 < a.length; i += 9) { const ux = a[i + 3] - a[i], uy = a[i + 4] - a[i + 1], vx = a[i + 6] - a[i], vy = a[i + 7] - a[i + 1], cz = ux * vy - uy * vx; if (cz > 1e-9) area += cz / 2; } });
         return { n, top: area > 0 }; });
     t.eq('paroi épaisse à redans : voile construit sur une emprise réunie', thk, { n: 4, top: true });
+    // ouverture du RDC : elle ne perce pas le mur de l'étage posé au-dessus (même emprise en plan, autre hauteur)
+    const od = await ev(() => { shapes = []; const m = mmToWorld(1000), R = [[0, 0], [8, 0], [8, -0.2], [0, -0.2]].map(([x, y]) => ({ x: x * m, y: y * m }));
+        const lid = wallLayerId({ layers: [{ mat: 'beton', e: 200 }] }), w0 = { type: 'hatch', layerId: lid, wallMat: 'beton', groupId: 'g0', wz: { b: 0, t: 2800 }, loops: [R.map(q => ({ ...q }))] }, w1 = { type: 'hatch', layerId: lid, wallMat: 'beton', groupId: 'g1', wz: { b: 2800, t: 5600 }, loops: [R.map(q => ({ ...q }))] };
+        w0.openings = [{ kind: 'fenetre', a: { x: 3 * m, y: 0 }, b: { x: 4.2 * m, y: 0 }, pts: [{ x: 3 * m, y: 0.1 * m }, { x: 4.2 * m, y: 0.1 * m }, { x: 4.2 * m, y: -0.3 * m }, { x: 3 * m, y: -0.3 * m }], sill: 900, h: 1200 }];
+        shapes.push(w0, w1); const r = [wallOpeningsFor(w0).length, wallOpeningsFor(w1).length]; shapes = []; return r; });
+    t.eq('ouverture du RDC : pas de trou en double dans le mur de l\'étage', od, [1, 0]);
 } };
