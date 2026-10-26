@@ -261,4 +261,22 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.ok('toit tourné avec le bâtiment : la modification repart du contour tourné', rr);
     const yr = await ev(() => { const g = shapes.find(x => x.roofDef).groupId; selectedShapes = shapes.filter(x => x.groupId === g); openSelectionParamModal(); const r = document.getElementById('topo-modal').style.display !== 'none' && !!document.getElementById('rf-svg') && document.getElementById('selparam-modal').classList.contains('hidden'); closeTopoModal(); return r; });
     t.ok('Y sur une toiture : directement sa fenêtre complète (coupe cotée)', yr);
+    // toit 1 pan : l'égout choisi (côté 4-1) est gardé quand on rouvre la fenêtre (combler les pignons ne le remet plus sur le grand côté)
+    const eg = await ev(() => { shapes = []; const m = mmToWorld(1000), base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 0 })) };
+        buildRoof(base, Object.assign({}, roofLast, { pans: 1, eg: 3, he: 2.5, hf: 4, db: 0, fill: false })).forEach(x => shapes.push(x)); saveState(); const gid = shapes.find(x => x.roofDef).groupId; roofEdit(gid);
+        const v = document.getElementById('rf-eg').value; document.getElementById('rf-fill').checked = true; [...document.querySelectorAll('#tm-actions button')].find(b => /Mettre à jour/.test(b.textContent)).click();
+        const pn = shapes.find(x => x.solid && x.solid.kind === 'roof'); return [v, pn.solid.eg, shapes.some(x => x.name === 'Pignons')]; });
+    t.eq('toit 1 pan : égout côté 4-1 gardé à la modification, pignons comblés', eg, ['3', 3, true]);
+    // dalle : contour libre point par point (ici 5 sommets), refermé sur le 1er point
+    await ev(() => { shapes = []; const m = mmToWorld(1000); camera.zoom = 40 / m; camera.x = 200; camera.y = 600; saveState(); draw(); startSolidTool('dalle'); });
+    const DP = await ev(() => [[0, 0], [6, 0], [7, 3], [3, 5], [-1, 3], [0, 0]].map(([x, y]) => { const q = worldToScreen(mmToWorld(x * 1000), -mmToWorld(y * 1000)), c = canvas.getBoundingClientRect(); return { x: q.x + c.left, y: q.y + c.top }; }));
+    for (const q of DP) await H.click(q); await H.wait(300);
+    const dl = await ev(() => { const d = shapes.find(x => x.solid && x.solid.kind === 'box'); const r = d ? [d.points.length, d.solid.H, d.name] : null; setMode('select-box'); shapes = []; saveState(); return r; });
+    t.eq('dalle : contour libre à 5 sommets, 20 cm', dl, [5, 200, 'Dalle']);
+    // paroi épaisse (1 m, gabions) sur un contour à redans : un seul voile propre, sans morceaux qui se chevauchent (emprise réunie)
+    await ev(t => { loadProjectText(t, 'villa2.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'villa2.mmc'), 'utf8')); await H.wait(600);
+    const thk = await ev(async () => { await loadPolyClip(); shapes.filter(isPlateforme).forEach(s => (s.talus.edges || []).forEach(e => { if (e && e.off) e.pe = 1000; })); invalidateCache(); tinCache = null; saveState(); if (!V3) init3D(); build3DScene();
+        let n = 0, area = 0; V3.root.traverse(o => { if (!o.userData.paroi) return; n++; const a = o.geometry.attributes.position.array; for (let i = 0; i + 8 < a.length; i += 9) { const ux = a[i + 3] - a[i], uy = a[i + 4] - a[i + 1], vx = a[i + 6] - a[i], vy = a[i + 7] - a[i + 1], cz = ux * vy - uy * vx; if (cz > 1e-9) area += cz / 2; } });
+        return { n, top: area > 0 }; });
+    t.eq('paroi épaisse à redans : voile construit sur une emprise réunie', thk, { n: 4, top: true });
 } };

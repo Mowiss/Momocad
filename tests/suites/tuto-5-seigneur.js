@@ -2,7 +2,7 @@
 module.exports = { name: 'tuto-5-seigneur', tuto: 'model', timeout: 300, run: async (H, t) => {
 const D_=require('../lib/harness').OUT;  const {p,ev}=H; let P;
  await H.state('intro'); await H.next();
- P=await H.S(); await H.tool('btn-dalle'); await H.click(P[0]); await p.mouse.move(P[0].x+60,P[0].y-60); await H.key('5 4 '); await H.state('dalle');
+ P=await H.S(); await H.tool('btn-dalle'); for(const q of [P[0],P[1],P[2],P[3],P[0]]) await H.click(q); await H.state('dalle');
  console.log(await ev(()=>shapes.filter(s=>s.solid).map(s=>s.name+':'+s.solid.H))); await H.next();
  P=await H.S(); await p.keyboard.press('Escape'); await H.tool('btn-paroi'); await p.waitForTimeout(300); await ev(()=>document.querySelector('#menu-blocks [onclick^=startWall]').click()); await p.waitForTimeout(300); console.log('P',JSON.stringify(P)); for(const q of P) await H.click(q); await H.click(P[0]); console.log(await ev(()=>[mode, shapes.length, shapes.map(s=>s.type).join()])); await p.screenshot({path:D_+'/t240_w.png'}); await p.keyboard.press('Escape'); await H.state('murs'); await H.next();
  await ev(()=>{ const g=shapes.find(x=>x.wallMat).groupId; selectedShapes=shapes.filter(x=>x.groupId===g); }); await H.Y({'sp-wzb':'0','sp-wzt':'2,5'}); await H.state('niveaux'); await H.next();

@@ -3,7 +3,7 @@ module.exports = { name: 'tuto-6-dieu', tuto: 'build', timeout: 300, run: async 
 const D_=require('../lib/harness').OUT;  const {p,ev}=H; let P;
  const W=(x,y)=>ev(([x,y])=>{ const m=mmToWorld(1000); const c=canvas.getBoundingClientRect(); const o=(typeof tutoOrigin!=='undefined'&&tutoOrigin)||{x:0,y:0}; return null; },[x,y]);
  await H.state('intro'); await H.next();
- P=await H.S(); await H.tool('btn-dalle'); await H.click(P[0]); await p.mouse.move(P[0].x+60,P[0].y-60); await H.key('4 3 '); await H.state('dalle'); await H.next();
+ P=await H.S(); await H.tool('btn-dalle'); for(const q of [P[0],P[1],P[2],P[3],P[0]]) await H.click(q); await H.state('dalle'); await H.next();
  // traits de construction
  const sc=await ev(()=>{ const d=shapes.find(s=>s.name==='Dalle'); const c=canvas.getBoundingClientRect(); const a=d.points[0], b=d.points[1], q=d.points[3]; const S=(x,y)=>{const s=worldToScreen(x,y);return {x:s.x+c.left,y:s.y+c.top};}; return {bas:S((a.x+b.x)/2,(a.y+b.y)/2), gauche:S((a.x+q.x)/2,(a.y+q.y)/2), mid:S((a.x+b.x+q.x*2)/4+ (b.x-a.x)/4,(a.y+q.y)/2)}; });
  console.log(JSON.stringify(sc));
