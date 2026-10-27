@@ -60,4 +60,12 @@ module.exports = { name: 'dessin', run: async (H, t) => {
     // annuler / rétablir
     const n0 = await ev(() => shapes.length); await ev(() => undo()); const n1 = await ev(() => shapes.length); await ev(() => redo()); const n2 = await ev(() => shapes.length);
     t.ok('Annuler retire le dernier objet, Rétablir le remet', n1 === n0 - 1 && n2 === n0, [n0, n1, n2].join(' → '));
+    // motif de matériau sur une couche épaisse : les hachures inclinées couvrent toute la bande (pas de coin vide)
+    const hz = await H.ev(() => { const cv = document.createElement('canvas'); cv.width = 400; cv.height = 250; const c = cv.getContext('2d'); c.setTransform(0.1, 0, 0, 0.1, 0, 0); c.strokeStyle = '#fff';
+        const r = {}; ['beton', 'brique', 'parpaing'].forEach(mat => { c.clearRect(0, 0, 4000, 2500); wallPattern(c, mat, 4000, 2500, 0.1, 1); const d = c.getImageData(0, 0, 400, 250).data, zone = (x0, x1, y0, y1) => { let n = 0; for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (d[(y * 400 + x) * 4 + 3] > 0) n++; return n; }; r[mat] = [[0, 0], [360, 0], [0, 210], [360, 210]].every(([x, y]) => zone(x, x + 40, y, y + 40) > 10); }); return r; });
+    t.eq('motif de matériau épais : hachures sur toute la largeur', hz, { beton: true, brique: true, parpaing: true });
+    // motifs de sol (sable, GNT, pierre) : visibles à l'échelle du plan, sans hachures droites superposées
+    const ms = await H.ev(() => { const r = {}; ['sable', 'gnt', 'pierre'].forEach(mat => { const cv = document.createElement('canvas'); cv.width = 300; cv.height = 150; const c = cv.getContext('2d'); c.setTransform(0.1, 0, 0, 0.1, 0, 0); c.strokeStyle = '#fff';
+        wallPattern(c, mat, 3000, 1500, 0.1, 1); const d = c.getImageData(0, 0, 300, 150).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; r[mat] = n > 300 && n < 300 * 150 * 0.6; }); return r; });
+    t.eq('motifs sable, GNT, pierre : dessinés, sans aplat ni hachure', ms, { sable: true, gnt: true, pierre: true });
 } };
