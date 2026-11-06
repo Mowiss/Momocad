@@ -91,9 +91,28 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         const lay = (n) => (layers.find(l => l.name === n) || {}).id, BL = shapes.filter(x => x.layerId === lay('Talus (PDF)')), hd = BL.find(x => /Tête/.test(x.name)), ft = BL.find(x => /Pied/.test(x.name));
         const zr = (p) => p ? [Math.min(...p.points.map(q => q.z)), Math.max(...p.points.map(q => q.z))] : null, mid = hd ? hd.points[Math.floor(hd.points.length / 2)].z : 0;
         const TR = shapes.filter(x => x.layerId === lay('talus')), r = { talus: bg.pdfTalus.length, lines: BL.length, head: zr(hd), foot: zr(ft), mid: Math.abs(mid - 460500) < 60, pts: shapes.filter(x => x.type === 'point').length,
-            rect: TR.some(x => !x.open && x.points.length === 4), tiny: TR.filter(x => { const xs = x.points.map(q => q.x), ys = x.points.map(q => q.y); return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) < mmToWorld(400); }).length, tin: !!getTIN() };
+            vec: TR.length === 1 && TR[0].type === 'pdfvec', rect: TR.some(x => { const v = vecStore[x.vecId]; for (let q = 0; q < v.st.length - 1; q++) if (v.cl[q] && v.st[q + 1] - v.st[q] === 4) return true; return false; }),
+            tiny: TR.reduce((n, x) => { const v = vecStore[x.vecId]; for (let q = 0; q < v.st.length - 1; q++) { let a = Infinity, b = -Infinity, c = Infinity, d = -Infinity; for (let k = v.st[q]; k < v.st[q + 1]; k++) { a = Math.min(a, v.xy[2 * k]); b = Math.max(b, v.xy[2 * k]); c = Math.min(c, v.xy[2 * k + 1]); d = Math.max(d, v.xy[2 * k + 1]); } if (Math.max(b - a, d - c) < 3) n++; } return n; }, 0),
+            hit: TR.length ? findShapeAt(vecCorners(TR[0])[0].x, vecCorners(TR[0])[0].y) !== null : false, vecs: Object.keys(projectData().vecs || {}).length === 1, tin: !!getTIN() };
         shapes = []; saveState(); return r; });
-    t.eq('plan PDF : talus lu (tête 460→461, pied 457), tracés dans le calque « talus » sans les croix des points', tl, { talus: 1, lines: 2, head: [460000, 461000], foot: [457000, 457000], mid: true, pts: 4, rect: true, tiny: 0, tin: true });
+    t.eq('plan PDF : talus lu (tête 460→461, pied 457), tracés dans le calque « talus » sans les croix des points', tl, { talus: 1, lines: 2, head: [460000, 461000], foot: [457000, 457000], mid: true, pts: 4, vec: true, rect: true, tiny: 0, hit: true, vecs: true, tin: true });
+    // plan PDF écrit en police filaire (chaque chiffre en petits traits, pas de vrai texte) : échelle lue dans le nom du fichier, carroyage et cotes relus quand même
+    await H.ev(() => { shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); });
+    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'filaire-200.pdf')); await H.wait(2500);
+    const fq = require(path.join(__dirname, '..', 'fixtures', 'filaire_pts.json'));
+    const fl = await H.ev(async (truth) => { const r0 = { ech: document.getElementById('bg-ech').value, grid: document.getElementById('bg-grid-row').style.display === 'flex' }; await insertBgImage();
+        const bg = shapes.find(x => x.type === 'bgimage'); if (!bg) return r0; selectedShapes = [bg]; pdfTopoDialog(bg); document.getElementById('pi-pts').checked = true; [...document.querySelectorAll('#tm-actions button')].find(b => /Importer/.test(b.textContent)).click();
+        const P = shapes.filter(x => x.type === 'point').map(q => ({ X: realX(q.x) / 1000, Y: realY(q.y) / 1000, z: q.z / 1000 })); let good = 0, bad = 0;
+        truth.forEach(([X, Y, z]) => { const q = P.find(p => Math.hypot(p.X - X, p.Y - Y) < 0.15); if (!q) return; if (Math.abs(q.z - z) < 0.005) good++; else bad++; });
+        const r = Object.assign(r0, { crs: (detectCRS() || {}).code, good: good >= 54, bad }); shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; }, fq);
+    t.eq('PDF en police filaire : échelle 1/200 (nom du fichier), calage CC44 sur le carroyage dessiné, cotes relues sans erreur', fl, { ech: '200', grid: true, crs: 'CC44', good: true, bad: 0 });
+    // carroyage avec des nombres parasites (n° de dossier, hachures lues « 1111111 ») : écartés, le calage reste juste
+    const gj = await H.ev(() => { const W = 1000, H2 = 700, lab = []; for (let i = 0; i < 6; i++) lab.push([(100 + i * 150) / W, 680 / H2, 1899100 + i * 30, -1.57]); for (let j = 0; j < 4; j++) lab.push([20 / W, (600 - j * 150) / H2, 3128300 + j * 30, 0]);
+        lab.push([0.5 / 1, 0.5, 1111111, 0], [0.3, 0.3, 210600, 0], [0.7, 0.2, 128280, 0]); const f = pdfGridFit({ crs: 'CC44', lab, cx: [], W, H2, H: H2 }, null); if (!f) return null; const q = f.f(250, 400); return { ech: Math.round(f.scale * 72 / 25.4 * 1000), x: Math.round(q.X), y: Math.round(q.Y) }; });
+    t.eq('carroyage : nombres parasites écartés', gj, { ech: 567, x: 1899130, y: 3128340 });
+    // traits en pointillé recousus en une ligne (pied de talus d'un calque « Tal_p »…)
+    const st = await H.ev(() => { const P = []; for (let x = 0; x < 100; x += 6) P.push([[x, 10 + x * 0.1], [x + 4, 10 + (x + 4) * 0.1]]); P.push([[50, 50], [55, 50]]); const R = pdfStitch(P.sort(() => Math.random() - 0.5)); return R.map(r => r.length).sort((a, b) => b - a).slice(0, 2); });
+    t.eq('pointillés recousus en une seule polyligne', st, [34, 2]);
     // plan PDF avec carroyage : l'échelle du cartouche est proposée d'office, puis le plan se cale tout seul sur ses coordonnées (CC44, tourné de 5°)
     await H.ev(() => { shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); });
     await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'grid.pdf')); await H.wait(1800);
