@@ -82,4 +82,12 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         const r = { n: P.length, lo: zs[0], hi: zs[zs.length - 1], d: Math.round(d * 10) / 10, tin: tinNodes().length >= 24 }; shapes = []; saveState(); return r; });
     const exp = require(path.join(__dirname, '..', 'fixtures', 'topo_pts.json')), A = exp[0], B = exp[1], dExp = Math.round(Math.hypot(A[0] - B[0], A[1] - B[1]) * 25.4 / 72 * 200 / 1000 * 10) / 10;
     t.eq('plan PDF : 24 cotes lues dans le PDF, points implantés sur leurs croix (cote 12,50 écartée)', pt, { n: 24, lo: 455.11, hi: 460.55, d: dExp, tin: true });
+    // système de coordonnées : un plan en Lambert 93 converti en CC44 ; chaque point prend ses vraies coordonnées CC44 (à 1 cm près sur 500 m), le fond suit
+    const cr = await H.ev(() => { shapes = []; const L = lccParams('L93'), C = lccParams('CC44'), q0 = lccFwd(L, 43.45, 5.25); geoOrigin = { x: Math.floor(q0.x) * 1000, y: Math.floor(q0.y) * 1000 };
+        const W = (x, y) => ({ x: mmToWorld(x * 1000 - geoOrigin.x), y: -mmToWorld(y * 1000 - geoOrigin.y) }), R = [[0, 0], [400, 50], [250, 380], [-120, 300]].map(([dx, dy]) => ({ x: q0.x + dx, y: q0.y + dy }));
+        R.forEach(r => shapes.push(Object.assign({ type: 'point', layerId: 'layer-0', z: 70000 }, W(r.x, r.y)))); const c0 = W(q0.x, q0.y); shapes.push({ type: 'basemap', layerId: 'layer-0', x: c0.x, y: c0.y, r: mmToWorld(200000), rot: 0, mapId: 'x', lat: 43.45, lon: 5.25, radiusM: 200, geo: 'L93' });
+        camera.x = canvas.width / 2 - c0.x * camera.zoom; camera.y = canvas.height / 2 - c0.y * camera.zoom; const before = detectCRS().code; crsConvert('CC44');
+        let err = 0; shapes.filter(s => s.type === 'point').forEach((s, i) => { const ll = lccInv(L, R[i].x, R[i].y), e = lccFwd(C, ll.lat, ll.lon); err = Math.max(err, Math.hypot(realX(s.x) / 1000 - e.x, realY(s.y) / 1000 - e.y)); });
+        const bm = shapes.find(s => s.type === 'basemap'); const r = { before, after: detectCRS().code, errCm: err < 0.01, geo: bm.geo, rot: Math.abs(bm.rot) > 1e-4 }; shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; });
+    t.eq('plan Lambert 93 converti en CC44 : coordonnées exactes (< 1 cm), fond tourné avec lui', cr, { before: 'L93', after: 'CC44', errCm: true, geo: 'CC44', rot: true });
 } };
