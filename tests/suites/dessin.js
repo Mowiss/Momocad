@@ -82,6 +82,15 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         const r = { n: P.length, lo: zs[0], hi: zs[zs.length - 1], d: Math.round(d * 10) / 10, tin: tinNodes().length >= 24 }; shapes = []; saveState(); return r; });
     const exp = require(path.join(__dirname, '..', 'fixtures', 'topo_pts.json')), A = exp[0], B = exp[1], dExp = Math.round(Math.hypot(A[0] - B[0], A[1] - B[1]) * 25.4 / 72 * 200 / 1000 * 10) / 10;
     t.eq('plan PDF : 24 cotes lues dans le PDF, points implantés sur leurs croix (cote 12,50 écartée)', pt, { n: 24, lo: 455.11, hi: 460.55, d: dExp, tin: true });
+    // plan PDF avec carroyage : l'échelle du cartouche est proposée d'office, puis le plan se cale tout seul sur ses coordonnées (CC44, tourné de 5°)
+    await H.ev(() => { shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); });
+    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'grid.pdf')); await H.wait(1800);
+    const gq = require(path.join(__dirname, '..', 'fixtures', 'grid_pt.json'));
+    const gp = await H.ev(async (q) => { const r0 = { ech: document.getElementById('bg-ech').value, row: document.getElementById('bg-grid-row').style.display, chk: document.getElementById('bg-grid').checked };
+        await insertBgImage(); const bg = shapes.find(x => x.type === 'bgimage'); if (!bg) return r0; const P = bgUV(bg, q.u, q.v), e = Math.hypot(realX(P.x) / 1000 - q.X, realY(P.y) / 1000 - q.Y);
+        const r = Object.assign(r0, { crs: (detectCRS() || {}).code, errOk: e < 0.05, rot: Math.round(Math.abs(bg.rot) * 180 / Math.PI), grid: !!bg.pdfGrid, msg: /CALÉ SUR SON CARROYAGE/.test(document.getElementById('command-text').textContent) });
+        shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; }, gq);
+    t.eq('PDF avec carroyage : échelle 1/500 lue, plan calé sur ses coordonnées CC44 (< 5 cm), rotation 5°', gp, { ech: '500', row: 'flex', chk: true, crs: 'CC44', errOk: true, rot: 5, grid: true, msg: true });
     // système de coordonnées : un plan en Lambert 93 converti en CC44 ; chaque point prend ses vraies coordonnées CC44 (à 1 cm près sur 500 m), le fond suit
     const cr = await H.ev(() => { shapes = []; const L = lccParams('L93'), C = lccParams('CC44'), q0 = lccFwd(L, 43.45, 5.25); geoOrigin = { x: Math.floor(q0.x) * 1000, y: Math.floor(q0.y) * 1000 };
         const W = (x, y) => ({ x: mmToWorld(x * 1000 - geoOrigin.x), y: -mmToWorld(y * 1000 - geoOrigin.y) }), R = [[0, 0], [400, 50], [250, 380], [-120, 300]].map(([dx, dy]) => ({ x: q0.x + dx, y: q0.y + dy }));
