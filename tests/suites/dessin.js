@@ -1,3 +1,4 @@
+const path = require('path');
 // Outils de dessin, à la souris et au clavier, sur un plan vierge en mètres.
 module.exports = { name: 'dessin', run: async (H, t) => {
     const { p, ev } = H;
@@ -68,4 +69,17 @@ module.exports = { name: 'dessin', run: async (H, t) => {
     const ms = await H.ev(() => { const r = {}; ['sable', 'gnt', 'pierre'].forEach(mat => { const cv = document.createElement('canvas'); cv.width = 300; cv.height = 150; const c = cv.getContext('2d'); c.setTransform(0.1, 0, 0, 0.1, 0, 0); c.strokeStyle = '#fff';
         wallPattern(c, mat, 3000, 1500, 0.1, 1); const d = c.getImageData(0, 0, 300, 150).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; r[mat] = n > 300 && n < 300 * 150 * 0.6; }); return r; });
     t.eq('motifs sable, GNT, pierre : dessinés, sans aplat ni hachure', ms, { sable: true, gnt: true, pierre: true });
+    // plan PDF calé : Y › Points topo du plan lit les cotes dans le PDF (pas dans l'image) et implante un point à chaque repère, à l'altitude lue
+    await H.ev(() => { shapes = []; saveState(); });
+    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'topo.pdf')); await H.wait(1500);
+    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.wait(1500);
+    const pt = await H.ev(() => { const bg = shapes.find(x => x.type === 'bgimage'); if (!bg || !bg.pdfTopo) return null; selectedShapes = [bg]; openSelectionParamModal();
+        const btn = [...document.querySelectorAll('#selparam-modal .sp-act, #selparam-modal button')].find(b => /implanter les points/.test(b.textContent)); if (!btn) return 'pas de bouton'; btn.click();
+        const imp = [...document.querySelectorAll('#tm-actions button')].find(b => /Implanter/.test(b.textContent)); imp.click();
+        const P = shapes.filter(x => x.type === 'point'), zs = P.map(x => x.z / 1000).sort((a, b) => a - b);
+        // deux croix voisines du PDF : 150 pt × 25,4 / 72 × 200 ≈ 10,58 m (± le décalage aléatoire du gabarit)
+        const a = P.find(x => Math.abs(x.z - 455110) < 2), b2 = P.find(x => Math.abs(x.z - 455520) < 2), d = a && b2 ? Math.hypot(a.x - b2.x, a.y - b2.y) / mmToWorld(1000) : 0;
+        const r = { n: P.length, lo: zs[0], hi: zs[zs.length - 1], d: Math.round(d * 10) / 10, tin: tinNodes().length >= 24 }; shapes = []; saveState(); return r; });
+    const exp = require(path.join(__dirname, '..', 'fixtures', 'topo_pts.json')), A = exp[0], B = exp[1], dExp = Math.round(Math.hypot(A[0] - B[0], A[1] - B[1]) * 25.4 / 72 * 200 / 1000 * 10) / 10;
+    t.eq('plan PDF : 24 cotes lues dans le PDF, points implantés sur leurs croix (cote 12,50 écartée)', pt, { n: 24, lo: 455.11, hi: 460.55, d: dExp, tin: true });
 } };
