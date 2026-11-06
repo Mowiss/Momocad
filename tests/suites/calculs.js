@@ -33,6 +33,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     { const rec = (r.extra || []).find(e => e[0].startsWith('recul'));
       t.ok('recul 1 m : déblai total 299,33 m³ (à 1 % près)', !r.err && pct(r.D, 299.333) < 0.01, JSON.stringify(r));
       t.ok('recul 1 m : ligne « recul » de 64 m³', rec && Math.abs(rec[1] - 64) < 0.7, JSON.stringify(rec)); }
+    // 5 bis. structure de 50 cm au fond de forme : 200 m³ de plateforme + 100 m³ de décaissement, montrés à part (ligne « dont structure », non additionnée)
+    r = await cub({ z: 99000, talus: { on: false }, struct: { ff: true, layers: [{ mat: 'GNT_0_315', e: 50 }] } });
+    { const ds = (r.extra || []).find(e => e[0].startsWith('dont'));
+      t.ok('structure 50 cm : déblai 300 m³, dont 100 m³ de structure affichés à part', !r.err && Math.abs(r.D - 300) < 0.5 && ds && Math.abs(ds[1] - 100) < 0.5 && ds[3], JSON.stringify(r)); }
     // 6. remblai périphérique jusqu'à 99,50 (talus 1/1, sans recul) : bande autour de la plateforme sur 0,5 m de haut
     //    V = ∫₀^0,5 (périmètre·t + 4t²) dt = 60 × 0,125 + 4 × 0,125 / 3 = 7,667 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 99500 } });
