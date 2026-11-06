@@ -74,14 +74,26 @@ module.exports = { name: 'dessin', run: async (H, t) => {
     await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'topo.pdf')); await H.wait(1500);
     await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.wait(1500);
     const pt = await H.ev(() => { const bg = shapes.find(x => x.type === 'bgimage'); if (!bg || !bg.pdfTopo) return null; selectedShapes = [bg]; openSelectionParamModal();
-        const btn = [...document.querySelectorAll('#selparam-modal .sp-act, #selparam-modal button')].find(b => /implanter les points/.test(b.textContent)); if (!btn) return 'pas de bouton'; btn.click();
-        const imp = [...document.querySelectorAll('#tm-actions button')].find(b => /Implanter/.test(b.textContent)); imp.click();
+        const btn = [...document.querySelectorAll('#selparam-modal .sp-act, #selparam-modal button')].find(b => /Importer points/.test(b.textContent)); if (!btn) return 'pas de bouton'; btn.click();
+        const imp = [...document.querySelectorAll('#tm-actions button')].find(b => /Importer/.test(b.textContent)); imp.click();
         const P = shapes.filter(x => x.type === 'point'), zs = P.map(x => x.z / 1000).sort((a, b) => a - b);
         // deux croix voisines du PDF : 150 pt × 25,4 / 72 × 200 ≈ 10,58 m (± le décalage aléatoire du gabarit)
         const a = P.find(x => Math.abs(x.z - 455110) < 2), b2 = P.find(x => Math.abs(x.z - 455520) < 2), d = a && b2 ? Math.hypot(a.x - b2.x, a.y - b2.y) / mmToWorld(1000) : 0;
         const r = { n: P.length, lo: zs[0], hi: zs[zs.length - 1], d: Math.round(d * 10) / 10, tin: tinNodes().length >= 24 }; shapes = []; saveState(); return r; });
     const exp = require(path.join(__dirname, '..', 'fixtures', 'topo_pts.json')), A = exp[0], B = exp[1], dExp = Math.round(Math.hypot(A[0] - B[0], A[1] - B[1]) * 25.4 / 72 * 200 / 1000 * 10) / 10;
     t.eq('plan PDF : 24 cotes lues dans le PDF, points implantés sur leurs croix (cote 12,50 écartée)', pt, { n: 24, lo: 455.11, hi: 460.55, d: dExp, tin: true });
+    // plan PDF : talus reconnu à ses hachures (tête et pied en lignes de rupture 3D, Z tiré des cotes posées dessus) ; traits du plan dans un calque à son nom, sans les repères des points
+    await H.ev(() => { shapes = []; saveState(); });
+    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'talus.pdf')); await H.wait(1500);
+    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.wait(1500);
+    const tl = await H.ev(() => { const bg = shapes.find(x => x.type === 'bgimage'); if (!bg) return 'pas de fond'; selectedShapes = [bg]; pdfTopoDialog(bg); ['pi-pts', 'pi-tal', 'pi-trc'].forEach(id => document.getElementById(id).checked = true);
+        [...document.querySelectorAll('#tm-actions button')].find(b => /Importer/.test(b.textContent)).click();
+        const lay = (n) => (layers.find(l => l.name === n) || {}).id, BL = shapes.filter(x => x.layerId === lay('Talus (PDF)')), hd = BL.find(x => /Tête/.test(x.name)), ft = BL.find(x => /Pied/.test(x.name));
+        const zr = (p) => p ? [Math.min(...p.points.map(q => q.z)), Math.max(...p.points.map(q => q.z))] : null, mid = hd ? hd.points[Math.floor(hd.points.length / 2)].z : 0;
+        const TR = shapes.filter(x => x.layerId === lay('talus')), r = { talus: bg.pdfTalus.length, lines: BL.length, head: zr(hd), foot: zr(ft), mid: Math.abs(mid - 460500) < 60, pts: shapes.filter(x => x.type === 'point').length,
+            rect: TR.some(x => !x.open && x.points.length === 4), tiny: TR.filter(x => { const xs = x.points.map(q => q.x), ys = x.points.map(q => q.y); return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) < mmToWorld(400); }).length, tin: !!getTIN() };
+        shapes = []; saveState(); return r; });
+    t.eq('plan PDF : talus lu (tête 460→461, pied 457), tracés dans le calque « talus » sans les croix des points', tl, { talus: 1, lines: 2, head: [460000, 461000], foot: [457000, 457000], mid: true, pts: 4, rect: true, tiny: 0, tin: true });
     // plan PDF avec carroyage : l'échelle du cartouche est proposée d'office, puis le plan se cale tout seul sur ses coordonnées (CC44, tourné de 5°)
     await H.ev(() => { shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); });
     await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'grid.pdf')); await H.wait(1800);
