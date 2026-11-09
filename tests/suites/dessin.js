@@ -106,6 +106,25 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         truth.forEach(([X, Y, z]) => { const q = P.find(p => Math.hypot(p.X - X, p.Y - Y) < 0.15); if (!q) return; if (Math.abs(q.z - z) < 0.005) good++; else bad++; });
         const r = Object.assign(r0, { crs: (detectCRS() || {}).code, good: good >= 54, bad }); shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; }, fq);
     t.eq('PDF en police filaire : échelle 1/200 (nom du fichier), calage CC44 sur le carroyage dessiné, cotes relues sans erreur', fl, { ech: '200', grid: true, crs: 'CC44', good: true, bad: 0 });
+    // gros tracés PDF : le dessin est mis en image ; pendant un déplacement de la vue, l'image suit le geste sans tout redessiner
+    const big = await ev(() => { shapes = []; const P = []; for (let i = 0; i < 100000; i++) P.push({ p: [[i % 400, Math.floor(i / 400)], [i % 400 + 0.5, Math.floor(i / 400) + 0.5]], c: 0 }); vecStore.vt = vecMake(400, 250, P);
+        shapes.push({ type: 'pdfvec', layerId: 'layer-0', vecId: 'vt', x: 0, y: 0, w: mmToWorld(80000), h: mmToWorld(50000), rot: 0, n: 100000 }); invalidateCache(); saveState(); draw(); const k1 = drawCache.key;
+        isPanning = true; camera.x += 40; draw(); const k2 = drawCache.key; isPanning = false; camera.x -= 40; draw();
+        const r = { cached: !!k1 && drawCache.cv !== null, gesture: k2 === k1 }; shapes = []; delete vecStore.vt; saveState(); draw(); return r; });
+    t.eq('gros tracés PDF : dessin mis en image, la vue suit le geste sans tout redessiner', big, { cached: true, gesture: true });
+    // gros tracés vus de loin : allégés à l'écran (tuiles hors vue sautées, détails sous le pixel fusionnés) sans changer l'image ni les données
+    const lod = await ev(() => { shapes = []; const P = []; let s0 = 7; const rnd = () => (s0 = (s0 * 16807) % 2147483647) / 2147483647;
+        for (let i = 0; i < 40000; i++) { const x = rnd() * 400, y = rnd() * 250; P.push({ p: [[x, y], [x + rnd() * 0.3, y + rnd() * 0.3], [x + rnd() * 0.3, y + 0.2]], c: 0 }); } for (let i = 0; i < 50; i++) P.push({ p: [[0, i * 5], [400, i * 5 + 3]], c: 0 });
+        vecStore.vl = vecMake(400, 250, P); const s = { type: 'pdfvec', layerId: 'layer-0', vecId: 'vl', x: 0, y: 0, w: mmToWorld(80000), h: mmToWorld(50000), rot: 0, n: P.length }; shapes.push(s); invalidateCache(); saveState();
+        const grab = () => { drawCache.key = null; draw(); return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data; };
+        zoomExtents(); const A = grab(); const vs = window.vecStroke; window.vecStroke = (I, c) => c.stroke(I.path); const B = grab(); window.vecStroke = vs;
+        const W = canvas.width, Hh = canvas.height, bs = 8; let ink = 0, sum = 0, nb = 0, mx = 0;   // comparé à l'œil : moyenne par carrés de 8 pixels
+        for (let by = 0; by + bs <= Hh; by += bs) for (let bx = 0; bx + bs <= W; bx += bs) { let a = 0, b = 0; for (let y = by; y < by + bs; y++) for (let x = bx; x < bx + bs; x++) { const i = 4 * (y * W + x); a += A[i] + A[i + 1] + A[i + 2]; b += B[i] + B[i + 1] + B[i + 2]; if (B[i] > 60) ink++; }
+            const d = Math.abs(a - b) / (3 * bs * bs); sum += d; nb++; if (d > mx) mx = d; }
+        const I = vecInfo('vl'), lodOn = I.tiles.some(t => Object.keys(t.lod).some(k => +k > -30)); I.tiles.forEach(t => t.lod = {}); camera.zoom *= 40; draw(); const tilesUsed = I.tiles.filter(t => Object.keys(t.lod).length).length;
+        const kept = vecStore.vl.xy.length === 3 * 40000 * 2 + 50 * 4; shapes = []; delete vecStore.vl; invalidateCache(); saveState(); zoomExtents(); draw();
+        return { lodOn, close: ink > 1000 && sum / nb < 4 && mx < 60, culled: tilesUsed < I.tiles.length, kept }; });
+    t.eq('gros tracés vus de loin : allégés à l\'écran, même image, données intactes', lod, { lodOn: true, close: true, culled: true, kept: true });
     // carroyage avec des nombres parasites (n° de dossier, hachures lues « 1111111 ») : écartés, le calage reste juste
     const gj = await H.ev(() => { const W = 1000, H2 = 700, lab = []; for (let i = 0; i < 6; i++) lab.push([(100 + i * 150) / W, 680 / H2, 1899100 + i * 30, -1.57]); for (let j = 0; j < 4; j++) lab.push([20 / W, (600 - j * 150) / H2, 3128300 + j * 30, 0]);
         lab.push([0.5 / 1, 0.5, 1111111, 0], [0.3, 0.3, 210600, 0], [0.7, 0.2, 128280, 0]); const f = pdfGridFit({ crs: 'CC44', lab, cx: [], W, H2, H: H2 }, null); if (!f) return null; const q = f.f(250, 400); return { ech: Math.round(f.scale * 72 / 25.4 * 1000), x: Math.round(q.X), y: Math.round(q.Y) }; });

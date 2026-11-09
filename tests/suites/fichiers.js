@@ -74,4 +74,15 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
       t.ok('DXF : ' + before.length + ' objets retrouvés à l\'identique (géométrie au mm, altitudes, réglages métier)', !d.lost.length && !d.extra.length,
           d.lost.length + ' perdus, ' + d.extra.length + ' en trop — perdus : ' + d.lost.join(' ; ') + ' | en trop : ' + d.extra.join(' ; ')); }
     t.eq('DXF : style du calque EU conservé', await ev(() => { const l = layers.find(x => x.name === 'EU'); return l && [l.dash, l.ltText, l.width, l.hatch, String(l.textH)]; }), layBefore);
+
+    // --- la mise en page voyage dans le DXF : fenêtres (centre sur le même point du dessin, échelle, nom, réglage plateformes), texte de la feuille, cartouche ---
+    const lp0 = await ev(() => { const m = mmToWorld(1000), c = { x: 7 * m, y: -4 * m }; layoutData = lpNew(); layoutData.vps.push({ id: 'vpT', x: 30, y: 30, w: 200, h: 120, scale: 200, cx: c.x, cy: c.y, title: 'Plan masse', plat: true });
+        layoutData.paperShapes = [{ type: 'text', layerId: 'layer-0', x: 50, y: 20, content: 'Note de la feuille', size: 20 }]; cartoucheData.planName = 'Essai mise en page';
+        const dirty = isDirty(); return { dirty, abs: [worldToMm(c.x) + geoOrigin.x, -worldToMm(c.y) + geoOrigin.y] }; });
+    const dxf2 = await ev(() => exportDXF());
+    await ev(() => { shapes = []; layoutData = lpNew(); cartoucheData.planName = ''; }); await H.blank(14);
+    await ev(async (txt) => loadFileObject(new File([txt], 'essai2.dxf'), 'essai2.dxf'), dxf2); await H.wait(300);
+    const lp1 = await ev(() => { const v = layoutData.vps[0]; return v ? { title: v.title, plat: v.plat, scale: v.scale, abs: [Math.round(worldToMm(v.cx) + geoOrigin.x), Math.round(-worldToMm(v.cy) + geoOrigin.y)], paper: (layoutData.paperShapes || []).map(q => q.content).join(), cart: cartoucheData.planName, dirty: isDirty() } : null; });
+    t.eq('DXF : mise en page et cartouche conservés (fenêtre au même endroit du dessin)', lp1, { title: 'Plan masse', plat: true, scale: 200, abs: lp0.abs.map(Math.round), paper: 'Note de la feuille', cart: 'Essai mise en page', dirty: false });
+    t.ok('une fenêtre de mise en page ajoutée rend le plan « modifié » (à enregistrer)', lp0.dirty);
 } };
