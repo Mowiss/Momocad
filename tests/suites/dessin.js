@@ -140,6 +140,16 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         document.querySelector(`#ld-list .ld-row[data-id="${a.id}"]`).click(); r.pick = activeLayerId === a.id && a.visible === true && document.getElementById('active-layer-select').value === a.id && !document.getElementById('lay-dd');
         layers = keep; activeLayerId = keep[0].id; updateLayerUI(); return r; });
     t.eq('liste des calques : œil afficher / masquer, groupes par plan importé, clic = calque actif', ld, { open: true, grp: true, sub: 3, eye: true, grpOff: true, pick: true });
+    // groupes de calques : un nom tapé dans « Groupe » range le calque ; bandeau dans le gestionnaire et la liste ; œil du groupe ; renommer ; dégrouper ; gardé dans le DXF
+    const lgr = await ev(async () => { const keepL = layers, keepS = shapes; layers = JSON.parse(JSON.stringify(INITIAL_LAYERS)); ['EU', 'EP'].forEach(n => ensureLayer(n, '#38bdf8')); const id = (n) => layers.find(l => l.name === n).id;
+        setLayerGroup(id('EU'), 'Réseaux'); setLayerGroup(id('EP'), 'Réseaux'); openLayerModal(); const r = {};
+        r.hd = [...document.querySelectorAll('#layers-list .lay-grp-hd .lg-name')].map(e => e.textContent.trim()); r.sub = document.querySelectorAll('#layers-list .lay-sub').length;
+        document.querySelector('#layers-list .lay-grp-hd button').click(); r.off = ['EU', 'EP'].every(n => layers.find(l => l.name === n).visible === false);
+        layDDGroupVis('Réseaux'); layGroupRename('Réseaux', 'Assainissement'); r.ren = layers.filter(l => l.group === 'Assainissement').length;
+        shapes = [{ type: 'line', layerId: id('EU'), x1: 0, y1: 0, x2: 1000, y2: 0 }]; const dxf = exportDXF(); layers = JSON.parse(JSON.stringify(INITIAL_LAYERS)); shapes = []; geoOrigin = { x: 0, y: 0 };
+        const res = importDXF(dxf); r.dxf = (layers.find(l => l.name === 'EU') || {}).group;
+        layGroupUngroup('Assainissement'); r.ung = layers.filter(l => l.group !== undefined).length; closeLayerModal(); layers = keepL; shapes = keepS; updateLayerUI(); return r; });
+    t.eq('groupes de calques : ranger, œil du groupe, renommer, dégrouper, gardés dans le DXF', lgr, { hd: ['📁 Réseaux'], sub: 2, off: true, ren: 2, dxf: 'Assainissement', ung: 0 });
     // carroyage avec des nombres parasites (n° de dossier, hachures lues « 1111111 ») : écartés, le calage reste juste
     const gj = await H.ev(() => { const W = 1000, H2 = 700, lab = []; for (let i = 0; i < 6; i++) lab.push([(100 + i * 150) / W, 680 / H2, 1899100 + i * 30, -1.57]); for (let j = 0; j < 4; j++) lab.push([20 / W, (600 - j * 150) / H2, 3128300 + j * 30, 0]);
         lab.push([0.5 / 1, 0.5, 1111111, 0], [0.3, 0.3, 210600, 0], [0.7, 0.2, 128280, 0]); const f = pdfGridFit({ crs: 'CC44', lab, cx: [], W, H2, H: H2 }, null); if (!f) return null; const q = f.f(250, 400); return { ech: Math.round(f.scale * 72 / 25.4 * 1000), x: Math.round(q.X), y: Math.round(q.Y) }; });
