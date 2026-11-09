@@ -133,4 +133,11 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
     t.eq('DXF entrant : blocs imbriqués / tournés / en miroir / en réseau éclatés, attributs, ellipse, spline, texte multiligne, référence externe', dx, {
         lines: 9, arcs: 2, circ: [[100, 218, 1], [291, 200, 0.5]], arcLay: ['MENUIS', 'MENUIS'], rot: [100, 200, 100, 220], pts: [[50, 60, 412350]],
         txt: ['Ligne 1\nLigne 2 1/2 Ø200', 'Local technique'], polys: ['DIV:f:true', 'DIV:o:true'], xrefs: ['C:\\plans\\voisin.dwg'], ins: 6 });
+
+    // calques créés dans la même milliseconde à l'ouverture d'un DXF : identifiants toujours distincts (sinon deux calques se confondaient)
+    const uid = await ev(() => { const L = ['0', 'SECTION', '2', 'ENTITIES']; for (let k = 0; k < 60; k++) L.push('0', 'LINE', '8', 'C' + k, '10', '0', '20', String(k), '11', '1', '21', String(k)); L.push('0', 'ENDSEC', '0', 'EOF');
+        const keepL = layers, keepO = geoOrigin; layers = JSON.parse(JSON.stringify(INITIAL_LAYERS)); geoOrigin = { x: 0, y: 0 }; const res = importDXF(L.join('\n'));
+        const r = { ids: new Set(layers.map(l => l.id)).size === layers.length, each: res.shapes.every((sh, k) => (layers.find(l => l.id === sh.layerId) || {}).name === 'C' + Math.round(-worldToMm(sh.y1) / (UNIT_MM[currentUnit] || 1))) };
+        layers = keepL; geoOrigin = keepO; return r; });
+    t.eq('DXF : 60 calques créés d\'un coup, chacun son identifiant, chaque trait sur le bon', uid, { ids: true, each: true });
 } };
