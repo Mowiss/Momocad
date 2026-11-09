@@ -33,7 +33,7 @@ module.exports = { name: 'tuto-3-expert', tuto: 'param', timeout: 300, run: asyn
     await t.ok('prix du déblai enregistré (12 €/m³)', await ev(() => matCatalog.find(m => m.code === '__DEB').prix === 12));
     await step(() => clk('button[onclick="openLayerModal()"]'));
     await step(async () => { await set('#new-layer-name', 'EU'); await H.wait(200); await clk('#layer-modal button[onclick="addLayer()"]'); await H.wait(400); await rowSet('input.lay-color', '#b91c1c'); });
-    await step(async () => { await rowSet('select[title="Type de ligne"]', 'text'); await H.wait(300); await rowSet('input[title^="Texte répété"]', 'EU Ø160'); await H.wait(300); await rowSet('input[title="Épaisseur"]', '2'); });
+    await step(async () => { await rowSet('select[title="Type de ligne"]', 'text'); await H.wait(300); await rowSet('input[title^="Texte répété"]', 'EU Ø160'); await H.wait(300); await rowSet('select[title^="Épaisseur"]', '2'); });
     await step(async () => { await rowSet('select[title="Hachure"]', 'cross'); await H.wait(300); await rowSet('input[title^="Échelle de hachure"]', '2'); });
     await step(async () => { await row('button[title^="Apparence des points topo"]');
         await ev(() => { const l = layers.find(x => /^eu\b/i.test(x.name)); const n = [...document.querySelectorAll('#layers-list .lay-name')].find(x => x.textContent.trim() === l.name); n.parentElement.querySelector('button[title^="Apparence des points topo"]').click(); });

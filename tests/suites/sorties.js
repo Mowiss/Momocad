@@ -67,4 +67,13 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         const r = { w: cd.w, h: cd.h, foldX: F.xs.includes(x0), foldY: F.ys.includes(y0), drawn: rect.map(v => Math.round(v)) };
         [cartoucheData.type, layoutData.paper, layoutData.orient, layoutData.margin, layoutData.cartouche] = keep; return r; });
     t.eq('cartouche A4 = volet plié moins la marge, calé sur les plis', ca, { w: 200, h: 287, foldX: true, foldY: true, drawn: [0, 0, 200, 287] });
+
+    // impression normée : PDF de la feuille en vectoriel (traits, textes), épaisseur 1 = 0,25 mm sur le papier, noir et blanc ; et toujours possible en image
+    const pv = await ev(() => { const keepS = shapes, keepL = layoutData; const m = mmToWorld(1000), EU = ensureLayer('EU', '#38bdf8');
+        shapes = [{ type: 'line', layerId: EU, x1: 0, y1: 0, x2: 40 * m, y2: 0 }, { type: 'text', layerId: 'layer-0', x: 2 * m, y: 5 * m, content: 'Regard R1', size: mmToWorld(1500), angle: 0 }, { type: 'circle', layerId: EU, x: 20 * m, y: 10 * m, r: 3 * m }];
+        layers.find(l => l.id === EU).width = 1; layoutData = lpNew(); Object.assign(layoutData, { paper: 'A3', orient: 'landscape', margin: 10, cartouche: false }); layoutData.vps.push({ id: 'v1', x: 20, y: 20, w: 250, h: 180, scale: 200, cx: 20 * m, cy: 5 * m });
+        const raw = (o) => { const d = lpBuildPDF(Object.assign({ compress: false }, o)); return d.output(); }, V = raw({ vec: true, bw: false }), B = raw({ vec: true, bw: true }), I = raw({ vec: false });
+        const r = { text: /Regard R1/.test(V), curves: / c\n/.test(V), pen: /0\.708\d* w/.test(V), blue: /0\.22 0\.74 0\.97 RG/.test(V), bwBlue: /0\.22 0\.74 0\.97 RG/.test(B), img: /\/Subtype \/Image/.test(I), noImgV: !/\/Subtype \/Image/.test(V) };
+        shapes = keepS; layoutData = keepL; return r; });
+    t.eq('PDF de la feuille vectoriel (textes, courbes, plume 0,25 mm), noir et blanc, ou en image', pv, { text: true, curves: true, pen: true, blue: true, bwBlue: false, img: true, noImgV: true });
 } };

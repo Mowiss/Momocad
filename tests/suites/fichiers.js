@@ -102,4 +102,35 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
     // STL retiré : plus d'entrée de menu, plus d'import ; un ancien plan avec un maillage s'ouvre toujours
     const nostl = await ev(() => ({ menu: /STL/i.test(document.getElementById('menu-dxf').textContent), accept: document.getElementById('project-input').accept.includes('stl'), fns: ['importSTL', 'openExportSTL', 'exportSTL'].some(f => typeof window[f] === 'function') }));
     t.eq('STL retiré (menu, ouverture, export)', nostl, { menu: false, accept: false, fns: false });
+
+    // DXF entrant : blocs (imbriqués, tournés, en miroir, en réseau) éclatés à leur place, attributs en textes, ellipse et spline en polylignes,
+    // texte multiligne nettoyé, référence externe signalée ; un point topo (bloc avec altitude) reste un point
+    const dx = await ev(() => { const L = []; const e = (...a) => { for (let i = 0; i < a.length; i += 2) L.push(String(a[i]), String(a[i + 1])); };
+        e(0, 'SECTION', 2, 'HEADER', 9, '$INSUNITS', 70, 6, 0, 'ENDSEC', 0, 'SECTION', 2, 'BLOCKS');
+        e(0, 'BLOCK', 8, '0', 2, 'POIGNEE', 70, 0, 10, 0, 20, 0, 0, 'CIRCLE', 8, '0', 10, 1, 20, 0, 40, 0.5, 0, 'ENDBLK');
+        e(0, 'BLOCK', 8, '0', 2, 'PORTE', 70, 0, 10, 0, 20, 0, 0, 'LINE', 8, '0', 10, 0, 20, 0, 11, 10, 21, 0, 0, 'ARC', 8, 'MENUIS', 10, 0, 20, 0, 40, 10, 50, 0, 51, 90, 0, 'INSERT', 8, '0', 2, 'POIGNEE', 10, 8, 20, 0, 0, 'ENDBLK');
+        e(0, 'BLOCK', 8, '0', 2, 'VOISIN', 70, 4, 1, 'C:\\plans\\voisin.dwg', 10, 0, 20, 0, 0, 'ENDBLK');
+        e(0, 'BLOCK', 8, '0', 2, 'TOPO', 70, 0, 10, 0, 20, 0, 0, 'ENDBLK', 0, 'BLOCK', 8, '0', 2, 'ETIQ', 70, 2, 10, 0, 20, 0, 0, 'LINE', 8, '0', 10, 0, 20, 0, 11, 1, 21, 0, 0, 'ENDBLK');
+        e(0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
+        e(0, 'INSERT', 8, 'BATI', 2, 'PORTE', 10, 100, 20, 200, 41, 2, 42, 2, 50, 90);
+        e(0, 'INSERT', 8, 'BATI', 2, 'PORTE', 10, 300, 20, 200, 41, -1, 42, 1, 50, 0);
+        e(0, 'INSERT', 8, 'BATI', 2, 'ETIQ', 10, 0, 20, 0, 70, 3, 71, 2, 44, 10, 45, 5);
+        e(0, 'INSERT', 8, 'REF', 2, 'VOISIN', 10, 0, 20, 0);
+        e(0, 'INSERT', 8, 'POINTS', 2, 'TOPO', 66, 1, 10, 50, 20, 60, 0, 'ATTRIB', 8, 'POINTS', 10, 51, 20, 60, 40, 1, 1, '412,35', 2, 'ALT', 0, 'SEQEND');
+        e(0, 'INSERT', 8, 'BATI', 2, 'ETIQ', 66, 1, 10, 500, 20, 500, 0, 'ATTRIB', 8, '0', 10, 501, 20, 501, 40, 2, 1, 'Local technique', 2, 'NOM', 0, 'SEQEND');
+        e(0, 'ELLIPSE', 8, 'DIV', 10, 0, 20, 0, 11, 10, 21, 0, 40, 0.5, 41, 0, 42, 6.283185307);
+        e(0, 'SPLINE', 8, 'DIV', 70, 8, 71, 3, 72, 8, 73, 4, 40, 0, 40, 0, 40, 0, 40, 0, 40, 1, 40, 1, 40, 1, 40, 1, 10, 0, 20, 0, 10, 10, 20, 20, 10, 20, 20, 20, 10, 30, 20, 0);
+        e(0, 'MTEXT', 8, 'TXT', 10, 0, 20, -50, 40, 2.5, 3, '{\\fArial|b1;\\H1.2x;Ligne 1}\\PLigne ', 1, '2 \\S1/2; %%c200');
+        e(0, 'ENDSEC', 0, 'EOF');
+        const keepS = shapes, keepL = layers, keepO = geoOrigin; shapes = []; geoOrigin = { x: 0, y: 0 }; layers = JSON.parse(JSON.stringify(INITIAL_LAYERS));
+        const res = importDXF(L.join('\n')), S = res.shapes, m = (v) => Math.round(worldToMm(v) / 10) / 100, ly = (s) => (layers.find(l => l.id === s.layerId) || {}).name;
+        const lines = S.filter(x => x.type === 'line'), arcs = S.filter(x => x.type === 'arc'), circ = S.filter(x => x.type === 'circle'), pts = S.filter(x => x.type === 'point'), txt = S.filter(x => x.type === 'text'), polys = S.filter(x => x.type === 'poly');
+        const l0 = lines.find(x => ly(x) === 'BATI' && Math.abs(m(x.x1) - 100) < 1e-6);
+        const r = { lines: lines.length, arcs: arcs.length, circ: circ.map(c => [m(c.x), -m(c.y), m(c.r)]).sort((a, b) => a[0] - b[0]), arcLay: arcs.map(ly).sort(),
+            rot: l0 ? [m(l0.x1), -m(l0.y1), m(l0.x2), -m(l0.y2)] : null, pts: pts.map(p => [m(p.x), -m(p.y), p.z]), txt: txt.map(t => t.content).sort(),
+            polys: polys.map(p => ly(p) + ':' + (p.open ? 'o' : 'f') + ':' + (p.points.length > 20)).sort(), xrefs: res.xrefs, ins: res.stats.inserts };
+        shapes = keepS; layers = keepL; geoOrigin = keepO; return r; });
+    t.eq('DXF entrant : blocs imbriqués / tournés / en miroir / en réseau éclatés, attributs, ellipse, spline, texte multiligne, référence externe', dx, {
+        lines: 9, arcs: 2, circ: [[100, 218, 1], [291, 200, 0.5]], arcLay: ['MENUIS', 'MENUIS'], rot: [100, 200, 100, 220], pts: [[50, 60, 412350]],
+        txt: ['Ligne 1\nLigne 2 1/2 Ø200', 'Local technique'], polys: ['DIV:f:true', 'DIV:o:true'], xrefs: ['C:\\plans\\voisin.dwg'], ins: 6 });
 } };
