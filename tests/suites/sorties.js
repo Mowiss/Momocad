@@ -59,4 +59,12 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         const first = document.querySelector('#help-modal .hg-tab').dataset.ch; hgPrintQuick(); const f = document.getElementById('hg-print-frame'); try { f.contentWindow.print = () => {}; } catch (e) {}
         setTimeout(() => { const d = f.contentDocument; res({ n, first, title: d.title, steps: d.querySelectorAll('.hg-list > li').length, btn: d.querySelectorAll('button').length }); f.remove(); closeHelpModal && closeHelpModal(); }, 50); }));
     t.eq('guide : fiche « Démarrer en 10 minutes » en 1er onglet, imprimable', qs, { n: 10, first: 'go', title: 'MomoCAD — Démarrer en 10 minutes', steps: 11, btn: 0 });
+
+    // cartouche A4 en mise en page : le volet de devant du plan plié moins la marge → ses bords gauche et haut tombent sur les plis
+    const ca = await ev(() => { const keep = [cartoucheData.type, layoutData.paper, layoutData.orient, layoutData.margin, layoutData.cartouche]; cartoucheData.type = 'a4'; Object.assign(layoutData, { paper: 'A1', orient: 'landscape', margin: 10, cartouche: true });
+        const P = lpPage(), cd = cartDims(P.W, P.H, P.m), F = lpFolds(P), x0 = P.W - P.m - cd.w, y0 = P.H - P.m - cd.h; let calls = 0; const c = document.createElement('canvas').getContext('2d'); const sr = c.strokeRect.bind(c); let rect = null; c.strokeRect = (x, y, w, h) => { if (!rect) rect = [x, y, w, h]; return sr(x, y, w, h); };
+        drawCartA4(c, 0, 0, 1, cartInfo('1:200', 'A1'), cd.w, cd.h);
+        const r = { w: cd.w, h: cd.h, foldX: F.xs.includes(x0), foldY: F.ys.includes(y0), drawn: rect.map(v => Math.round(v)) };
+        [cartoucheData.type, layoutData.paper, layoutData.orient, layoutData.margin, layoutData.cartouche] = keep; return r; });
+    t.eq('cartouche A4 = volet plié moins la marge, calé sur les plis', ca, { w: 200, h: 287, foldX: true, foldY: true, drawn: [0, 0, 200, 287] });
 } };
