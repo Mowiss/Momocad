@@ -48,6 +48,13 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const a = structSVG({ ff: true, layers: [{ mat: 'BBSG', e: 6 }, { mat: 'GNT_0_315', e: 44 }] }), b = structSVG({ ff: false, layers: [{ mat: 'BBSG', e: 6 }, { mat: 'GNT_0_315', e: 44 }] }); shapes = []; selectedShapes = [];
         return { fini: /fini 68,50 m/.test(a) && /fond de forme 68,00 m/.test(a) && /Réf\. Z 68,50 m/.test(a), terr: /fini 69,00 m/.test(b) && /fond de forme 68,50 m/.test(b) }; });
       t.eq('coupe de structure : niveaux selon la ligne de référence', sv, { fini: true, terr: true }); }
+    // ligne de rupture tracée à la main : sommets sur deux points cotés (100,00 et 102,00 à 10 m), Z interpolé, un sommet par mètre ; même chose depuis une polyligne existante (Y)
+    { const lr = await ev(() => { const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'); shapes = [{ type: 'point', layerId: TN, x: 0, y: 0, z: 100000, zk: 1 }, { type: 'point', layerId: TN, x: 10 * m, y: 0, z: 102000, zk: 1 }, { type: 'point', layerId: TN, x: 5 * m, y: 8 * m, z: 101000, zk: 1 }]; invalidateCache(); saveState();
+        setMode('pline'); brkDraw = true; isDrawing = true; currentPolygon = [{ x: 0, y: 0 }, { x: 10 * m, y: 0 }]; finishPline(); setMode('select-box');
+        const L = shapes.find(x => x.name === 'Ligne de rupture'), mid = L && L.points.find(q => Math.abs(q.x - 5 * m) < 1e-6);
+        const pl = { type: 'poly', layerId: 'layer-0', open: true, points: [{ x: 0, y: 0 }, { x: 10 * m, y: 0 }] }; shapes.push(pl); selectedShapes = [pl]; brkFromSel();
+        const r = { n: L ? L.points.length : 0, mid: mid ? mid.z : null, lay: L ? (layers.find(l => l.id === L.layerId) || {}).name : '', y: pl.points.length, ymid: (pl.points.find(q => Math.abs(q.x - 5 * m) < 1e-6) || {}).z }; shapes = []; selectedShapes = []; saveState(); return r; });
+      t.eq('ligne de rupture : Z interpolé entre les points cotés, un sommet par mètre (outil LR et depuis Y)', lr, { n: 11, mid: 101000, lay: 'Lignes de rupture', y: 11, ymid: 101000 }); }
     // 6. remblai périphérique jusqu'à 99,50 (talus 1/1, sans recul) : bande autour de la plateforme sur 0,5 m de haut
     //    V = ∫₀^0,5 (périmètre·t + 4t²) dt = 60 × 0,125 + 4 × 0,125 / 3 = 7,667 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 99500 } });
