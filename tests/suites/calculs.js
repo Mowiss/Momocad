@@ -37,6 +37,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     r = await cub({ z: 99000, talus: { on: false }, struct: { ff: true, layers: [{ mat: 'GNT_0_315', e: 50 }] } });
     { const ds = (r.extra || []).find(e => e[0].startsWith('dont'));
       t.ok('structure 50 cm : déblai 300 m³, dont 100 m³ de structure affichés à part', !r.err && Math.abs(r.D - 300) < 0.5 && ds && Math.abs(ds[1] - 100) < 0.5 && ds[3], JSON.stringify(r)); }
+    // 5 ter. structure de 50 cm au fond de forme avec talus 1/1 : la fouille part du fond de forme, comme une fouille de 1,5 m → 1,5 × (200 + 1,5 × 30 + 4/3 × 2,25) = 372 m³
+    r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, struct: { ff: true, layers: [{ mat: 'GNT_0_315', e: 50 }] } });
+    { const ds = (r.extra || []).find(e => e[0].startsWith('dont'));
+      t.ok('structure 50 cm + talus 1/1 : talus pris depuis le fond de forme, 372 m³ (à 1 % près), dont 140,67 m³ de structure', !r.err && pct(r.D, 372) < 0.01 && ds && pct(ds[1], 372 - 231.333) < 0.02, JSON.stringify(r)); }
     // 6. remblai périphérique jusqu'à 99,50 (talus 1/1, sans recul) : bande autour de la plateforme sur 0,5 m de haut
     //    V = ∫₀^0,5 (périmètre·t + 4t²) dt = 60 × 0,125 + 4 × 0,125 / 3 = 7,667 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 99500 } });
