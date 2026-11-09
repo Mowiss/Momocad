@@ -147,6 +147,17 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         const r = Object.assign(r0, { crs: (detectCRS() || {}).code, errOk: e < 0.05, rot: Math.round(Math.abs(bg.rot) * 180 / Math.PI), grid: !!bg.pdfGrid, msg: /CALÉ SUR SON CARROYAGE/.test(document.getElementById('command-text').textContent) });
         shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; }, gq);
     t.eq('PDF avec carroyage : échelle 1/500 lue, plan calé sur ses coordonnées CC44 (< 5 cm), rotation 5°', gp, { ech: '500', row: 'flex', chk: true, crs: 'CC44', errOk: true, rot: 5, grid: true, msg: true });
+    // fenêtre d'insertion : l'échelle et le carroyage trouvés sont annoncés ; calage à la main sur 2 croix (clic aimanté sur les croix lues, coordonnées tapées) = même résultat que le calage automatique
+    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'grid.pdf')); await H.wait(1800);
+    const gm = await H.ev(async (q) => { const st = { ech: document.getElementById('bg-ech-st').className, grid: document.getElementById('bg-grid-st').className, chip: !!document.querySelector('#bg-ech-chips button.on') };
+        document.getElementById('bg-gridman').checked = true; bgGridToggled(true); const gOff = !document.getElementById('bg-grid').checked; await insertBgImage(); const bg = shapes.find(x => x.type === 'bgimage'); const r = { st, gOff, mode };
+        const G = bg.pdfGrid, fit = pdfGridFit(G, 'CC44'), C = G.cx.map(c => ({ c, p: bgUV(bg, c[0], c[1]) })); let A = C[0], B = C[0]; C.forEach(a => C.forEach(b => { if (Math.hypot(a.p.x - b.p.x, a.p.y - b.p.y) > Math.hypot(A.p.x - B.p.x, A.p.y - B.p.y)) { A = a; B = b; } }));
+        const click = (P, i) => { const sc = worldToScreen ? worldToScreen(P.p.x + 3 / camera.zoom, P.p.y - 2 / camera.zoom) : null; const sn = gcalSnap(bg, P.p.x + 3 / camera.zoom, P.p.y - 2 / camera.zoom); gcalAsk(sn); const t = fit.f(P.c[0] * G.W, P.c[1] * G.H);
+            document.getElementById('gc-x').value = String(Math.round(t.X * 100) / 100).replace('.', ','); document.getElementById('gc-y').value = String(Math.round(t.Y * 100) / 100); const bs = document.querySelectorAll('#tm-actions button'); bs[bs.length - 1].click(); return !!sn; };
+        r.snap = click(A) && click(B); const P = bgUV(bg, q.u, q.v); r.errOk = Math.hypot(realX(P.x) / 1000 - q.X, realY(P.y) / 1000 - q.Y) < 0.1; r.rot = Math.round(Math.abs(bg.rot) * 180 / Math.PI); r.msg = /CALÉ SUR 2 CROIX/.test(document.getElementById('command-text').textContent); r.after = mode;
+        shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; }, gq);
+    t.eq('insertion PDF : échelle et carroyage annoncés ; calage à la main sur 2 croix aimantées = bonnes coordonnées (< 10 cm), rotation 5°', gm,
+        { st: { ech: 'bg-st ok', grid: 'bg-st ok', chip: true }, gOff: true, mode: 'gridcal', snap: true, errOk: true, rot: 5, msg: true, after: 'select-box' });
     // système de coordonnées : un plan en Lambert 93 converti en CC44 ; chaque point prend ses vraies coordonnées CC44 (à 1 cm près sur 500 m), le fond suit
     const cr = await H.ev(() => { shapes = []; const L = lccParams('L93'), C = lccParams('CC44'), q0 = lccFwd(L, 43.45, 5.25); geoOrigin = { x: Math.floor(q0.x) * 1000, y: Math.floor(q0.y) * 1000 };
         const W = (x, y) => ({ x: mmToWorld(x * 1000 - geoOrigin.x), y: -mmToWorld(y * 1000 - geoOrigin.y) }), R = [[0, 0], [400, 50], [250, 380], [-120, 300]].map(([dx, dy]) => ({ x: q0.x + dx, y: q0.y + dy }));
