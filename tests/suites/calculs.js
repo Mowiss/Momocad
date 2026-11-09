@@ -63,9 +63,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         await open3D(); await new Promise(q => setTimeout(q, 600)); let mesh = 0; V3.root.traverse(o => { if (o.isMesh) mesh++; }); close3D(); r.d3 = mesh > 0;
         const dxf = exportDXF(); await loadFileObject(new File([dxf], 'bat.dxf'), 'bat.dxf'); await new Promise(q => setTimeout(q, 500)); const B2 = shapes.find(x => x.batEx);
         r.dxf = B2 ? [B2.solid && B2.solid.kind, Math.round((B2.points[0].z + B2.solid.H) / 10) * 10, Math.abs(tinZ(0, 0) - 100000) < 200] : null;
-        if (B2) { selectedShapes = [B2]; batUnset(B2); } r.unset = Math.round(tinZ(0, 0)) > 105000; shapes = []; selectedShapes = []; invalidateCache(); saveState(); return r; });
+        if (B2) { selectedShapes = [B2]; batUnset(B2); } r.unset = Math.round(tinZ(0, 0)) > 105000;
+        const P3 = shapes.find(x => x.type === 'poly'); setMode('pline'); batDraw = true; r.pick = batPick(1 * m, 1 * m) && !!P3.batEx && Math.abs(tinZ(0, 0) - 100000) < 200; setMode('select-box'); shapes = []; selectedShapes = []; invalidateCache(); saveState(); return r; });
       t.eq('bâtiment existant : cotes du toit et de l\'égout hors terrain, seuil gardé, bloc 3D jusqu\'à la cote la plus haute (modifiable), DXF, retrait', bt,
-        { spike: true, ground: true, seuil: true, eaves: false, base: true, top: 108000, kind: 'box', name: 'Bâtiment existant', plat: false, edit: 110000, d3: true, dxf: ['box', 110000, true], unset: true }); }
+        { spike: true, ground: true, seuil: true, eaves: false, base: true, top: 108000, kind: 'box', name: 'Bâtiment existant', plat: false, edit: 110000, d3: true, dxf: ['box', 110000, true], unset: true, pick: true }); }
     // ligne de rupture tracée à la main : sommets sur deux points cotés (100,00 et 102,00 à 10 m), Z interpolé, un sommet par mètre ; même chose depuis une polyligne existante (Y)
     { const lr = await ev(() => { const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'); shapes = [{ type: 'point', layerId: TN, x: 0, y: 0, z: 100000, zk: 1 }, { type: 'point', layerId: TN, x: 10 * m, y: 0, z: 102000, zk: 1 }, { type: 'point', layerId: TN, x: 5 * m, y: 8 * m, z: 101000, zk: 1 }]; invalidateCache(); saveState();
         setMode('pline'); brkDraw = true; isDrawing = true; currentPolygon = [{ x: 0, y: 0 }, { x: 10 * m, y: 0 }]; finishPline(); setMode('select-box');
