@@ -33,6 +33,15 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
     t.ok('présentation : une fenêtre posée sur la planche', await ev(() => (layoutData.vps || []).length >= 1), await ev(() => JSON.stringify((layoutData.vps || []).map(v => [v.kind || 'plan', v.scale]))));
     await H.shot('sortie-planche');
     await dl('présentation : PDF de la feuille', () => ev(() => lpPrintPDF()), /\.pdf$/);
+    // fenêtre en vue 3D, pilotée à la souris sur la feuille : glisser = tourner, Maj + glisser = déplacer, molette = zoom, Échap = figer
+    const v3a = await ev(async () => { const v = layoutData.vps[layoutData.vps.length - 1]; await lp3DSnap(v); await lp3DEnter(v); const r = lpRect(v), c = canvas.getBoundingClientRect();
+        return { ok: !!(v.v3 && v.v3.img), active: lp3D.id === v.id, az: v.v3.az, dist: v.v3.dist, tx: v.v3.tx, img: v.v3.img.length, cx: c.left + r.x + r.w / 2, cy: c.top + r.y + r.h / 2 }; });
+    await H.p.mouse.move(v3a.cx, v3a.cy); await H.p.mouse.down(); for (let i = 1; i <= 6; i++) await H.p.mouse.move(v3a.cx + i * 15, v3a.cy + i * 4); await H.p.mouse.up(); await H.wait(200);
+    await H.p.keyboard.down('Shift'); await H.p.mouse.down(); await H.p.mouse.move(v3a.cx + 40, v3a.cy + 10); await H.p.mouse.move(v3a.cx, v3a.cy); await H.p.mouse.up(); await H.p.keyboard.up('Shift');
+    await H.p.mouse.wheel(0, -300); await H.wait(500);
+    const v3b = await ev(() => { const v = layoutData.vps[layoutData.vps.length - 1]; return { az: v.v3.az, dist: v.v3.dist, tx: v.v3.tx, img: v.v3.img.length }; });
+    await H.press('Escape'); const v3c = await ev(() => lp3D.id);
+    t.ok('présentation : fenêtre 3D pilotée à la souris (tourne, se déplace, zoome, Échap la fige)', v3a.ok && v3a.active && Math.abs(v3b.az - v3a.az) > 0.3 && v3b.tx !== v3a.tx && v3b.dist < v3a.dist && v3c === null, JSON.stringify([v3a, v3b, v3c]));
     await ev(() => { if (layoutOn) toggleLayout(false); });
 
     // métré en PDF
