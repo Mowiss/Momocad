@@ -53,4 +53,10 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
 
     // métré en PDF
     await dl('métré en PDF', () => ev(() => metrePDF()), /\.pdf$/);
+
+    // fiche « Démarrer en 10 minutes » : 1er onglet du guide, imprimable en A4 (sans boutons)
+    const qs = await ev(() => new Promise(res => { openHelpModal(); helpChapter('go'); const sec = document.querySelector('#help-modal .hg-ch[data-ch=go]'); const n = sec.querySelectorAll(':scope > .hg-list:first-of-type > li').length;
+        const first = document.querySelector('#help-modal .hg-tab').dataset.ch; hgPrintQuick(); const f = document.getElementById('hg-print-frame'); try { f.contentWindow.print = () => {}; } catch (e) {}
+        setTimeout(() => { const d = f.contentDocument; res({ n, first, title: d.title, steps: d.querySelectorAll('.hg-list > li').length, btn: d.querySelectorAll('button').length }); f.remove(); closeHelpModal && closeHelpModal(); }, 50); }));
+    t.eq('guide : fiche « Démarrer en 10 minutes » en 1er onglet, imprimable', qs, { n: 10, first: 'go', title: 'MomoCAD — Démarrer en 10 minutes', steps: 11, btn: 0 });
 } };
