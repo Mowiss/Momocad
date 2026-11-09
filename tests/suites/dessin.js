@@ -150,6 +150,10 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         const res = importDXF(dxf); r.dxf = (layers.find(l => l.name === 'EU') || {}).group;
         layGroupUngroup('Assainissement'); r.ung = layers.filter(l => l.group !== undefined).length; closeLayerModal(); layers = keepL; shapes = keepS; updateLayerUI(); return r; });
     t.eq('groupes de calques : ranger, œil du groupe, renommer, dégrouper, gardés dans le DXF', lgr, { hd: ['📁 Réseaux'], sub: 2, off: true, ren: 2, dxf: 'Assainissement', ung: 0 });
+    // ajuster une polyligne qui se recoupe elle-même : ses propres croisements servent de coupure (la boucle part d'un clic)
+    const sx = await ev(() => { const keep = shapes, m = mmToWorld(1000); const pl = { type: 'poly', layerId: 'layer-0', open: true, points: [[0, 0], [10, 0], [10, 10], [5, -5]].map(([x, y]) => ({ x: x * m, y: y * m })) }; shapes = [pl];
+        trimPolyAt(pl, 10 * m, 5 * m); const r = shapes.map(p => p.points.map(q => [Math.round(worldToMm(q.x) / 10) / 100, Math.round(worldToMm(q.y) / 10) / 100])); shapes = keep; return r; });
+    t.eq('ajuster : une polyligne qui se recoupe se coupe à ses propres croisements', sx, [[[0, 0], [6.67, 0]], [[6.67, 0], [5, -5]]]);
     // carroyage avec des nombres parasites (n° de dossier, hachures lues « 1111111 ») : écartés, le calage reste juste
     const gj = await H.ev(() => { const W = 1000, H2 = 700, lab = []; for (let i = 0; i < 6; i++) lab.push([(100 + i * 150) / W, 680 / H2, 1899100 + i * 30, -1.57]); for (let j = 0; j < 4; j++) lab.push([20 / W, (600 - j * 150) / H2, 3128300 + j * 30, 0]);
         lab.push([0.5 / 1, 0.5, 1111111, 0], [0.3, 0.3, 210600, 0], [0.7, 0.2, 128280, 0]); const f = pdfGridFit({ crs: 'CC44', lab, cx: [], W, H2, H: H2 }, null); if (!f) return null; const q = f.f(250, 400); return { ech: Math.round(f.scale * 72 / 25.4 * 1000), x: Math.round(q.X), y: Math.round(q.Y) }; });
