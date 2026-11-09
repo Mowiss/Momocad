@@ -41,6 +41,13 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, struct: { ff: true, layers: [{ mat: 'GNT_0_315', e: 50 }] } });
     { const ds = (r.extra || []).find(e => e[0].startsWith('dont'));
       t.ok('structure 50 cm + talus 1/1 : talus pris depuis le fond de forme, 372 m³ (à 1 % près), dont 140,67 m³ de structure', !r.err && pct(r.D, 372) < 0.01 && ds && pct(ds[1], 372 - 231.333) < 0.02, JSON.stringify(r)); }
+    // 5 quater. ligne de référence = cote du talus (avant structure) : terrassement à la cote Z, la structure est posée dessus → 200 m³ comme sans structure
+    r = await cub({ z: 99000, talus: { on: false }, struct: { ff: false, layers: [{ mat: 'GNT_0_315', e: 50 }] } });
+    t.ok('référence = cote du talus : terrassement à Z (200 m³), pas de ligne « dont structure »', !r.err && Math.abs(r.D - 200) < 0.5 && !(r.extra || []).some(e => e[0].startsWith('dont')), JSON.stringify(r));
+    { const sv = await ev(() => { const m = mmToWorld(1000), pl = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [4, 0], [4, 4]].map(([x, y]) => ({ x: x * m, y: y * m, z: 68500 })) }; shapes = [pl]; selectedShapes = [pl];
+        const a = structSVG({ ff: true, layers: [{ mat: 'BBSG', e: 6 }, { mat: 'GNT_0_315', e: 44 }] }), b = structSVG({ ff: false, layers: [{ mat: 'BBSG', e: 6 }, { mat: 'GNT_0_315', e: 44 }] }); shapes = []; selectedShapes = [];
+        return { fini: /fini 68,50 m/.test(a) && /fond de forme 68,00 m/.test(a) && /Réf\. Z 68,50 m/.test(a), terr: /fini 69,00 m/.test(b) && /fond de forme 68,50 m/.test(b) }; });
+      t.eq('coupe de structure : niveaux selon la ligne de référence', sv, { fini: true, terr: true }); }
     // 6. remblai périphérique jusqu'à 99,50 (talus 1/1, sans recul) : bande autour de la plateforme sur 0,5 m de haut
     //    V = ∫₀^0,5 (périmètre·t + 4t²) dt = 60 × 0,125 + 4 × 0,125 / 3 = 7,667 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 99500 } });
