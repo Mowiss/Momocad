@@ -85,4 +85,17 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
     const lp1 = await ev(() => { const v = layoutData.vps[0]; return v ? { title: v.title, plat: v.plat, scale: v.scale, abs: [Math.round(worldToMm(v.cx) + geoOrigin.x), Math.round(-worldToMm(v.cy) + geoOrigin.y)], paper: (layoutData.paperShapes || []).map(q => q.content).join(), cart: cartoucheData.planName, dirty: isDirty() } : null; });
     t.eq('DXF : mise en page et cartouche conservés (fenêtre au même endroit du dessin)', lp1, { title: 'Plan masse', plat: true, scale: 200, abs: lp0.abs.map(Math.round), paper: 'Note de la feuille', cart: 'Essai mise en page', dirty: false });
     t.ok('une fenêtre de mise en page ajoutée rend le plan « modifié » (à enregistrer)', lp0.dirty);
+
+    // un 2e DXF superposé au 1er (pas d'écrasement) : mêmes coordonnées, calques rangés sous le nom du fichier ; Ctrl+A / Ctrl+Alt+A
+    const ov = await ev(async () => { const m = mmToWorld(1000); geoOrigin = { x: 1881000000, y: 3140000000 }; layers = JSON.parse(JSON.stringify(INITIAL_LAYERS)); const L = ensureLayer('Murs', '#ff0000');
+        shapes = [{ type: 'line', layerId: L, x1: 0, y1: 0, x2: 10 * m, y2: 0 }, { type: 'circle', layerId: 'layer-0', x: 5 * m, y: 5 * m, r: 2 * m }]; saveState();
+        const txt = exportDXF(); shapes = [{ type: 'line', layerId: 'layer-0', x1: 0, y1: 20 * m, x2: 5 * m, y2: 20 * m }]; saveState();
+        dxfOverlayAsk(new File([txt], 'voisin.dxf'), 'voisin.dxf', false); const btns = [...document.querySelectorAll('#tm-actions button')].map(b => b.textContent);
+        [...document.querySelectorAll('#tm-actions button')].find(b => b.textContent === 'Superposer').click(); await new Promise(r => setTimeout(r, 300));
+        const ln = shapes.find(x => x.type === 'line' && Math.abs(x.y1) < 1e-6), r = { btns, n: shapes.length, lays: layers.filter(l => /^voisin · /.test(l.name)).map(l => l.name).sort(), pos: ln ? [Math.round(worldToMm(ln.x1)), Math.round(worldToMm(ln.x2))] : null, sel: selectedShapes.length };
+        setMode('select-box'); selectedShapes = []; activeLayerId = layers.find(l => l.name === 'voisin · Murs').id;
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', code: 'KeyA', ctrlKey: true, bubbles: true })); r.all = selectedShapes.length;
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', code: 'KeyA', ctrlKey: true, altKey: true, bubbles: true })); r.lay = selectedShapes.length;
+        shapes = []; selectedShapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; });
+    t.eq('DXF superposé au plan en cours (sans l\'écraser) ; Ctrl+A tout, Ctrl+Alt+A le calque actif', ov, { btns: ['Annuler', 'Ouvrir à la place', 'Superposer'], n: 3, lays: ['voisin · Murs', 'voisin · Tracé'], pos: [0, 10000], sel: 2, all: 3, lay: 1 });
 } };
