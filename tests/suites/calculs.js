@@ -52,6 +52,20 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     { const th = await ev(() => { const m = mmToWorld(1000), N = []; for (let i = 0; i <= 40; i++) for (let j = 0; j <= 40; j++) { const x = i * m, y = j * m; if (x > 14 * m && x < 26 * m && y > 14 * m && y < 26 * m) continue; if (x > 30 * m && y > 30 * m) continue; N.push({ x, y, z: 100000 + i * 10 }); }
         const T = buildTIN(N); return { hole: tinZ(20 * m, 20 * m, T) !== undefined, notch: tinZ(36 * m, 36 * m, T) === undefined }; });
       t.eq('terrain : pas de trou là où les points sont espacés, encoche du contour respectée', th, { hole: true, notch: true }); }
+    // bâtiment existant : ses cotes (toit dedans, égout juste au-dehors) sortent du terrain, le seuil au ras de la façade reste ; bloc posé sur le terrain jusqu'à la cote la plus haute ; DXF aller-retour ; « ce n'est pas un bâtiment » rend les cotes au terrain
+    { const bt = await ev(async () => { const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'); shapes = [];
+        for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) if (Math.abs(i) === 3 || Math.abs(j) === 3) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: j * 5 * m, z: 100000, zk: 1 });
+        shapes.push({ type: 'point', layerId: TN, x: 0, y: 0, z: 108000, zk: 1 }, { type: 'point', layerId: TN, x: 2 * m, y: 1 * m, z: 106500, zk: 1 }, { type: 'point', layerId: TN, x: 5.5 * m, y: 0, z: 105500, zk: 1 }, { type: 'point', layerId: TN, x: 0, y: -5.3 * m, z: 100150, zk: 1 });
+        const P = { type: 'poly', layerId: 'layer-0', points: [[-5, -5], [5, -5], [5, 5], [-5, 5]].map(([x, y]) => ({ x: x * m, y: y * m })), open: false }; shapes.push(P); invalidateCache(); saveState();
+        const spike = Math.round(tinZ(0, 0)); selectedShapes = [P]; batFromSel(); const B = shapes.find(x => x.batEx);
+        const r = { spike: spike > 105000, ground: Math.abs(tinZ(0, 0) - 100000) < 200, seuil: tinNodes().some(n => n.z === 100150), eaves: tinNodes().some(n => n.z === 105500), base: Math.abs(B.points[0].z - 100000) < 200, top: B.points[0].z + B.solid.H, kind: B.solid.kind, name: B.name, plat: isPlateforme(B) };
+        selectedShapes = [B]; openSelectionParamModal(); document.getElementById('sp-battop').value = '110,00'; applySelectionLayer(); r.edit = B.points[0].z + B.solid.H;
+        await open3D(); await new Promise(q => setTimeout(q, 600)); let mesh = 0; V3.root.traverse(o => { if (o.isMesh) mesh++; }); close3D(); r.d3 = mesh > 0;
+        const dxf = exportDXF(); await loadFileObject(new File([dxf], 'bat.dxf'), 'bat.dxf'); await new Promise(q => setTimeout(q, 500)); const B2 = shapes.find(x => x.batEx);
+        r.dxf = B2 ? [B2.solid && B2.solid.kind, Math.round((B2.points[0].z + B2.solid.H) / 10) * 10, Math.abs(tinZ(0, 0) - 100000) < 200] : null;
+        if (B2) { selectedShapes = [B2]; batUnset(B2); } r.unset = Math.round(tinZ(0, 0)) > 105000; shapes = []; selectedShapes = []; invalidateCache(); saveState(); return r; });
+      t.eq('bâtiment existant : cotes du toit et de l\'égout hors terrain, seuil gardé, bloc 3D jusqu\'à la cote la plus haute (modifiable), DXF, retrait', bt,
+        { spike: true, ground: true, seuil: true, eaves: false, base: true, top: 108000, kind: 'box', name: 'Bâtiment existant', plat: false, edit: 110000, d3: true, dxf: ['box', 110000, true], unset: true }); }
     // ligne de rupture tracée à la main : sommets sur deux points cotés (100,00 et 102,00 à 10 m), Z interpolé, un sommet par mètre ; même chose depuis une polyligne existante (Y)
     { const lr = await ev(() => { const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'); shapes = [{ type: 'point', layerId: TN, x: 0, y: 0, z: 100000, zk: 1 }, { type: 'point', layerId: TN, x: 10 * m, y: 0, z: 102000, zk: 1 }, { type: 'point', layerId: TN, x: 5 * m, y: 8 * m, z: 101000, zk: 1 }]; invalidateCache(); saveState();
         setMode('pline'); brkDraw = true; isDrawing = true; currentPolygon = [{ x: 0, y: 0 }, { x: 10 * m, y: 0 }]; finishPline(); setMode('select-box');

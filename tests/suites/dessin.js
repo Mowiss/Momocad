@@ -125,6 +125,12 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         const kept = vecStore.vl.xy.length === 3 * 40000 * 2 + 50 * 4; shapes = []; delete vecStore.vl; invalidateCache(); saveState(); zoomExtents(); draw();
         return { lodOn, close: ink > 1000 && sum / nb < 4 && mx < 60, culled: tilesUsed < I.tiles.length, kept }; });
     t.eq('gros tracés vus de loin : allégés à l\'écran, même image, données intactes', lod, { lodOn: true, close: true, culled: true, kept: true });
+    // bâtiments d'un plan PDF : contours du calque « Bati » recousus (traits bout à bout, dans le désordre), hachures et débords de toit ignorés
+    const pb = await ev(() => { const u = (x, y) => [x / 1000, y / 1000], V = { ocg: true, W: 1000, H: 1000, L: ['', 'Bati', 'Bati_h', 'Bati_Surplomb', 'Végétation'], P: [
+            { l: 1, p: [u(100, 100), u(300, 100)] }, { l: 1, p: [u(100, 250), u(100, 100.5)] }, { l: 1, p: [u(300, 100), u(300, 250), u(100, 250)] },
+            { l: 2, p: [u(120, 120), u(280, 230)] }, { l: 3, p: [u(90, 90), u(310, 90), u(310, 260), u(90, 260)], c: 1 }, { l: 4, p: [u(500, 500), u(600, 500), u(600, 600)], c: 1 }, { l: 1, p: [u(700, 700), u(800, 700), u(800, 800), u(700, 800)], c: 1 }] };
+        const B = pdfBats(V); return { n: B.length, sizes: B.map(L => L.length).sort(), lay: ['Bati', 'BATIMENT', '3BATIDUR', 'Constructions', 'Bati_h', 'Bati_Surplomb', 'Z-Toiture', 'Batiment_txt'].map(pdfBatLayer) }; });
+    t.eq('bâtiments du PDF : contours recousus, hachures et débords ignorés', pb, { n: 2, sizes: [4, 4], lay: [true, true, true, true, false, false, false, false] });
     // carroyage avec des nombres parasites (n° de dossier, hachures lues « 1111111 ») : écartés, le calage reste juste
     const gj = await H.ev(() => { const W = 1000, H2 = 700, lab = []; for (let i = 0; i < 6; i++) lab.push([(100 + i * 150) / W, 680 / H2, 1899100 + i * 30, -1.57]); for (let j = 0; j < 4; j++) lab.push([20 / W, (600 - j * 150) / H2, 3128300 + j * 30, 0]);
         lab.push([0.5 / 1, 0.5, 1111111, 0], [0.3, 0.3, 210600, 0], [0.7, 0.2, 128280, 0]); const f = pdfGridFit({ crs: 'CC44', lab, cx: [], W, H2, H: H2 }, null); if (!f) return null; const q = f.f(250, 400); return { ech: Math.round(f.scale * 72 / 25.4 * 1000), x: Math.round(q.X), y: Math.round(q.Y) }; });
