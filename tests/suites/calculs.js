@@ -48,6 +48,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const a = structSVG({ ff: true, layers: [{ mat: 'BBSG', e: 6 }, { mat: 'GNT_0_315', e: 44 }] }), b = structSVG({ ff: false, layers: [{ mat: 'BBSG', e: 6 }, { mat: 'GNT_0_315', e: 44 }] }); shapes = []; selectedShapes = [];
         return { fini: /fini 68,50 m/.test(a) && /fond de forme 68,00 m/.test(a) && /Réf\. Z 68,50 m/.test(a), terr: /fini 69,00 m/.test(b) && /fond de forme 68,50 m/.test(b) }; });
       t.eq('coupe de structure : niveaux selon la ligne de référence', sv, { fini: true, terr: true }); }
+    // terrain : une zone où les points sont plus espacés (au milieu d'un levé dense) ne fait pas de trou ; une encoche du contour (levé en L) reste vide
+    { const th = await ev(() => { const m = mmToWorld(1000), N = []; for (let i = 0; i <= 40; i++) for (let j = 0; j <= 40; j++) { const x = i * m, y = j * m; if (x > 14 * m && x < 26 * m && y > 14 * m && y < 26 * m) continue; if (x > 30 * m && y > 30 * m) continue; N.push({ x, y, z: 100000 + i * 10 }); }
+        const T = buildTIN(N); return { hole: tinZ(20 * m, 20 * m, T) !== undefined, notch: tinZ(36 * m, 36 * m, T) === undefined }; });
+      t.eq('terrain : pas de trou là où les points sont espacés, encoche du contour respectée', th, { hole: true, notch: true }); }
     // ligne de rupture tracée à la main : sommets sur deux points cotés (100,00 et 102,00 à 10 m), Z interpolé, un sommet par mètre ; même chose depuis une polyligne existante (Y)
     { const lr = await ev(() => { const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'); shapes = [{ type: 'point', layerId: TN, x: 0, y: 0, z: 100000, zk: 1 }, { type: 'point', layerId: TN, x: 10 * m, y: 0, z: 102000, zk: 1 }, { type: 'point', layerId: TN, x: 5 * m, y: 8 * m, z: 101000, zk: 1 }]; invalidateCache(); saveState();
         setMode('pline'); brkDraw = true; isDrawing = true; currentPolygon = [{ x: 0, y: 0 }, { x: 10 * m, y: 0 }]; finishPline(); setMode('select-box');
