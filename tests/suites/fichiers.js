@@ -98,4 +98,8 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', code: 'KeyA', ctrlKey: true, altKey: true, bubbles: true })); r.lay = selectedShapes.length;
         shapes = []; selectedShapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; });
     t.eq('DXF superposé au plan en cours (sans l\'écraser) ; Ctrl+A tout, Ctrl+Alt+A le calque actif', ov, { btns: ['Annuler', 'Ouvrir à la place', 'Superposer'], n: 3, lays: ['voisin · Murs', 'voisin · Tracé'], pos: [0, 10000], sel: 2, all: 3, lay: 1 });
+
+    // STL retiré : plus d'entrée de menu, plus d'import ; un ancien plan avec un maillage s'ouvre toujours
+    const nostl = await ev(() => ({ menu: /STL/i.test(document.getElementById('menu-dxf').textContent), accept: document.getElementById('project-input').accept.includes('stl'), fns: ['importSTL', 'openExportSTL', 'exportSTL'].some(f => typeof window[f] === 'function') }));
+    t.eq('STL retiré (menu, ouverture, export)', nostl, { menu: false, accept: false, fns: false });
 } };
