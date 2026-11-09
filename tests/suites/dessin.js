@@ -131,6 +131,15 @@ module.exports = { name: 'dessin', run: async (H, t) => {
             { l: 1, p: [u(300, 150), u(400, 150), u(400, 200), u(300.4, 200)] }, { l: 1, p: [u(100, 175), u(300, 175)] }, { l: 1, p: [u(200, 250), u(200, 280)] }, { l: 2, p: [u(120, 120), u(280, 230)] }, { l: 3, p: [u(90, 90), u(310, 90), u(310, 260), u(90, 260)], c: 1 }, { l: 4, p: [u(500, 500), u(600, 500), u(600, 600)], c: 1 }, { l: 1, p: [u(700, 700), u(800, 700), u(800, 800), u(700, 800)], c: 1 }] };
         const B = pdfBats(V); return { n: B.length, sizes: B.map(L => L.length).sort(), lay: ['Bati', 'BATIMENT', '3BATIDUR', 'Constructions', 'Bati_h', 'Bati_Surplomb', 'Z-Toiture', 'Batiment_txt'].map(pdfBatLayer) }; });
     t.eq('bâtiments du PDF : contours recousus, aile accrochée en T réunie, refends et bouts pendants ignorés, hachures et débords écartés', pb, { n: 2, sizes: [4, 8], lay: [true, true, true, true, false, false, false, false] });
+    // liste des calques (bouton du calque actif) : l'œil masque / affiche sans changer de calque actif ; calques d'un même plan importé rangés sous son nom, un œil pour tout le groupe
+    const ld = await ev(() => { const keep = layers.slice(); ['A', 'B', 'C'].forEach(n => ensureLayer('Plan X · ' + n, '#ff0000')); updateLayerUI(); layDDToggle(); const r = {};
+        r.open = !!document.getElementById('lay-dd'); r.grp = /Plan X/.test(document.querySelector('#ld-list .ld-grp').textContent) && document.querySelectorAll('#ld-list .ld-row.sub').length === 0;
+        const act = activeLayerId, a = layers.find(l => l.name === 'Plan X · A'); layDDFold('Plan X'); r.sub = document.querySelectorAll('#ld-list .ld-row.sub').length;
+        document.querySelector(`#ld-list .ld-row[data-id="${a.id}"] .ld-eye`).click(); r.eye = a.visible === false && activeLayerId === act;
+        document.querySelector('#ld-list .ld-grp .ld-eye').click(); r.grpOff = layers.filter(l => /^Plan X · /.test(l.name)).every(l => l.visible === false);
+        document.querySelector(`#ld-list .ld-row[data-id="${a.id}"]`).click(); r.pick = activeLayerId === a.id && a.visible === true && document.getElementById('active-layer-select').value === a.id && !document.getElementById('lay-dd');
+        layers = keep; activeLayerId = keep[0].id; updateLayerUI(); return r; });
+    t.eq('liste des calques : œil afficher / masquer, groupes par plan importé, clic = calque actif', ld, { open: true, grp: true, sub: 3, eye: true, grpOff: true, pick: true });
     // carroyage avec des nombres parasites (n° de dossier, hachures lues « 1111111 ») : écartés, le calage reste juste
     const gj = await H.ev(() => { const W = 1000, H2 = 700, lab = []; for (let i = 0; i < 6; i++) lab.push([(100 + i * 150) / W, 680 / H2, 1899100 + i * 30, -1.57]); for (let j = 0; j < 4; j++) lab.push([20 / W, (600 - j * 150) / H2, 3128300 + j * 30, 0]);
         lab.push([0.5 / 1, 0.5, 1111111, 0], [0.3, 0.3, 210600, 0], [0.7, 0.2, 128280, 0]); const f = pdfGridFit({ crs: 'CC44', lab, cx: [], W, H2, H: H2 }, null); if (!f) return null; const q = f.f(250, 400); return { ech: Math.round(f.scale * 72 / 25.4 * 1000), x: Math.round(q.X), y: Math.round(q.Y) }; });
