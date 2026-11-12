@@ -82,6 +82,20 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const labels = [...document.querySelectorAll('#tm-strip button small')].map(x => x.textContent); window.tmTab = 'rf-pdim'; tmTabify(); document.getElementById('rf-e').click();
         const shown = !document.querySelector('details.sp-ch[data-k="rf-pcx"]').classList.contains('sp-off'); rfCx.p = [{ t: 'couverture', e: 5 }, { t: 'isolation', e: 25 }]; rfCxDraw('p'); const e = document.getElementById('rf-e').value; closeTopoModal(); return { labels, shown, e }; });
     t.eq('toiture : onglet Épaisseur nommé, ouvert par un clic sur l\'épaisseur, épaisseur = somme des couches', ep, { labels: ['Type', 'Dimensions', 'Épaisseur', 'Faîtage'], shown: true, e: '0,30' });
+    // contours de bâtiment : chacun ses niveaux (deux bâtiments à des altitudes différentes) ; un mur tracé dans un contour prend ses niveaux (étage de sa pastille) ;
+    // Y sur le contour : choisir l'étage, ajouter, régler ; changer la cote d'un bâtiment ne bouge pas l'autre ; plus de schéma flottant ; enregistré dans le plan
+    const bz = await ev(async () => { const keepS = shapes, keepL = lvls; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), M = mmToWorld;
+        const rect = (x0, y0, x1, y1) => ({ type: 'poly', layerId: activeLayerId, points: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m })) });
+        const A = rect(0, 0, 10, 8), B = rect(20, 0, 30, 8); shapes.push(A, B); saveState(); bldMake(A, 'A', 69000, 3000); bldMake(B, 'B', 72500, 2700); saveState();
+        const wall = async (x1, x2, y) => { startWall('w-beton20'); wallStart = { x: M(x1 * 1000), y: -M(y * 1000) }; wallAddTo(M(x2 * 1000), -M(y * 1000)); setMode('select-box'); await new Promise(r => setTimeout(r, 200)); return shapes.filter(isWallHatch).pop(); };
+        const wA = await wall(1, 9, 1), wB = await wall(21, 29, 1); const o = { wA: [wA.wz.b, wA.wz.t, wA.bid === A.bld.id], wB: [wB.wz.b, wB.wz.t, wB.bid === B.bld.id] };
+        selectedShapes = [B]; openSelectionParamModal(); o.panel = !!document.getElementById('bld-lv') && /Étages — B/.test(document.getElementById('selparam-modal').textContent);
+        bldAdd(true); const r1 = lvlSorted().find(x => x.id !== 'rdc'); bldPick(r1.id); closeSelectionParamModal(); const wB1 = await wall(21, 29, 7); o.wB1 = [wB1.wz.b, wB1.wz.t];
+        o.hidden = [lvlHidden(wB1), lvlHidden(wA)]; draw(); o.badges = bldBadgeHits.length; o.badgeB = bldLvlName(B, B.bld.act);
+        bldOpen(A.bld.id); bldSetZ('70,00'); closeSelectionParamModal(); o.moved = [wA.wz.b, wB.wz.b]; o.box = !document.getElementById('lvl-box') || getComputedStyle(document.getElementById('lvl-box')).display === 'none';
+        const txt = JSON.stringify(projectData()); loadProjectText(txt, 'b.mmc'); await new Promise(r => setTimeout(r, 300)); o.saved = JSON.stringify(shapes.filter(x => x.bld).map(x => x.bld.nm + ':' + x.bld.lvls.length));
+        lvlOn = false; bldActId = null; shapes = keepS; lvls = keepL; invalidateCache(); saveState(); return o; });
+    t.eq('contours de bâtiment : niveaux propres à chacun, mur pris dans son contour, étage choisi sur le contour (Y), pastilles', bz, { wA: [69000, 72000, true], wB: [72500, 75200, true], panel: true, wB1: [75200, 77900], hidden: [false, false], badges: 2, badgeB: 'R + 1', moved: [70000, 72500], box: true, saved: '["A:1","B:2"]' });
     // coupe en 3 temps : la ligne (2 clics), la fenêtre de coupe suit la souris et se pose d'un clic (Tab inverse le sens), Valider (Entrée) ; Échap annule
     const cu = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         shapes.push({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: 'beton', e: 200 }] }), loops: [R(0, 0, 6, 0.2)], wallMat: 'beton', groupId: 'gc', wz: { b: 0, t: 2500 } }); saveState();
@@ -240,7 +254,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.eq('toit terrasse : champ Hauteur du toit (depuis le pied des murs) qui règle le dessus de dalle', th, '458,50');
     // étages : RDC + TOIT au départ ; ▲ + crée R + 1 ; un mur tracé sur R + 1 y est rangé à sa hauteur ; sur le RDC, R + 1 et le toit sont masqués (plan et 3D) ; outil éteint : tout est visible
     await ev(t => { loadProjectText(t, 'cabane.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'cabane.mmc'), 'utf8')); await H.wait(400);
-    const lv = await ev(async () => { const o = {}; document.getElementById('btn-etages').click(); o.start = lvlList().map(lvlName); o.box = getComputedStyle(document.getElementById('lvl-box')).display; lvlAdd(true); o.added = lvlList().map(lvlName);
+    const lv = await ev(async () => { const o = {}; lvlToggle(); o.start = lvlList().map(lvlName); o.box = getComputedStyle(document.getElementById('lvl-box')).display; lvlAdd(true); o.added = lvlList().map(lvlName);
         const M = mmToWorld; startWall('w-beton20'); wallStart = { x: M(7000), y: -M(1000) }; wallAddTo(M(12000), -M(1000)); setMode('select-box'); await new Promise(r => setTimeout(r, 500));
         const w = shapes.filter(isWallHatch).find(h => h.lvl && h.lvl !== 'rdc'), roof = shapes.find(x => x.roofDef); o.wall = !!w && w.wz.b === lvls[0].z + lvls[0].h;
         lvlPick('rdc'); await open3D(); await new Promise(r => setTimeout(r, 800)); let inScene = false, roofIn = false; V3.root.traverse(x => { if (x.userData.shape === w) inScene = true; if (x.userData.shape === roof) roofIn = true; });
