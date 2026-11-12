@@ -167,10 +167,11 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.eq('toiture 2 pans sur un trapèze : faîtage continu, même pente, sommet au faîtage', tq, [2, 0, 0, 2500, 0]);
     const tp = await ev(() => { shapes = []; camera.zoom = 50 / mmToWorld(1000); camera.x = 300; camera.y = 500; startSolidTool('roof'); return [mode, solidTool]; });
     t.eq('outil Toiture : contour libre point par point', tp, ['poly', 'roof']);
-    const W2 = await ev(() => [[1, 1], [6, 1], [7, 4], [2, 5]].map(([x, y]) => { const q = worldToScreen(mmToWorld(x * 1000), -mmToWorld(y * 1000)), c = canvas.getBoundingClientRect(); return { x: q.x + c.left, y: q.y + c.top }; }));
-    for (const q of W2) await H.click(q); await H.wait(300);
-    const tc = await ev(() => { const P = shapes.find(x => x.type === 'poly'); const m = !!document.querySelector('#topo-modal') && /Toiture/.test(document.querySelector('#topo-modal').textContent); closeTopoModal && closeTopoModal(); return [P ? P.points.length : 0, m, isDrawing]; });
-    t.eq('toiture : le 4e sommet referme le contour et ouvre la fenêtre Toiture', tc, [4, true, false]);
+    const W2 = await ev(() => [[1, 1], [7, 1], [7, 3], [3, 3], [3, 6], [1, 6], [1, 1]].map(([x, y]) => { const q = worldToScreen(mmToWorld(x * 1000), -mmToWorld(y * 1000)), c = canvas.getBoundingClientRect(); return { x: q.x + c.left, y: q.y + c.top }; }));
+    for (const q of W2.slice(0, 4)) await H.click(q); await H.wait(200); const open4 = await ev(() => isDrawing);
+    for (const q of W2.slice(4)) await H.click(q); await H.wait(300);
+    const tc = await ev(() => { const P = shapes.find(x => x.type === 'poly'); const m = !!document.querySelector('#topo-modal') && /Toiture/.test(document.querySelector('#topo-modal').textContent), multi = !!document.querySelector('.rf-card input[value="4"]:not([disabled])'); closeTopoModal && closeTopoModal(); return [P ? P.points.length : 0, m, multi, isDrawing]; });
+    t.eq('toiture : contour d\'autant de sommets qu\'il faut (pas fermé au 4e), refermé sur le 1er point, fenêtre avec Pans multiples', [open4].concat(tc), [true, 6, true, true, false]);
     // vue 3D : Y ouvre les réglages de l'objet cliqué (au-dessus de la 3D) ; double-clic sur une menuiserie : fenêtre Ouverture
     await ev(t => { loadProjectText(t, 'cabane.mmc'); }, fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'cabane.mmc'), 'utf8')); await H.wait(400);
     await ev(async () => { await open3D(); }); await H.wait(1500);
@@ -228,6 +229,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const ss = lvlAdd(false); o.ss = lvlSorted()[0].z; o.ssRel = lvlRel(lvlSorted()[0]); lvlToggle(false); shapes = keepS; lvls = keepL; invalidateCache(); saveState(); return o; });
     t.eq('étages calés sur le RDC : plancher = RDC + hauteurs, murs du plancher au plancher + H, tout suit la cote du RDC', lc, { z0: [69000, 72000, 75000], rel: ['±0,00', '+3,00', '+6,00'], wall: [72000, 75000],
         z1: [70000, 73000, 76000], wall1: [73000, 76000], z2: [70000, 73500, 76500], wall2: [73500, 76500], z3: [70000, 73500, 76000], wall3: [73500, 76000], ss: 66500, ssRel: '−3,50' });
+    // toit à pans multiples sur un contour en L (6 côtés) : un pan par côté (croupes), même pente, faîtage au point le plus haut ;
+    // avec deux pignons aux bouts des ailes : 4 pans et des murs pignons ; la fenêtre propose « Pans multiples » et ses réglages par côté
+    const rm = await ev(async () => { const m = mmToWorld(1000), L = [[0, 0], [10, 0], [10, -4], [4, -4], [4, -10], [0, -10]], base = () => ({ type: 'poly', layerId: activeLayerId, points: L.map(([x, y]) => ({ x: x * m, y: y * m, z: 100000 })) });
+        const o = { pans: 4, he: 103, hf: 105, e: 0.2, ge: 0.2, fill: true, db: 0 }, A = buildRoof(base(), o), roofs = A.filter(x => x.solid && x.solid.kind === 'roof');
+        const top = Math.max(...roofs.map(r => Math.max(...roofRise(r)))), area = (F) => Math.abs(F.reduce((a, q, i) => { const r = F[(i + 1) % F.length]; return a + q.x * r.y - r.x * q.y; }, 0) / 2) / (m * m);
+        const B = buildRoof(base(), Object.assign({}, o, { gab: [false, true, false, false, true, false] })), rB = B.filter(x => x.solid && x.solid.kind === 'roof');
+        const C = buildRoof(base(), Object.assign({}, o, { db: 0.5 })), rC = C.filter(x => x.solid && x.solid.kind === 'roof');
+        roofDialog(base(), true); const card = !!document.querySelector('.rf-card input[value="4"]:not([disabled])'), sel = !!document.getElementById('rf-gb-5'); closeTopoModal();
+        return { n: roofs.length, p: Math.round(roofs[0].solid.p), top: Math.round(top), area: Math.round(roofs.reduce((a, r) => a + area(r.points), 0)), nB: rB.length, pignons: !!B.find(x => x.name === 'Pignons'), areaB: Math.round(rB.reduce((a, r) => a + area(r.points), 0)), nC: rC.length, areaC: Math.round(rC.reduce((a, r) => a + area(r.points), 0)), card, sel }; });
+    t.eq('toit à pans multiples sur un L : croupes (6 pans, pente 100 %), ou pignons aux bouts (4 pans + pignons), débord, fenêtre', rm, { n: 6, p: 100, top: 2000, area: 64, nB: 4, pignons: true, areaB: 64, nC: 6, areaC: 85, card: true, sel: true });
     // pinceau allégé : la couche de peinture ne reprend que les triangles proches du coup, pas toute la surface
     const bo = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 600)); let big = null; V3.root.traverse(x => { if (x.isMesh && x.geometry && x.geometry.attributes.position && (!big || x.geometry.attributes.position.count > big.geometry.attributes.position.count) && !x.userData.brushOv) big = x; });
         const bb = new THREE.Box3().setFromObject(big), c = bb.getCenter(new THREE.Vector3()), cx = -V3.root.position.x, cy = -V3.root.position.y;
