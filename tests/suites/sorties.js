@@ -40,6 +40,11 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
             const cv = document.createElement('canvas'); cv.width = 800; cv.height = 600; try { lpRenderVp(cv.getContext('2d'), v, 1, 0, 0, 800, 600); } finally { window.drawSingleShape = o; window.drawAnnotations = oa; } return { pin: drawn.includes(pin), pout: drawn.includes(pout), lab: lab.some(t => /^PF\d+ · 99,00 m$/.test(t)) }; };
         const r = { on: run(true), off: run(false) }; S.splice(S.indexOf(pl), 3); v.plat = false; return r; });
     t.eq('présentation : réglage plateformes (points sous la plateforme masqués, cote écrite)', pfv, { on: { pin: false, pout: true, lab: true }, off: { pin: true, pout: true, lab: false } });
+    // calques par fenêtre : un calque masqué dans une fenêtre seulement (le plan et les autres fenêtres le gardent)
+    const lvv = await ev(() => { const v = layoutData.vps[0], S = lpModelStore.shapes, m = mmToWorld(1000), L = ensureLayer('Réseau test', '#22d3ee'), sh = { type: 'line', layerId: L, x1: 0, y1: 0, x2: 10 * m, y2: 0 }; S.push(sh);
+        const run = () => { const drawn = []; const o = window.drawSingleShape; window.drawSingleShape = function (c, s2, ...a) { if (s2 === sh) drawn.push(s2); return o.call(this, c, s2, ...a); }; const cv = document.createElement('canvas'); cv.width = 800; cv.height = 600; try { lpRenderVp(cv.getContext('2d'), v, 1, 0, 0, 800, 600); } finally { window.drawSingleShape = o; } return drawn.length > 0; };
+        const before = run(); v.lv = { [L]: false }; const hid = run(), planVis = layers.find(l => l.id === L).visible !== false, btn = lpBtnRects(v).some(b => b.id === 'lay'); delete v.lv; S.splice(S.indexOf(sh), 1); return { before, hid, planVis, btn }; });
+    t.eq('présentation : calques réglés par fenêtre', lvv, { before: true, hid: false, planVis: true, btn: true });
     // fenêtre en vue 3D, pilotée à la souris sur la feuille : glisser = tourner, Maj + glisser = déplacer, molette = zoom, Échap = figer
     const v3a = await ev(async () => { const v = layoutData.vps[layoutData.vps.length - 1]; await lp3DSnap(v); await lp3DEnter(v); const r = lpRect(v), c = canvas.getBoundingClientRect();
         return { ok: !!(v.v3 && v.v3.img), active: lp3D.id === v.id, az: v.v3.az, dist: v.v3.dist, tx: v.v3.tx, img: v.v3.img.length, cx: c.left + r.x + r.w / 2, cy: c.top + r.y + r.h / 2 }; });
