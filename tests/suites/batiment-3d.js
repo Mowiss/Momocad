@@ -115,6 +115,21 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         setMode('select-box'); shapes = keepS; invalidateCache(); saveState();
         return { bar, flip: s0 === -s1, placed, notYet, frame: !!c && Math.abs(c.x - 20 * m) < 0.05 * m && Math.abs(c.y + 20 * m) < 0.05 * m, title: !!title, hat, esc }; });
     t.eq('coupe : ligne, fenêtre posée où l\'on clique, Valider ; Tab inverse le sens, Échap annule', cu, { bar: 'flex', flip: true, placed: true, notYet: true, frame: true, title: true, hat: 1, esc: true });
+    // coupe dynamique : suit les modifications du plan, garde sa place si on la déplace ; textures (matériaux, terre, remblai), TN, cotes de niveau (égout, faîtage, dalle)
+    const cd = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 300, zk: 1 });
+        shapes.push({ type: 'poly', layerId: 'layer-0', zk: 1, talus: { on: true, kD: '3/2', kR: '3/2' }, points: R(15, 8, 33, 22).map(q => Object.assign(q, { z: 103000 })) });
+        const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); [[18, 10, 18.2, 20], [29.8, 10, 30, 20]].forEach(([a, b2, c, d], k) => shapes.push({ type: 'hatch', layerId: wl, loops: [R(a, b2, c, d)], wallMat: 'parpaing', groupId: 'cw' + k, wz: { b: 103000, t: 105700 } }));
+        shapes.push({ type: 'poly', layerId: 'layer-0', points: R(18, 10, 30, 20).map(q => Object.assign(q, { z: 102800 })), solid: { kind: 'box', H: 200 }, name: 'Dalle', zk: 1 });
+        shapes.push(...buildRoof({ type: 'poly', layerId: 'layer-0', points: R(18, 10, 30, 20).map(q => Object.assign(q, { z: 105700 })) }, { pans: 2, he: 105.7, hf: 108.5, e: 0.25, ge: 0.2, fill: false, db: 0, dir: 'long' }));
+        saveState(); sectionPlace(sectionData({ x: 10 * m, y: -15 * m }, { x: 38 * m, y: -15 * m }, 1), { x: 25 * m, y: -60 * m }); await new Promise(r => setTimeout(r, 700));
+        const W = () => Math.max(...shapes.filter(x => x.secOf && x.hatchMat === 'parpaing').flatMap(x => x.loops[0].map(q => -q.y))), h0 = W();
+        const txt = shapes.filter(x => x.secOf && x.type === 'text').map(x => x.content.split(' ')[0]).sort(), mats = [...new Set(shapes.filter(x => x.secOf && x.hatchMat).map(x => x.hatchMat))].sort();
+        shapes.filter(x => x.groupId === 'cw1').forEach(x => { x.wz.t = 106700; }); saveState(); await new Promise(r => setTimeout(r, 700)); const h1 = W();
+        const T0 = shapes.find(x => x.secTitle), g = T0.groupId, x0t = T0.x; shapes.filter(x => x.groupId === g).forEach(x => translateShape(x, 10 * m, 0)); saveState(); await new Promise(r => setTimeout(r, 700));
+        const T1 = shapes.find(x => x.secTitle), moved = Math.round((T1.x - x0t) / m), kept = shapes.filter(x => x.secOf).length > 10;
+        const r = { up: Math.round((h1 - h0) / m * 10) / 10, txt, mats, moved, kept, tn: shapes.some(x => x.secOf && x.name === 'TN') }; shapes = keepS; invalidateCache(); saveState(); return r; });
+    t.eq('coupe dynamique : suit le plan, garde sa place, textures, TN, cotes de niveau', cd, { up: 1, txt: ['COUPE', 'Dessus', 'Faîtage', 'TN', 'Égout'], mats: ['beton', 'bois', 'gnt', 'parpaing', 'terre'], moved: 10, kept: true, tn: true });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
