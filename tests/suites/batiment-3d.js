@@ -77,6 +77,11 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const c = O().pts[0], sn = findSnap(c.x + 0.003 * m, c.y + 0.003 * m), snOk = !!sn && Math.abs(sn.x - c.x) < 1e-6 && Math.abs(sn.y - c.y) < 1e-6;
         const pts4 = O().pts.length; selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); return { kinds, w1, y0, x1, w2, snOk, pts4 }; });
     t.eq('ouverture : poignées bout (largeur, reste sur le mur) et milieu (glisse le long), accroches sur ses coins', opg, { kinds: [2, 1], w1: 1600, y0: 0, x1: 2500, w2: 1600, snOk: true, pts4: 4 });
+    // toiture : onglet Épaisseur à lui (couches → épaisseur), onglets nommés, clic sur l'épaisseur du schéma = onglet Épaisseur
+    const ep = await ev(async () => { const m = mmToWorld(1000); roofDialog({ type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 0 })) }, true); document.querySelector('input[name=rf-p][value="2"]').click(); await new Promise(r => setTimeout(r, 50));
+        const labels = [...document.querySelectorAll('#tm-strip button small')].map(x => x.textContent); window.tmTab = 'rf-pdim'; tmTabify(); document.getElementById('rf-e').click();
+        const shown = !document.querySelector('details.sp-ch[data-k="rf-pcx"]').classList.contains('sp-off'); rfCx.p = [{ t: 'couverture', e: 5 }, { t: 'isolation', e: 25 }]; rfCxDraw('p'); const e = document.getElementById('rf-e').value; closeTopoModal(); return { labels, shown, e }; });
+    t.eq('toiture : onglet Épaisseur nommé, ouvert par un clic sur l\'épaisseur, épaisseur = somme des couches', ep, { labels: ['Type', 'Dimensions', 'Épaisseur', 'Faîtage'], shown: true, e: '0,30' });
     // coupe en 3 temps : la ligne (2 clics), la fenêtre de coupe suit la souris et se pose d'un clic (Tab inverse le sens), Valider (Entrée) ; Échap annule
     const cu = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         shapes.push({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: 'beton', e: 200 }] }), loops: [R(0, 0, 6, 0.2)], wallMat: 'beton', groupId: 'gc', wz: { b: 0, t: 2500 } }); saveState();
