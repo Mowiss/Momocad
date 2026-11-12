@@ -295,6 +295,28 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const s = { type: 'poly', open: true, layerId: brushLayer(), points: [q, { x: q.x + mmToWorld(300), y: q.y }], width: 1, hatch: false, brush: { tex: 'galets', d: 300, h: 0.5, top: true, zs: [z, z] } }; shapes.push(s); v3BrushBuild(); let ovN = 0, n = 0; V3.root.traverse(x => { if (x.userData.brushOv === s) { n++; ovN += x.geometry.attributes.position.count; } });
         shapes = shapes.filter(x => x !== s); v3BrushBuild(); close3D(); return { n: n > 0, smaller: ovN < big.geometry.attributes.position.count }; });
     t.eq('pinceau : couche découpée autour du coup (moins de travail graphique)', bo, { n: true, smaller: true });
+    // pinceau en polygone : on clique les sommets, la zone entière est peinte (surfaces du dessus) ; une polyligne fermée choisie se peint d'un coup ; la gomme l'efface
+    const bpo = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 500)); await startBrush(); brushSet('poly', true); const m = mmToWorld(1000);
+        let big = null; V3.root.traverse(x => { if (x.isMesh && x.geometry && x.geometry.attributes.position && !x.userData.brushOv && (!big || x.geometry.attributes.position.count > big.geometry.attributes.position.count)) big = x; });
+        const bb = new THREE.Box3().setFromObject(big), c = bb.getCenter(new THREE.Vector3()), cx = -V3.root.position.x, cy = -V3.root.position.y, z = Math.round((bb.max.z / (V3.exag || 1) + (V3.zmin || 0)) * 1000);
+        const Q = (dx, dy) => ({ p: new THREE.Vector3(c.x + dx, c.y + dy, bb.max.z), n: new THREE.Vector3(0, 0, 1), q: { x: mmToWorld((c.x + dx + cx) * 1000), y: -mmToWorld((c.y + dy + cy) * 1000) }, z });
+        const ev0 = { clientX: -999, clientY: -999, detail: 1 }; [Q(-0.5, -0.5), Q(0.5, -0.5), Q(0.5, 0.5), Q(-0.5, 0.5)].forEach(H => brushPolyClick(H, ev0)); brushPolyEnd(); await new Promise(r => setTimeout(r, 120));
+        const s = shapes.filter(x => x.brush && x.brush.poly).pop(); let ov = 0; V3.root.traverse(x => { if (x.userData.brushOv === s) ov++; });
+        const pl = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [2, 0], [2, -2], [0, -2]].map(([x, y]) => ({ x: x * m, y: y * m })) }; shapes.push(pl); selectedShapes = [pl]; brushPaintSel(); const sel = shapes.filter(x => x.brush && x.brush.poly).length;
+        brushSet('erase', true); brushErase(Q(0, 0)); const left = shapes.filter(x => x.brush && x.brush.poly).length; invalidateCache(); draw();
+        brushStop(true); shapes = shapes.filter(x => x !== pl && !(x.brush && x.brush.poly)); close3D(); return { closed: !!s && !s.open && s.points.length === 4, ov: ov > 0, sel, left }; });
+    t.eq('pinceau polygone : zone cliquée peinte, contour choisi peint, gomme', bpo, { closed: true, ov: true, sel: 2, left: 1 });
+    // toitures et ouvertures sur leurs calques ; un calque Ouvertures masqué cache les menuiseries (le trou reste)
+    const lyr = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 0 })) };
+        const R = buildRoof(base, { pans: 2, he: 2.5, hf: 5, e: 0.2, ge: 0.2, fill: true, db: 0 }), T = buildTerrace(base, { pans: 0, he: 3, te: 0.25, tc: 0, ah: 0.5, at: 0.2, fp: 0, fe: 0.05 });
+        const ln = (id) => (layers.find(l => l.id === id) || {}).name, roof = [...new Set(R.concat(T).map(x => ln(x.layerId)))];
+        shapes.push({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: 'beton', e: 200 }] }), loops: [[[0, 0], [6, 0], [6, -0.2], [0, -0.2]].map(([x, y]) => ({ x: x * m, y: y * m }))], wallMat: 'beton', groupId: 'go', wz: { b: 0, t: 2500 } }); saveState();
+        setMode('opening'); openingClick({ x: 1 * m, y: 0 }); openingFinish({ x: 2 * m, y: 0 }); closeTopoModal(); setMode('select-box'); const o = shapes[0].openings[0], opL = ln(o.layerId);
+        const L = layers.find(l => l.id === o.layerId); L.visible = false; const hid = opHidden(o); L.visible = true; shapes = keepS; invalidateCache(); saveState(); return { roof, opL, hid }; });
+    t.eq('toitures sur le calque Toiture, ouvertures sur le calque Ouvertures (masquable)', lyr, { roof: ['Toiture'], opL: 'Ouvertures', hid: true });
+    // gestionnaire de calques : les calques sans groupe en haut, puis les groupes
+    const lg = await ev(() => { const keep = layers; layers = [{ id: 'a', name: 'Murs', group: 'Bâti' }, { id: 'b', name: 'Libre 1' }, { id: 'c', name: 'Toit', group: 'Bâti' }, { id: 'd', name: 'Libre 2' }]; const G = layDDGroups().map(g => g.l ? g.l.name : '[' + g.p + ']'); layers = keep; return G; });
+    t.eq('calques : ceux sans groupe en haut de la liste', lg, ['Libre 1', 'Libre 2', '[Bâti]']);
     // paroi : épaisseur réglable (0,20 par défaut) ; en plan, la désignation est décalée du milieu de l'arête (pas sur les poignées ni la pastille)
     const pe = await ev(() => { shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
         for (let i = 0; i <= 12; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
