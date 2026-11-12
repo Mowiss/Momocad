@@ -140,4 +140,15 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         const r = { ids: new Set(layers.map(l => l.id)).size === layers.length, each: res.shapes.every((sh, k) => (layers.find(l => l.id === sh.layerId) || {}).name === 'C' + Math.round(-worldToMm(sh.y1) / (UNIT_MM[currentUnit] || 1))) };
         layers = keepL; geoOrigin = keepO; return r; });
     t.eq('DXF : 60 calques créés d\'un coup, chacun son identifiant, chaque trait sur le bon', uid, { ids: true, each: true });
+    // cadastre vectorisé : parcelles du service (GeoJSON simulé, lon / lat ou lat / lon) en polylignes sur leur calque, numéros, bâti ; relancer remplace
+    const cad = await ev(async () => { const keepS = shapes, keepF = window.fetch; shapes = []; const lat0 = 44.56, lon0 = 6.08, cosL = Math.cos(lat0 * Math.PI / 180), m = mmToWorld(1000);
+        const sq = (e0, n0, d, swap) => { const c = [[e0, n0], [e0 + d, n0], [e0 + d, n0 + d], [e0, n0 + d], [e0, n0]].map(([e, n]) => { const la = lat0 + n / 111320, lo = lon0 + e / (111320 * cosL); return swap ? [la, lo] : [lo, la]; }); return { type: 'Polygon', coordinates: [c] }; };
+        let calls = 0; window.fetch = async (u) => { calls++; const isB = /batiment/.test(u); const fc = { type: 'FeatureCollection', features: isB ? [{ type: 'Feature', properties: {}, geometry: sq(22, 2, 6) }] : [{ type: 'Feature', properties: { section: 'AB', numero: '0123', idu: '05061000AB0123', contenance: 400 }, geometry: sq(20, 0, 20) }, { type: 'Feature', properties: { section: 'AB', numero: '0124' }, geometry: sq(-40, 0, 20, true) }, { type: 'Feature', properties: { section: 'ZZ', numero: '9' }, geometry: sq(5000, 5000, 20) }] }; return { ok: true, json: async () => fc }; };
+        const b = { type: 'basemap', layerId: 'layer-0', x: 0, y: 0, r: 100 * m, rot: 0, lat: lat0, lon: lon0, radiusM: 100, mapId: 'tcad' }; shapes.push(b);
+        await cadFetch(b); await cadFetch(b); window.fetch = keepF;
+        const P = shapes.filter(x => x.cadOf === 'tcad' && x.type === 'poly' && x.cad), T = shapes.filter(x => x.cadOf === 'tcad' && x.type === 'text'), Bt = shapes.filter(x => x.cadOf === 'tcad' && x.name === 'Bâti (BD TOPO)');
+        const p1 = P.find(x => x.cad.numero === '0123'), x0 = p1 ? Math.round(Math.min(...p1.points.map(q => q.x)) / m) : null, y0 = p1 ? Math.round(Math.max(...p1.points.map(q => -q.y)) / m) : null, p2 = P.find(x => x.cad.numero === '0124'), x2 = p2 ? Math.round(Math.min(...p2.points.map(q => q.x)) / m) : null;
+        const lay = (x) => (layers.find(l => l.id === x.layerId) || {}).name, r = { n: P.length, txt: T.map(x => x.content).sort(), bat: Bt.length, x0, y0, x2, lays: [lay(p1), lay(T[0]), lay(Bt[0])], flat: !isPlateforme(p1), calls, vec: b.cadVec };
+        shapes = keepS; invalidateCache(); saveState(); return r; });
+    t.eq('cadastre vectorisé : parcelles à leur place, numéros, bâti, calques Cadastre, hors cercle écarté, relance = remplace', cad, { n: 2, txt: ['AB 123', 'AB 124'], bat: 1, x0: 20, y0: 20, x2: -40, lays: ['Cadastre — parcelles', 'Cadastre — numéros', 'Cadastre — bâti'], flat: true, calls: 4, vec: { n: 2, b: 1 } });
 } };
