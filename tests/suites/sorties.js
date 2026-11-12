@@ -76,4 +76,13 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         const r = { text: /Regard R1/.test(V), curves: / c\n/.test(V), pen: /0\.708\d* w/.test(V), blue: /0\.22 0\.74 0\.97 RG/.test(V), bwBlue: /0\.22 0\.74 0\.97 RG/.test(B), img: /\/Subtype \/Image/.test(I), noImgV: !/\/Subtype \/Image/.test(V) };
         shapes = keepS; layoutData = keepL; return r; });
     t.eq('PDF de la feuille vectoriel (textes, courbes, plume 0,25 mm), noir et blanc, ou en image', pv, { text: true, curves: true, pen: true, blue: true, bwBlue: false, img: true, noImgV: true });
+    // mise en forme des cotes appliquée à TOUTES les cotes : pente, rayon, altitudes des points (fond plein / sans fond / pastille), extrémités
+    const mf = await ev(() => { const keepS = shapes, keepD = Object.assign({}, dimStyle); const m = mmToWorld(1000);
+        shapes = [{ type: 'slope', layerId: DIM_LAYER_ID, x1: 0, y1: 0, x2: 10 * m, y2: 0, z1: 101000, z2: 100000, zk: 1 }, { type: 'point', layerId: 'layer-0', x: 0, y: -5 * m, z: 100000, zk: 1 }];
+        camera.zoom = 30 / m; camera.x = 200; camera.y = 300; invalidateCache();
+        const P = CanvasRenderingContext2D.prototype, fr = P.fillRect, at = P.arcTo; let nR = 0, nA = 0; P.fillRect = function (...a) { nR++; return fr.apply(this, a); }; P.arcTo = function (...a) { nA++; return at.apply(this, a); };
+        const run = (bg) => { dimStyleSet(Object.assign({}, keepD, { txtBg: bg })); nR = 0; nA = 0; invalidateCache(); draw(); return [nR, nA]; };
+        const none = run('none'), fill = run('fill'), pill = run('pill'); P.fillRect = fr; P.arcTo = at; dimStyleSet(keepD); shapes = keepS; invalidateCache(); draw();
+        return { fillMore: fill[0] - none[0] >= 2, pillArcs: pill[1] - none[1] >= 8 }; });
+    t.eq('mise en forme des cotes : pente et altitudes suivent le fond choisi (sans, plein, pastille)', mf, { fillMore: true, pillArcs: true });
 } };
