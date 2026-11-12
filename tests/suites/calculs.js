@@ -140,4 +140,9 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     const md = await ev(() => { const d = metreData(); return JSON.stringify(d, (k, v) => typeof v === 'number' ? +v.toFixed(3) : (v && v.type ? undefined : v)).slice(0, 1500); });
     t.ok('métré : 39,5 m de linéaire (12,5 + 7 + périmètre 20)', /"lin":39\.5\b/.test(md), md.slice(0, 400));
     t.ok('métré : surface fermée de 24 m²', /"ferm":24\b/.test(md), md.slice(0, 400));
+    // calque masqué : ses points comptent toujours dans le terrain (les talus restent) ; ⛰ du gestionnaire de calques l'en exclut
+    const tv = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), L = ensureLayer('TN test', '#86efac');
+        for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) shapes.push({ type: 'point', layerId: L, x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
+        const lay = layers.find(l => l.id === L), n = () => { tinCache = null; return tinNodes().length; }, a = n(); lay.visible = false; const b = n(); toggleLayerTin(L); const c = n(); toggleLayerTin(L); lay.visible = true; shapes = keepS; invalidateCache(); return [a, b, c]; });
+    t.eq('terrain : un calque masqué compte toujours, ⛰ l\'exclut', tv, [25, 25, 0]);
 } };
