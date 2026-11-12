@@ -79,11 +79,12 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const pl = { type: 'poly', layerId: 'layer-0', open: true, points: [{ x: 0, y: 0 }, { x: 10 * m, y: 0 }] }; shapes.push(pl); selectedShapes = [pl]; brkFromSel();
         const r = { n: L ? L.points.length : 0, mid: mid ? mid.z : null, lay: L ? (layers.find(l => l.id === L.layerId) || {}).name : '', y: pl.points.length, ymid: (pl.points.find(q => Math.abs(q.x - 5 * m) < 1e-6) || {}).z }; shapes = []; selectedShapes = []; saveState(); return r; });
       t.eq('ligne de rupture : Z interpolé entre les points cotés, un sommet par mètre (outil LR et depuis Y)', lr, { n: 11, mid: 101000, lay: 'Lignes de rupture', y: 11, ymid: 101000 }); }
-    // 6. remblai périphérique jusqu'à 99,50 (talus 1/1, sans recul) : bande autour de la plateforme sur 0,5 m de haut
-    //    V = ∫₀^0,5 (périmètre·t + 4t²) dt = 60 × 0,125 + 4 × 0,125 / 3 = 7,667 m³
+    // 6. remblai périphérique jusqu'à 99,50 (talus 1/1, sans recul) : terrain fini = 99,50 au bord puis talus fini 1/1 parallèle à la fouille jusqu'au terrain (100)
+    //    épaisseur f(d) = min(0,5 ; 1 − d) sur la largeur du talus (1 m), contour arrondi aux angles (60 + 2πd) :
+    //    V = 60 × 0,375 + 2π × (0,0625 + 0,0833) = 22,5 + 0,916 = 23,42 m³ (avant : le dessus restait plat à 99,50 → 7,67 m³, le haut du talus restait ouvert)
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 99500 } });
     { const rp = (r.extra || []).filter(e => e[0].startsWith('remblai') && !e[3]).reduce((a, e) => a + e[2], 0);
-      t.ok('remblai périphérique jusqu\'à 99,50 = 7,67 m³ (à 2 % près)', pct(rp, 7.667) < 0.02, rp.toFixed(3) + ' — ' + JSON.stringify(r.extra));
+      t.ok('remblai périphérique jusqu\'à 99,50 avec talus fini jusqu\'au terrain = 23,42 m³ (à 2 % près)', pct(rp, 23.416) < 0.02, rp.toFixed(3) + ' — ' + JSON.stringify(r.extra));
       t.ok('récapitulatif : remblai périphérique compté à part', Math.abs(r.RP - rp) < 0.01, JSON.stringify(r));
       const cards = await ev(async () => { openCubatureDialog(); cubGo(2); await new Promise(r => setTimeout(r, 600)); const L = [...document.querySelectorAll('#cb-res > div:first-child > div > div:first-child')].map(d => d.textContent); closeTopoModal && closeTopoModal(); return L; }).catch(e => ['err ' + e.message]);
       t.ok('récapitulatif : cases Remblai et Remblai périphérique', cards.includes('Remblai') && cards.includes('Remblai périphérique'), JSON.stringify(cards)); }
@@ -104,7 +105,7 @@ module.exports = { name: 'calculs', run: async (H, t) => {
               if (x > 12 && x < 48 && y > 8 && y < 32 && !(x > 19 && x < 41 && y > 14 && y < 26)) n++; } }); build3DScene(); return n; });
       t.ok('vue iso du plan : maillage du terrain présent autour de la plateforme', wire > 20, wire);
       t.ok('3D : cotes de niveau masquées → points et fils masqués aussi', rp3.pts[0] > 0 && rp3.pts[1] === 0, JSON.stringify(rp3.pts));
-      t.ok('3D : remblai périphérique affiché, dessus à 99,50', rp3.n === 1 && Math.abs(rp3.top - 99.5) < 0.01, JSON.stringify(rp3));
+      t.ok('3D : remblai périphérique affiché, talus fini jusqu\'au terrain (dessus à 100,00)', rp3.n === 1 && Math.abs(rp3.top - 100) < 0.01, JSON.stringify(rp3));
 
     // 7. remblai périphérique AU TERRAIN NATUREL : la fouille est rebouchée jusqu'au terrain = volume du talus de déblai (1 m, 1/1) = 60 × 0,5 + 4/3 = 31,33 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, mode: 'tn' } });
@@ -114,6 +115,16 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 100500 } });
     { const ext = (r.extra || []).find(e => /talus/.test(e[0] + '') && e[0].startsWith('remblai')); 
       t.ok('cote finie au-dessus du terrain : talus 1/1 du remblai jusqu\'au terrain, total ≈ 71,3 m³ (à 3 % près)', pct(r.RP, 71.32) < 0.03, JSON.stringify(r)); }
+
+    // 8b. fouille avec recul de 1,20 m et talus 3/2, niveau fini 0,5 m au-dessus du terrassement (cas d'un bâtiment : terrassement 99,00, fini 99,50) :
+    //     épaisseur constante de 0,5 m sur le recul et sur le talus, puis biseau là où le talus fini rejoint le terrain
+    //     recul : (60 × 1,2 + π × 1,2²) × 0,5 = 38,26 ; talus (d de 0 à 1,5, f = min(0,5 ; 1 − d/1,5)), périmètre 60 + 2π(1,2 + d) : 60 × 0,5625 + 2π × 1,003 = 40,05 → ≈ 78,3 m³
+    r = await cub({ z: 99000, talus: { on: true, kD: '3/2', kR: '3/2', R: 1200 }, rp: { on: true, z: 99500 } });
+    t.ok('recul 1,20 + talus 3/2 : remblai périphérique d\'épaisseur constante sur recul et talus ≈ 78,3 m³ (à 3 % près)', pct(r.RP, 78.3) < 0.03, JSON.stringify(r));
+    // 8c. plateforme en remblai (101,00 sur un terrain à 100) et niveau fini 101,50 : couche de 0,5 m sur le talus de remblai 3/2 (largeur 1,5 m), puis talus 1/1 jusqu'au terrain
+    //     talus : (60 × 1,5 + π × 1,5²) × 0,5 = 48,53 ; au-delà : biseau de 0,5 m de large ≈ 0,125 × (60 + 2π × 1,75) = 8,87 → ≈ 57,4 m³
+    r = await cub({ z: 101000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 101500 } });
+    t.ok('plateforme en remblai : couche de remblai périphérique sur son talus de remblai ≈ 57,4 m³ (à 4 % près)', pct(r.RP, 57.4) < 0.04, JSON.stringify(r));
 
     // 9. structure de 40 cm et recul de 1 m : la structure s'étend sur le recul → recul terrassé au fond de forme : 64 m² × (1 + 0,4) = 89,6 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2', R: 1000 }, struct: { layers: [{ mat: 'GNT_0_80', e: 40 }], ff: true } });
