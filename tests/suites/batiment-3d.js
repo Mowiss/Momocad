@@ -128,8 +128,11 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         shapes.filter(x => x.groupId === 'cw1').forEach(x => { x.wz.t = 106700; }); saveState(); await new Promise(r => setTimeout(r, 700)); const h1 = W();
         const T0 = shapes.find(x => x.secTitle), g = T0.groupId, x0t = T0.x; shapes.filter(x => x.groupId === g).forEach(x => translateShape(x, 10 * m, 0)); saveState(); await new Promise(r => setTimeout(r, 700));
         const T1 = shapes.find(x => x.secTitle), moved = Math.round((T1.x - x0t) / m), kept = shapes.filter(x => x.secOf).length > 10;
-        const r = { up: Math.round((h1 - h0) / m * 10) / 10, txt, mats, moved, kept, tn: shapes.some(x => x.secOf && x.name === 'TN') }; shapes = keepS; invalidateCache(); saveState(); return r; });
-    t.eq('coupe dynamique : suit le plan, garde sa place, textures, TN, cotes de niveau', cd, { up: 1, txt: ['COUPE', 'Dessus', 'Faîtage', 'TN', 'Égout'], mats: ['beton', 'bois', 'gnt', 'parpaing', 'terre'], moved: 10, kept: true, tn: true });
+        const beyond = shapes.some(x => x.secOf && x.type === 'line' && x.width === 0.5);
+        // cotes de talus sur leur calque : masquées sans toucher au talus
+        invalidateCache(); draw(); await new Promise(r => setTimeout(r, 50)); invalidateCache(); draw(); const LT = layers.find(l => l.name === 'Cotes de talus'), nT = () => screenTextsToDraw.filter(x => LT && x.layerId === LT.id).length, withT = nT(); if (LT) LT.visible = false; invalidateCache(); draw(); const hidT = nT(); if (LT) LT.visible = true;
+        const r = { up: Math.round((h1 - h0) / m * 10) / 10, txt, mats, moved, kept, tn: shapes.some(x => x.secOf && x.name === 'TN'), beyond, talusCot: !!LT && withT > 0 && hidT === 0 }; shapes = keepS; invalidateCache(); saveState(); return r; });
+    t.eq('coupe dynamique : suit le plan, garde sa place, textures, TN, cotes de niveau', cd, { up: 1, txt: ['COUPE', 'Dessus', 'Faîtage', 'TN', 'Égout'], mats: ['beton', 'bois', 'gnt', 'parpaing', 'terre'], moved: 10, kept: true, tn: true, beyond: true, talusCot: true });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
