@@ -96,6 +96,13 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const txt = JSON.stringify(projectData()); loadProjectText(txt, 'b.mmc'); await new Promise(r => setTimeout(r, 300)); o.saved = JSON.stringify(shapes.filter(x => x.bld).map(x => x.bld.nm + ':' + x.bld.lvls.length));
         lvlOn = false; bldActId = null; shapes = keepS; lvls = keepL; invalidateCache(); saveState(); return o; });
     t.eq('contours de bâtiment : niveaux propres à chacun, mur pris dans son contour, étage choisi sur le contour (Y), pastilles', bz, { wA: [69000, 72000, true], wB: [72500, 75200, true], panel: true, wB1: [75200, 77900], hidden: [false, false], badges: 2, badgeB: 'R + 1', moved: [70000, 72500], box: true, saved: '["A:1","B:2"]' });
+    // bouton Contour de bâtiment (ex-Étages) : on trace le contour, à la fermeture la fenêtre du bâtiment s'ouvre ; avec une polyligne fermée sélectionnée, directement
+    const bt = await ev(async () => { const keepS = shapes; shapes = []; saveState(); selectedShapes = []; etaClick(); const m0 = mode; const m = mmToWorld(1000);
+        shapes.push({ type: 'poly', layerId: activeLayerId, points: [[0, 0], [8, 0], [8, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m })) }); saveState(); await new Promise(r => setTimeout(r, 120));
+        const asked = /Contour de bâtiment/.test(document.getElementById('topo-modal').textContent) && document.getElementById('topo-modal').style.display !== 'none'; document.getElementById('bd-nm').value = 'Test';
+        [...document.querySelectorAll('#tm-actions button')].find(b => b.textContent === 'Créer').click(); const made = !!shapes[0].bld && shapes[0].bld.nm === 'Test'; closeSelectionParamModal();
+        setMode('poly'); const after = typeof bldDrawing !== 'undefined' && !bldDrawing; setMode('select-box'); bldActId = null; shapes = keepS; invalidateCache(); saveState(); return { m0, asked, made, after }; });
+    t.eq('bouton Contour de bâtiment : tracer, fermer, régler le bâtiment', bt, { m0: 'poly', asked: true, made: true, after: true });
     // coupe en 3 temps : la ligne (2 clics), la fenêtre de coupe suit la souris et se pose d'un clic (Tab inverse le sens), Valider (Entrée) ; Échap annule
     const cu = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         shapes.push({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: 'beton', e: 200 }] }), loops: [R(0, 0, 6, 0.2)], wallMat: 'beton', groupId: 'gc', wz: { b: 0, t: 2500 } }); saveState();
