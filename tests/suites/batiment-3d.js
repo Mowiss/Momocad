@@ -66,6 +66,17 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         selectedShapes = [h]; const G = allGrips().filter(g => g.kind === 'op-face'), g = G.find(q => Math.abs(q.y + 0.2 * m) < 0.02 * m) || G[1];
         startGrip(g); gripApply(1.5 * m, -0.334 * m, false); endGrip(false); const grip = (() => { const t = opStretchTT(h.openings[0]); return Math.round(Math.abs(t[1] - t[0]) / m * 1000); })(), cutIso2 = wallOpeningsFor(shapes[1]).length; selectedShapes = [];
         close3D(); return { auto, cut3, manual, cutIso, nGrips: G.length, grip, cutIso2 }; });
+    // ouverture redessinée à la poignée : bouts (largeur le long du mur, accrochés), milieu (glisse le long du mur) ; ses coins, bouts et milieux sont des points d'accroche
+    const opg = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        shapes.push({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: 'beton', e: 200 }] }), loops: [R(0, 0, 6, 0.2)], wallMat: 'beton', groupId: 'gp', wz: { b: 0, t: 2500 } });
+        saveState(); setMode('opening'); openingClick({ x: 1 * m, y: 0 }); openingFinish({ x: 2 * m, y: 0 }); closeTopoModal(); setMode('select-box');
+        const h = shapes[0], O = () => h.openings[0], W = () => Math.round(Math.hypot(O().b.x - O().a.x, O().b.y - O().a.y) / m * 1000), X = () => Math.round(Math.min(O().a.x, O().b.x) / m * 1000);
+        selectedShapes = [h]; const G = allGrips(), kinds = ['op-end', 'op-move'].map(k => G.filter(g => g.kind === k).length);
+        const end = G.find(g => g.kind === 'op-end' && Math.abs(g.x - 2 * m) < 1e-6) || G.find(g => g.kind === 'op-end' && g.i === 1); startGrip(end); gripApply(2.6 * m, -0.7 * m, false); endGrip(false); const w1 = W(), y0 = Math.round(O().b.y / m * 1000);
+        const mv = allGrips().find(g => g.kind === 'op-move'); startGrip(mv); gripApply(mv.x + 1.5 * m, mv.y + 0.3 * m, false); endGrip(false); const x1 = X(), w2 = W();
+        const c = O().pts[0], sn = findSnap(c.x + 0.003 * m, c.y + 0.003 * m), snOk = !!sn && Math.abs(sn.x - c.x) < 1e-6 && Math.abs(sn.y - c.y) < 1e-6;
+        const pts4 = O().pts.length; selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); return { kinds, w1, y0, x1, w2, snOk, pts4 }; });
+    t.eq('ouverture : poignées bout (largeur, reste sur le mur) et milieu (glisse le long), accroches sur ses coins', opg, { kinds: [2, 1], w1: 1600, y0: 0, x1: 2500, w2: 1600, snOk: true, pts4: 4 });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
