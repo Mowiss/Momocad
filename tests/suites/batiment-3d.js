@@ -217,6 +217,17 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         lvlPick('rdc'); await open3D(); await new Promise(r => setTimeout(r, 800)); let inScene = false, roofIn = false; V3.root.traverse(x => { if (x.userData.shape === w) inScene = true; if (x.userData.shape === roof) roofIn = true; });
         o.rdc = [lvlHidden(w), lvlHidden(roof), inScene, roofIn]; lvlToggle(false); o.off = [lvlHidden(w), lvlHidden(roof), getComputedStyle(document.getElementById('lvl-box')).display]; close3D(); return o; });
     t.eq('étages : niveaux, mur rangé sur son étage, étages du dessus masqués', lv, { start: ['RDC', 'TOIT'], box: 'block', added: ['RDC', 'R + 1', 'TOIT'], wall: true, rdc: [true, true, false, false], off: [false, false, 'none'] });
+    // étages calés sur le RDC : la cote du RDC est le zéro, chaque étage posé sur celui du dessous (+ H) ; un mur tracé sur un étage va de son plancher à plancher + H ;
+    // changer la cote du RDC ou une hauteur déplace les étages au-dessus et leurs murs ; une dalle tracée sur l'étage a son dessus au plancher
+    const lc = await ev(async () => { const keepS = shapes, keepL = lvls; shapes = []; lvls = null; saveState(); lvlToggle(true); lvlSet('rdc', 69000, 3000); lvlAdd(true); lvlAdd(true); const S = lvlSorted(), o = { z0: S.map(L => L.z), rel: S.map(lvlRel) };
+        const M = mmToWorld; lvlPick(S[1].id); startWall('w-beton20'); wallStart = { x: M(0), y: 0 }; wallAddTo(M(5000), 0); setMode('select-box'); await new Promise(r => setTimeout(r, 300));
+        const w = shapes.filter(isWallHatch).find(h => h.lvl === S[1].id); o.wall = w ? [w.wz.b, w.wz.t] : null;
+        lvlSet('rdc', 70000); o.z1 = lvlSorted().map(L => L.z); o.wall1 = w ? [w.wz.b, w.wz.t] : null;
+        lvlSet('rdc', undefined, 3500); o.z2 = lvlSorted().map(L => L.z); o.wall2 = w ? [w.wz.b, w.wz.t] : null;
+        lvlSet(S[1].id, undefined, 2500); o.z3 = lvlSorted().map(L => L.z); o.wall3 = w ? [w.wz.b, w.wz.t] : null;
+        const ss = lvlAdd(false); o.ss = lvlSorted()[0].z; o.ssRel = lvlRel(lvlSorted()[0]); lvlToggle(false); shapes = keepS; lvls = keepL; invalidateCache(); saveState(); return o; });
+    t.eq('étages calés sur le RDC : plancher = RDC + hauteurs, murs du plancher au plancher + H, tout suit la cote du RDC', lc, { z0: [69000, 72000, 75000], rel: ['±0,00', '+3,00', '+6,00'], wall: [72000, 75000],
+        z1: [70000, 73000, 76000], wall1: [73000, 76000], z2: [70000, 73500, 76500], wall2: [73500, 76500], z3: [70000, 73500, 76000], wall3: [73500, 76000], ss: 66500, ssRel: '−3,50' });
     // pinceau allégé : la couche de peinture ne reprend que les triangles proches du coup, pas toute la surface
     const bo = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 600)); let big = null; V3.root.traverse(x => { if (x.isMesh && x.geometry && x.geometry.attributes.position && (!big || x.geometry.attributes.position.count > big.geometry.attributes.position.count) && !x.userData.brushOv) big = x; });
         const bb = new THREE.Box3().setFromObject(big), c = bb.getCenter(new THREE.Vector3()), cx = -V3.root.position.x, cy = -V3.root.position.y;
