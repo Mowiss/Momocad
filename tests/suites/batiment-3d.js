@@ -77,6 +77,18 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const c = O().pts[0], sn = findSnap(c.x + 0.003 * m, c.y + 0.003 * m), snOk = !!sn && Math.abs(sn.x - c.x) < 1e-6 && Math.abs(sn.y - c.y) < 1e-6;
         const pts4 = O().pts.length; selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); return { kinds, w1, y0, x1, w2, snOk, pts4 }; });
     t.eq('ouverture : poignées bout (largeur, reste sur le mur) et milieu (glisse le long), accroches sur ses coins', opg, { kinds: [2, 1], w1: 1600, y0: 0, x1: 2500, w2: 1600, snOk: true, pts4: 4 });
+    // coupe en 3 temps : la ligne (2 clics), la fenêtre de coupe suit la souris et se pose d'un clic (Tab inverse le sens), Valider (Entrée) ; Échap annule
+    const cu = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        shapes.push({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: 'beton', e: 200 }] }), loops: [R(0, 0, 6, 0.2)], wallMat: 'beton', groupId: 'gc', wz: { b: 0, t: 2500 } }); saveState();
+        const fire = (k) => window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+        setMode('cut'); cutClick({ x: 3 * m, y: 2 * m }); cutClick({ x: 3 * m, y: -2 * m }); const bar = getComputedStyle(document.getElementById('cut-bar')).display, n0 = shapes.length, s0 = CUT.side;
+        fire('Tab'); const s1 = CUT.side; currentX = 20 * m; currentY = -20 * m; draw(); cutClick({ x: 20 * m, y: -20 * m }); const placed = !!CUT.pos, notYet = shapes.length === n0;
+        fire('Enter'); const fr = shapes.find(x => x.name === 'Cadre de coupe'), c = fr ? shapeCenterOf(fr) : null, title = shapes.find(x => x.type === 'text' && /^COUPE A-A$/.test(x.content));
+        const hat = shapes.filter(x => x.type === 'hatch' && x.groupId && /coupe/.test(x.groupId)).length;
+        cutClick({ x: 1 * m, y: 2 * m }); cutClick({ x: 1 * m, y: -2 * m }); fire('Escape'); const esc = !CUT.a && getComputedStyle(document.getElementById('cut-bar')).display === 'none' && !shapes.some(x => x.cutName === 'B');
+        setMode('select-box'); shapes = keepS; invalidateCache(); saveState();
+        return { bar, flip: s0 === -s1, placed, notYet, frame: !!c && Math.abs(c.x - 20 * m) < 0.05 * m && Math.abs(c.y + 20 * m) < 0.05 * m, title: !!title, hat, esc }; });
+    t.eq('coupe : ligne, fenêtre posée où l\'on clique, Valider ; Tab inverse le sens, Échap annule', cu, { bar: 'flex', flip: true, placed: true, notYet: true, frame: true, title: true, hat: 1, esc: true });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
