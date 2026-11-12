@@ -109,12 +109,12 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const fire = (k) => window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
         setMode('cut'); cutClick({ x: 3 * m, y: 2 * m }); cutClick({ x: 3 * m, y: -2 * m }); const bar = getComputedStyle(document.getElementById('cut-bar')).display, n0 = shapes.length, s0 = CUT.side;
         fire('Tab'); const s1 = CUT.side; currentX = 20 * m; currentY = -20 * m; draw(); cutClick({ x: 20 * m, y: -20 * m }); const placed = !!CUT.pos, notYet = shapes.length === n0;
-        fire('Enter'); const fr = shapes.find(x => x.name === 'Cadre de coupe'), c = fr ? shapeCenterOf(fr) : null, title = shapes.find(x => x.type === 'text' && /^COUPE A-A$/.test(x.content));
+        fire('Enter'); const fr = shapes.find(x => x.secOf && x.type === 'hatch'), c = fr ? shapeCenterOf(fr) : null, noFrame = !shapes.some(x => x.name === 'Cadre de coupe'), colW = fr ? effectiveColor(fr) === effectiveColor(shapes[0]) : false, title = shapes.find(x => x.type === 'text' && /^COUPE A-A$/.test(x.content));
         const hat = shapes.filter(x => x.type === 'hatch' && x.groupId && /coupe/.test(x.groupId)).length;
         cutClick({ x: 1 * m, y: 2 * m }); cutClick({ x: 1 * m, y: -2 * m }); fire('Escape'); const esc = !CUT.a && getComputedStyle(document.getElementById('cut-bar')).display === 'none' && !shapes.some(x => x.cutName === 'B');
         setMode('select-box'); shapes = keepS; invalidateCache(); saveState();
-        return { bar, flip: s0 === -s1, placed, notYet, frame: !!c && Math.abs(c.x - 20 * m) < 0.05 * m && Math.abs(c.y + 20 * m) < 0.05 * m, title: !!title, hat, esc }; });
-    t.eq('coupe : ligne, fenêtre posée où l\'on clique, Valider ; Tab inverse le sens, Échap annule', cu, { bar: 'flex', flip: true, placed: true, notYet: true, frame: true, title: true, hat: 1, esc: true });
+        return { bar, flip: s0 === -s1, placed, notYet, noFrame, colW, frame: !!c && Math.abs(c.x - 20 * m) < 0.05 * m && Math.abs(c.y + 20 * m) < 0.05 * m, title: !!title, hat, esc }; });
+    t.eq('coupe : ligne, fenêtre posée où l\'on clique, Valider ; sans cadre, couleur du calque du mur ; Tab inverse le sens, Échap annule', cu, { bar: 'flex', flip: true, placed: true, notYet: true, noFrame: true, colW: true, frame: true, title: true, hat: 1, esc: true });
     // coupe dynamique : suit les modifications du plan, garde sa place si on la déplace ; textures (matériaux, terre, remblai), TN, cotes de niveau (égout, faîtage, dalle)
     const cd = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         for (let i = 0; i <= 10; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 300, zk: 1 });
