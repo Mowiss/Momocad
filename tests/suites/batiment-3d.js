@@ -167,13 +167,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     const bk = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000);
         for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
         const put = (id, x, y, rot) => { const b = BLOCKS_BUILTIN.find(q => q.id === id), gid = 'gb-' + id; blockShapes(b, x, y, 1, rot).forEach(sh => { sh.groupId = gid; sh.block = b.name; shapes.push(sh); }); return gid; };
-        put('arbre', 10 * m, -10 * m, 0); const gl = put('lit2', 20 * m, -20 * m, Math.PI / 2); saveState(); if (!V3) init3D(); build3DScene();
+        put('arbre', 10 * m, -10 * m, 0); const gl = put('lit2', 20 * m, -20 * m, Math.PI / 2), gt = put('table6', 5 * m, -25 * m, 0), gh = put('haie', 25 * m, -5 * m, 0); saveState(); if (!V3) init3D(); build3DScene();
+        const nOf = (gid) => { let n = 0; V3.root.traverse(o => { if (o.userData.blk && o.userData.blk.groupId === gid) n++; }); return n; }, parts = { table: nOf(gt) > 30, haie: nOf(gh) >= 5 };
         const box = (gid) => { const B = new THREE.Box3(); V3.root.updateMatrixWorld(true); V3.root.traverse(o => { if (o.userData.blk && o.userData.blk.groupId === gid) B.expandByObject(o); }); return B; };
         const T = box('gb-arbre'), L = box(gl), zg = (100000 / 1000 - V3.zmin) * V3.exag, h = T.max.z - V3.root.position.z - zg, w = L.max.x - L.min.x, d = L.max.y - L.min.y;
         shapes.filter(x => x.groupId === gl).forEach(x => translateShape(x, 3 * m, 0)); build3DScene(); const L2 = box(gl);
         blkTab = 'veget'; renderBlockMenu(); const badge = /2D\/3D/.test(document.getElementById('blk-grid').innerHTML);
-        shapes = keepS; invalidateCache(); saveState(); return { tree: h > 5 && h < 9, base: Math.abs(T.min.z - V3.root.position.z - zg) < 0.05, turned: w > d && Math.abs(w - 2) < 0.05, moved: Math.round((L2.min.x - L.min.x) * 10) / 10, badge }; });
-    t.eq('blocs en 3D : arbre au sol à sa taille, meuble tourné et déplacé avec son dessin, vignettes 2D/3D', bk, { tree: true, base: true, turned: true, moved: 3, badge: true });
+        shapes = keepS; invalidateCache(); saveState(); return { parts, tree: h > 5 && h < 9, base: Math.abs(T.min.z - V3.root.position.z - zg) < 0.05, turned: w > d && Math.abs(w - 2) < 0.05, moved: Math.round((L2.min.x - L.min.x) * 10) / 10, badge }; });
+    t.eq('blocs en 3D : table avec ses chaises, haie en touffes, arbre au sol à sa taille, meuble tourné et déplacé avec son dessin, vignettes 2D/3D', bk, { parts: { table: true, haie: true }, tree: true, base: true, turned: true, moved: 3, badge: true });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
