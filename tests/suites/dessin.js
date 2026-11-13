@@ -189,4 +189,9 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         let err = 0; shapes.filter(s => s.type === 'point').forEach((s, i) => { const ll = lccInv(L, R[i].x, R[i].y), e = lccFwd(C, ll.lat, ll.lon); err = Math.max(err, Math.hypot(realX(s.x) / 1000 - e.x, realY(s.y) / 1000 - e.y)); });
         const bm = shapes.find(s => s.type === 'basemap'); const r = { before, after: detectCRS().code, errCm: err < 0.01, geo: bm.geo, rot: Math.abs(bm.rot) > 1e-4 }; shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; });
     t.eq('plan Lambert 93 converti en CC44 : coordonnées exactes (< 1 cm), fond tourné avec lui', cr, { before: 'L93', after: 'CC44', errCm: true, geo: 'CC44', rot: true });
+    // PDF dont les cotes sont des dessins pleins (police convertie en contours) : elles sont relues, chacune avec son repère (20 sur 20)
+    const fz = await ev(async (b64) => { await loadPdfJs(); const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const doc = await pdfjsLib.getDocument({ data: bin }).promise;
+        const V = await pdfReadVectors(doc, 1), D = await pdfReadTopo(doc, 1, pdfGlyphRuns(V).concat(pdfFillGlyphRuns(V))); return { vals: D.t.map(x => x[2]).sort((a, b) => a - b).join(' '), mk: D.m.filter(Boolean).length }; },
+        require('fs').readFileSync(path.join(__dirname, '..', 'fixtures', 'filled-z.pdf')).toString('base64'));
+    t.eq('PDF à cotes en contours pleins : toutes relues, avec leur repère', fz, { vals: '290.56 290.87 291.05 291.09 291.36 291.86 292.26 293.35 294.86 295.49 295.95 296.37 296.5 297.61 298.04 298.66 299.41 299.76 302.4 304.22', mk: 20 });
 } };
