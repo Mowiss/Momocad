@@ -151,4 +151,22 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         [25, 50, 75].forEach(y0 => { for (let k = 0; k <= 240; k++) { N.push({ x: (15 + k * 0.25) * m, y: -(y0 + k * 0.05) * m, z: 101000 }); N.push({ x: (15 + k * 0.25) * m, y: -(y0 + 1 + k * 0.05) * m, z: 100500 }); } });
         const T = delaunay(N); let A = 0; T.forEach(t => { const [a, b, c] = t.map(i => N[i]); A += Math.abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) / 2; }); return Math.round(A / (m * m) / 100); });
     t.ok('maillage avec lignes de rupture denses : le terrain couvre tout le levé (≥ 95 %)', tn >= 95, tn + ' %');
+
+    // volet Y en direct : un réglage s'applique tout de suite (volet ouvert), Annuler revient en arrière, Valider garde en une seule étape ; schémas avec les cases dessus
+    const lv = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000); [[0, 0], [30, 0], [30, 30], [0, 30], [15, 15]].forEach(([x, y]) => shapes.push({ type: 'point', layerId: 'layer-0', x: x * m, y: -y * m, z: 100000 }));
+        const B = { type: 'poly', layerId: 'layer-0', open: false, points: [[10, 10], [18, 10], [18, 16], [10, 16]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; shapes.push(B); batMake(B); B.solid.H = 5000; B.batTop = (B.points[0].z || 0) + 5000; saveState();
+        const h0 = historyStep, H0 = B.solid.H, wait = (t) => new Promise(r => setTimeout(r, t)), set = (v) => { const i = document.getElementById('sp-battop'); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); };
+        selectedShapes = [B]; openSelectionParamModal(); await wait(80); const dia = !!document.querySelector('#selparam-modal .sp-dia #sp-battop') && !!document.querySelector('#sp-thumb svg path');
+        set('108'); await wait(700); const B1 = shapes.find(x => x.batEx), live = B1.solid.H === 8000 && !document.getElementById('selparam-modal').classList.contains('hidden'), steps = historyStep - h0;
+        spCancel(); const B2 = shapes.find(x => x.batEx), back = B2.solid.H === H0 && historyStep === h0;
+        selectedShapes = [B2]; openSelectionParamModal(); await wait(50); set('109'); await wait(700); applySelectionLayer(); spLiveCommit(); const B3 = shapes.find(x => x.batEx), kept = B3.solid.H === 9000 && historyStep === h0 + 1;
+        shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); return { dia, live, steps, back, kept }; });
+    t.eq('volet Y : aperçu en direct, Annuler revient en arrière, Valider garde (une étape) ; schéma avec ses cases', lv, { dia: true, live: true, steps: 1, back: true, kept: true });
+    // test d'écoulement : une cuvette garde l'eau (flaque trouvée), la pente l'évacue par le bord ; volumes conservés
+    const ec = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000);
+        for (let i = 0; i <= 20; i++) for (let j = 0; j <= 20; j++) { const x = i * 2, y = j * 2, r = Math.hypot(x - 20, y - 20), z = 100 + x * 0.02 - (r < 6 ? (6 - r) * 0.08 : 0); shapes.push({ type: 'point', layerId: 'layer-0', x: x * m, y: -y * m, z: Math.round(z * 1000) }); }
+        tinCache = null; invalidateCache(); const E = ecGrid(4000), Z = ecRun(E, 60, 15, 30), st = Z.reduce((a, z) => a + z.vol, 0), ci = E.x0 + Z[0].ci * E.c * E.m, cj = E.y0 + Z[0].cj * E.c * E.m;
+        const r = { n: Z.length >= 1, center: Math.hypot(ci / m - 20, -cj / m - 20) < 3, out: E.out > 0.5 * E.rainV, cons: Math.abs(E.rainV - E.out - st - 0) / E.rainV < 0.05 };
+        shapes = keepS; tinCache = null; invalidateCache(); return r; });
+    t.eq('test d\'écoulement : flaque dans la cuvette, l\'eau de la pente sort par le bord, volumes conservés', ec, { n: true, center: true, out: true, cons: true });
 } };
