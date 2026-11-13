@@ -231,10 +231,22 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         const bar = !!document.getElementById('bat-bar'); setMode('select-box'); const barGone = !document.getElementById('bat-bar');
         // import des points d'un PDF : l'étape Bâtiments s'ouvre ensuite
         const s = { type: 'bgimage', layerId: 'layer-0', mapId: 'bsT', x: 0, y: 0, w: pv.w, h: pv.h, rot: 0, pdfTopo: { t: [[0.1, 0.1, 50.2], [0.9, 0.9, 50.4]], m: [null, null] } }; shapes.push(s);
-        pdfImport(s, { pts: true, tal: false, trc: false, lo: 0, hi: 100, pos: 't', ln: 'Points topo (PDF)' }); await new Promise(r => setTimeout(r, 300));
-        const step = document.getElementById('topo-modal').style.display === 'flex' && /Bâtiments existants/.test(document.getElementById('topo-modal').textContent); closeTopoModal();
+        pdfImport(s, { pts: true, tal: false, bat: true, trc: false, lo: 0, hi: 100, pos: 't', ln: 'Points topo (PDF)' }); await new Promise(r => setTimeout(r, 100));
+        const W1 = document.getElementById('pi-wiz'), st1 = piW && piW.steps.join(','), hasBat = !!W1 && !!W1.querySelector('[data-a=bat]');
+        W1.querySelector('[data-a=next]').click(); await new Promise(r => setTimeout(r, 50)); const lay = !!document.querySelector('#pi-wiz [data-f=own]');
+        document.querySelector('#pi-wiz [data-a=next]').click(); await new Promise(r => setTimeout(r, 50));
+        const step = st1 === 'bat,lay' && hasBat && lay && !document.getElementById('pi-wiz') && shapes.filter(x => x.type === 'point' && (layers.find(l => l.id === x.layerId) || {}).name === 'Topo').length === 2 && !layers.some(l => l.name === 'Points topo (PDF)');
         shapes = keepS; delete vecStore[id]; batSrcCache.clear(); invalidateCache(); saveState();
         return { kind: c && c.kind, areaOk: Math.abs(ar - exp) / exp < 0.02, picked, ngf, H1: r1.H, topKept: r2.top === r1.top, bar, barGone, step }; });
-    t.eq('bâtiment au clic : contour fermé reconnu, hauteur H → NGF, contour étiré (haut NGF gardé), barre et étape Bâtiments après l\'import', bc,
+    t.eq('bâtiment au clic : contour fermé reconnu, hauteur H → NGF, contour étiré (haut NGF gardé), barre ; import : volet Bâtiments puis Calques (points rangés dans « Topo »)', bc,
         { kind: 'contour', areaOk: true, picked: true, ngf: '57,50', H1: 7500, topKept: true, bar: true, barGone: true, step: true });
+
+    // assistant d'import, étape Talus : la liste des lignes de rupture, 🗑 en retire une, « + Ligne de rupture » trace sur le calque des talus
+    const tw = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), lid = ensureLayer('Talus (PDF)', '#fb923c'), mk = (y) => ({ type: 'poly', layerId: lid, open: true, zk: 1, name: 'Tête ' + y, points: [{ x: 0, y: -y * m, z: 100000 }, { x: 20 * m, y: -y * m, z: 101000 }] });
+        const A = mk(0), B = mk(10); shapes.push(A, B); const s = { type: 'bgimage', layerId: 'layer-0', mapId: 'twT', x: 0, y: 0, w: m, h: m, rot: 0 };
+        piWizStart(s, { tal: true }, [A, B]); await new Promise(r => setTimeout(r, 30)); const n0 = document.querySelectorAll('#pi-wiz .piw-row').length;
+        document.querySelector('#pi-wiz [data-a=del][data-i="0"]').click(); await new Promise(r => setTimeout(r, 30)); const n1 = document.querySelectorAll('#pi-wiz .piw-row').length, gone = !shapes.includes(A);
+        document.querySelector('#pi-wiz [data-a=brk]').click(); const brk = mode === 'pline' && brkDraw && activeLayerId === lid; setMode('select-box'); piWClose(); shapes = keepS; invalidateCache(); saveState();
+        return { n0, n1, gone, brk }; });
+    t.eq('import PDF, étape Talus : liste des lignes, suppression, tracé d\'une ligne sur le calque des talus', tw, { n0: 2, n1: 1, gone: true, brk: true });
 } };
