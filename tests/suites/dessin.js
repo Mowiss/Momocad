@@ -194,4 +194,27 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         const V = await pdfReadVectors(doc, 1), D = await pdfReadTopo(doc, 1, pdfGlyphRuns(V).concat(pdfFillGlyphRuns(V))); return { vals: D.t.map(x => x[2]).sort((a, b) => a - b).join(' '), mk: D.m.filter(Boolean).length }; },
         require('fs').readFileSync(path.join(__dirname, '..', 'fixtures', 'filled-z.pdf')).toString('base64'));
     t.eq('PDF à cotes en contours pleins : toutes relues, avec leur repère', fz, { vals: '290.56 290.87 291.05 291.09 291.36 291.86 292.26 293.35 294.86 295.49 295.95 296.37 296.5 297.61 298.04 298.66 299.41 299.76 302.4 304.22', mk: 20 });
+
+    // plan PDF sans calques : bâtiments reconnus à leurs hachures (L hachuré à 45°) ; une bande hachurée étroite (mur) n'est pas un bâtiment ; l'outil BAT prend un bâtiment hachuré d'un tracé importé d'un clic dedans, même accroché
+    const hb = await ev(() => { const poly = (P, c) => { const out = []; for (let k = -800; k <= 800; k += 6) { const ts = []; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length], fa = a[0] - a[1] - k, fb = b[0] - b[1] - k; if ((fa < 0) !== (fb < 0)) { const t = fa / (fa - fb); ts.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); } }
+                ts.sort((p, q) => p[0] - q[0]); for (let i = 0; i + 1 < ts.length; i += 2) out.push([ts[i], ts[i + 1]]); } return out.concat([P.concat([P[0]])]); };
+        const Lsh = [[100, 100], [300, 100], [300, 200], [200, 200], [200, 300], [100, 300]], wall = [[350, 100], [366, 100], [366, 300], [350, 300]], W = 600, H = 400;
+        const lines = poly(Lsh).concat(poly(wall)), V = { W, H, ocg: false, L: ['(sans calque)'], P: lines.map(p => ({ l: 0, p: p.map(u => [u[0] / W, u[1] / H]), c: false, f: false })) };
+        const B = pdfBats(V), area = (P) => { let a = 0; P.forEach((p, i) => { const q = P[(i + 1) % P.length]; a += p[0] * q[1] - q[0] * p[1]; }); return Math.abs(a / 2); };
+        const big = B.map(L => L.map(u => [u[0] * W, u[1] * H])).sort((p, q) => area(q) - area(p))[0];
+        const keepS = shapes; shapes = []; const s = { type: 'bgimage', layerId: 'layer-0', mapId: 'hbT', x: 0, y: 0, w: mmToWorld(W * 0.3528 * 200), h: mmToWorld(H * 0.3528 * 200), rot: 0, pdfBat: B };
+        s.pdfTopo = { t: [[200 / W, 150 / H, 31.2], [120 / W, 120 / H, 30.1], [358 / W, 200 / H, 30.3], [80 / W, 80 / H, 30.0], [380 / W, 320 / H, 30.2]], m: [null, null, null, null, null] };
+        const kept = pdfBatPolys(s, pdfZPoints(s, 0, 100, 't')).length;
+        const id = 'vecHB'; vecStore[id] = vecMake(W, H, lines.map(p => ({ p, c: false }))); const pv = { type: 'pdfvec', layerId: 'layer-0', vecId: id, x: 0, y: 0, w: s.w, h: s.h, rot: 0 }; shapes = [pv, { type: 'point', layerId: 'layer-0', ...bgUV(pv, 150 / W, 250 / H), z: 30000 }];
+        const inside = bgUV(pv, 150 / W, 250 / H), picked = batPick(inside.x, inside.y, { x: inside.x, y: inside.y }), nb = batList().length;
+        shapes = keepS; delete vecStore[id]; invalidateCache();
+        return { found: B.length >= 1, areaOk: !!big && Math.abs(area(big) - 30000) / 30000 < 0.08, few: !!big && big.length <= 10, kept, picked, nb }; });
+    t.eq('PDF sans calques : bâtiment hachuré reconnu (contour juste), mur hachuré écarté, pris d\'un clic par l\'outil BAT', hb, { found: true, areaOk: true, few: true, kept: 1, picked: true, nb: 1 });
+    // talus lus dans un PDF : une ligne trop courte et un « talus » dont tête et pied ont la même altitude (mur, haie) sont écartés, le vrai talus reste
+    const tf = await ev(() => { const keepS = shapes; shapes = []; const s = { type: 'bgimage', layerId: 'layer-0', mapId: 'tfT', x: 0, y: 0, w: mmToWorld(100000), h: mmToWorld(100000), rot: 0 }, T = [];
+        [0.2, 0.4, 0.6, 0.8].forEach(u => { T.push([u, 0.40, 105], [u, 0.45, 100], [u, 0.70, 100.02], [u, 0.72, 100]); }); T.push([0.5, 0.9, 101], [0.51, 0.9, 101]);
+        s.pdfTopo = { t: T, m: T.map(() => null) }; const ln = (v) => [[0.2, v], [0.4, v], [0.6, v], [0.8, v]];
+        s.pdfTalus = [{ h: ln(0.40), p: ln(0.45) }, { h: ln(0.70), p: ln(0.72) }, { h: [[0.5, 0.9], [0.51, 0.9]] }];
+        const msg = pdfTalusPlace(s, 0, 200, 't'), n = shapes.filter(x => x.type === 'poly').length; shapes = keepS; invalidateCache(); return { n, msg: /2 fausse/.test(msg) }; });
+    t.eq('talus du PDF : faux talus (trop court, sans dénivelé) écartés, le vrai gardé', tf, { n: 2, msg: true });
 } };

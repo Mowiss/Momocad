@@ -145,4 +145,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) shapes.push({ type: 'point', layerId: L, x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
         const lay = layers.find(l => l.id === L), n = () => { tinCache = null; return tinNodes().length; }, a = n(); lay.visible = false; const b = n(); toggleLayerTin(L); const c = n(); toggleLayerTin(L); lay.visible = true; shapes = keepS; invalidateCache(); return [a, b, c]; });
     t.eq('terrain : un calque masqué compte toujours, ⛰ l\'exclut', tv, [25, 25, 0]);
+
+    // maillage : des lignes de rupture découpées tous les 25 cm au milieu d'un semis à 10 m ne doivent pas faire ronger le terrain depuis le bord (trous en 3D)
+    const tn = await ev(() => { const m = mmToWorld(1000), N = []; for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) N.push({ x: (i * 10 + (j % 2) * 0.7) * m, y: -(j * 10 + (i % 3) * 0.4) * m, z: 100000 + i * 100 });
+        [25, 50, 75].forEach(y0 => { for (let k = 0; k <= 240; k++) { N.push({ x: (15 + k * 0.25) * m, y: -(y0 + k * 0.05) * m, z: 101000 }); N.push({ x: (15 + k * 0.25) * m, y: -(y0 + 1 + k * 0.05) * m, z: 100500 }); } });
+        const T = delaunay(N); let A = 0; T.forEach(t => { const [a, b, c] = t.map(i => N[i]); A += Math.abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) / 2; }); return Math.round(A / (m * m) / 100); });
+    t.ok('maillage avec lignes de rupture denses : le terrain couvre tout le levé (≥ 95 %)', tn >= 95, tn + ' %');
 } };
