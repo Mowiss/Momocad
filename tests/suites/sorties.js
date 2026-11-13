@@ -45,15 +45,15 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         const run = () => { const drawn = []; const o = window.drawSingleShape; window.drawSingleShape = function (c, s2, ...a) { if (s2 === sh) drawn.push(s2); return o.call(this, c, s2, ...a); }; const cv = document.createElement('canvas'); cv.width = 800; cv.height = 600; try { lpRenderVp(cv.getContext('2d'), v, 1, 0, 0, 800, 600); } finally { window.drawSingleShape = o; } return drawn.length > 0; };
         const before = run(); v.lv = { [L]: false }; const hid = run(), planVis = layers.find(l => l.id === L).visible !== false, btn = lpBtnRects(v).some(b => b.id === 'lay'); delete v.lv; S.splice(S.indexOf(sh), 1); return { before, hid, planVis, btn }; });
     t.eq('présentation : calques réglés par fenêtre', lvv, { before: true, hid: false, planVis: true, btn: true });
-    // fenêtre en vue 3D, pilotée à la souris sur la feuille : glisser = tourner, Maj + glisser = déplacer, molette = zoom, Échap = figer
-    const v3a = await ev(async () => { const v = layoutData.vps[layoutData.vps.length - 1]; await lp3DSnap(v); await lp3DEnter(v); const r = lpRect(v), c = canvas.getBoundingClientRect();
-        return { ok: !!(v.v3 && v.v3.img), active: lp3D.id === v.id, az: v.v3.az, dist: v.v3.dist, tx: v.v3.tx, img: v.v3.img.length, cx: c.left + r.x + r.w / 2, cy: c.top + r.y + r.h / 2 }; });
+    // fenêtre en vue 3D, pilotée : la vraie vue 3D (bandeau d'affichage, mêmes gestes : glisser = tourner, clic droit = déplacer, molette = zoom) posée dans le cadre ; Échap la fige
+    const v3a = await ev(async () => { const v = layoutData.vps[layoutData.vps.length - 1]; await lp3DSnap(v); await lp3DEnter(v); const r = lpRect(v), c = canvas.getBoundingClientRect(), el = document.getElementById('view3d'), b = el.getBoundingClientRect(), band = document.getElementById('v3-band');
+        return { ok: !!(v.v3 && v.v3.img), active: lp3D.id === v.id, live: el.style.display === 'block' && el.classList.contains('v3-lp'), fit: Math.abs(b.left - c.left - r.x) < 2 && Math.abs(b.width - r.w) < 2 && Math.abs(b.height - r.h) < 2, band: !band.classList.contains('v3-up'), az: V3.az, dist: V3.dist, tx: V3.target.x, cx: c.left + r.x + r.w / 2, cy: c.top + r.y + r.h / 2 + 30 }; });
     await H.p.mouse.move(v3a.cx, v3a.cy); await H.p.mouse.down(); for (let i = 1; i <= 6; i++) await H.p.mouse.move(v3a.cx + i * 15, v3a.cy + i * 4); await H.p.mouse.up(); await H.wait(200);
-    await H.p.keyboard.down('Shift'); await H.p.mouse.down(); await H.p.mouse.move(v3a.cx + 40, v3a.cy + 10); await H.p.mouse.move(v3a.cx, v3a.cy); await H.p.mouse.up(); await H.p.keyboard.up('Shift');
-    await H.p.mouse.wheel(0, -300); await H.wait(500);
-    const v3b = await ev(() => { const v = layoutData.vps[layoutData.vps.length - 1]; return { az: v.v3.az, dist: v.v3.dist, tx: v.v3.tx, img: v.v3.img.length }; });
-    await H.press('Escape'); const v3c = await ev(() => lp3D.id);
-    t.ok('présentation : fenêtre 3D pilotée à la souris (tourne, se déplace, zoome, Échap la fige)', v3a.ok && v3a.active && Math.abs(v3b.az - v3a.az) > 0.3 && v3b.tx !== v3a.tx && v3b.dist < v3a.dist && v3c === null, JSON.stringify([v3a, v3b, v3c]));
+    await H.p.mouse.down({ button: 'right' }); await H.p.mouse.move(v3a.cx + 40, v3a.cy + 10); await H.p.mouse.move(v3a.cx, v3a.cy); await H.p.mouse.up({ button: 'right' });
+    await H.p.mouse.wheel(0, -300); await H.wait(300);
+    const v3b = await ev(() => ({ az: V3.az, dist: V3.dist, tx: V3.target.x }));
+    await H.press('Escape'); const v3c = await ev(() => { const v = layoutData.vps[layoutData.vps.length - 1]; return { id: lp3D.id, hid: document.getElementById('view3d').style.display === 'none', az: v.v3.az, img: !!v.v3.img }; });
+    t.ok('présentation : fenêtre 3D pilotée comme la vue 3D (bandeau, tourne, se déplace, zoome, Échap la fige à ce point de vue)', v3a.ok && v3a.active && v3a.live && v3a.fit && v3a.band && Math.abs(v3b.az - v3a.az) > 0.3 && v3b.tx !== v3a.tx && v3b.dist < v3a.dist && v3c.id === null && v3c.hid && Math.abs(v3c.az - v3b.az) < 1e-9 && v3c.img, JSON.stringify([v3a, v3b, v3c]));
     await ev(() => { if (layoutOn) toggleLayout(false); });
 
     // métré en PDF

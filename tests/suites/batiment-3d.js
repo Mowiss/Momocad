@@ -145,6 +145,24 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         shapes = shapes.filter(x => !x.secTitle); saveState(); await new Promise(r => setTimeout(r, 700)); const alive = !!shapes.find(x => x.cutDef) && !!shapes.find(x => x.secTitle);
         shapes = keepS; invalidateCache(); saveState(); return { styles, near: mk.length > 0 && mk.every(d => d > 0 && d < 5), alive }; });
     t.eq('coupe : traits coupés épais, au-delà fins, TN tireté, rappels pointillés ; niveaux contre le bâtiment ; titre effacé, coupe toujours dynamique', cs, { styles: ['dashed', 2, 0.5, 'dotted'], near: true, alive: true });
+    // coupe : l'au-delà vient de la maquette filaire des vues de façade (faîtage vu derrière la coupe), rien sous la terre coupée ; cotes de niveau déplaçables, elles suivent la coupe
+    const cw = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + j * 400, zk: 1 });
+        const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); [[18, 10, 18.2, 20], [29.8, 10, 30, 20]].forEach(([a, b2, c, d], k) => shapes.push({ type: 'hatch', layerId: wl, loops: [R(a, b2, c, d)], wallMat: 'parpaing', groupId: 'cz' + k, wz: { b: 105000, t: 107700 } }));
+        shapes.push(...buildRoof({ type: 'poly', layerId: 'layer-0', points: R(18, 10, 30, 20).map(q => Object.assign(q, { z: 107700 })) }, { pans: 2, he: 107.7, hf: 110.5, e: 0.25, ge: 0.2, fill: false, db: 0, dir: 'long' }));
+        shapes.push({ type: 'line', layerId: 'layer-0', x1: 5 * m, y1: -30 * m, x2: 45 * m, y2: -30 * m });   // simple trait du plan : pas dans l'au-delà
+        saveState(); const SC = secSceneMM(), D = sectionData({ x: 2 * m, y: -12 * m }, { x: 48 * m, y: -12 * m }, -1);
+        const ridge = D.beyond.some(b => Math.abs(b[1] - b[3]) < 60 && b[1] > 110000 && Math.abs(b[2] - b[0]) > 5000);
+        const tin = getTIN(), eAt = (u) => { const f = u / ((D.rx * 46000)); return tinZ(2 * m + 46 * m * Math.abs(u) / 46000, -12 * m, tin); };
+        const below = D.beyond.filter(b => [[b[0], b[1]], [b[2], b[3]]].some(([u, z]) => { const e = eAt(u); return hasZ(e) && z < e - 300; })).length;
+        sectionPlace(D, { x: 25 * m, y: -70 * m }); await new Promise(r => setTimeout(r, 300));
+        const mk = () => shapes.find(x => x.secOf && x.type === 'text' && x.lvKey && /Faîtage/.test(x.content)), m0 = mk(), key = m0.lvKey, x0 = m0.x, grpOwn = shapes.filter(x => x.groupId === m0.groupId).length >= 2 && m0.groupId !== shapes.find(x => x.secTitle).groupId;
+        shapes.filter(x => x.groupId === m0.groupId).forEach(x => translateShape(x, 3 * m, 2 * m)); saveState(); await new Promise(r => setTimeout(r, 700));
+        const m1 = mk(), kept = !!m1 && Math.abs(m1.x - x0 - 3 * m) < 0.01 * m;
+        const T = shapes.find(x => x.secTitle); shapes.filter(x => x.groupId === T.groupId).forEach(x => translateShape(x, 10 * m, 0)); saveState(); await new Promise(r => setTimeout(r, 700));
+        const m2 = mk(), follow = !!m2 && Math.abs(m2.x - x0 - 13 * m) < 0.01 * m;
+        shapes = keepS; invalidateCache(); saveState(); return { wire: !!SC && SC.edges.length > 0, ridge, below, grpOwn, kept, follow }; });
+    t.eq('coupe : au-delà tiré de la maquette filaire (faîtage vu), rien sous la terre ; cote de niveau déplaçable qui suit la coupe', cw, { wire: true, ridge: true, below: 0, grpOwn: true, kept: true, follow: true });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
@@ -415,4 +433,17 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         w0.openings = [{ kind: 'fenetre', a: { x: 3 * m, y: 0 }, b: { x: 4.2 * m, y: 0 }, pts: [{ x: 3 * m, y: 0.1 * m }, { x: 4.2 * m, y: 0.1 * m }, { x: 4.2 * m, y: -0.3 * m }, { x: 3 * m, y: -0.3 * m }], sill: 900, h: 1200 }];
         shapes.push(w0, w1); const r = [wallOpeningsFor(w0).length, wallOpeningsFor(w1).length]; shapes = []; return r; });
     t.eq('ouverture du RDC : pas de trou en double dans le mur de l\'étage', od, [1, 0]);
+
+    // coupe en perspective : la 3D tronquée au trait de coupe (plan de coupe, tranches pleines, terre), regardée dans son sens ; une fenêtre 3D de mise en page la garde
+    const c3 = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 8; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 200, zk: 1 });
+        const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); [[10, 10, 10.2, 20], [25.8, 10, 26, 20]].forEach(([a, b2, c, d], k) => shapes.push({ type: 'hatch', layerId: wl, loops: [R(a, b2, c, d)], wallMat: 'parpaing', groupId: 'c3' + k, wz: { b: 102000, t: 104700 } }));
+        saveState(); sectionPlace(sectionData({ x: 2 * m, y: -15 * m }, { x: 38 * m, y: -15 * m }, 1), { x: 20 * m, y: -60 * m }); const L = shapes.find(x => x.cutDef); selectedShapes = [L];
+        await sec3D(); await new Promise(r => setTimeout(r, 300)); const pl = V3.renderer.clippingPlanes[0]; let caps = 0, ground = 0; V3.root.traverse(o => { if (o.userData && o.userData.cap) { caps++; if (o.isMesh && o.material && o.material.side === THREE.DoubleSide) ground++; } });
+        const rp = V3.root.position, at = (x, y) => new THREE.Vector3(worldToMm(x * m) / 1000 + rp.x, -worldToMm(-y * m) / 1000 + rp.y, 0), view = L.cutDef.side, front = pl.distanceToPoint(at(20, 15 - 5 * view)), back = pl.distanceToPoint(at(20, 15 + 5 * view));
+        const noSec = (() => { let n = 0; V3.root.traverse(o => { n++; }); return n > 0; })(); const keep = { az: V3.az };
+        const v = { id: 'vc', x: 0, y: 0, w: 100, h: 60 }; await lp3DSnap(v, true); const kept = !!(v.v3 && v.v3.cut);
+        v3CutToggle(); const off = V3.renderer.clippingPlanes.length === 0; close3D(); shapes = keepS; selectedShapes = []; invalidateCache(); saveState();
+        return { plane: !!pl, sides: Math.sign(front) !== Math.sign(back), caps: caps > 2, ground: ground >= 1, kept, off, img: !!(v.v3 && v.v3.img) }; });
+    t.eq('coupe en perspective : 3D tronquée au trait (un côté gardé), tranches pleines et terre, gardée par une fenêtre 3D de mise en page, retirée au 2e clic', c3, { plane: true, sides: true, caps: true, ground: true, kept: true, off: true, img: true });
 } };
