@@ -118,4 +118,15 @@ module.exports = { name: 'edition', run: async (H, t) => {
     // supprimer la sélection
     await mk({ type: 'poly', open: true, pts: [[50, 0], [52, 0]] }); n = await N(); await pick(51, 0); await H.press('Delete'); await reset();
     t.ok('Suppr efface l\'objet sélectionné', (await N()) === n - 1);
+
+    // volets : paragraphe long réduit à 2 lignes avec « plus ▾ », accroches en cartes avec leur icône, onglets du volet Y avec leur nom, courbes de niveau en rangées alignées
+    const vu = await ev(async () => { const long = 'Texte d\'aide volontairement long pour vérifier le repli. '.repeat(8); openTopoModal('Essai', MF.hint(long), [['Fermer', closeTopoModal, true]]);
+        await new Promise(r => setTimeout(r, 150)); const h = document.querySelector('#tm-body .mf-hint'), b = document.querySelector('#tm-body .mf-more'), c0 = h && h.classList.contains('mf-clamp'); if (b) b.click(); const c1 = h && h.classList.contains('mf-clamp'); closeTopoModal();
+        openSnapModal(); const ic = [...document.querySelectorAll('#snap-modal .sn-ic svg')].length, cards = document.querySelectorAll('#snap-modal .sn-card').length; closeSnapModal();
+        const m = mmToWorld(1000); shapes.push({ type: 'point', layerId: 'layer-0', x: 0, y: 0, z: 100000 }, { type: 'point', layerId: 'layer-0', x: 10 * m, y: 0, z: 101000 }, { type: 'point', layerId: 'layer-0', x: 0, y: 10 * m, z: 102000 }); tinCache = null;
+        openContoursDialog(); const rows = !!document.querySelector('#tm-body .mf-row #ct-eq') && !!document.querySelector('#tm-body .mf-fig svg'); closeTopoModal();
+        selectedShapes = [shapes[shapes.length - 1]]; openSelectionParamModal(); await new Promise(r => setTimeout(r, 100)); const lab = [...document.querySelectorAll('#sp-strip button small')].map(x => x.textContent).filter(Boolean).length > 0; closeSelectionParamModal();
+        shapes.splice(-3, 3); selectedShapes = []; tinCache = null; invalidateCache(); draw();
+        return { clamp: c0 && !!b && !c1, ic, cards, rows, lab }; });
+    t.eq('volets : paragraphe long réductible, accroches en cartes illustrées, courbes de niveau alignées, onglets nommés', vu, { clamp: true, ic: 7, cards: 7, rows: true, lab: true });
 } };
