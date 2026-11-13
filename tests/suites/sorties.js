@@ -90,4 +90,11 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         const none = run('none'), fill = run('fill'), pill = run('pill'); P.fillRect = fr; P.arcTo = at; dimStyleSet(keepD); shapes = keepS; invalidateCache(); draw();
         return { fillMore: fill[0] - none[0] >= 2, pillArcs: pill[1] - none[1] >= 8 }; });
     t.eq('mise en forme des cotes : pente et altitudes suivent le fond choisi (sans, plein, pastille)', mf, { fillMore: true, pillArcs: true });
+    // impression : une image (fond de plan) n'est écrite que sur la partie visible de la fenêtre, même tournée, en JPEG ; barre de progression pendant le PDF
+    const ic = await ev(async () => { const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: 'mm', format: 'a4' }), c = new PdfCtx(doc, 160 / 25.4, false), im = document.createElement('canvas'); im.width = 700; im.height = 700; const g = im.getContext('2d'); g.fillStyle = '#4ade80'; g.beginPath(); g.arc(350, 350, 350, 0, 7); g.fill();
+        const calls = []; const oa = doc.addImage.bind(doc); doc.addImage = (d, f, x, y, w, h, ...r) => { calls.push({ f, w: Math.round(w), h: Math.round(h), kb: Math.round(d.length / 1024) }); return oa(d, f, x, y, w, h, ...r); };
+        c.save(); c.beginPath(); c.rect(20, 20, 100, 80); c.clip(); c.translate(70, 60); c.rotate(0.03); c.drawImage(im, -3000, -3000, 6000, 6000); c.restore();
+        let seen = false; const iv = setInterval(() => { if (document.getElementById('busy-ov')) seen = true; }, 5); const keep = layoutData; layoutData = lpNew(); layoutData.vps.push({ id: 'v', x: 20, y: 20, w: 100, h: 80, scale: 200, cx: 0, cy: 0 }); await lpBuildPDFAsync(); busyEnd(); clearInterval(iv); layoutData = keep;
+        return { n: calls.length, f: calls[0] && calls[0].f, small: calls[0] && calls[0].w < 130 && calls[0].h < 110, light: calls[0] && calls[0].kb < 1500, seen }; });
+    t.eq('impression : image découpée à sa fenêtre (même tournée), en JPEG, barre de progression', ic, { n: 1, f: 'JPEG', small: true, light: true, seen: true });
 } };
