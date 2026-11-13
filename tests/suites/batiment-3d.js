@@ -175,6 +175,21 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         blkTab = 'veget'; renderBlockMenu(); const badge = /2D\/3D/.test(document.getElementById('blk-grid').innerHTML);
         shapes = keepS; invalidateCache(); saveState(); return { parts, tree: h > 5 && h < 9, base: Math.abs(T.min.z - V3.root.position.z - zg) < 0.05, turned: w > d && Math.abs(w - 2) < 0.05, moved: Math.round((L2.min.x - L.min.x) * 10) / 10, badge }; });
     t.eq('blocs en 3D : table avec ses chaises, haie en touffes, arbre au sol à sa taille, meuble tourné et déplacé avec son dessin, vignettes 2D/3D', bk, { parts: { table: true, haie: true }, tree: true, base: true, turned: true, moved: 3, badge: true });
+    // Momo attrapé (clic maintenu + glisser) et posé sur le plan : vue à hauteur d'yeux, Z Q S D pour marcher, arrêt contre un mur, Échap = retour au plan
+    const fp0 = await ev(async () => { await loadThree(); window.__keepFps = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
+        const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); shapes.push({ type: 'hatch', layerId: wl, loops: [R(5, 26, 35, 26.2)], wallMat: 'parpaing', wz: { b: 100000, t: 103000 } });
+        saveState(); if (is3DOpen()) close3D(); zoomExtents(); draw(); const el = document.querySelector('#mt-dock,#mc-momo'), er = el.getBoundingClientRect(), cr = canvas.getBoundingClientRect();
+        return { sx: er.left + er.width / 2, sy: er.top + er.height * 0.3, dx: cr.left + 20 * m * camera.zoom + camera.x, dy: cr.top - 20 * m * camera.zoom + camera.y }; });
+    await H.p.mouse.move(fp0.sx, fp0.sy); await H.p.mouse.down(); for (let i = 1; i <= 8; i++) await H.p.mouse.move(fp0.sx + (fp0.dx - fp0.sx) * i / 8, fp0.sy + (fp0.dy - fp0.sy) * i / 8); await H.p.mouse.up();
+    await H.p.waitForFunction(() => V3 && V3.fps, null, { timeout: 15000 });
+    const fp1 = await ev(() => { const F = V3.fps, rp = V3.root.position, eye = F.pos.z - ((100000 / 1000 - V3.zmin) * V3.exag + rp.z), x0 = F.pos.x - rp.x, y0 = F.pos.y - rp.y;
+        F.yaw = 0; F.keys = { KeyW: true }; for (let i = 0; i < 4; i++) fpsStep(0.25); const walk = Math.round((F.pos.y - rp.y - y0) * 10) / 10;   // 4 × 0,25 s vers le nord
+        for (let i = 0; i < 60; i++) fpsStep(0.25); F.keys = {}; const stop = F.pos.y - rp.y;   // encore vers le nord, jusqu'au mur (à 6 m du point posé)
+        return { eye: Math.round(eye * 100) / 100, x: Math.round(x0), y: Math.round(y0), walk, wall: stop > 25 && stop < 26, hud: document.getElementById('v3-fps').style.display }; });
+    await H.press('Escape'); await H.wait(300);
+    const fp2 = await ev(() => { const r = { plan: !is3DOpen(), off: !(V3 && V3.fps) }; shapes = window.__keepFps; invalidateCache(); saveState(); return r; });
+    t.eq('Momo glissé sur le plan : vue à hauteur d\'yeux au point posé, il marche, s\'arrête au mur, Échap = retour au plan', [fp1, fp2], [{ eye: 1.65, x: 20, y: 20, walk: 1.6, wall: true, hud: 'block' }, { plan: true, off: true }]);
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
@@ -366,6 +381,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         brushSet('erase', true); brushErase(Q(0, 0)); const left = shapes.filter(x => x.brush && x.brush.poly).length; invalidateCache(); draw();
         brushStop(true); shapes = shapes.filter(x => x !== pl && !(x.brush && x.brush.poly)); close3D(); return { closed: !!s && !s.open && s.points.length === 4, ov: ov > 0, sel, left }; });
     t.eq('pinceau polygone : zone cliquée peinte, contour choisi peint, gomme', bpo, { closed: true, ov: true, sel: 2, left: 1 });
+    // pinceau en plan : bascule 2D / 3D sans quitter l'outil ; coup de pinceau et polygone peints directement sur le plan, au sol fini
+    const b2a = await ev(async () => { if (is3DOpen()) close3D(); await startBrush(); brushSet('poly', false); await brushView('2d'); invalidateCache(); draw(); const r = canvas.getBoundingClientRect();
+        return { open: is3DOpen(), on: !!brushTool, view: brushTool.view, n0: shapes.filter(x => x.brush).length, x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    await p.mouse.move(b2a.x - 60, b2a.y); await p.mouse.down(); for (let i = 1; i <= 6; i++) await p.mouse.move(b2a.x - 60 + i * 20, b2a.y + i * 4); await p.mouse.up(); await H.wait(200);
+    await ev(() => brushSet('poly', true)); for (const [dx, dy] of [[-40, 60], [40, 60], [40, 120], [-40, 120]]) { await p.mouse.click(b2a.x + dx, b2a.y + dy); await H.wait(60); } await H.press('Enter'); await H.wait(150);
+    const b2b = await ev(async (n0) => { const S = shapes.filter(x => x.brush).slice(n0), st = S.find(x => !x.brush.poly), po = S.find(x => x.brush.poly); await brushView('3d'); const r = { stroke: !!st && st.points.length > 2 && st.brush.zs.length === st.points.length, poly: !!po && !po.open && po.points.length === 4, back3d: is3DOpen() && !!brushTool && brushTool.view === '3d' };
+        brushStop(true); shapes = shapes.filter(x => !S.includes(x)); close3D(); brushLast.view = '3d'; brushSaveOpt(); return r; }, b2a.n0);
+    t.eq('pinceau : bascule 2D / 3D, coup et polygone peints en plan', [b2a.open, b2a.on, b2a.view, b2b], [false, true, '2d', { stroke: true, poly: true, back3d: true }]);
     // toitures et ouvertures sur leurs calques ; un calque Ouvertures masqué cache les menuiseries (le trou reste)
     const lyr = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 0 })) };
         const R = buildRoof(base, { pans: 2, he: 2.5, hf: 5, e: 0.2, ge: 0.2, fill: true, db: 0 }), T = buildTerrace(base, { pans: 0, he: 3, te: 0.25, tc: 0, ah: 0.5, at: 0.2, fp: 0, fe: 0.05 });
