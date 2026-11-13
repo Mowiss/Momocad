@@ -198,6 +198,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     await H.press('Escape'); await H.wait(300);
     const fp2 = await ev(() => { const r = { plan: !is3DOpen(), off: !(V3 && V3.fps) }; shapes = window.__keepFps; invalidateCache(); saveState(); return r; });
     t.eq('Momo glissé sur le plan (porté avec son ombre, sans sélection parasite) : vue à hauteur d\'yeux au point posé, il marche, s\'arrête au mur, Échap = retour au plan', [gh, fp1, fk, fp2], [{ one: true, noText: true, shadow: true, nosel: true }, { eye: 1.65, x: 20, y: 20, walk: 1.6, wall: true, hud: 'block' }, { badges: 'F1,F2,F3,F4,F5,F6,F7,F8,F9', surf: true, ex: true, still: true }, { plan: true, off: true }]);
+    // un pan de montagne importé loin du projet ne change ni la portée des talus, ni le terrain fini (avant : talus calculés et dessinés à gros grain, en éventails)
+    const mt = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 300, zk: 1 });
+        shapes.push({ type: 'poly', layerId: 'layer-0', zk: 1, talus: { on: true, kD: '3/2', kR: '3/2' }, points: R(18, 18, 32, 32).map(q => Object.assign(q, { z: 103000 })) }); tinCache = null; invalidateCache();
+        const look = () => { const FM = finishedModel(), out = []; for (let d = 0; d <= 12; d++) { const r = FM.at((32 + d) * m, -25 * m); out.push(r ? r.kind + ':' + Math.round(r.z / 10) : '-'); } return { ext: FM.P[0].ext / m, prof: out.join(' ') }; };
+        const a = look(); for (let k = 0; k < 10; k++) { const an = k / 10 * 2 * Math.PI; shapes.push({ type: 'point', layerId: 'layer-0', x: (25 + Math.cos(an) * 1500) * m, y: (-25 + Math.sin(an) * 1500) * m, z: 1100000 + (k % 3) * 200000, zk: 1 }); } tinCache = null; invalidateCache();
+        const b = look(); shapes = keepS; tinCache = null; invalidateCache(); saveState(); return { near: b.ext < a.ext * 1.5 && b.ext < 30, same: a.prof === b.prof, a, b }; });
+    t.ok('montagne importée au loin : portée des talus et terrain fini inchangés près du projet', mt.near && mt.same, JSON.stringify(mt));
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
