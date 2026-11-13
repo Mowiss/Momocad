@@ -97,4 +97,45 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         let seen = false; const iv = setInterval(() => { if (document.getElementById('busy-ov')) seen = true; }, 5); const keep = layoutData; layoutData = lpNew(); layoutData.vps.push({ id: 'v', x: 20, y: 20, w: 100, h: 80, scale: 200, cx: 0, cy: 0 }); await lpBuildPDFAsync(); busyEnd(); clearInterval(iv); layoutData = keep;
         return { n: calls.length, f: calls[0] && calls[0].f, small: calls[0] && calls[0].w < 130 && calls[0].h < 110, light: calls[0] && calls[0].kb < 1500, seen }; });
     t.eq('impression : image découpée à sa fenêtre (même tournée), en JPEG, barre de progression', ic, { n: 1, f: 'JPEG', small: true, light: true, seen: true });
+
+    // plusieurs présentations : onglets (+), menu ⚙ (format et cartouche propres à chacune), cartouche à cases sur la feuille, poignées des fenêtres prises même hors du cadre, enregistrement
+    await ev(() => { if (layoutOn) toggleLayout(false); lpResetAll(); Object.assign(layoutData, { paper: 'A3', orient: 'landscape', margin: 10, cartouche: true, cartType: 'mini' });
+        layoutData.vps.push({ id: 'pA', x: 40, y: 40, w: 150, h: 100, scale: 200, cx: 0, cy: 0 }, { id: 'pB', x: 240, y: 40, w: 60, h: 60, round: true, scale: 200, cx: 0, cy: 0 }); toggleLayout(true); });
+    await H.wait(300);
+    const tabXY = (sel) => ev(sel => { const b = document.querySelector(sel); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
+    t.eq('présentations : un onglet', await ev(() => document.querySelectorAll('#lp-tabs .lp-tab').length), 1);
+    await H.click(await tabXY('#lp-tabs .lp-tab-add')); await H.wait(200);
+    t.eq('présentations : « + » en crée une 2e, ouverte, vide, au même format', await ev(() => [layouts.length, layoutIdx, layoutData.vps.length, layoutData.paper, document.querySelectorAll('#lp-tabs .lp-tab').length]), [2, 1, 0, 'A3', 2]);
+    await H.click(await tabXY('#lp-tabs .lp-tab.on .lp-tab-g')); await H.wait(200);
+    await ev(() => { const set = (f, v) => { const e = document.querySelector('#lp-menu [data-i="1"][data-f="' + f + '"]'); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }; set('paper', 'A1'); set('cart', 'a4'); set('name', 'Réseau EP'); });
+    await H.press('Escape'); await H.wait(150);
+    t.eq('menu ⚙ : format A1 et cartouche A4 pour la 2e seulement, renommée', await ev(() => [lpMenuShown(), layouts[1].paper, layouts[1].cartType, layouts[0].paper, layouts[0].cartType, document.querySelector('#lp-tabs .lp-tab.on').textContent.replace('⚙', '').trim()]), [false, 'A1', 'a4', 'A3', 'mini', '2. Réseau EP']);
+    const cellXY = (key) => ev(key => { const c = lpCartCells().find(x => x.key === key), r = canvas.getBoundingClientRect(); return c ? { x: r.left + lpCam.x + (c.x + c.w / 2) * lpCam.k, y: r.top + lpCam.y + (c.y + c.h / 2) * lpCam.k } : null; }, key);
+    t.eq('cartouche A4 : titre = nom de l\'onglet tant qu\'il n\'est pas écrit', await ev(() => lpCartSrc().planName), 'Réseau EP');
+    await H.click(await cellXY('site')); await H.wait(150);
+    const edOpen = await ev(() => !!document.getElementById('lp-cart-ed'));
+    await p.keyboard.type('Chantier de Gap'); await H.press('Enter'); await H.wait(100);
+    await H.click(await cellXY('planName')); await H.wait(150); await p.keyboard.press('Control+A'); await p.keyboard.type('Plan des eaux pluviales'); await H.press('Enter');
+    await H.click(await cellXY('rev.0.txt')); await H.wait(150); await p.keyboard.type('Première diffusion'); await H.press('Enter'); await H.wait(100);
+    t.eq('cartouche à cases : clic sur une case, saisie, Entrée (commun au projet / propre à la présentation)', await ev(() => [cartoucheData.site, layouts[1].cart.planName, (layouts[1].cart.revisions || [])[0] && layouts[1].cart.revisions[0].txt, layouts[0].cart.planName, !!document.getElementById('lp-cart-ed')]), ['Chantier de Gap', 'Plan des eaux pluviales', 'Première diffusion', undefined, false]);
+    t.ok('cartouche à cases : la case s\'ouvre en saisie sur la feuille', edOpen);
+    await H.shot('presentations-cartouche-cases');
+    await H.click(await tabXY('#lp-tabs .lp-tab[data-i="0"]')); await H.wait(200);
+    t.eq('onglet 1 : retour à la 1re présentation, ses 2 fenêtres', await ev(() => [layoutIdx, layoutData.vps.length, layoutData.paper]), [0, 2, 'A3']);
+    // poignées : coin pris 6 px hors du cadre, bord droit seul, rayon de la fenêtre ronde
+    const drag = async (a, dx, dy) => { await p.mouse.move(a.x, a.y); await H.wait(60); await p.mouse.down(); for (let i = 1; i <= 5; i++) { await p.mouse.move(a.x + dx * i / 5, a.y + dy * i / 5); await H.wait(20); } await p.mouse.up(); await H.wait(120); };
+    const vpPt = (id, fx, fy, ox, oy) => ev(([id, fx, fy, ox, oy]) => { const v = lpVp(id), r = lpRect(v), c = canvas.getBoundingClientRect(); return { x: c.left + r.x + r.w * fx + ox, y: c.top + r.y + r.h * fy + oy }; }, [id, fx, fy, ox, oy]);
+    const sz = (id) => ev(id => { const v = lpVp(id); return [Math.round(v.x), Math.round(v.y), Math.round(v.w), Math.round(v.h)]; }, id);
+    const s0 = await sz('pA'), kk = await ev(() => lpCam.k);
+    await drag(await vpPt('pA', 1, 1, 6, 6), 60, 40); const s1 = await sz('pA');
+    t.ok('poignée de coin prise hors du cadre : la fenêtre s\'étire', s1[2] > s0[2] + 20 / kk && s1[3] > s0[3] + 10 / kk && s1[0] === s0[0], JSON.stringify([s0, s1]));
+    await drag(await vpPt('pA', 1, 0.5, 4, 0), 50, 30); const s2 = await sz('pA');
+    t.ok('poignée de bord : seule la largeur change', s2[2] > s1[2] + 20 / kk && s2[3] === s1[3] && s2[1] === s1[1], JSON.stringify([s1, s2]));
+    const r0 = await sz('pB'); await drag(await vpPt('pB', 1, 0.5, 4, 0), 30, 0); const r1 = await sz('pB');
+    t.ok('fenêtre ronde : son pourtour se tire, elle grandit autour de son centre', r1[2] > r0[2] + 20 / kk && Math.abs((r1[0] + r1[2] / 2) - (r0[0] + r0[2] / 2)) <= 1, JSON.stringify([r0, r1]));
+    // enregistrement et réouverture
+    const rt = await ev(() => { const txt = JSON.stringify(projectData()); toggleLayout(false); lpResetAll(); loadProjectText(txt, 'essai.mmc');
+        return [layouts.length, layoutIdx, layouts.map(L => L.name), layouts[1].paper, layouts[1].cartType, layouts[1].cart.planName, layouts[0].vps.length, cartoucheData.site]; });
+    t.eq('présentations enregistrées puis rouvertes (.mmc)', rt, [2, 0, ['', 'Réseau EP'], 'A1', 'a4', 'Plan des eaux pluviales', 2, 'Chantier de Gap']);
+    await ev(() => { lpResetAll(); cartoucheData.site = ''; saveCartoucheData(); });
 } };
