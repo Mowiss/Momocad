@@ -165,8 +165,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     // test d'écoulement : une cuvette garde l'eau (flaque trouvée), la pente l'évacue par le bord ; volumes conservés
     const ec = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000);
         for (let i = 0; i <= 20; i++) for (let j = 0; j <= 20; j++) { const x = i * 2, y = j * 2, r = Math.hypot(x - 20, y - 20), z = 100 + x * 0.02 - (r < 6 ? (6 - r) * 0.08 : 0); shapes.push({ type: 'point', layerId: 'layer-0', x: x * m, y: -y * m, z: Math.round(z * 1000) }); }
-        tinCache = null; invalidateCache(); const E = ecGrid(4000), Z = ecRun(E, 60, 15, 30), st = Z.reduce((a, z) => a + z.vol, 0), ci = E.x0 + Z[0].ci * E.c * E.m, cj = E.y0 + Z[0].cj * E.c * E.m;
-        const r = { n: Z.length >= 1, center: Math.hypot(ci / m - 20, -cj / m - 20) < 3, out: E.out > 0.5 * E.rainV, cons: Math.abs(E.rainV - E.out - st - 0) / E.rainV < 0.05 };
+        tinCache = null; invalidateCache(); const E = ecGrid(4000), R0 = E.ret.length, cap = R0 ? E.ret[0].cap : 0; Object.keys(E.inf).forEach(k => { E.inf[k] = 0; }); ecRates(E);
+        const Z = ecRun(E, 60, 15, 30); let held = 0; for (let k = 0; k < E.n; k++) held += E.d[k] * E.c * E.c; const ci = E.x0 + Z[0].ci * E.c * E.m, cj = E.y0 + Z[0].cj * E.c * E.m;
+        const E2 = ecGrid(4000); Object.keys(E2.inf).forEach(k => { E2.inf[k] = 30; }); ecRates(E2); ecRun(E2, 60, 15, 30);
+        const r = { n: R0 >= 1 && cap > 1, center: Math.hypot(ci / m - 20, -cj / m - 20) < 3, out: E.out > 0.5 * E.rainV, cons: Math.abs(E.rainV - E.out - held - E.infV) / E.rainV < 0.02, filled: Z[0].pct > 0.1 && Z[0].pct <= 1, sand: E2.infV > 0.3 * E2.rainV && E2.out < E.out };
         shapes = keepS; tinCache = null; invalidateCache(); return r; });
-    t.eq('test d\'écoulement : flaque dans la cuvette, l\'eau de la pente sort par le bord, volumes conservés', ec, { n: true, center: true, out: true, cons: true });
+    t.eq('test d\'écoulement : rétention (cuvette) trouvée sur le relief et remplie par la pluie, la pente s\'évacue par le bord, infiltration selon le sol, volumes conservés', ec, { n: true, center: true, out: true, cons: true, filled: true, sand: true });
 } };

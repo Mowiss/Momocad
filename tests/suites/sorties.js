@@ -105,8 +105,11 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
     const tabXY = (sel) => ev(sel => { const b = document.querySelector(sel); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
     t.eq('présentations : un onglet', await ev(() => document.querySelectorAll('#lp-tabs .lp-tab').length), 1);
     await H.click(await tabXY('#lp-tabs .lp-tab-add')); await H.wait(200);
-    t.eq('présentations : « + » en crée une 2e, ouverte, vide, au même format', await ev(() => [layouts.length, layoutIdx, layoutData.vps.length, layoutData.paper, document.querySelectorAll('#lp-tabs .lp-tab').length]), [2, 1, 0, 'A3', 2]);
-    await H.click(await tabXY('#lp-tabs .lp-tab.on .lp-tab-g')); await H.wait(200);
+    const cfg = await ev(() => [lpMenuShown(), !document.querySelector('#lp-tabs .lp-tab-g')]);
+    await H.click(await tabXY('#lp-menu [data-a=add]')); await H.wait(200);
+    t.eq('présentations : « + » ouvre le configurateur (plus de ⚙ sur l\'onglet), « Nouvelle présentation » en crée une 2e, ouverte, vide, au même format', await ev(() => [layouts.length, layoutIdx, layoutData.vps.length, layoutData.paper, document.querySelectorAll('#lp-tabs .lp-tab').length]).then(v => cfg.concat(v)), [true, true, 2, 1, 0, 'A3', 2]);
+    const del = await ev(() => { document.querySelector('#lp-menu [data-a=del][data-i="1"]').click(); const ask = !!document.querySelector('#lp-menu .lpm-ask') && !!document.querySelector('#lp-menu [data-a=delok]'); document.querySelector('#lp-menu [data-a=delno]').click(); return [ask, layouts.length, !!document.querySelector('#lp-menu [data-a=del][data-i="1"] svg')]; });
+    t.eq('configurateur : suppression demandée en ligne (Oui / Non), boutons à icônes', del, [true, 2, true]);
     await ev(() => { const set = (f, v) => { const e = document.querySelector('#lp-menu [data-i="1"][data-f="' + f + '"]'); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }; set('paper', 'A1'); set('cart', 'a4'); set('name', 'Réseau EP'); });
     await H.press('Escape'); await H.wait(150);
     t.eq('menu ⚙ : format A1 et cartouche A4 pour la 2e seulement, renommée', await ev(() => [lpMenuShown(), layouts[1].paper, layouts[1].cartType, layouts[0].paper, layouts[0].cartType, document.querySelector('#lp-tabs .lp-tab.on').textContent.replace('⚙', '').trim()]), [false, 'A1', 'a4', 'A3', 'mini', '2. Réseau EP']);
