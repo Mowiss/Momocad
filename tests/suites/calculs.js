@@ -171,4 +171,25 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const r = { n: R0 >= 1 && cap > 1, center: Math.hypot(ci / m - 20, -cj / m - 20) < 3, out: E.out > 0.5 * E.rainV, cons: Math.abs(E.rainV - E.out - held - E.infV) / E.rainV < 0.02, filled: Z[0].pct > 0.1 && Z[0].pct <= 1, sand: E2.infV > 0.3 * E2.rainV && E2.out < E.out };
         shapes = keepS; tinCache = null; invalidateCache(); return r; });
     t.eq('test d\'écoulement : rétention (cuvette) trouvée sur le relief et remplie par la pluie, la pente s\'évacue par le bord, infiltration selon le sol, volumes conservés', ec, { n: true, center: true, out: true, cons: true, filled: true, sand: true });
+
+    // pluie réelle du site : archives horaires lues au point du plan (géoréférencé), épisodes classés par pointe, rejoués heure par heure
+    const rr = await ev(async () => { const keepS = shapes, keepO = geoOrigin, keepF = window.fetch; shapes = []; geoOrigin = { x: 900000000, y: 6300000000 }; const m = mmToWorld(1000);
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 3 * m, y: -j * 3 * m, z: 100000 + i * 60 });
+        tinCache = null; invalidateCache(); let url = ''; const N = 24 * 30, time = [], pr = []; for (let h = 0; h < N; h++) { time.push(new Date(Date.UTC(2023, 9, 1, h)).toISOString().slice(0, 16)); pr.push(0); }
+        [[100, [2, 8, 30, 12, 3]], [400, [1, 2, 3, 2]]].forEach(([h0, L]) => L.forEach((v, k) => { pr[h0 + k] = v; }));
+        window.fetch = async (u) => { url = String(u); return { ok: true, json: async () => ({ hourly: { time, precipitation: pr } }) }; };
+        try { ecOpen(); await new Promise(r => setTimeout(r, 50)); document.querySelector('#ec-wiz [data-a=real]').click(); await new Promise(r => setTimeout(r, 100));
+            const rows = document.querySelectorAll('#ec-real .piw-row').length, first = EC.storms[0]; document.querySelector('#ec-real .piw-row[data-i="0"]').click();
+            const E = EC; Object.keys(E.inf).forEach(k => { E.inf[k] = 0; }); ecRates(E); ecRun(E, undefined, undefined, 5); const A = E.c * E.c; let cells = 0; for (let k = 0; k < E.n; k++) if (!isNaN(E.z[k])) cells++;
+            const exp = 55 / 1000 * cells * A, r = { url: /latitude=4[0-9]\.\d+&longitude=[0-9-]+\.\d+.*hourly=precipitation/.test(url), rows, peak: first.peak, tot: first.tot, h: first.h, rain: Math.abs(E.rainV - exp) / exp < 0.03 }; ecClose(); return r; }
+        finally { window.fetch = keepF; shapes = keepS; geoOrigin = keepO; tinCache = null; invalidateCache(); } });
+    t.eq('pluie réelle du site : archives lues au point du plan, orages classés, épisode rejoué heure par heure', rr, { url: true, rows: 2, peak: 30, tot: 55, h: 5, rain: true });
+
+    // test d'écoulement : la maison dessinée (toiture, murs) est dans le relief — l'eau ruisselle sur le toit et la contourne
+    const eh = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 12; i++) for (let j = 0; j <= 12; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 3 * m, y: -j * 3 * m, z: 100000 });
+        shapes.push(...buildRoof({ type: 'poly', layerId: 'layer-0', points: R(12, 12, 24, 22).map(q => Object.assign(q, { z: 102500 })) }, { pans: 2, he: 102.5, hf: 104.5, e: 0.25, ge: 0.2, fill: false, db: 0, dir: 'long' }));
+        tinCache = null; invalidateCache(); const E = ecGrid(3000), at = (x, y) => { const i = Math.round((x * m - E.x0) / (E.c * m)), j = Math.round((-y * m - E.y0) / (E.c * m)); return j * E.nx + i; }, k = at(18, 17), k2 = at(4, 4);
+        const r = { roof: E.roof[k] === 1 && E.surf[k] === 4, high: E.z[k] > 102.4, ground: !E.roof[k2] && Math.abs(E.z[k2] - 100) < 0.01 }; shapes = keepS; tinCache = null; invalidateCache(); return r; });
+    t.eq('test d\'écoulement : la toiture dessinée est dans le relief (toit, étanche), le terrain autour inchangé', eh, { roof: true, high: true, ground: true });
 } };
