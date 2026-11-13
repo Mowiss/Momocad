@@ -72,7 +72,7 @@ module.exports = { name: 'dessin', run: async (H, t) => {
     // plan PDF calé : Y › Points topo du plan lit les cotes dans le PDF (pas dans l'image) et implante un point à chaque repère, à l'altitude lue
     await H.ev(() => { shapes = []; saveState(); });
     await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'topo.pdf')); await H.wait(1500);
-    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.wait(1500);
+    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.p.waitForFunction(() => { const bg = shapes.find(x => x.type === 'bgimage'); return bg && bg.pdfTopo && isFinite(bg.w) && bg.w > 0 && !document.getElementById('busy-ov'); }, null, { timeout: 30000 }).catch(() => {}); await H.wait(300);
     const pt = await H.ev(() => { const bg = shapes.find(x => x.type === 'bgimage'); if (!bg || !bg.pdfTopo) return null; selectedShapes = [bg]; openSelectionParamModal();
         const btn = [...document.querySelectorAll('#selparam-modal .sp-act, #selparam-modal button')].find(b => /Importer points/.test(b.textContent)); if (!btn) return 'pas de bouton'; btn.click();
         const imp = [...document.querySelectorAll('#tm-actions button')].find(b => /Importer/.test(b.textContent)); imp.click();
@@ -85,7 +85,7 @@ module.exports = { name: 'dessin', run: async (H, t) => {
     // plan PDF : talus reconnu à ses hachures (tête et pied en lignes de rupture 3D, Z tiré des cotes posées dessus) ; traits du plan dans un calque à son nom, sans les repères des points
     await H.ev(() => { shapes = []; saveState(); });
     await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'talus.pdf')); await H.wait(1500);
-    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.wait(1500);
+    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.p.waitForFunction(() => { const bg = shapes.find(x => x.type === 'bgimage'); return bg && bg.pdfTopo && isFinite(bg.w) && bg.w > 0 && !document.getElementById('busy-ov'); }, null, { timeout: 30000 }).catch(() => {}); await H.wait(300);
     const tl = await H.ev(() => { const bg = shapes.find(x => x.type === 'bgimage'); if (!bg) return 'pas de fond'; selectedShapes = [bg]; pdfTopoDialog(bg); ['pi-pts', 'pi-tal', 'pi-trc'].forEach(id => document.getElementById(id).checked = true);
         [...document.querySelectorAll('#tm-actions button')].find(b => /Importer/.test(b.textContent)).click();
         const lay = (n) => (layers.find(l => l.name === n) || {}).id, BL = shapes.filter(x => x.layerId === lay('Talus (PDF)')), hd = BL.find(x => /Tête/.test(x.name)), ft = BL.find(x => /Pied/.test(x.name));
@@ -217,4 +217,24 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         s.pdfTalus = [{ h: ln(0.40), p: ln(0.45) }, { h: ln(0.70), p: ln(0.72) }, { h: [[0.5, 0.9], [0.51, 0.9]] }];
         const msg = pdfTalusPlace(s, 0, 200, 't'), n = shapes.filter(x => x.type === 'poly').length; shapes = keepS; invalidateCache(); return { n, msg: /2 fausse/.test(msg) }; });
     t.eq('talus du PDF : faux talus (trop court, sans dénivelé) écartés, le vrai gardé', tf, { n: 2, msg: true });
+
+    // bâtiments au clic : un contour fermé non hachuré (4 traits séparés, un mur en T) est reconnu ; hauteur demandée en NGF ou en H (l'une remplit l'autre) ;
+    // contour étiré : le pied se recalcule, le haut NGF reste ; l'import des points d'un PDF enchaîne sur l'étape « Bâtiments »
+    const bc = await ev(async () => { const keepS = shapes, W = 600, H = 400, m = mmToWorld(1000); shapes = [];
+        const lines = [[[100, 100], [220, 100]], [[220, 100], [220, 180]], [[220, 180], [100, 180]], [[100, 180], [100, 100]], [[160, 180], [160, 260]], [[300, 50], [320, 60]]];
+        const id = 'vecBC'; vecStore[id] = vecMake(W, H, lines.map(p => ({ p, c: false }))); const pv = { type: 'pdfvec', layerId: 'layer-0', vecId: id, x: 0, y: 0, w: mmToWorld(W * 0.3528 * 200), h: mmToWorld(H * 0.3528 * 200), rot: 0 };
+        shapes.push(pv); [[60, 60], [260, 60], [260, 220], [60, 220]].forEach(([u, v]) => shapes.push(Object.assign({ type: 'point', layerId: 'layer-0', z: 50000 }, bgUV(pv, u / W, v / H))));
+        const P = bgUV(pv, 130 / W, 140 / H), c = batCandAt(P.x, P.y), k = worldToMm(1) / 1000, ar = c ? c.a * k * k : 0, exp = 120 * 80 * Math.pow(0.3528 * 200 / 1000, 2);
+        setMode('select-box'); batStart(); const picked = batPick(P.x, P.y); await new Promise(r => setTimeout(r, 50)); const pop = document.getElementById('bat-h'), sh = batList()[0].s;
+        const hh = pop.querySelector('#bat-hh'), ng = pop.querySelector('#bat-ngf'); hh.value = '7,5'; hh.dispatchEvent(new Event('input')); const ngf = ng.value; hh.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        const r1 = { H: sh.solid.H, top: sh.batTop }; sh.points[0].x -= 2 * m; sh.points[3].x -= 2 * m; saveState(); const r2 = { top: sh.batTop, H: sh.solid.H };
+        const bar = !!document.getElementById('bat-bar'); setMode('select-box'); const barGone = !document.getElementById('bat-bar');
+        // import des points d'un PDF : l'étape Bâtiments s'ouvre ensuite
+        const s = { type: 'bgimage', layerId: 'layer-0', mapId: 'bsT', x: 0, y: 0, w: pv.w, h: pv.h, rot: 0, pdfTopo: { t: [[0.1, 0.1, 50.2], [0.9, 0.9, 50.4]], m: [null, null] } }; shapes.push(s);
+        pdfImport(s, { pts: true, tal: false, trc: false, lo: 0, hi: 100, pos: 't', ln: 'Points topo (PDF)' }); await new Promise(r => setTimeout(r, 300));
+        const step = document.getElementById('topo-modal').style.display === 'flex' && /Bâtiments existants/.test(document.getElementById('topo-modal').textContent); closeTopoModal();
+        shapes = keepS; delete vecStore[id]; batSrcCache.clear(); invalidateCache(); saveState();
+        return { kind: c && c.kind, areaOk: Math.abs(ar - exp) / exp < 0.02, picked, ngf, H1: r1.H, topKept: r2.top === r1.top, bar, barGone, step }; });
+    t.eq('bâtiment au clic : contour fermé reconnu, hauteur H → NGF, contour étiré (haut NGF gardé), barre et étape Bâtiments après l\'import', bc,
+        { kind: 'contour', areaOk: true, picked: true, ngf: '57,50', H1: 7500, topKept: true, bar: true, barGone: true, step: true });
 } };
