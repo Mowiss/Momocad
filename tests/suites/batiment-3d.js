@@ -181,7 +181,9 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); shapes.push({ type: 'hatch', layerId: wl, loops: [R(5, 26, 35, 26.2)], wallMat: 'parpaing', wz: { b: 100000, t: 103000 } });
         saveState(); if (is3DOpen()) close3D(); zoomExtents(); draw(); const el = document.querySelector('#mt-dock,#mc-momo'), er = el.getBoundingClientRect(), cr = canvas.getBoundingClientRect();
         return { sx: er.left + er.width / 2, sy: er.top + er.height * 0.3, dx: cr.left + 20 * m * camera.zoom + camera.x, dy: cr.top - 20 * m * camera.zoom + camera.y }; });
-    await H.p.mouse.move(fp0.sx, fp0.sy); await H.p.mouse.down(); for (let i = 1; i <= 8; i++) await H.p.mouse.move(fp0.sx + (fp0.dx - fp0.sx) * i / 8, fp0.sy + (fp0.dy - fp0.sy) * i / 8); await H.p.mouse.up();
+    await H.p.mouse.move(fp0.sx, fp0.sy); await H.p.mouse.down(); for (let i = 1; i <= 8; i++) await H.p.mouse.move(fp0.sx + (fp0.dx - fp0.sx) * i / 8, fp0.sy + (fp0.dy - fp0.sy) * i / 8);
+    const gh = await ev(() => { const g = [...document.body.children].filter(x => x.tagName.toLowerCase() === 'svg' && x.style.position === 'fixed'), sh = [...document.body.children].filter(x => x.tagName === 'DIV' && /radial-gradient/.test(x.style.background)); return { one: g.length === 1, noText: g.length === 1 && !/…/.test(g[0].textContent || ''), shadow: sh.length === 1, nosel: document.body.classList.contains('momo-drag') }; });
+    await H.p.mouse.up();
     await H.p.waitForFunction(() => V3 && V3.fps, null, { timeout: 15000 });
     const fp1 = await ev(() => { const F = V3.fps, rp = V3.root.position, eye = F.pos.z - ((100000 / 1000 - V3.zmin) * V3.exag + rp.z), x0 = F.pos.x - rp.x, y0 = F.pos.y - rp.y;
         F.yaw = 0; F.keys = { KeyW: true }; for (let i = 0; i < 4; i++) fpsStep(0.25); const walk = Math.round((F.pos.y - rp.y - y0) * 10) / 10;   // 4 × 0,25 s vers le nord
@@ -189,7 +191,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         return { eye: Math.round(eye * 100) / 100, x: Math.round(x0), y: Math.round(y0), walk, wall: stop > 25 && stop < 26, hud: document.getElementById('v3-fps').style.display }; });
     await H.press('Escape'); await H.wait(300);
     const fp2 = await ev(() => { const r = { plan: !is3DOpen(), off: !(V3 && V3.fps) }; shapes = window.__keepFps; invalidateCache(); saveState(); return r; });
-    t.eq('Momo glissé sur le plan : vue à hauteur d\'yeux au point posé, il marche, s\'arrête au mur, Échap = retour au plan', [fp1, fp2], [{ eye: 1.65, x: 20, y: 20, walk: 1.6, wall: true, hud: 'block' }, { plan: true, off: true }]);
+    t.eq('Momo glissé sur le plan (porté avec son ombre, sans sélection parasite) : vue à hauteur d\'yeux au point posé, il marche, s\'arrête au mur, Échap = retour au plan', [gh, fp1, fp2], [{ one: true, noText: true, shadow: true, nosel: true }, { eye: 1.65, x: 20, y: 20, walk: 1.6, wall: true, hud: 'block' }, { plan: true, off: true }]);
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
@@ -304,6 +306,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const host = shapes.find(x => (x.openings || []).length), o = host.openings[0]; let tagged = 0; V3.root.traverse(x => { if (x.userData.opening === o) tagged++; });
         selectedShapes = [host]; V3.pickOp = { host, o }; v3ParamSel(); const op = document.getElementById('topo-modal').style.display !== 'none' && /Ouverture/.test(document.getElementById('topo-modal').textContent); closeTopoModal(); return r.concat([tagged > 0, op]); });
     t.eq('vue 3D : Y ouvre les réglages par-dessus la 3D ; menuiserie cliquée → fenêtre Ouverture', y3, [true, true, true, true]);
+    // vue Momo : une porte s'ouvre (E ou clic) sur ses gonds, de 90°, du côté opposé à Momo, et se referme
+    const dr = await ev(async () => { let pv = null; V3.root.traverse(x => { if (x.userData.door && !pv) pv = x; }); if (!pv) return { leaf: false };
+        const a0 = pv.userData.door.a0, leaf = pv.children[0], c = new THREE.Box3().setFromObject(leaf).getCenter(new THREE.Vector3()), nx = -Math.sin(a0), ny = Math.cos(a0);
+        const rp = V3.root.position, wx = mmToWorld((c.x + nx * 1.5 - rp.x) * 1000), wy = -mmToWorld((c.y + ny * 1.5 - rp.y) * 1000); await momoFPS({ w: { x: wx, y: wy } });
+        const F = V3.fps; F.pos.z = c.z; F.yaw = Math.atan2(c.x - F.pos.x, c.y - F.pos.y); F.pitch = 0; const ok = fpsDoor(); for (let i = 0; i < 12; i++) fpsStep(0.1); const turned = Math.abs(Math.abs(pv.rotation.z - a0) - Math.PI / 2) < 1e-3;
+        const side = (F.pos.x - pv.position.x) * nx + (F.pos.y - pv.position.y) * ny, away = Math.sign(pv.rotation.z - a0) === (side > 0 ? -1 : 1);
+        fpsDoor(); for (let i = 0; i < 12; i++) fpsStep(0.1); const closed = Math.abs(pv.rotation.z - a0) < 1e-3; V3.fps.back = { az: V3.az, el: V3.el, dist: V3.dist, t: V3.target.clone() }; fpsStop(); return { leaf: true, ok, turned, away, closed }; });
+    t.eq('vue Momo : la porte s\'ouvre de 90° sur ses gonds, côté opposé, et se referme', dr, { leaf: true, ok: true, turned: true, away: true, closed: true });
     // pinceau : un coup de pinceau à la souris dans la vue 3D, posé en couche transparente sur la surface touchée, sans devenir du terrain
     await ev(async () => { await startBrush(); brushChoose('galets'); brushSet('d', 1); brushSet('h', 50); });
     const R3 = await ev(() => { V3.az = Math.PI * 1.25; V3.el = 0.7; render3D(); const c = V3.renderer.domElement.getBoundingClientRect(); return { x: c.left + c.width / 2, y: c.top + c.height / 2 }; });
