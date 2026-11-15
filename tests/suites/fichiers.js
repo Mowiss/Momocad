@@ -173,4 +173,12 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         if (big) { selectedShapes = [big]; draw(); } const r = { nB: B.length, clip: maxR !== null && maxR <= 100.5, hedge: !!hedge, edges: E.length, flat, onRoad: Math.abs(zc - za) < 60, removed: nPts0 - shapes.filter(x => x.code === 'TN_IGN').length > 0, inBand, notTin: !isPlateforme(big), grp };
         selectedShapes = []; shapes = keepS; tinCache = null; invalidateCache(); saveState(); return r; });
     t.eq('import : zones boisées (bois découpé au cercle, haie, vigne écartée) et routes TN propre (2 bords, chaussée plate, TN calé dessus, points de chaussée retirés, sentier écarté)', ib, { nB: 2, clip: true, hedge: true, edges: 2, flat: true, onRoad: true, removed: true, inBand: 0, notTin: true, grp: ['Données carto'] });
+    // beaucoup de points (grille IGN fine) : le terrain existe toujours (grille éclaircie, lignes de rupture gardées) ; avant, au-delà de 8 000 points plus de terrain du tout
+    const tt = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000);
+        for (let i = 0; i < 110; i++) for (let j = 0; j < 110; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * m, y: -j * m, z: 100000 + i * 50, zk: 1, code: 'TN_IGN' });
+        shapes.push({ type: 'poly', open: true, layerId: 'layer-0', points: [{ x: 10.5 * m, y: -50.5 * m, z: 99000 }, { x: 90.5 * m, y: -50.5 * m, z: 99000 }] });   // ligne de rupture
+        tinCache = null; const t0 = performance.now(), tin = getTIN(), ms = performance.now() - t0, z = tin ? tinZ(55.5 * m, -20.5 * m, tin) : null;
+        const r = { tin: !!tin, n: tin ? tin.nodes.length <= 7500 : false, z: hasZ(z) && Math.abs(z - (100000 + 55.5 * 50)) < 300, br: tin ? tin.nodes.some(nd => nd.z === 99000) : false, fast: ms < 20000 };
+        shapes = keepS; tinCache = null; invalidateCache(); return r; });
+    t.eq('terrain de plus de 12 000 points : triangulé quand même (grille éclaircie, lignes de rupture gardées)', tt, { tin: true, n: true, z: true, br: true, fast: true });
 } };
