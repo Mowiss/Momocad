@@ -21,7 +21,7 @@ module.exports = { name: 'tuto-3-expert', tuto: 'param', timeout: 300, run: asyn
     await step(async () => { await tab('cart'); await H.wait(150); await set('#ps-cartouche', true); await H.wait(150); await seg('ps-carttype', 'a4'); });
     await step(async () => { await set('#cartouche-plan', 'Plan de masse – VRD'); await H.wait(200); await set('#cartouche-indice', 'A'); await H.wait(200); await set('#cartouche-client', 'Commune de Gap'); await H.wait(200); await set('#cartouche-draftsman', 'Momo'); });
     await step(() => clk('#cartouche-modal button[onclick="psRevAdd()"]'));
-    await step(async () => { await tab('fond'); await H.wait(150); await seg('ps-bmbase', 'ortho'); await H.wait(150); await set('#ps-ov-courbes', true); });
+    await step(async () => { await tab('fond'); await H.wait(150); await seg('ps-bmbase', 'ortho'); await H.wait(150); await set('#ps-dt-bois', true); });
     await step(() => tab('ia'));
     await step(async () => { await tab('mat'); await H.wait(300);
         await ev(() => { const i = document.querySelectorAll('#ps-mat-box .mat-terr')[0].querySelectorAll('input')[2]; i.value = '12'; i.dispatchEvent(new Event('change', { bubbles: true })); }); await H.wait(250);
