@@ -434,14 +434,13 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         brushSet('erase', true); brushErase(Q(0, 0)); const left = shapes.filter(x => x.brush && x.brush.poly).length; invalidateCache(); draw();
         brushStop(true); shapes = shapes.filter(x => x !== pl && !(x.brush && x.brush.poly)); close3D(); return { closed: !!s && !s.open && s.points.length === 4, ov: ov > 0, sel, left }; });
     t.eq('pinceau polygone : zone cliquée peinte, contour choisi peint, gomme', bpo, { closed: true, ov: true, sel: 2, left: 1 });
-    // pinceau en plan : bascule 2D / 3D sans quitter l'outil ; coup de pinceau et polygone peints directement sur le plan, au sol fini
-    const b2a = await ev(async () => { if (is3DOpen()) close3D(); await startBrush(); brushSet('poly', false); await brushView('2d'); invalidateCache(); draw(); const r = canvas.getBoundingClientRect();
-        return { open: is3DOpen(), on: !!brushTool, view: brushTool.view, n0: shapes.filter(x => x.brush).length, x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-    await p.mouse.move(b2a.x - 60, b2a.y); await p.mouse.down(); for (let i = 1; i <= 6; i++) await p.mouse.move(b2a.x - 60 + i * 20, b2a.y + i * 4); await p.mouse.up(); await H.wait(200);
-    await ev(() => brushSet('poly', true)); for (const [dx, dy] of [[-40, 60], [40, 60], [40, 120], [-40, 120]]) { await p.mouse.click(b2a.x + dx, b2a.y + dy); await H.wait(60); } await H.press('Enter'); await H.wait(150);
-    const b2b = await ev(async (n0) => { const S = shapes.filter(x => x.brush).slice(n0), st = S.find(x => !x.brush.poly), po = S.find(x => x.brush.poly); await brushView('3d'); const r = { stroke: !!st && st.points.length > 2 && st.brush.zs.length === st.points.length, poly: !!po && !po.open && po.points.length === 4, back3d: is3DOpen() && !!brushTool && brushTool.view === '3d' };
-        brushStop(true); shapes = shapes.filter(x => !S.includes(x)); close3D(); brushLast.view = '3d'; brushSaveOpt(); return r; }, b2a.n0);
-    t.eq('pinceau : bascule 2D / 3D, coup et polygone peints en plan', [b2a.open, b2a.on, b2a.view, b2b], [false, true, '2d', { stroke: true, poly: true, back3d: true }]);
+    // pinceau : le coup de pinceau se donne dans la vue 3D ; le polygone peint se trace sur le plan avec l'outil polygone (aperçu, fermeture sur le 1er point)
+    const b2a = await ev(async () => { if (is3DOpen()) close3D(); await startBrush(); brushSet('poly', true); await new Promise(r => setTimeout(r, 300)); const m = mmToWorld(1000), c = canvas.getBoundingClientRect(); camera.zoom = 15 / m; camera.x = 150; camera.y = 200; draw();
+        return { open: is3DOpen(), on: !!brushTool, mode, n0: shapes.filter(x => x.brush).length, pts: [[0, 0], [12, 0], [12, 8], [0, 8], [0, 0]].map(([x, y]) => { const q = worldToScreen(x * m, y * m); return { x: c.left + q.x, y: c.top + q.y }; }) }; });
+    for (const q of b2a.pts) { await p.mouse.click(q.x, q.y); await H.wait(80); }
+    const b2b = await ev(async (n0) => { const S = shapes.filter(x => x.brush).slice(n0), po = S.find(x => x.brush.poly); const r = { poly: !!po && !po.open && po.points.length === 4 && po.brush.zs.length === 4, again: mode === 'poly' && !!brushTool };
+        brushSet('poly', false); await new Promise(res => setTimeout(res, 1500)); r.stroke3d = is3DOpen() && mode !== 'poly' && !!brushTool; brushStop(true); shapes = shapes.filter(x => !S.includes(x)); close3D(); brushLast.poly = false; brushSaveOpt(); return r; }, b2a.n0);
+    t.eq('pinceau : polygone peint sur le plan (outil polygone), coup de pinceau dans la vue 3D', [b2a.open, b2a.on, b2a.mode, b2b], [false, true, 'poly', { poly: true, again: true, stroke3d: true }]);
     // toitures et ouvertures sur leurs calques ; un calque Ouvertures masqué cache les menuiseries (le trou reste)
     const lyr = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m, z: 0 })) };
         const R = buildRoof(base, { pans: 2, he: 2.5, hf: 5, e: 0.2, ge: 0.2, fill: true, db: 0 }), T = buildTerrace(base, { pans: 0, he: 3, te: 0.25, tc: 0, ah: 0.5, at: 0.2, fp: 0, fe: 0.05 });
