@@ -206,6 +206,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const a = look(); for (let k = 0; k < 10; k++) { const an = k / 10 * 2 * Math.PI; shapes.push({ type: 'point', layerId: 'layer-0', x: (25 + Math.cos(an) * 1500) * m, y: (-25 + Math.sin(an) * 1500) * m, z: 1100000 + (k % 3) * 200000, zk: 1 }); } tinCache = null; invalidateCache();
         const b = look(); shapes = keepS; tinCache = null; invalidateCache(); saveState(); return { near: b.ext < a.ext * 1.5 && b.ext < 30, same: a.prof === b.prof, a, b }; });
     t.ok('montagne importée au loin : portée des talus et terrain fini inchangés près du projet', mt.near && mt.same, JSON.stringify(mt));
+    // bâti du cadastre en 3D : volume posé au point bas du terrain sous son contour, murs jusqu'à TN + 3 m, toit à croupes (pente 35 %) ; contour plat non dessiné au fond de la scène
+    const cb = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 500, zk: 1 });   // pente de 10 % vers l'est
+        shapes.push({ type: 'poly', layerId: 'layer-0', points: R(10, 10, 22, 18), cadOf: 'bm1', name: 'Bâti (BD TOPO)', cadBati: 1, zk: 1, lvs: 1 }); saveState(); if (!V3) init3D(); build3DScene();
+        const B = new THREE.Box3(), Rf = new THREE.Box3(); let n = 0; V3.root.updateMatrixWorld(true); V3.root.traverse(o => { if (o.userData.cadBati) { n++; (o.userData.cadBati === 'toit' ? Rf : B).expandByObject(o); } });
+        const z = (v) => Math.round(((v - V3.root.position.z) / V3.exag + V3.zmin) * 100) / 100;
+        const r = { n, base: z(B.min.z), eaves: z(B.max.z), ridge: z(Rf.max.z), w: Math.round((B.max.x - B.min.x) * 10) / 10 }; shapes = keepS; invalidateCache(); saveState(); return r; });
+    t.eq('bâti du cadastre en volume : posé au point bas (101 m), murs à TN + 3 m, toit à croupes 35 %', cb, { n: 2, base: 100.7, eaves: 104, ridge: 105.4, w: 12 });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
