@@ -10,7 +10,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.ok('fenêtre : un vitrage', r.glass >= 1, JSON.stringify(r));
     t.ok('aucun tracé de plan dessiné par-dessus les volumes (toit, murs)', r.segs === 0, JSON.stringify(r));
     // rendu naturel et ciel
-    await ev(() => { document.querySelector('[data-for="v3-nat"]').click(); document.querySelector('[data-for="v3-hz"]').click(); }); await H.wait(800);
+    await ev(() => { ['v3-nat', 'v3-hz'].forEach(id => { if (!document.getElementById(id).checked) document.querySelector('[data-for="' + id + '"]').click(); }); v3Sky(); render3D(); }); await H.wait(800);   // rendu naturel et ciel (allumés par défaut)
     t.ok('ciel et paysage affichés avec le bouton Paysage', await ev(() => !!(V3.sky && V3.sky.visible)));
     const sun = await ev(() => { v3SetHour(9); const a = V3.sun.position.clone(); v3SetHour(18); const b = V3.sun.position.clone(); return [a.x, b.x]; });
     t.ok('le soleil suit l\'heure (matin à l\'est, soir à l\'ouest)', sun[0] > 0 && sun[1] < 0, JSON.stringify(sun));

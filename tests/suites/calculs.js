@@ -92,6 +92,7 @@ module.exports = { name: 'calculs', run: async (H, t) => {
       const rp3 = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 900)); document.querySelector('[data-for="v3-rp"]').click(); await new Promise(r => setTimeout(r, 400));
           let top = null, n = 0; V3.root.traverse(o => { if (o.userData.rp) { n++; const a = o.geometry.attributes.position.array; let mx = -1e9; for (let i = 2; i < a.length; i += 3) mx = Math.max(mx, a[i]); top = mx / V3.exag + V3.zmin; } });
           document.querySelector('[data-for="v3-rp"]').click();
+          const labB = document.querySelector('[data-for="v3-lab"]'); if (!document.getElementById('v3-lab').checked) { labB.click(); await new Promise(r => setTimeout(r, 300)); }   // points cotés affichés d'abord (masqués par défaut)
           const cnt = () => { let k = 0; V3.root.traverse(o => { if (o.isPoints) k++; }); return k; }, on = cnt(); document.querySelector('[data-for="v3-lab"]').click(); await new Promise(r => setTimeout(r, 300)); const off = cnt(); document.querySelector('[data-for="v3-lab"]').click();
           const m = mmToWorld(1000), c = document.createElement('canvas'); c.width = c.height = 64; c.getContext('2d').fillRect(0, 0, 64, 64); basemapStore['t-drape'] = c.toDataURL(); bmImg('t-drape'); await new Promise(r => setTimeout(r, 200));
           shapes.unshift({ type: 'basemap', layerId: 'layer-0', x: 30 * m, y: -20 * m, r: 20 * m, mapId: 't-drape' }); build3DScene();
@@ -100,7 +101,7 @@ module.exports = { name: 'calculs', run: async (H, t) => {
           close3D(); return { n, top, pts: [on, off], drape: [d1, d0] }; });
       t.ok('3D : fond de carte drapé sur le terrain (pas d\'image à plat), masqué avec son bouton', rp3.drape[0][0] === 1 && rp3.drape[0][1] === 0 && rp3.drape[1][0] === 0 && rp3.drape[1][1] === 0, JSON.stringify(rp3.drape));
       // vue iso / façade du plan : le maillage du terrain reste dessiné autour des plateformes (hors plateforme et talus)
-      const wire = await ev(() => { build3DScene(); let n = 0; const ox = V3.root.position.x, oy = V3.root.position.y;
+      const wire = await ev(() => { const nt = document.getElementById('v3-nat'), nat0 = nt.checked; nt.checked = false; build3DScene(); nt.checked = nat0; let n = 0; const ox = V3.root.position.x, oy = V3.root.position.y;
           V3.root.traverse(o => { if (!o.isLineSegments) return; const a = o.geometry.attributes.position.array; for (let i = 0; i < a.length; i += 6) { const x = (a[i] + a[i + 3]) / 2, y = (a[i + 1] + a[i + 4]) / 2;
               if (x > 12 && x < 48 && y > 8 && y < 32 && !(x > 19 && x < 41 && y > 14 && y < 26)) n++; } }); build3DScene(); return n; });
       t.ok('vue iso du plan : maillage du terrain présent autour de la plateforme', wire > 20, wire);
