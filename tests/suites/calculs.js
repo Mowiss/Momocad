@@ -203,4 +203,23 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         tinCache = null; invalidateCache(); const E = ecGrid(3000), at = (x, y) => { const i = Math.round((x * m - E.x0) / (E.c * m)), j = Math.round((-y * m - E.y0) / (E.c * m)); return j * E.nx + i; }, k = at(18, 17), k2 = at(4, 4);
         const r = { roof: E.roof[k] === 1 && E.surf[k] === 4, high: E.z[k] > 102.4, ground: !E.roof[k2] && Math.abs(E.z[k2] - 100) < 0.01 }; shapes = keepS; tinCache = null; invalidateCache(); return r; });
     t.eq('test d\'écoulement : la toiture dessinée est dans le relief (toit, étanche), le terrain autour inchangé', eh, { roof: true, high: true, ground: true });
+
+    // Σ Calculs : un onglet par note (financière, cubature, pluviométrique) + Impressions ; note pluvio = méthode rationnelle ; dossier PDF avec sommaire
+    await cub({ z: 99000, talus: { on: false } });
+    const cn = await ev(async () => { window.__cubPdf = null; pluvioNote = null; const tabs = () => [...document.querySelectorAll('#tm-body .calc-tabs button')].map(b => b.dataset.ct + (b.classList.contains('on') ? '*' : '')).join(',');
+        const noH = () => { const b = document.getElementById('tm-body'); return b.scrollWidth <= b.clientWidth + 1; };
+        openMetre(); const r = { fin: tabs(), title: document.getElementById('tm-title').textContent, h1: noH() };
+        document.querySelector('#tm-body .calc-tabs [data-ct=cub]').click(); r.cub = tabs() + '|' + !!document.querySelector('#tm-body input[type=checkbox]'); r.h2 = noH();
+        document.querySelector('#tm-body .calc-tabs [data-ct=pluvio]').click(); r.pl = tabs(); r.h3 = noH();
+        const N = pluvioCfg(), R = pluvioCalc(N); r.area = Math.round(R.At); r.q = Math.abs(R.Q - R.Ca * 60 / 3600) < 1e-6 && /l\/s/.test(document.getElementById('pv-res').textContent);
+        const i = document.getElementById('pv-i'); i.value = '120'; i.dispatchEvent(new Event('input', { bubbles: true })); r.i2 = pluvioCfg().I === 120 && Math.abs(pluvioCalc(pluvioCfg()).Q - 2 * R.Q) < 1e-6;
+        r.noTest = !document.querySelector('#pv-test table');
+        pluvioSaveTest({ I: 60, Tr: 15, Td: 30, rainV: 10, infV: 2, out: 7, ret: [{ area: 5, cap: 1, got: 1, pct: 1, max: 0.2, on: '' }] }, 1); openPluvio(); r.test = document.querySelectorAll('#pv-test tbody tr').length;
+        document.querySelector('#tm-body .calc-tabs [data-ct=print]').click(); r.pr = tabs() + '|' + document.querySelectorAll('#tm-body [data-pk]').length;
+        const keep = window.jspdf, J = keep.jsPDF; let got = null; window.jspdf = Object.assign({}, keep, { jsPDF: function (o) { const d = new J(o); d.save = (fn) => { got = { fn, pages: d.getNumberOfPages() }; }; return d; } });
+        try { await calcDossierPDF(); } catch (e) { got = { err: e.message }; } finally { window.jspdf = keep; } r.pdf = got && /_notes_de_calcul\.pdf$/.test(got.fn) && got.pages >= 4; r.cubAuto = !!window.__cubPdf;
+        r.save = !!(_projectData().pluvio && _projectData().pluvio.test); closeTopoModal(); return r; });
+    t.eq('Σ Calculs : onglets Financier, Cubature, Pluviométrique, Impressions ; note pluvio (Q = C·i·A), bilan du test, dossier PDF', cn,
+        { fin: 'fin*,cub,pluvio,print', title: 'Σ Calculs', h1: true, cub: 'fin,cub*,pluvio,print|true', h2: true, pl: 'fin,cub,pluvio*,print', h3: true, area: cn.area, q: true, i2: true, noTest: true, test: 1, pr: 'fin,cub,pluvio,print*|4', pdf: true, cubAuto: true, save: true });
+    t.ok('note pluvio : surface du terrain mesurée (≈ 60 × 50 m)', Math.abs(cn.area - 3000) < 200, String(cn.area));
 } };
