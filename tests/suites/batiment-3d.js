@@ -209,11 +209,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     // bâti du cadastre en 3D : volume posé au point bas du terrain sous son contour, murs jusqu'à TN + 3 m, toit à croupes (pente 35 %) ; contour plat non dessiné au fond de la scène
     const cb = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 500, zk: 1 });   // pente de 10 % vers l'est
-        shapes.push({ type: 'poly', layerId: 'layer-0', points: R(10, 10, 22, 18), cadOf: 'bm1', name: 'Bâti (BD TOPO)', cadBati: 1, zk: 1, lvs: 1 }); saveState(); if (!V3) init3D(); build3DScene();
+        shapes.push({ type: 'poly', layerId: 'layer-0', points: R(10, 10, 22, 18), cadOf: 'bm1', name: 'Bâti (BD TOPO)', cadBati: 1, zk: 1, lvs: 1 });
+        // fond de carte photo : gris clair partout, sauf un carré bleu-gris sous le toit → le toit prend cette couleur
+        const cv = document.createElement('canvas'); cv.width = cv.height = 200; const cx = cv.getContext('2d'); cx.fillStyle = '#6b8e23'; cx.fillRect(0, 0, 200, 200); cx.fillStyle = '#5f6b7a'; cx.fillRect(60, 100, 50, 45);   // 1 px = 0,5 m ; image centrée en (25 m, 25 m sud), r 50 m : le toit (x 10…22, y 10…18) tombe en px 70…94, py 114…130
+        basemapStore['tbati'] = cv.toDataURL('image/png'); delete basemapImgCache['tbati']; shapes.unshift({ type: 'basemap', layerId: 'layer-0', x: 25 * m, y: -25 * m, r: 50 * m, rot: 0, mapId: 'tbati', lat: 44.5, lon: 6, radiusM: 50 });
+        bmImg('tbati'); await new Promise(r => setTimeout(r, 300)); saveState(); if (!V3) init3D(); build3DScene();
         const B = new THREE.Box3(), Rf = new THREE.Box3(); let n = 0; V3.root.updateMatrixWorld(true); V3.root.traverse(o => { if (o.userData.cadBati) { n++; (o.userData.cadBati === 'toit' ? Rf : B).expandByObject(o); } });
         const z = (v) => Math.round(((v - V3.root.position.z) / V3.exag + V3.zmin) * 100) / 100;
-        const r = { n, base: z(B.min.z), eaves: z(B.max.z), ridge: z(Rf.max.z), w: Math.round((B.max.x - B.min.x) * 10) / 10 }; shapes = keepS; invalidateCache(); saveState(); return r; });
-    t.eq('bâti du cadastre en volume : posé au point bas (101 m), murs à TN + 3 m, toit à croupes 35 %', cb, { n: 2, base: 100.7, eaves: 104, ridge: 105.4, w: 12 });
+        let roof = null; V3.root.traverse(o => { if (o.userData.cadBati === 'toit') roof = o; }); const ca = roof.geometry.attributes.color, col = new THREE.Color(ca.getX(0), ca.getY(0), ca.getZ(0)), hsl = {}; col.getHSL(hsl);
+        const r = { n, base: z(B.min.z), eaves: z(B.max.z), ridge: z(Rf.max.z), w: Math.round((B.max.x - B.min.x) * 10) / 10, grisBleu: hsl.h > 0.5 && hsl.h < 0.65 && hsl.s < 0.3 }; shapes = keepS; invalidateCache(); saveState(); return r; });
+    t.eq('bâti du cadastre en volume : posé au point bas, murs à TN + 6 m, toit à croupes 35 %, de la couleur du toit sur la photo', cb, { n: 2, base: 100.7, eaves: 107, ridge: 108.4, w: 12, grisBleu: true });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
