@@ -219,6 +219,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         let roof = null; V3.root.traverse(o => { if (o.userData.cadBati === 'toit') roof = o; }); const ca = roof.geometry.attributes.color, col = new THREE.Color(ca.getX(0), ca.getY(0), ca.getZ(0)), hsl = {}; col.getHSL(hsl);
         const r = { n, base: z(B.min.z), eaves: z(B.max.z), ridge: z(Rf.max.z), w: Math.round((B.max.x - B.min.x) * 10) / 10, grisBleu: hsl.h > 0.5 && hsl.h < 0.65 && hsl.s < 0.3 }; shapes = keepS; invalidateCache(); saveState(); return r; });
     t.eq('bâti du cadastre en volume : posé au point bas, murs à TN + 6 m, toit à croupes 35 %, de la couleur du toit sur la photo', cb, { n: 2, base: 100.7, eaves: 107, ridge: 108.4, w: 12, grisBleu: true });
+    // zone boisée en 3D : un houppier par arbre posé sur le sol ; couleur prise sur la photo du fond (switch : photo / verts)
+    const zb = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000);
+        for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
+        const cv = document.createElement('canvas'); cv.width = cv.height = 200; const cx = cv.getContext('2d'); cx.fillStyle = '#8a3b8a'; cx.fillRect(0, 0, 200, 200);   // photo violette
+        basemapStore['tbois3'] = cv.toDataURL('image/png'); delete basemapImgCache['tbois3']; shapes.unshift({ type: 'basemap', layerId: 'layer-0', x: 20 * m, y: -20 * m, r: 50 * m, rot: 0, mapId: 'tbois3', lat: 44.5, lon: 6, radiusM: 50 });
+        const z = { type: 'poly', layerId: 'layer-0', points: [[5, 5], [35, 5], [35, 30], [5, 30]].map(([x, y]) => ({ x: x * m, y: -y * m })), bois: { h: 14 } }; shapes.push(z); bmImg('tbois3'); await new Promise(r => setTimeout(r, 300)); saveState(); if (!V3) init3D();
+        const look = () => { build3DScene(); let im = null; V3.root.traverse(o => { if (o.userData.bois) im = o; }); const c = new THREE.Color(); im.getColorAt(0, c); const h = {}; c.getHSL(h); const M4 = new THREE.Matrix4(), p = new THREE.Vector3(); im.getMatrixAt(0, M4); p.setFromMatrixPosition(M4); return { n: im.count, hue: Math.round(h.h * 360), zc: Math.round(((p.z - 0) / V3.exag + V3.zmin) * 10) / 10 }; };
+        const a = look(); z.bois.tex = 'vert'; const b = look(); shapes = keepS; invalidateCache(); saveState();
+        return { many: a.n > 20, photo: a.hue > 280 && a.hue < 320, vert: b.hue > 80 && b.hue < 130, centre: a.zc > 107 && a.zc < 111, plan: !isPlateforme(z) }; });
+    t.eq('zone boisée en 3D : houppiers posés sur le sol, couleur de la photo du fond, ou verts au choix', zb, { many: true, photo: true, vert: true, centre: true, plan: true });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
