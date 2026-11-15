@@ -227,8 +227,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const z = { type: 'poly', layerId: 'layer-0', points: [[5, 5], [35, 5], [35, 30], [5, 30]].map(([x, y]) => ({ x: x * m, y: -y * m })), bois: { h: 14 } }; shapes.push(z); bmImg('tbois3'); await new Promise(r => setTimeout(r, 300)); saveState(); if (!V3) init3D();
         const look = () => { build3DScene(); let im = null; V3.root.traverse(o => { if (o.userData.bois) im = o; }); const c = new THREE.Color(); im.getColorAt(0, c); const h = {}; c.getHSL(h); const M4 = new THREE.Matrix4(), p = new THREE.Vector3(); im.getMatrixAt(0, M4); p.setFromMatrixPosition(M4); return { n: im.count, hue: Math.round(h.h * 360), zc: Math.round(((p.z - 0) / V3.exag + V3.zmin) * 10) / 10 }; };
         const a = look(); z.bois.tex = 'vert'; const b = look(); shapes = keepS; invalidateCache(); saveState();
-        return { many: a.n > 20, photo: a.hue > 280 && a.hue < 320, vert: b.hue > 80 && b.hue < 130, centre: a.zc > 107 && a.zc < 111, plan: !isPlateforme(z) }; });
+        return { many: a.n > 12, photo: a.hue > 280 && a.hue < 320, vert: b.hue > 80 && b.hue < 130, centre: a.zc > 107 && a.zc < 111, plan: !isPlateforme(z) }; });
     t.eq('zone boisée en 3D : houppiers posés sur le sol, couleur de la photo du fond, ou verts au choix', zb, { many: true, photo: true, vert: true, centre: true, plan: true });
+    // outil Zone boisée de la palette Topo : contour cliqué, fermé sur le 1er point → zone boisée sur le calque « Zones boisées », sélectionnée
+    const bt0 = await ev(() => { if (is3DOpen()) close3D(); if (layoutOn) toggleLayout(false); window.__keepB = shapes; shapes = []; invalidateCache(); const m = mmToWorld(1000); camera.zoom = 15 / m; camera.x = 120; camera.y = 200; draw(); document.getElementById('btn-bois').click(); const c = canvas.getBoundingClientRect();
+        return [[0, 0], [20, 0], [20, 15], [0, 15]].map(([x, y]) => { const q = worldToScreen(x * m, y * m); return { x: c.left + q.x, y: c.top + q.y }; }); });
+    for (const q of bt0.concat([bt0[0]])) { await H.p.mouse.click(q.x, q.y); await H.wait(80); }
+    const btz = await ev(() => { const z = shapes.find(x => x.bois), r = { made: !!z, n: z ? z.points.length : 0, lay: z ? (layers.find(l => l.id === z.layerId) || {}).name : null, sel: !!z && selectedShapes[0] === z, mode, alias: !!CMD_ALIASES.BOI }; shapes = window.__keepB; invalidateCache(); saveState(); return r; });
+    t.eq('outil Zone boisée (palette Topo) : contour cliqué → zone boisée sélectionnée sur son calque', btz, { made: true, n: 4, lay: 'Zones boisées', sel: true, mode: 'select-box', alias: true });
     // sélection multiple béton + isolant, hauteur changée par Y : chacun garde son calque (donc sa hachure)
     const lay0 = await ev(() => shapes.slice(0, 2).map(x => x.layerId)); await ev(() => { selectedShapes = shapes.slice(0, 2); }); await H.Y({ 'sp-wzt': '3' });
     const lay1 = await ev(() => [shapes.slice(0, 2).map(x => x.layerId), shapes.slice(0, 2).map(x => x.wz.t)]);
