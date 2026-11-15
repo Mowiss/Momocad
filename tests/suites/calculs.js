@@ -223,4 +223,13 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     t.eq('Σ Calculs : ouverture immédiate (calculs lourds après, mis en cache) ; onglets Financier, Cubature, Pluviométrique, Impressions ; note pluvio (Q = C·i·A), bilan du test, dossier PDF', cn,
         { fin: 'fin*,cub,pluvio,print', title: 'Σ Calculs', h1: true, later: true, quant: true, cache: true, cub: 'fin,cub*,pluvio,print|true', h2: true, pend: true, pl: 'fin,cub,pluvio*,print', h3: true, area: cn.area, q: true, i2: true, noTest: true, test: 1, pr: 'fin,cub,pluvio,print*|4', pdf: true, cubAuto: true, save: true });
     t.ok('note pluvio : surface du terrain mesurée (≈ 60 × 50 m)', Math.abs(cn.area - 3000) < 200, String(cn.area));
+
+    // gros plan : tracer un trait ne refait plus le terrain (ni le sol fini, ni les talus) ; déplacer un point coté, si
+    const perf = await ev(() => { const keep = shapes; shapes = []; const m = mmToWorld(1000);
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 100 });
+        invalidateCache(); const t1 = getTIN(); shapes.push({ type: 'line', layerId: 'layer-0', x1: 0, y1: 0, x2: 10 * m, y2: -10 * m }); invalidateCache(); const t2 = getTIN();
+        shapes[5].z += 500; invalidateCache(); const t3 = getTIN(); const big = document.createElement('canvas'); big.width = 2048; big.height = 2048; const mm = imgMip(big, 300);
+        const r = { same: t1 === t2, rebuilt: t3 !== t2 && Math.abs(tinZ(shapes[5].x, shapes[5].y, t3) - shapes[5].z) < 1, mip: mm.width <= 512 && mm.width >= 300, full: imgMip(big, 1800) === big, nfr: nfr(1234.5, 2) === nfr(1234.5, 2) && fmtZ(1136500) === '1136,50' && /1\s234,50/.test(nfr(1234.5, 2)) };
+        shapes = keep; invalidateCache(); return r; });
+    t.eq('gros plan : terrain gardé quand on trace, refait quand un point coté bouge ; fond de carte réduit ; formats de nombres', perf, { same: true, rebuilt: true, mip: true, full: true, nfr: true });
 } };
