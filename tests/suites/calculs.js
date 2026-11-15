@@ -162,6 +162,16 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         selectedShapes = [B2]; openSelectionParamModal(); await wait(50); set('109'); await wait(700); applySelectionLayer(); spLiveCommit(); const B3 = shapes.find(x => x.batEx), kept = B3.solid.H === 9000 && historyStep === h0 + 1;
         shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); return { dia, live, steps, back, kept }; });
     t.eq('volet Y : aperçu en direct, Annuler revient en arrière, Valider garde (une étape) ; schéma avec ses cases', lv, { dia: true, live: true, steps: 1, back: true, kept: true });
+    // test d'écoulement : la pluie tombe dans la vraie vue 3D (eau, gouttes), ciel d'orage et éclairs ; le volet est un volet pleine hauteur ; tout se rétablit à la fermeture
+    const ra = await ev(async () => { const keepS = shapes; shapes = []; for (let i = 0; i <= 20; i++) for (let j = 0; j <= 20; j++) { const x = i * 2, y = j * 2, r = Math.hypot(x - 20, y - 20), z = 100 + x * 0.02 - (r < 6 ? (6 - r) * 0.08 : 0); shapes.push({ type: 'point', layerId: 'layer-0', x: mmToWorld(x * 1000), y: -mmToWorld(y * 1000), z: Math.round(z * 1000), zk: 1 }); }
+        tinCache = null; invalidateCache(); saveState(); await loadThree(); ecOpen(); for (let k = 0; k < 60 && !(EC && EC.g3 && EC.g3.parent); k++) await new Promise(r => setTimeout(r, 100));
+        const el = document.getElementById('ec-wiz'), drawer = el.classList.contains('mc-drawer-p') && el.getBoundingClientRect().height > innerHeight * 0.6, noCv = !document.getElementById('ec-cv') && !document.getElementById('ec-ex');
+        const amb0 = V3.amb.intensity; document.getElementById('ec-i').value = '120'; ecRead(); ecToggle(); for (let k = 0; k < 40 && EC.step < 20; k++) await new Promise(r => setTimeout(r, 50));
+        const during = { in3D: !!EC.g3 && EC.g3.parent === V3.root, rain: EC.rain.visible, dark: !!V3.storm && V3.amb.intensity < amb0 * 0.8, fog: !!V3.scene.fog };
+        EC.fl = { t0: performance.now(), pat: [0, 400] }; ecFlashTick(EC, performance.now() + 10); const flash = V3.amb.intensity > amb0 * 2 && +document.getElementById('v3-flash').style.opacity > 0.3;
+        EC.run = false; ecClose(); const after = { light: Math.abs(V3.amb.intensity - amb0) < 1e-6, gone: !V3.root.children.some(o => o.userData && o.userData.ec), flashOff: +document.getElementById('v3-flash').style.opacity === 0 };
+        close3D(); shapes = keepS; tinCache = null; invalidateCache(); saveState(); return { drawer, noCv, during, flash, after }; });
+    t.eq('écoulement : la pluie tombe dans la vue 3D, orage (ciel sombre, éclair), volet pleine hauteur, tout rétabli à la fermeture', ra, { drawer: true, noCv: true, during: { in3D: true, rain: true, dark: true, fog: true }, flash: true, after: { light: true, gone: true, flashOff: true } });
     // test d'écoulement : une cuvette garde l'eau (flaque trouvée), la pente l'évacue par le bord ; volumes conservés
     const ec = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000);
         for (let i = 0; i <= 20; i++) for (let j = 0; j <= 20; j++) { const x = i * 2, y = j * 2, r = Math.hypot(x - 20, y - 20), z = 100 + x * 0.02 - (r < 6 ? (6 - r) * 0.08 : 0); shapes.push({ type: 'point', layerId: 'layer-0', x: x * m, y: -y * m, z: Math.round(z * 1000) }); }
