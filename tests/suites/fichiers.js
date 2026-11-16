@@ -195,6 +195,7 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         const cen = new Uint8Array(46 + nm.length), dc = new DataView(cen.buffer); dc.setUint32(0, 0x02014b50, true); dc.setUint16(10, 8, true); dc.setUint32(20, def.length, true); dc.setUint32(24, raw.length, true); dc.setUint16(28, nm.length, true); dc.setUint32(42, 0, true); cen.set(nm, 46);
         const end = new Uint8Array(22), de = new DataView(end.buffer); de.setUint32(0, 0x06054b50, true); de.setUint16(8, 1, true); de.setUint16(10, 1, true); de.setUint32(12, cen.length, true); de.setUint32(16, loc.length + def.length, true);
         const file = new File([loc, def, cen, end], 'Projet.kmz'); const F = await kmzRead(file), r = {};
+        await loadFileObject(file, '2427m².kmz'); r.open = /1 point\(s\), <b>1<\/b> ligne|1<\/b> point/.test(document.getElementById('tm-body').innerHTML) && /Poser sur le plan/.test(document.getElementById('tm-actions').textContent) && /\.kmz/.test(document.getElementById('project-input').accept); closeTopoModal();
         r.parse = F.map(f => f.k + (f.hole ? 'h' : '') + ':' + (f.fo || '') + ':' + f.name).join('|'); r.col = F[0].col;
         const out = kmzPlace(F, 'Projet', 'Projet.kmz'), P = lccParams('L93'), b = out.find(x => x.type === 'point'), q = lccFwd(P, 44.5598, 6.0805);
         r.l93 = Math.abs(realX(b.x) / 1000 - q.x) < 0.01 && Math.abs(realY(b.y) / 1000 - q.y) < 0.01 && b.z === 735420 && b.mat === 'Borne B12';
@@ -207,5 +208,5 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         r.hd = [bmHdPx(), BM_HD.std, BM_HD.uhd].join(',') + '|' + !!document.getElementById('ps-bmhd');
         shapes = keepS; layers = keepL; geoOrigin = keepG; invalidateCache(); updateLayerUI(); draw(); return r; });
     t.eq('KMZ : zip lu, dossiers en calques, couleurs, trous, altitude, Lambert 93 ; converti en DXF sans toucher au plan ; fond de carte plus net', kz,
-        { parse: 'ln:Réseau:Canalisation|pg:Parcelles:Lot 1|pgh:Parcelles:Lot 1|pt:Parcelles:Borne B12', col: '#ff0000', l93: true, layers: 'KMZ · Réseau|KMZ · Parcelles', lineCol: '#ff0000', poly: '4,3', dxf: true, drop: true, hd: '2560,1280,4096|true' });
+        { open: true, parse: 'ln:Réseau:Canalisation|pg:Parcelles:Lot 1|pgh:Parcelles:Lot 1|pt:Parcelles:Borne B12', col: '#ff0000', l93: true, layers: 'KMZ · Réseau|KMZ · Parcelles', lineCol: '#ff0000', poly: '4,3', dxf: true, drop: true, hd: '2560,1280,4096|true' });
 } };
