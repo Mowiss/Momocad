@@ -261,4 +261,21 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         await open3D(); await new Promise(res => setTimeout(res, 800)); build3DScene(); const S = V3.terrStats; close3D(); shapes = keep; invalidateCache(); saveState();
         return { budget: S.budget > 0, small: S.epMaxA < 6 * S.step * S.step, tris: S.tris < 400000 }; });
     t.eq('talus 3D : bande et angles découpés finement, pas de grand pan de terre, budget de triangles tenu', tz, { budget: true, small: true, tris: true });
+
+    // FAÇONNER (clic droit) : deux plateformes séparées par un coin et une bande étroite → un seul ouvrage, vides comblés, talus continu ; se défait
+    const fc = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 99500 + i * 40, zk: 1 });
+        const pf = (P, z) => ({ type: 'poly', layerId: 'layer-0', zk: 1, points: P.map(([x, y]) => ({ x: x * m, y: -y * m, z })), talus: { on: true, kR: '3/2', kD: '1/1' } });
+        const a = pf([[-20, -10], [0, -10], [0, 10], [-20, 10]], 101000), b = pf([[2.5, -10], [20, -10], [20, 10], [1.5, 10]], 100500); shapes.push(a, b); invalidateCache(); saveState();
+        const gap = { x: 1 * m, y: -0 * m }, k0 = finishedModel().at(gap.x, gap.y).kind, r = {};
+        const cv = canvas.getBoundingClientRect(), sx = a.points[0].x * camera.zoom + camera.x + 40, sy = -0 + (a.points[0].y + a.points[2].y) / 2 * camera.zoom + camera.y; selectedShapes = [a, b];
+        canvas.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: cv.left + 300, clientY: cv.top + 300 })); const menu = document.getElementById('ctx-menu');
+        r.menu = !!menu && /Façonner \(2 plateformes\)/.test(menu.textContent); const btn = menu && [...menu.querySelectorAll('button')].find(x => /Façonner/.test(x.textContent));
+        if (btn) btn.click(); await new Promise(res => setTimeout(res, 300)); const F = shapes.filter(x => x.faconFill);
+        r.fill = F.length >= 1 && F.every(f => f.points.every(q => q.z >= 100500 - 1 && q.z <= 101000 + 1)) && a.facon && a.facon === b.facon && !document.getElementById('ctx-menu');
+        const k1 = finishedModel().at(gap.x, gap.y).kind; r.kinds = (k0 !== 1) + '>' + k1;
+        selectedShapes = [a]; const it = ctxItems().filter(Boolean).map(x => x[1]); r.items = it.slice(0, 2).join('|');
+        faconUndo(a.facon); r.undo = !shapes.some(x => x.faconFill) && !a.facon && !b.facon && finishedModel().at(gap.x, gap.y).kind === k0;
+        shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('façonner (clic droit) : vides comblés au niveau des plateformes, un seul talus ; refaçonner / défaire', fc, { menu: true, fill: true, kinds: 'true>1', items: 'Refaçonner|Défaire le façonnage', undo: true });
 } };
