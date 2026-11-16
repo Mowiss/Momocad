@@ -278,4 +278,25 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         faconUndo(a.facon); r.undo = !shapes.some(x => x.faconFill) && !a.facon && !b.facon && finishedModel().at(gap.x, gap.y).kind === k0;
         shapes = keep; invalidateCache(); saveState(); return r; });
     t.eq('façonner (clic droit) : vides comblés au niveau des plateformes, un seul talus ; refaçonner / défaire', fc, { menu: true, fill: true, kinds: 'true>1', items: 'Refaçonner|Défaire le façonnage', undo: true });
+
+    // TRANCHÉE sur une plateforme en déblai : regard dedans, l'autre bout pile sur l'angle → cotes du terrassement (pas du terrain naturel), dessus qui suit le sol fini en 3D
+    const tq = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 101000, zk: 1 });
+        const pl = { type: 'poly', layerId: 'layer-0', zk: 1, points: [[0, 0], [20, 0], [20, 12], [0, 12]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 100000 })), talus: { on: true, kR: '3/2', kD: '1/1' } }; shapes.push(pl); invalidateCache();
+        trenchDraw = trClone(trCur); const tr = trCreate([{ x: 6 * m, y: -5 * m }, { x: 20 * m, y: -12 * m }]); trenchDraw = null; tr.points[0].reg = true; invalidateCache(); saveState();
+        const r = {}, N0 = trNode(tr, 0), N1 = trNode(tr, 1); r.cotes = [N0.t, N1.t].map(v => Math.round(v)).join('/');
+        await open3D(); await new Promise(res => setTimeout(res, 500)); let zc = -Infinity, nPieces = 0; const corner = { x: 20, y: 12 };
+        const Zp = (V3.exag || 1) * (100 - V3.zmin), rp = V3.root.position;
+        V3.root.traverse(o => { if (!o.isMesh || !o.material || o.material.opacity !== 0.32) return; nPieces++; const pa = o.geometry.attributes.position; for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i); const wx = mmToWorld(x * 1000), wy = -mmToWorld(y * 1000); if (Math.hypot(wx - 20 * m, wy + 12 * m) < 0.5 * m) zc = Math.max(zc, pa.getZ(i)); } });
+        r.top = Math.abs(zc - Zp) < 0.02; r.pieces = nPieces > 10; close3D(); shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('tranchée sur plateforme : cotes du terrassement aux deux bouts, dessus qui suit le sol fini (3D découpée)', tq, { cotes: '100000/100000', top: true, pieces: true });
+
+    // ROUTES importées : la chaussée entre ses deux bords est en enrobé (plan et 3D, rendu naturel)
+    const rd = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000 + i * 50, zk: 1 });
+        const E = (y) => ({ type: 'poly', open: true, layerId: 'layer-0', points: [-40, -20, 0, 20, 40].map(x => ({ x: x * m, y: -y * m, z: 100000 + x * 5 })), rtOf: 'bm-rt', road: { w: 6, rid: 'bm-rt-0' }, name: 'Bord de chaussée' });
+        shapes.push(E(-3), E(3)); invalidateCache(); saveState(); const r = { polys: roadPolys().length, inside: roadAt(0, 0), outside: roadAt(0, -10 * m) };
+        const nat = document.getElementById('v3-nat'); if (nat && !nat.checked) nat.click(); await open3D(); await new Promise(res => setTimeout(res, 500)); build3DScene(); r.asphalt = V3.terrStats.road > 0; close3D();
+        shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('routes : chaussée entre les deux bords, en enrobé en 3D', rd, { polys: 1, inside: true, outside: false, asphalt: true });
 } };
