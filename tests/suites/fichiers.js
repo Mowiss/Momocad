@@ -181,4 +181,31 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         const r = { tin: !!tin, n: tin ? tin.nodes.length <= 7500 : false, z: hasZ(z) && Math.abs(z - (100000 + 55.5 * 50)) < 300, br: tin ? tin.nodes.some(nd => nd.z === 99000) : false, fast: ms < 20000 };
         shapes = keepS; tinCache = null; invalidateCache(); return r; });
     t.eq('terrain de plus de 12 000 points : triangulé quand même (grille éclaircie, lignes de rupture gardées)', tt, { tin: true, n: true, z: true, br: true, fast: true });
+
+    // KMZ / KML : archive zip lue sans bibliothèque ; dossiers → calques ; projection Lambert 93 ; posé sur le plan ou converti en DXF
+    const kz = await ev(async () => { const keepS = shapes, keepL = layers.slice(), keepG = Object.assign({}, geoOrigin); shapes = []; geoOrigin = { x: 0, y: 0 };
+        const kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Projet</name><Style id="r"><LineStyle><color>ff0000ff</color></LineStyle></Style><StyleMap id="m"><Pair><key>normal</key><styleUrl>#r</styleUrl></Pair></StyleMap>
+            <Folder><name>Réseau</name><Placemark><name>Canalisation</name><styleUrl>#m</styleUrl><LineString><coordinates>6.0800,44.5600,0 6.0810,44.5605,0 6.0820,44.5600,0</coordinates></LineString></Placemark></Folder>
+            <Folder><name>Parcelles</name><Placemark><name>Lot 1</name><Polygon><outerBoundaryIs><LinearRing><coordinates>6.0800,44.5590 6.0810,44.5590 6.0810,44.5595 6.0800,44.5595 6.0800,44.5590</coordinates></LinearRing></outerBoundaryIs>
+            <innerBoundaryIs><LinearRing><coordinates>6.0803,44.5591 6.0805,44.5591 6.0805,44.5592 6.0803,44.5591</coordinates></LinearRing></innerBoundaryIs></Polygon></Placemark>
+            <Placemark><name>Borne B12</name><Point><coordinates>6.0805,44.5598,735.42</coordinates></Point></Placemark></Folder></Document></kml>`;
+        // archive zip (compression « deflate », comme Google Earth)
+        const raw = new TextEncoder().encode(kml), def = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()), nm = new TextEncoder().encode('doc.kml');
+        const loc = new Uint8Array(30 + nm.length), dl = new DataView(loc.buffer); dl.setUint32(0, 0x04034b50, true); dl.setUint16(8, 8, true); dl.setUint32(18, def.length, true); dl.setUint32(22, raw.length, true); dl.setUint16(26, nm.length, true); loc.set(nm, 30);
+        const cen = new Uint8Array(46 + nm.length), dc = new DataView(cen.buffer); dc.setUint32(0, 0x02014b50, true); dc.setUint16(10, 8, true); dc.setUint32(20, def.length, true); dc.setUint32(24, raw.length, true); dc.setUint16(28, nm.length, true); dc.setUint32(42, 0, true); cen.set(nm, 46);
+        const end = new Uint8Array(22), de = new DataView(end.buffer); de.setUint32(0, 0x06054b50, true); de.setUint16(8, 1, true); de.setUint16(10, 1, true); de.setUint32(12, cen.length, true); de.setUint32(16, loc.length + def.length, true);
+        const file = new File([loc, def, cen, end], 'Projet.kmz'); const F = await kmzRead(file), r = {};
+        r.parse = F.map(f => f.k + (f.hole ? 'h' : '') + ':' + (f.fo || '') + ':' + f.name).join('|'); r.col = F[0].col;
+        const out = kmzPlace(F, 'Projet', 'Projet.kmz'), P = lccParams('L93'), b = out.find(x => x.type === 'point'), q = lccFwd(P, 44.5598, 6.0805);
+        r.l93 = Math.abs(realX(b.x) / 1000 - q.x) < 0.01 && Math.abs(realY(b.y) / 1000 - q.y) < 0.01 && b.z === 735420 && b.mat === 'Borne B12';
+        r.layers = [...new Set(out.map(x => layers.find(l => l.id === x.layerId).name))].join('|'); r.lineCol = layers.find(l => l.id === out[0].layerId).color;
+        r.poly = out.filter(x => x.type === 'poly' && !x.open).map(x => x.points.length).join(',');
+        const n0 = shapes.length, dxf = (() => { const a = document.createElement('a'), k = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () {}; try { return kmzToDXF(F, 'Projet'); } finally { HTMLAnchorElement.prototype.click = k; } })();
+        r.dxf = /KMZ · Réseau/.test(dxf) && dxf.includes(String(Math.floor(q.x))) && shapes.length === n0;
+        r.drop = /kmz,\.kml/.test(document.getElementById('kmz-input').accept);
+        // fond de carte plus net : diamètre visé, réglage gardé
+        r.hd = [bmHdPx(), BM_HD.std, BM_HD.uhd].join(',') + '|' + !!document.getElementById('ps-bmhd');
+        shapes = keepS; layers = keepL; geoOrigin = keepG; invalidateCache(); updateLayerUI(); draw(); return r; });
+    t.eq('KMZ : zip lu, dossiers en calques, couleurs, trous, altitude, Lambert 93 ; converti en DXF sans toucher au plan ; fond de carte plus net', kz,
+        { parse: 'ln:Réseau:Canalisation|pg:Parcelles:Lot 1|pgh:Parcelles:Lot 1|pt:Parcelles:Borne B12', col: '#ff0000', l93: true, layers: 'KMZ · Réseau|KMZ · Parcelles', lineCol: '#ff0000', poly: '4,3', dxf: true, drop: true, hd: '2560,1280,4096|true' });
 } };
