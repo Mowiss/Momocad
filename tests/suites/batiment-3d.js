@@ -303,6 +303,17 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const FM = finishedModel(), r = FM.at(mmToWorld(19500), -mmToWorld(20000)); selectedShapes = [pl]; openSelectionParamModal(); const sum = document.querySelectorAll('.tal-j .tal-sm')[2].textContent; closeSelectionParamModal();
         return { st: e.st, k: e.kD, ns, runs, n, kind: r && r.kind, sum, dec: talusK('1,5/0,5') }; });
     t.ok('talus en escalier : réglage gardé, pente 0,3/0,16, marches entières jusqu\'au pied, nez en plan et marches en 3D', ts.st && ts.st.h === 160 && ts.st.g === 300 && ts.st.nez === 30 && ts.k === '0,3/0,16' && ts.dec === 3 && ts.ns >= 20 && ts.runs >= 6 && ts.n === 1 && /escalier 16,0 × 30,0 cm/.test(ts.sum), JSON.stringify(ts));
+    // escalier entre deux parois : pas de refoulement de terre aux bouts (coupé net) ; clic droit sur le sommet → tirette de la limite de refoulement
+    const rf = await ev(() => { shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = 0; i <= 12; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
+        const pl = { type: 'poly', layerId: 'layer-0', zk: 1, talus: { on: true, kD: '1/1', kR: '3/2', cx: true, edges: [null, { off: true }, { st: { h: 160, g: 300 }, kD: '0,3/0,16', kR: '0,3/0,16' }, { off: true }] }, points: [[20, 15], [40, 15], [40, 25], [20, 25]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 99000 })) };
+        shapes.push(pl); invalidateCache(); tinCache = null; saveState();
+        const k = (x, y) => { const r = finishedModel().at(x * m, -y * m); return r ? r.kind : null; };
+        const net = [k(40.5, 25.5), k(30, 26)];
+        const hit = refoulAt({ x: 40 * m + 2 / camera.zoom, y: -25 * m }); refoulPanel(pl, 2); const rg = document.getElementById('rf-rg'); rg.value = 180; rg.oninput(); const full = k(40.5, 25.5);
+        document.getElementById('rf-ok').click(); const kept = pl.talus.corn && pl.talus.corn[2] === null;
+        return { net, hit: hit && hit.k, full, kept, auto: (() => { delete pl.talus.corn; invalidateCache(); return k(40.5, 25.5); })() }; });
+    t.ok('escalier entre parois : talus coupé net aux bouts, tirette de refoulement au clic droit (180° = tour complet)', rf.net[0] === 0 && rf.net[1] === 3 && rf.hit === 2 && rf.full === 3 && rf.kept && rf.auto === 0, JSON.stringify(rf));
 
     // toiture à pans : fenêtre à chapitres, complexe couche par couche (épaisseur = somme), textures posées à la main et gardées à la modification
     const rc = await ev(() => { shapes = []; const m = mmToWorld(1000); const base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, 6], [0, 6]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 0 })) }; shapes.push(base);
