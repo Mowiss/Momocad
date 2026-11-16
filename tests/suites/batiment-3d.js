@@ -573,4 +573,17 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         await open3D(); await new Promise(res => setTimeout(res, 500)); let n = 0; V3.root.traverse(o => { if (o.isMesh && o.userData.shape === S) n++; }); r.steps3D = n; close3D();
         t2PanelClose(); setMode('select-box'); shapes = keep; invalidateCache(); saveState(); return r; });
     t.eq('escalier : bouton dans les parois, 2 clics, 6 marches de 16,7 cm (giron 28, Blondel 61,4), réglable ensuite, 6 marches en 3D', st, { card: true, mode: 'stair', calc: '6/167/100000/101000', len: 168, bl: 614, edit: true, dir: true, notPlat: true, steps3D: 6 });
+
+    // ESCALIER posé, cadre étiré aux poignées, puis Ctrl+Z : les talus restent (le modèle de terrain fini ne garde plus d'anciens objets après une annulation)
+    const su = await ev(async () => { if (is3DOpen()) close3D(); const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -4; i <= 4; i++) for (let j = -4; j <= 4; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 99500, zk: 1 });
+        const pf = (P, z) => ({ type: 'poly', layerId: 'layer-0', zk: 1, points: P.map(([x, y]) => ({ x: x * m, y: -y * m, z })), talus: { on: true, kR: '3/2', kD: '1/1' } });
+        shapes.push(pf([[-15, -10], [0, -10], [0, 10], [-15, 10]], 100000), pf([[0, -10], [15, -10], [15, 10], [0, 10]], 101000)); invalidateCache(); saveState();
+        const tal = () => shapes.filter(x => isPlateforme(x)).map(x => { const g = talusGeom(x); return g ? g.toe.length > 0 : false; }).join(',');
+        const r = { t0: tal() }; stairOpt = { w: 1200, h: 170, g: 280, nez: 30, mat: 'pierre' }; startStair(); stairClick({ x: -3 * m, y: 0 }); stairClick({ x: 3 * m, y: 0 }); t2PanelClose(); setMode('select-box');
+        const S = shapes.find(x => x.stair); r.noZ = S.points.every(q => !hasZ(q.z)); r.t1 = tal();
+        S.points[1].x += 0.5 * m; S.points[2].x += 0.5 * m; saveState(); r.frame = S.stair.g > 280; r.t2 = tal();
+        undo(); r.t3 = tal(); undo(); r.t4 = tal(); r.terrain = getTIN().nodes.length === 81;
+        shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('escalier, cadre étiré, Ctrl+Z : talus toujours là, escalier jamais pris pour du terrain', su, { t0: 'true,true', noZ: true, t1: 'true,true', frame: true, t2: 'true,true', t3: 'true,true', t4: 'true,true', terrain: true });
 } };
