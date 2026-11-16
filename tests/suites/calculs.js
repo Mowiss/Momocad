@@ -238,7 +238,7 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         for (let i = -4; i <= 4; i++) for (let j = -4; j <= 4; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000, zk: 1 });
         invalidateCache(); const r = {}; document.getElementById('btn-bassin').click(); r.mode = mode + (bassinDraw ? '+bassin' : '');
         setMode('select-box'); bassinCreate([[0, 0], [10, 0], [10, 5], [0, 5]].map(([x, y]) => ({ x: x * m, y: -y * m }))); const b = shapes[shapes.length - 1];
-        r.panel = /Alvéolaire/.test(document.getElementById('t2-panel').textContent) && /Volume utile/.test(document.getElementById('bs-res').textContent);
+        r.panel = /Alvéolaire/.test(document.getElementById('t2-panel').textContent) && /Volume utile/.test(document.getElementById('bs-res').textContent) && !!document.querySelector('#bs-svg svg polygon') && /TN fini 100,00/.test(document.getElementById('bs-svg').textContent) && /fouille 98,10/.test(document.getElementById('bs-svg').textContent);
         const C = bassinCalc(b), near = (a, v, t) => Math.abs(a - v) < (t || 0.05);
         r.alv = near(C.A, 50) && near(C.Vut, 47.5) && near(C.zTop, 99200, 1) && near(C.zFouille, 98100, 1) && near(C.Df, 1.9, 0.001) && near(C.Vf, 192.0, 0.2) && near(C.Vlit, 6.58) && near(C.Vrem, 135.4, 0.2);
         bassinSet('t', 'beton'); const Cb = bassinCalc(b); r.beton = near(Cb.Vut, 66.24) && b.bassin.cover === 800 && Cb.beton > 0;
@@ -251,4 +251,14 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         t2PanelClose(); setMode('select-box'); shapes = keep; invalidateCache(); saveState(); return r; });
     t.eq('bassin de rétention : alvéolaire / béton / buses, fouille avec surlargeur et talus, lit, remblai ; notes cubature, financière, pluvio ; 3D', bs,
         { mode: 'poly+bassin', panel: true, alv: true, beton: true, buse: true, blinde: true, cub: true, fin: true, pluvio: true, v3: 1 });
+
+    // talus en 3D (rendu naturel) : deux plateformes voisines à 1 m d'écart avec un coin entre elles ; plus de grands pans « terre » (budget de triangles tenu)
+    const tz = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -10; i <= 10; i++) for (let j = -10; j <= 10; j++) shapes.push({ type: 'point', layerId: TN, x: i * 25 * m, y: -j * 25 * m, z: 100000 + i * 150 + j * 80, zk: 1 });
+        const pf = (P, z) => ({ type: 'poly', layerId: 'layer-0', zk: 1, points: P.map(([x, y]) => ({ x: x * m, y: -y * m, z })), talus: { on: true, kR: '3/2', kD: '1/1' } });
+        shapes.push(pf([[-200, -150], [0, -140], [-4, 160], [-210, 150]], 101000), pf([[6, -150], [210, -160], [215, 150], [-2, 165]], 100000)); invalidateCache(); saveState();
+        const nat = document.getElementById('v3-nat'); if (nat && !nat.checked) nat.click(); const tal = document.getElementById('v3-tal'); if (tal && !tal.checked) tal.click();
+        await open3D(); await new Promise(res => setTimeout(res, 800)); build3DScene(); const S = V3.terrStats; close3D(); shapes = keep; invalidateCache(); saveState();
+        return { budget: S.budget > 0, small: S.epMaxA < 6 * S.step * S.step, tris: S.tris < 400000 }; });
+    t.eq('talus 3D : bande et angles découpés finement, pas de grand pan de terre, budget de triangles tenu', tz, { budget: true, small: true, tris: true });
 } };
