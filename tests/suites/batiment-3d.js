@@ -567,9 +567,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         fondSet('longrine'); selectedShapes = []; fondGo(); r.lmode = mode; shapes.push({ type: 'line', layerId: activeLayerId, x1: 1002 * m, y1: -1005 * m, x2: 1008 * m, y2: -1005 * m }); saveState(); const lg = shapes[shapes.length - 1];
         r.lg = lg.fond && lg.fond.t === 'longrine' && Math.abs(lg.z1 - 99600) < 1 && lg.sweep.d.l === 250;
         dalle.points.forEach(q => q.z += 500); saveState(); r.follow = Math.abs(sf.points[0].z - 100100) < 1 && Math.abs(si.points[0].z - 100100) < 1 && Math.abs(lg.z2 - 100100) < 1;
+        // filante qui suit le contour sur un terrain en pente, sommets hors dalle : un seul niveau (pas un Z par sommet pris sur le terrain)
+        const TN = ensureLayer('Terrain naturel', '#bef264'), tp = []; for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) tp.push({ type: 'point', layerId: TN, x: (1020 + i * 5) * m, y: -(1000 + j * 5) * m, z: 100000 + i * 300, zk: 1 }); shapes.push(...tp); tinCache = null; invalidateCache();
+        fondSet('filante'); fondGo(); shapes.push({ type: 'poly', open: true, layerId: activeLayerId, points: [[1021, 1001], [1039, 1001], [1039, 1019], [1030, 1019]].map(([x, y]) => ({ x: x * m, y: -y * m })) }); saveState(); const fp = shapes[shapes.length - 1];
+        r.flat = fp.points.every(q => Math.abs(q.z - fp.points[0].z) < 1);
+        // un Z de sommet donné à la main est gardé (sort du calage) ; clic droit › Recaler sous la dalle
+        fp.points[2].z = 101234; saveState(); r.manual = fp.points[2].z === 101234 && fp.fond.auto === false; selectedShapes = [fp]; r.menu = ctxItems().some(x => x && /Recaler/.test(x[1]));
+        fondRecale(fp); r.back = fp.fond.auto && fp.points.every(q => Math.abs(q.z - fp.points[0].z) < 1); shapes = shapes.filter(x => x !== fp && !tp.includes(x)); tinCache = null; selectedShapes = [];
         setMode('select-box'); await open3D(); await new Promise(res => setTimeout(res, 600)); let n = 0; V3.root.traverse(o => { if (o.isMesh && o.userData && (o.userData.sh === sf || o.userData.shape === sf || o.userData.s === sf)) n++; }); r.v3 = V3.root.children.length > 0; close3D();
         shapes = shapes.filter(x => ![dalle, pot, sf, si, lg].includes(x)); saveState(); return r; });
-    t.eq('fondations : filante (axe des murs), isolée sous le poteau, longrine ; dessus sous la dalle du RDC, et suivent la dalle', fd, { panel: true, mode: 'pline', sf: true, iso: true, lmode: 'line', lg: true, follow: true, v3: true });
+    t.eq('fondations : filante (axe des murs), isolée sous le poteau, longrine ; dessus sous la dalle du RDC, suivent la dalle, horizontales, Z de sommet à la main gardé', fd, { panel: true, mode: 'pline', sf: true, iso: true, lmode: 'line', lg: true, follow: true, flat: true, manual: true, menu: true, back: true, v3: true });
 
     // PEINDRE = un seul outil (Volume / Trait / Zone) ; zone d'un clic dans un contour ; clic dans une zone peinte = repeinte (aussi en mode Volume)
     const pz = await ev(async () => { if (is3DOpen()) close3D(); const keep = shapes; shapes = []; const m = mmToWorld(1000), r = {};
