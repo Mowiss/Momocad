@@ -232,4 +232,23 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const r = { same: t1 === t2, rebuilt: t3 !== t2 && Math.abs(tinZ(shapes[5].x, shapes[5].y, t3) - shapes[5].z) < 1, mip: mm.width <= 512 && mm.width >= 300, full: imgMip(big, 1800) === big, nfr: nfr(1234.5, 2) === nfr(1234.5, 2) && fmtZ(1136500) === '1136,50' && /1\s234,50/.test(nfr(1234.5, 2)) };
         shapes = keep; invalidateCache(); return r; });
     t.eq('gros plan : terrain gardé quand on trace, refait quand un point coté bouge ; fond de carte réduit ; formats de nombres', perf, { same: true, rebuilt: true, mip: true, full: true, nfr: true });
+
+    // BASSIN DE RÉTENTION enterré : volume utile, fouille (surlargeur + talus), lit, remblai ; dans les notes de cubature, financière et pluviométrique
+    const bs = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -4; i <= 4; i++) for (let j = -4; j <= 4; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000, zk: 1 });
+        invalidateCache(); const r = {}; document.getElementById('btn-bassin').click(); r.mode = mode + (bassinDraw ? '+bassin' : '');
+        setMode('select-box'); bassinCreate([[0, 0], [10, 0], [10, 5], [0, 5]].map(([x, y]) => ({ x: x * m, y: -y * m }))); const b = shapes[shapes.length - 1];
+        r.panel = /Alvéolaire/.test(document.getElementById('t2-panel').textContent) && /Volume utile/.test(document.getElementById('bs-res').textContent);
+        const C = bassinCalc(b), near = (a, v, t) => Math.abs(a - v) < (t || 0.05);
+        r.alv = near(C.A, 50) && near(C.Vut, 47.5) && near(C.zTop, 99200, 1) && near(C.zFouille, 98100, 1) && near(C.Df, 1.9, 0.001) && near(C.Vf, 192.0, 0.2) && near(C.Vlit, 6.58) && near(C.Vrem, 135.4, 0.2);
+        bassinSet('t', 'beton'); const Cb = bassinCalc(b); r.beton = near(Cb.Vut, 66.24) && b.bassin.cover === 800 && Cb.beton > 0;
+        bassinSet('t', 'buse'); const Cu = bassinCalc(b); r.buse = Cu.n === 3 && near(Cu.Vut, 3 * Math.PI / 4 * 10, 0.01);
+        bassinSet('t', 'alv'); bassinSet('tal', '0'); r.blinde = near(bassinCalc(b).Vf, 65.785 * 1.9, 0.2);
+        const H = document.createElement('div'); H.id = 'cb-res'; document.body.appendChild(H); runCubature(); r.cub = /Bassins de rétention/.test(H.textContent) && /Bassin 1/.test(H.textContent); H.remove();
+        const Q = metreQuant(); r.fin = !!Q && Q.rows.some(x => /Bassin — fouille/.test(x.name) && x.code === '__DEB') && Q.rows.some(x => /structure alvéolaire/.test(x.name)) && Q.rows.some(x => /remblai/.test(x.name) && x.code === '__REM');
+        openPluvio(); await new Promise(res => setTimeout(res, 300)); r.pluvio = /Bassins \(1\)/.test(document.getElementById('pv-res').textContent); closeTopoModal();
+        await open3D(); await new Promise(res => setTimeout(res, 500)); let n3 = 0; V3.root.traverse(o => { if (o.userData && o.userData.bassin) n3++; }); r.v3 = n3; close3D();
+        t2PanelClose(); setMode('select-box'); shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('bassin de rétention : alvéolaire / béton / buses, fouille avec surlargeur et talus, lit, remblai ; notes cubature, financière, pluvio ; 3D', bs,
+        { mode: 'poly+bassin', panel: true, alv: true, beton: true, buse: true, blinde: true, cub: true, fin: true, pluvio: true, v3: 1 });
 } };

@@ -533,4 +533,32 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         v3CutToggle(); const off = V3.renderer.clippingPlanes.length === 0; close3D(); shapes = keepS; selectedShapes = []; invalidateCache(); saveState();
         return { plane: !!pl, sides: Math.sign(front) !== Math.sign(back), caps: caps > 2, ground: ground >= 1, kept, off, img: !!(v.v3 && v.v3.img) }; });
     t.eq('coupe en perspective : 3D tronquée au trait (un côté gardé), tranches pleines et terre, gardée par une fenêtre 3D de mise en page, retirée au 2e clic', c3, { plane: true, sides: true, caps: true, ground: true, kept: true, off: true, img: true });
+
+    // FONDATIONS : filante, isolée (sous un poteau), longrine ; dessus calé sous la dalle du RDC, et qui suit quand la dalle monte
+    await ev(() => { if (is3DOpen()) close3D(); });
+    const fd = await ev(async () => { const m = mmToWorld(1000), sq = (x0, y0, w, z) => [[x0, y0], [x0 + w, y0], [x0 + w, y0 + w], [x0, y0 + w]].map(([x, y]) => ({ x: x * m, y: -y * m, z }));
+        const dalle = { type: 'poly', layerId: 'layer-0', points: sq(1000, 1000, 10, 100000), solid: { kind: 'box', H: 200 }, zk: 1, name: 'Dalle' }, pot = { type: 'poly', layerId: 'layer-0', points: sq(1004.9, 1004.9, 0.2, 100200), solid: { kind: 'box', H: 2500 }, zk: 1, name: 'Poteau' };
+        shapes.push(dalle, pot); saveState(); const r = {};
+        document.getElementById('btn-fond').click(); r.panel = /Semelle filante/.test(document.getElementById('t2-panel').textContent);
+        fondGo(); r.mode = mode; shapes.push({ type: 'poly', open: true, layerId: activeLayerId, points: [{ x: 1000.2 * m, y: -1000.2 * m }, { x: 1009.8 * m, y: -1000.2 * m }, { x: 1009.8 * m, y: -1009.8 * m }] }); saveState();
+        const sf = shapes[shapes.length - 1]; r.sf = sf.fond && sf.fond.t === 'filante' && sf.sweep && sf.sweep.d.l === 500 && sf.points.every(q => Math.abs(q.z - (100000 - 400)) < 1) && layers.find(l => l.id === sf.layerId).name === 'Fondations';
+        setMode('select-box'); fondSet('isolee'); selectedShapes = [pot]; fondGo(); const si = shapes[shapes.length - 1]; const c = polyCentroid(si.points);
+        r.iso = si.fond.t === 'isolee' && Math.abs(c.x - 1005 * m) < 1 && Math.abs(si.points[0].z - 99600) < 1 && si.solid.H === 400 && Math.abs(si.points[1].x - si.points[0].x - 0.8 * m) < 1e-6;
+        fondSet('longrine'); selectedShapes = []; fondGo(); r.lmode = mode; shapes.push({ type: 'line', layerId: activeLayerId, x1: 1002 * m, y1: -1005 * m, x2: 1008 * m, y2: -1005 * m }); saveState(); const lg = shapes[shapes.length - 1];
+        r.lg = lg.fond && lg.fond.t === 'longrine' && Math.abs(lg.z1 - 99600) < 1 && lg.sweep.d.l === 250;
+        dalle.points.forEach(q => q.z += 500); saveState(); r.follow = Math.abs(sf.points[0].z - 100100) < 1 && Math.abs(si.points[0].z - 100100) < 1 && Math.abs(lg.z2 - 100100) < 1;
+        setMode('select-box'); await open3D(); await new Promise(res => setTimeout(res, 600)); let n = 0; V3.root.traverse(o => { if (o.isMesh && o.userData && (o.userData.sh === sf || o.userData.shape === sf || o.userData.s === sf)) n++; }); r.v3 = V3.root.children.length > 0; close3D();
+        shapes = shapes.filter(x => ![dalle, pot, sf, si, lg].includes(x)); saveState(); return r; });
+    t.eq('fondations : filante (axe des murs), isolée sous le poteau, longrine ; dessus sous la dalle du RDC, et suivent la dalle', fd, { panel: true, mode: 'pline', sf: true, iso: true, lmode: 'line', lg: true, follow: true, v3: true });
+
+    // PEINDRE = un seul outil (Volume / Trait / Zone) ; zone d'un clic dans un contour ; clic dans une zone peinte = repeinte (aussi en mode Volume)
+    const pz = await ev(async () => { if (is3DOpen()) close3D(); const keep = shapes; shapes = []; const m = mmToWorld(1000), r = {};
+        const pl = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [8, 0], [8, 6], [0, 6]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; shapes.push(pl); saveState();
+        r.noBrushBtn = !document.getElementById('btn-brush'); await paintMode('zone'); r.zoneMode = mode === 'poly' && !!brushTool && /Peindre/.test(document.getElementById('t2-panel').textContent) && !!document.querySelector('#t2-panel [data-pm=zone]');
+        brushSet('pick', true); await new Promise(res => setTimeout(res, 200)); r.pick = mode + (document.getElementById('t2-panel').style.display === 'block' ? '+panel' : ''); brushChoose('galets'); brushPickClick({ x: 4 * m, y: -3 * m }); const z = shapes[shapes.length - 1]; r.made = !!(z.brush && z.brush.poly && z.brush.tex === 'galets' && z.points.length === 4);
+        const n0 = shapes.length; brushChoose('gazon'); brushPickClick({ x: 4 * m, y: -3 * m }); r.repaint = shapes.length === n0 && z.brush.tex === 'gazon';
+        await paintMode('vol'); r.vol = !!texPaint && !brushTool && mode === 'paint'; texChoose('brique'); r.shared = brushLast.tex === 'brique';
+        const sx = 4 * m * camera.zoom + camera.x, sy = -3 * m * camera.zoom + camera.y; t2MouseDown(sx, sy, { button: 0 }); r.volRepaint = z.brush.tex === 'brique';
+        texStop(); localStorage.setItem('momocad-paintmode', 'vol'); paintModeLast = 'vol'; shapes = keep; saveState(); return r; });
+    t.eq('Peindre : un outil, 3 modes ; zone d\'un clic dans un contour ; zone peinte repeinte d\'un clic (Zone et Volume)', pz, { noBrushBtn: true, zoneMode: true, pick: 'paintzone+panel', made: true, repaint: true, vol: true, shared: true, volRepaint: true });
 } };
