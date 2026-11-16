@@ -561,4 +561,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const sx = 4 * m * camera.zoom + camera.x, sy = -3 * m * camera.zoom + camera.y; t2MouseDown(sx, sy, { button: 0 }); r.volRepaint = z.brush.tex === 'brique';
         texStop(); localStorage.setItem('momocad-paintmode', 'vol'); paintModeLast = 'vol'; shapes = keep; saveState(); return r; });
     t.eq('Peindre : un outil, 3 modes ; zone d\'un clic dans un contour ; zone peinte repeinte d\'un clic (Zone et Volume)', pz, { noBrushBtn: true, zoneMode: true, pick: 'paintzone+panel', made: true, repaint: true, vol: true, shared: true, volRepaint: true });
+
+    // ESCALIER (tiroir Paroi) : deux clics bas → haut ; altitudes du sol fini aux deux bouts ; marches calculées ; plan et 3D
+    const st = await ev(async () => { if (is3DOpen()) close3D(); const keep = shapes; shapes = []; const m = mmToWorld(1000);
+        const pf = (P, z) => ({ type: 'poly', layerId: 'layer-0', zk: 1, points: P.map(([x, y]) => ({ x: x * m, y: -y * m, z })), talus: { on: false } });
+        shapes.push(pf([[0, 0], [10, 0], [10, 10], [0, 10]], 100000), pf([[10, 0], [20, 0], [20, 10], [10, 10]], 101000)); invalidateCache(); saveState(); const r = {};
+        openParois(); r.card = !!document.querySelector('#blk-grid [onclick="startStair()"]'); document.querySelector('#blk-grid [onclick="startStair()"]').click(); r.mode = mode;
+        stairOpt = { w: 1200, h: 170, g: 280, nez: 30, mat: 'pierre' }; stairClick({ x: 12 * m, y: -5 * m }); stairClick({ x: 8.5 * m, y: -5 * m }); const S = shapes.find(x => x.stair);
+        r.calc = S ? [S.stair.n, S.stair.h, S.stair.z0, S.stair.z1].join('/') : null; r.len = Math.round(mOf(Math.hypot(S.stair.b.x - S.stair.a.x, S.stair.b.y - S.stair.a.y)) * 100); r.bl = blondel(S.stair.h, S.stair.g).b;
+        selectedShapes = [S]; stairPanel(S); const gi = document.getElementById('st-g'); gi.value = '30'; gi.dispatchEvent(new Event('input', { bubbles: true })); r.edit = S.stair.g === 300 && Math.round(mOf(Math.hypot(S.stair.b.x - S.stair.a.x, S.stair.b.y - S.stair.a.y)) * 100) === 180 && /Blondel/.test(document.getElementById('st-bl').textContent); r.dir = !!S && S.stair.a.x < S.stair.b.x; r.notPlat = S && !isPlateforme(S);
+        await open3D(); await new Promise(res => setTimeout(res, 500)); let n = 0; V3.root.traverse(o => { if (o.isMesh && o.userData.shape === S) n++; }); r.steps3D = n; close3D();
+        t2PanelClose(); setMode('select-box'); shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('escalier : bouton dans les parois, 2 clics, 6 marches de 16,7 cm (giron 28, Blondel 61,4), réglable ensuite, 6 marches en 3D', st, { card: true, mode: 'stair', calc: '6/167/100000/101000', len: 168, bl: 614, edit: true, dir: true, notPlat: true, steps3D: 6 });
 } };

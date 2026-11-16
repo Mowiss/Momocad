@@ -299,4 +299,18 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const nat = document.getElementById('v3-nat'); if (nat && !nat.checked) nat.click(); await open3D(); await new Promise(res => setTimeout(res, 500)); build3DScene(); r.asphalt = V3.terrStats.road > 0; close3D();
         shapes = keep; invalidateCache(); saveState(); return r; });
     t.eq('routes : chaussée entre les deux bords, en enrobé en 3D', rd, { polys: 1, inside: true, outside: false, asphalt: true });
+
+    // bassin à deux fonds (fosse dans une fosse) : la dalle de la grande plateforme n'est percée qu'une fois, pas de pan d'herbe par-dessus l'eau
+    const ff = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 99800, zk: 1 });
+        const circ = (cx, cy, r, z, n) => ({ type: 'poly', layerId: 'layer-0', zk: 1, points: Array.from({ length: n }, (_, k) => ({ x: (cx + Math.cos(k / n * 6.283) * r * 1.4) * m, y: -(cy + Math.sin(k / n * 6.283) * r) * m, z })), talus: { on: true, kR: '3/2', kD: '1/1' } });
+        const big = { type: 'poly', layerId: 'layer-0', zk: 1, points: [[-30, -25], [30, -25], [30, 25], [-30, 25]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 100000 })), talus: { on: true, kR: '3/2', kD: '1/1' } };
+        const f1 = circ(0, 0, 9, 98500, 36), f2 = circ(2, 1, 3, 97000, 24); shapes.push(big, f1, f2); invalidateCache(); saveState();
+        const nat = document.getElementById('v3-nat'); if (nat && !nat.checked) nat.click(); await open3D(); await new Promise(res => setTimeout(res, 600)); build3DScene();
+        const Zt = (V3.exag || 1) * (100 - V3.zmin); let bad = 0, tot = 0;
+        V3.root.traverse(o => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.position || (o.userData && o.userData.brushOv)) return; const pa = o.geometry.attributes.position, idx = o.geometry.index ? o.geometry.index.array : null, n = idx ? idx.length / 3 : pa.count / 3;
+            for (let t = 0; t < n; t++) { const v = [0, 1, 2].map(k => idx ? idx[3 * t + k] : 3 * t + k); if (!v.every(i => Math.abs(pa.getZ(i) - Zt) < 0.01)) continue; tot++;
+                const cx = v.reduce((a, i) => a + pa.getX(i), 0) / 3, cy = v.reduce((a, i) => a + pa.getY(i), 0) / 3; if (pointInPolygon(mmToWorld(cx * 1000), -mmToWorld(cy * 1000), f1.points)) bad++; } });
+        close3D(); shapes = keep; invalidateCache(); saveState(); return { dalle: tot > 0, surEau: bad }; });
+    t.eq('fosse dans une fosse : dalle percée une seule fois, rien au-dessus de l\'eau', ff, { dalle: true, surEau: 0 });
 } };
