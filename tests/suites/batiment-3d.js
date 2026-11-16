@@ -294,6 +294,15 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     await H.Y({ 'tj-uoffall': true, 'tj-upl': 'Mur', 'tj-upe': '0,30' });
     const pu = await ev(() => { const pl = shapes.find(x => x.talus); tinCache = null; invalidateCache(); build3DScene(); let n = 0; V3.root.traverse(o => { if (o.userData.paroi) n++; }); return { cx: !!pl.talus.cx, off: (pl.talus.edges || []).map(e => !!(e && e.off && e.pl === 'Mur' && e.pe === 300)), n }; });
     t.ok('paroi en réglage uniforme : tout le contour en paroi (un interrupteur), voile béton en 3D', !pu.cx && pu.off.every(Boolean) && pu.n === 1, JSON.stringify(pu));
+    // arête de talus en escalier (réglage par arête) : marches de 16 × 30 cm, pente du talus = giron / hauteur, nez de marche dessinés en plan, marches en 3D
+    await ev(() => { const pl = shapes.find(x => x.talus); pl.talus = { on: true, kD: '1/1', kR: '3/2', cx: true }; selectedShapes = [pl]; saveState(); });
+    await H.Y({ 'tj-st-2': true, 'tj-sth-2': '16', 'tj-stg-2': '30', 'tj-stn-2': '3' });
+    const ts = await ev(() => { const pl = shapes.find(x => x.talus), e = (pl.talus.edges || [])[2] || {}; tinCache = null; invalidateCache(); const G = talusGeom(pl), S = (G.stairs || [])[0];
+        const ns = S ? Math.max(...S.pieces.map(p => p.Ns)) : 0, runs = S ? talStairRuns(S).length : 0; build3DScene(); let n = 0; V3.root.traverse(o => { if (o.userData.talStair) n++; });
+        // une ligne de nez = un trait par marche ; l'arête voisine (sans escalier) garde son talus 1/1
+        const FM = finishedModel(), r = FM.at(mmToWorld(19500), -mmToWorld(20000)); selectedShapes = [pl]; openSelectionParamModal(); const sum = document.querySelectorAll('.tal-j .tal-sm')[2].textContent; closeSelectionParamModal();
+        return { st: e.st, k: e.kD, ns, runs, n, kind: r && r.kind, sum, dec: talusK('1,5/0,5') }; });
+    t.ok('talus en escalier : réglage gardé, pente 0,3/0,16, marches entières jusqu\'au pied, nez en plan et marches en 3D', ts.st && ts.st.h === 160 && ts.st.g === 300 && ts.st.nez === 30 && ts.k === '0,3/0,16' && ts.dec === 3 && ts.ns >= 20 && ts.runs >= 6 && ts.n === 1 && /escalier 16,0 × 30,0 cm/.test(ts.sum), JSON.stringify(ts));
 
     // toiture à pans : fenêtre à chapitres, complexe couche par couche (épaisseur = somme), textures posées à la main et gardées à la modification
     const rc = await ev(() => { shapes = []; const m = mmToWorld(1000); const base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, 6], [0, 6]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 0 })) }; shapes.push(base);
