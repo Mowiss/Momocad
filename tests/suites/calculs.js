@@ -313,4 +313,18 @@ module.exports = { name: 'calculs', run: async (H, t) => {
                 const cx = v.reduce((a, i) => a + pa.getX(i), 0) / 3, cy = v.reduce((a, i) => a + pa.getY(i), 0) / 3; if (pointInPolygon(mmToWorld(cx * 1000), -mmToWorld(cy * 1000), f1.points)) bad++; } });
         close3D(); shapes = keep; invalidateCache(); saveState(); return { dalle: tot > 0, surEau: bad }; });
     t.eq('fosse dans une fosse : dalle percée une seule fois, rien au-dessus de l\'eau', ff, { dalle: true, surEau: 0 });
+
+    // FAÇONNER des plateformes qui se recouvrent : la plus basse est découpée par la plus haute (plus de plateforme sous une autre) ; une fosse reste ; tout se défait
+    const fo = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100300, zk: 1 });
+        const pf = (P, z) => ({ type: 'poly', layerId: 'layer-0', zk: 1, points: P.map(([x, y]) => ({ x: x * m, y: -y * m, z })), talus: { on: true, kR: '3/2', kD: '1/1' } });
+        const hi = pf([[-20, -10], [5, -10], [5, 10], [-20, 10]], 101000), lo = pf([[0, -12], [25, -12], [25, 12], [0, 12]], 100000), pit = pf([[12, -3], [18, -3], [18, 3], [12, 3]], 99000);
+        shapes.push(hi, lo, pit); invalidateCache(); saveState(); await loadPolyClip(); const A = (s) => Math.round(Math.abs(polyArea(s.points)) / m / m), r = { before: [A(hi), A(lo), A(pit)].join('/') };
+        selectedShapes = [hi, lo, pit]; const gid = await faconner([hi, lo, pit]);
+        r.after = [A(hi), A(lo), A(pit)].join('/'); r.noOverlap = !lo.points.some(v => v.x < 5 * m - 1 && Math.abs(v.y) < 10 * m - 1) && lo.points.every(v => v.z === 100000);
+        r.fm = finishedModel().at(2 * m, 0).z; r.talus = [hi, lo, pit].every(s => { const g = talusGeom(s); return !!g; });
+        faconUndo(gid); r.undo = [A(hi), A(lo), A(pit)].join('/') + '|' + !shapes.some(x => x.faconFill || x.faconPiece) + '|' + !lo.faconBak;
+        shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('façonner : plateformes qui se recouvrent découpées (la plus haute garde le recouvrement), fosse gardée, talus présents, défaire restaure', fo,
+        { before: '500/600/36', after: '500/500/36', noOverlap: true, fm: 101000, talus: true, undo: '500/600/36|true|true' });
 } };
