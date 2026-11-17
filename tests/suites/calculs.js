@@ -353,4 +353,30 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         t2PanelClose(); shapes = keep; selectedShapes = []; invalidateCache(); saveState(); return r; });
     t.eq('maillage : mailles géologie et pollution, tableau collé, déblai réparti par couche (TN → 2 m : 15/60/25 %), classes ISDI/ISDND, limite tirée à la souris', ml,
         { geo: true, parse: 'tv:300 limon:1200:0.6 marne:4500:2.5', pol: 'isdi isdnd:HAP, Hydrocarbures (HCT C10-C40)', D: 800, g: '15/60/25', mpa: 0.6, p: '13/38/50', hap: true, html: true, drag: true, save: true });
+
+    // revue des volets (Topo) : courbes (aperçu, couleur et plume), bassin (blocs + alerte de volume), maillage (mailles en série, rétractables, sondages et zone d'effet partagée, légende), infiltration selon le maillage
+    const tp = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'), r = {};
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000 + i * 400, zk: 1 }); tinCache = null; invalidateCache(); saveState();
+        openContoursDialog(); const pv = document.getElementById('ct-prev').textContent; document.getElementById('ct-eq').value = '1'; document.getElementById('ct-eq').dispatchEvent(new Event('change')); const pv2 = document.getElementById('ct-prev').textContent;
+        r.prev = /courbes/.test(pv) && /maîtresse/.test(pv2) && /Maîtresses : /.test(pv2) && pv !== pv2; document.getElementById('ct-cM').value = '#ff0000'; document.getElementById('ct-wM').value = '2'; generateContours(); closeTopoModal();
+        const LM = layers.find(l => l.name === 'Courbes maîtresses'); r.style = !!LM && LM.color === '#ff0000' && LM.width === 2;
+        // maillage : deux mailles tracées d'affilée, l'outil reste actif
+        mailPick = { set: 'G2 TEST', k: 'geo' }; mailClip = null; startMaille(); mailCreate([[0, 0], [10, 0], [10, 10], [0, 10]].map(([x, y]) => ({ x: x * m, y: -y * m }))); r.cont = mode === 'poly' && mailDraw;
+        mailCreate([[10, 0], [20, 0], [20, 10], [10, 10]].map(([x, y]) => ({ x: x * m, y: -y * m }))); r.cells = mailList('G2 TEST').length === 2 && document.querySelectorAll('#t2-panel .ml-cell').length === 2 && document.querySelectorAll('#t2-panel .ml-cell[open]').length === 1;
+        // sondages + zone d'effet : la zone se partage à la médiatrice ; Recalculer garde les couches de chaque sondage
+        setMode('select-box'); mailSondStart(); [[-30, 5], [-10, 5]].forEach(([x, y]) => { shapes.push({ type: 'point', layerId: 'layer-0', x: x * m, y: -y * m }); saveState(); }); setMode('select-box');
+        const sd = mailSonds('G2 TEST'); r.sonds = sd.map(p => p.name + (p.z === undefined ? '' : '!z')).join(',') + '|' + !tinNodes().some(n => sd.some(p => Math.abs(n.x - p.x) < 1 && Math.abs(n.y - p.y) < 1));
+        mailSplit([[-40, 0], [0, 0], [0, 10], [-40, 10]].map(([x, y]) => ({ x: x * m, y: -y * m }))); const cz = mailList('G2 TEST').filter(c => c.maille.zid), ar = cz.map(c => Math.round(Math.abs(polyArea(c.points)) / m / m)).sort().join('/');
+        r.split = cz.length + ':' + ar; cz[0].maille.cs[0].ep = 777; const keepName = cz[0].name; sd[0].x += 2 * m; mailResplit(); const cz2 = mailList('G2 TEST').filter(c => c.maille.zid);
+        r.resplit = cz2.length === 2 && cz2.find(c => c.name === keepName).maille.cs[0].ep === 777 && cz2.map(c => Math.round(Math.abs(polyArea(c.points)) / m / m)).sort().join('/') !== ar;
+        r.legend = mailLegendItems('G2 TEST').length >= 1 && /Légende du plan/.test(document.getElementById('t2-panel').textContent); t2PanelClose();
+        // infiltration : un sol argileux du maillage infiltre moins qu'un sable
+        const E = ecGrid(4000); r.mailSet = E.mailSet; const k0 = (() => { for (let k = 0; k < E.n; k++) { const i = k % E.nx, j = Math.floor(k / E.nx), x = E.x0 + i * E.c * E.m, y = E.y0 + j * E.c * E.m; if (E.surf[k] === 0 && pointInPolygon(x, y, cz2[0].points)) return k; } return -1; })();
+        cz2[0].maille.cs = [{ ep: 300, sub: 'argile' }, { sub: 'argile' }]; ecRates(E); const a1 = E.rate[k0]; cz2[0].maille.cs = [{ ep: 300, sub: 'sable' }, { sub: 'sable' }]; ecRates(E); const a2 = E.rate[k0]; r.inf = k0 >= 0 && a2 > a1 * 10;
+        // bassin : volume utile trop faible → alerte et hauteur conseillée
+        pluvioNote = { S: [1] }; const keepPC = pluvioCalc; window.pluvioCalc = () => ({ Vs: 9999 }); const b = { type: 'poly', layerId: 'layer-0', points: [[30, 0], [40, 0], [40, 5], [30, 5]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; bassinCreate(b.points);
+        const bt = document.getElementById('t2-panel').textContent; r.bassin = /Volume insuffisant/.test(bt) && /Il faudrait une hauteur/.test(bt) && /Stockage/.test(bt) && /Terrassement/.test(bt); window.pluvioCalc = keepPC; pluvioNote = null; t2PanelClose();
+        shapes = keep; tinCache = null; invalidateCache(); saveState(); setMode('select-box'); return r; });
+    t.eq('volets Topo : aperçu et style des courbes, mailles en série et rétractables, sondages et zone d\'effet partagée (recalcul qui garde les couches), légende, infiltration selon le sol, alerte de volume du bassin', tp,
+        { prev: true, style: true, cont: true, cells: true, sonds: 'S1,S2|true', split: '2:200/200', resplit: true, legend: true, mailSet: 'G2 TEST', inf: true, bassin: true });
 } };
