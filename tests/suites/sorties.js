@@ -140,5 +140,11 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
     const rt = await ev(() => { const txt = JSON.stringify(projectData()); toggleLayout(false); lpResetAll(); loadProjectText(txt, 'essai.mmc');
         return [layouts.length, layoutIdx, layouts.map(L => L.name), layouts[1].paper, layouts[1].cartType, layouts[1].cart.planName, layouts[0].vps.length, cartoucheData.site]; });
     t.eq('présentations enregistrées puis rouvertes (.mmc)', rt, [2, 0, ['', 'Réseau EP'], 'A1', 'a4', 'Plan des eaux pluviales', 2, 'Chantier de Gap']);
+    // dossiers d'urbanisme : « Nouveau PC » et « Nouvelle DP » dans le volet des présentations (à droite, pleine hauteur)
+    const pc = await ev(() => { lpResetAll(); if (!layoutOn) toggleLayout(true); lpMenuOpen(); const card = document.querySelector('#lp-menu .lpm-card').getBoundingClientRect(); const side = card.right >= innerWidth - 2 && card.left > 0;
+        document.querySelector('#lp-menu [data-a=addpc]').click(); const P = layouts.slice(1); const r = { side, n: P.length, names: P.map(L => L.name.split(' ')[0]).join(','), cart: P[1].cart.planName + '|' + P[1].cart.phase + '|' + P[1].cart.indice, vps: P.map(L => L.vps.length).join(''), sc: P[1].vps[0].scale, fmt: P.every(L => L.paper === 'A3' && L.orient === 'landscape') ? 'A3landscape/A3landscape' : P.map(L => L.paper + L.orient).join(','), cur: layoutIdx };
+        document.querySelector('#lp-menu [data-a=adddp]').click(); r.dp = layouts.slice(9).map(L => L.name.split(' ')[0]).join(','); r.dp4 = layouts[12].cart.planName; lpMenuClose(); toggleLayout(false); lpResetAll(); return r; });
+    t.eq('présentations : volet à droite ; « Nouveau PC » = PCMI1 à PCMI8, « Nouvelle DP » = DP1 à DP8, cartouche rempli (titre, phase, indice A), plans cadrés à l\'échelle usuelle', pc,
+        { side: true, n: 8, names: 'PCMI1,PCMI2,PCMI3,PCMI4,PCMI5,PCMI6,PCMI7,PCMI8', cart: 'PCMI2 — Plan de masse|PC|A', vps: '11101000', sc: 200, fmt: 'A3landscape/A3landscape', cur: 1, dp: 'DP1,DP2,DP3,DP4,DP5,DP6,DP7,DP8', dp4: 'DP4 — Plan des façades et des toitures' });
     await ev(() => { lpResetAll(); cartoucheData.site = ''; saveCartoucheData(); });
 } };
