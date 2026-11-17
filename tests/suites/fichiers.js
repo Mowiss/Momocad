@@ -173,6 +173,27 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         if (big) { selectedShapes = [big]; draw(); } const r = { nB: B.length, clip: maxR !== null && maxR <= 100.5, hedge: !!hedge, edges: E.length, flat, onRoad: Math.abs(zc - za) < 60, removed: nPts0 - shapes.filter(x => x.code === 'TN_IGN').length > 0, inBand, notTin: !isPlateforme(big), grp };
         selectedShapes = []; shapes = keepS; tinCache = null; invalidateCache(); saveState(); return r; });
     t.eq('import : zones boisées (bois découpé au cercle, haie, vigne écartée) et routes TN propre (2 bords, chaussée plate, TN calé dessus, points de chaussée retirés, sentier écarté)', ib, { nB: 2, clip: true, hedge: true, edges: 2, flat: true, onRoad: true, removed: true, inBand: 0, notTin: true, grp: ['Données carto'] });
+    // hydrographie : une rivière (pente nord → sud) taille son lit (5 lignes de rupture, eau qui ne remonte pas), un étang reçoit son bord, son fond et son eau
+    const hy = await ev(async () => { const keepS = shapes, keepF = window.fetch; shapes = []; const lat0 = 44.56, lon0 = 6.08, cosL = Math.cos(lat0 * Math.PI / 180), m = mmToWorld(1000), LL = (e, n) => [lon0 + e / (111320 * cosL), lat0 + n / 111320];
+        const b = { type: 'basemap', layerId: 'layer-0', x: 0, y: 0, r: 100 * m, rot: 0, lat: lat0, lon: lon0, radiusM: 100, mapId: 'thy' }; shapes.push(b);
+        for (let e = -100; e <= 100; e += 5) for (let n = -100; n <= 100; n += 5) if (e * e + n * n <= 10000) shapes.push({ type: 'point', layerId: 'layer-0', x: e * m, y: -n * m, z: 100000 + n * 50 + Math.round(Math.abs(e) * 30), zk: 1, code: 'TN_IGN' });   // vallon vers le sud
+        tinCache = null; invalidateCache(); const tz0 = tinZ(1 * mmToWorld(1000), 0, getTIN());
+        const ok = (o) => ({ ok: true, headers: { get: () => 'application/json' }, json: async () => o, text: async () => JSON.stringify(o) });
+        window.fetch = async (u) => { if (/troncon_hydrographique/.test(u)) return ok({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { nature: 'Cours d\'eau', toponyme: 'La Luye', largeur: 4 }, geometry: { type: 'LineString', coordinates: [LL(0, -150), LL(1, 0), LL(0, 150)] } }, { type: 'Feature', properties: { fictif: true }, geometry: { type: 'LineString', coordinates: [LL(-50, -50), LL(50, 50)] } }] });
+            if (/surface_hydrographique/.test(u)) return ok({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { nature: 'Plan d\'eau', toponyme: 'Étang' }, geometry: { type: 'Polygon', coordinates: [[LL(-70, 20), LL(-40, 20), LL(-40, 50), LL(-70, 50), LL(-70, 20)]] } }] });
+            throw new Error('Failed to fetch'); };
+        await hydroFetch(b); window.fetch = keepF; const r = {};
+        const L = shapes.filter(x => x.rvOf && x.open && x.type === 'poly'), R = shapes.find(x => x.river), W = shapes.find(x => x.water && x.rvOf);
+        r.lines = L.filter(x => x.name === 'Haut de berge').length === 2 && L.filter(x => x.name === 'Bord de l\'eau').length === 3 && L.filter(x => x.name === 'Fond du lit').length === 1;
+        r.down = !!R && (() => { const n = R.points.length / 2, z = R.river.zs.slice(0, n); return z.every((v, i) => !i || v <= z[i - 1]) && z[0] > z[n - 1]; })();
+        const tin = getTIN(), zBed = tinZ(1 * m, 0, tin); r.carved = tz0 - zBed > 800;   // le lit est creusé au milieu
+        r.water = !!R && R.river.name === 'La Luye' && !!W && W.water.name === 'Étang' && shapes.some(x => x.code === 'HYD_FOND');
+        r.notTin = !isPlateforme(R) && !isPlateforme(W); r.fictif = shapes.filter(x => x.name === 'Fond du lit').length === 1;
+        await open3D(); let rv = 0; V3.root.traverse(o => { if (o.userData.river) rv++; }); r.water3D = rv === 1; close3D();
+        r.widths = [HYD_W({ nature: 'Ruisseau' }), HYD_W({ importance: 6 }), HYD_W({ importance: 3 }), HYD_W({ toponyme: 'Le Rhône' }), HYD_W({ toponyme: 'Le Rhône', classe_de_largeur: 'Plus de 50 m' }), HYD_W({ largeur: 12 })].join(',') + '|' + (hydDepth(150) > hydDepth(1.5) * 4);
+        r.ui = !!document.getElementById('bm-eau') && !!document.getElementById('ps-dt-eau') && bmSettings.data.eau === true;
+        shapes = keepS; tinCache = null; invalidateCache(); saveState(); return r; });
+    t.eq('hydrographie : lit taillé en lignes de rupture (hauts de berge, bords de l\'eau, fond), eau qui ne remonte pas, étang avec fond et eau, eau en 3D ; largeur du ruisseau au fleuve', hy, { lines: true, down: true, carved: true, water: true, notTin: true, fictif: true, water3D: true, widths: '1.5,1.5,20,150,180,12|true', ui: true });
     // beaucoup de points (grille IGN fine) : le terrain existe toujours (grille éclaircie, lignes de rupture gardées) ; avant, au-delà de 8 000 points plus de terrain du tout
     const tt = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000);
         for (let i = 0; i < 110; i++) for (let j = 0; j < 110; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * m, y: -j * m, z: 100000 + i * 50, zk: 1, code: 'TN_IGN' });

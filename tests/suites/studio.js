@@ -49,6 +49,23 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         return { grass: sz.b[0] > sz.a[0] * 3, gran: sz.b[1] > sz.a[1] * 4 }; });
     t.eq('matières : hauteur de l\'herbe et granulométrie de la terre réglables', mt, { grass: true, gran: true });
 
+    // rivière en rendu : eau à vaguelettes et reflets, rochers et roseaux sur les rives ; rien de tout ça hors rendu
+    const rv = await ev(async () => { const m = mmToWorld(1000), L = [], R = []; for (let i = 0; i <= 20; i++) { L.push({ x: 5 * m + i * 2.5 * m, y: -28 * m }); R.push({ x: 5 * m + i * 2.5 * m, y: -32 * m }); }
+        const zs = L.map((q, i) => 100800 - i * 10).concat(R.map((q, i) => 100800 - i * 10).reverse()), rs = { type: 'poly', layerId: 'layer-0', points: L.concat(R.slice().reverse()), river: { zs, w: 4, name: 'Test' }, zk: 1 }; shapes.push(rs); invalidateCache();
+        const r = {}; let n0 = 0; build3DScene(); V3.root.traverse(o => { if (o.userData.rock || o.userData.reed) n0++; if (o.userData.river) r.plain = !o.material.isMeshPhongMaterial; });
+        const rc = V3.camera.clone(); rc.clearViewOffset(); rc.updateProjectionMatrix(); rc.updateMatrixWorld(true); V3.hq = { tree: 1, terr: 1, grass: 100000, earth: false, riv: true, wave: true, rc }; try { build3DScene(); } finally { V3.hq = null; }
+        let rk = 0, rd = 0; V3.root.traverse(o => { if (o.userData.rock) rk += o.count; if (o.userData.reed) rd += o.count; if (o.userData.river) { r.phong = o.material.isMeshPhongMaterial && o.material.normalMap === WAVE_TEX; } });
+        r.rocks = rk > 20; r.reeds = rd > 0; r.none = n0 === 0; shapes = shapes.filter(x => x !== rs); invalidateCache(); build3DScene(); render3D(); return r; });
+    t.eq('rivière en rendu : vaguelettes à reflets, rochers et roseaux sur les rives (rien de tout ça hors rendu)', rv, { plain: true, phong: true, rocks: true, reeds: true, none: true });
+
+    // étang dessiné (plateforme creusée + niveau d'eau) : rochers et roseaux sur la ligne où l'eau rencontre le talus
+    const et = await ev(async () => { const m = mmToWorld(1000), pf = { type: 'poly', layerId: 'layer-0', points: [[15, 12], [28, 12], [28, 22], [15, 22]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 99000 })) }, w = { type: 'poly', layerId: 'layer-0', points: [[8, 6], [35, 6], [35, 28], [8, 28]].map(([x, y]) => ({ x: x * m, y: -y * m })), water: { z: 100300, name: 'Étang' }, zk: 1 };
+        shapes.push(pf, w); tinCache = null; invalidateCache(); const S = waterShore(w), r = { shore: S.length > 20 };
+        const zs = S.map(([a]) => groundZAt(a.x, a.y, false)); r.onLevel = zs.every(z => Math.abs(z - 100300) < 250);
+        const rc = V3.camera.clone(); rc.clearViewOffset(); rc.updateProjectionMatrix(); rc.updateMatrixWorld(true); V3.hq = { tree: 1, terr: 1, grass: 100000, earth: false, riv: true, wave: true, rc }; try { build3DScene(); } finally { V3.hq = null; }
+        let rk = 0; V3.root.traverse(o => { if (o.userData.rock) rk += o.count; }); r.rocks = rk > 10; shapes = shapes.filter(x => x !== pf && x !== w); tinCache = null; invalidateCache(); build3DScene(); render3D(); return r; });
+    t.eq('étang dessiné (bassin creusé + niveau d\'eau) : rive trouvée là où l\'eau rencontre le talus, rochers et roseaux dessus', et, { shore: true, onLevel: true, rocks: true });
+
     // ombres portées : un mur au soleil fait de l'ombre au sol dans le rendu, pas sans les ombres
     const sh = await ev(async () => { const m = mmToWorld(1000); await studioOpen(); V3.az = 0; V3.el = 1.4; V3.dist = 70; V3.target.set(0, 0, 0); v3SetHour(12); render3D(); studio.q = 'rapide'; studio.fin = false; V3.rdSize = [160, 120]; V3.rdSpp = 1;
         const go = async (s) => { studio.sh = s; studioRender(); await new Promise(res => { const k = setInterval(() => { if (!RD) { clearInterval(k); res(); } }, 100); }); const d = RD_LAST.cv.getContext('2d').getImageData(0, 0, 160, 120).data; let a = 0; for (let i = 0; i < d.length; i += 4) a += d[i] + d[i + 1] + d[i + 2]; rdUI('off'); return a; };
