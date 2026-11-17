@@ -327,4 +327,30 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         shapes = keep; invalidateCache(); saveState(); return r; });
     t.eq('façonner : plateformes qui se recouvrent découpées (la plus haute garde le recouvrement), fosse gardée, talus présents, défaire restaure', fo,
         { before: '500/600/36', after: '500/500/36', noOverlap: true, fm: 101000, talus: true, undo: '500/600/36|true|true' });
+
+    // MAILLAGE : mailles de sondage (couches depuis le TN), déblais décomposés par couche dans la note de cubature ; pollution par classe ; tableau collé
+    const ml = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'), r = {};
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000, zk: 1 });
+        const pf = { type: 'poly', layerId: 'layer-0', zk: 1, points: [[-10, -10], [10, -10], [10, 10], [-10, 10]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 98000 })), talus: { on: false } }; shapes.push(pf);
+        const cell = (P) => ({ type: 'poly', layerId: 'layer-0', points: P.map(([x, y]) => ({ x: x * m, y: -y * m })) });
+        const g = cell([[-30, -30], [30, -30], [30, 30], [-30, 30]]), p1 = cell([[-30, -30], [0, -30], [0, 30], [-30, 30]]); shapes.push(g, p1); saveState();
+        selectedShapes = [g]; mailPick = { set: 'G2 PRO', k: 'geo' }; mailClip = null; startMaille(); r.geo = !!g.maille && g.maille.k === 'geo' && !isPlateforme(g) && /Maillage/.test(document.getElementById('t2-panel').textContent) && !!document.getElementById('ml-svg');
+        // tableau collé depuis le rapport
+        document.getElementById('ml-paste').value = '0,00\t0,30\tTerre végétale\n0,30 - 1,50  Limon argileux  0,6 MPa\n1,50  6,00  Marne compacte 2,5'; mailImport();
+        r.parse = g.maille.cs.map(c => c.sub + ':' + c.ep + (c.mpa !== undefined ? ':' + c.mpa : '')).join(' ');
+        selectedShapes = [p1]; mailPick = { set: 'DIAG POLLUTION', k: 'pol' }; startMaille(); document.getElementById('ml-paste').value = '0 0,5 ISDI\n0,5 3 ISDND HAP, Hydrocarbures (HCT C10-C40)'; mailImport();
+        r.pol = p1.maille.cs.map(c => c.cl + (c.pol ? ':' + c.pol : '')).join(' ');
+        setMode('select-box'); mailNoteCfg().on = { 'G2 PRO': true, 'DIAG POLLUTION': true }; invalidateCache(); cubCC = null; const CC = cubComputeCached();
+        const G = mailDecomp(CC, 'G2 PRO'), P = mailDecomp(CC, 'DIAG POLLUTION'), pc = (R, n) => { const x = R.rows.find(q => q.nm === n); return x ? Math.round(x.pct) : null; };
+        r.D = Math.round(CC.D); r.g = [pc(G, 'Terre végétale'), pc(G, 'Limon argileux'), pc(G, 'Marne compacte')].join('/'); r.mpa = Math.round(G.rows.find(q => q.nm === 'Limon argileux').mpa * 100) / 100;
+        r.p = [pc(P, 'ISDI'), pc(P, 'ISDND'), pc(P, 'Hors maillage')].join('/'); r.hap = /HAP/.test(P.rows.find(q => q.nm === 'ISDND').pol);
+        const H = mailCubHTML(CC); r.html = /Déblais par couche/.test(H) && /Marne compacte/.test(H) && /ISDND/.test(H);
+        // glisser la limite TV / limon dans la colonne : épaisseur changée par pas de 5 cm
+        mailPanel(g); mailSel = 0; const sv = document.getElementById('ml-svg'), hb = sv.querySelector('[data-b="0"]'), rb = hb.getBoundingClientRect();
+        hb.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: rb.x + 20, clientY: rb.y + 5 })); dispatchEvent(new PointerEvent('pointermove', { clientX: rb.x + 20, clientY: rb.y + 25 })); dispatchEvent(new PointerEvent('pointerup', {}));
+        r.drag = g.maille.cs[0].ep > 300 && g.maille.cs[0].ep % 50 === 0;
+        const sv2 = JSON.parse(JSON.stringify({ shapes: [g.maille], n: mailNote })); r.save = sv2.shapes[0].cs.length === 3 && sv2.n.on['G2 PRO'] === true;
+        t2PanelClose(); shapes = keep; selectedShapes = []; invalidateCache(); saveState(); return r; });
+    t.eq('maillage : mailles géologie et pollution, tableau collé, déblai réparti par couche (TN → 2 m : 15/60/25 %), classes ISDI/ISDND, limite tirée à la souris', ml,
+        { geo: true, parse: 'tv:300 limon:1200:0.6 marne:4500:2.5', pol: 'isdi isdnd:HAP, Hydrocarbures (HCT C10-C40)', D: 800, g: '15/60/25', mpa: 0.6, p: '13/38/50', hap: true, html: true, drag: true, save: true });
 } };
