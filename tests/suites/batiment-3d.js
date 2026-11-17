@@ -19,10 +19,10 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     const kinds = await ev(() => ['montagne', 'ville', 'plaine', 'village'].map(k => { v3HzType(k); return V3.hz.userData.key.split(':')[0] + (V3.hz.userData.lights ? '+nuit' : ''); }));
     t.eq('horizon : quatre paysages (la ville et le village s\'éclairent la nuit)', kinds, ['montagne', 'ville+nuit', 'plaine', 'village+nuit']);
     const pano = await ev(async () => { const c = document.createElement('canvas'); c.width = 512; c.height = 256; c.getContext('2d').fillRect(0, 0, 512, 256); const b = await new Promise(r => c.toBlob(r));
-        const ok = await v3PanoFromBlob(b, false); v3HzType('photo'); const r = [ok, V3.pano.visible, V3.hz.visible, V3.gnd.visible]; v3HzType('montagne'); return r; });
-    t.eq('photo 360° : remplace ciel et horizon', pano, [true, true, false, false]);
+        const ok = await v3PanoFromBlob(b, false); stPano.on = true; await studioOpen(); render3D(); const r = [ok, V3.pano.visible, V3.hz.visible, V3.gnd.visible]; studioClose(); stPano.on = false; return r; });
+    t.eq('photo 360° (studio photo) : remplace ciel et horizon', pano, [true, true, false, false]);
     const cyl = await ev(async () => { const c = document.createElement('canvas'); c.width = 1300; c.height = 200; c.getContext('2d').fillRect(0, 0, 1300, 200); const b = await new Promise(r => c.toBlob(r));
-        await v3PanoFromBlob(b, false); v3HzType('photo'); const r = [V3.pano.visible, V3.panoC.visible]; v3HzType('montagne'); return r; });
+        await v3PanoFromBlob(b, false); stPano.on = true; await studioOpen(); render3D(); const r = [V3.pano.visible, V3.panoC.visible]; studioClose(); stPano.on = false; return r; });
     t.eq('panorama de téléphone (très allongé) : posé sur un cylindre, pas étiré sur une bulle', cyl, [false, true]);
     await ev(() => { document.querySelector('[data-for="v3-hz"]').click(); }); await H.wait(300);
     t.ok('ciel et horizon masqués', await ev(() => !V3.sky.visible && !V3.hz.visible));
@@ -631,8 +631,9 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         for (let i = 0; i <= 20; i++) for (let j = 0; j <= 20; j++) if (Math.abs(j * 5 - 50) > 4) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 100, zk: 1, code: 'TN_IGN' });
         const lay = ensureLayer('Routes — bords (TN)', '#a8a29e'); [1, -1].forEach(sg => shapes.push({ type: 'poly', open: true, layerId: lay, points: Array.from({ length: 34 }, (_, k) => ({ x: k * 3 * m, y: -(50 + sg * 2.5) * m, z: 100000 + k * 60 })), hatch: false, rtOf: 'rt1', road: { w: 5, rid: 'rt1-0' }, name: 'Bord de chaussée' }));
         shapes.push({ type: 'poly', layerId: ensureLayer('Zones boisées', '#4ade80'), points: [[60, 10], [90, 10], [90, 30], [60, 30]].map(([x, y]) => ({ x: x * m, y: -y * m })), bois: { h: 12, tex: 'vert' }, zk: 1 });
+        const B2 = { type: 'poly', layerId: ensureLayer('Zones boisées', '#4ade80'), points: [[20, 40], [45, 40], [45, 60], [20, 60]].map(([x, y]) => ({ x: x * m, y: -y * m })), bois: { h: 12, tex: 'vert' }, zk: 1 }; shapes.push(B2);
         tinCache = null; invalidateCache(); saveState(); draw(); await open3D(); const cv = texCanvas('enrobe'), cnt = () => { let n = 0; V3.root.traverse(o => { if (o.isMesh && o.material && o.material.map && o.material.map.image === cv) n += o.geometry.attributes.position.count / 3; }); return n; };
-        build3DScene(); r.nat = cnt() > 10; let cr = 0, tr = 0; V3.root.traverse(o => { if (o.isInstancedMesh && o.userData.bois) cr = o.count; if (o.isInstancedMesh && o.userData.boisTronc) tr = o.count; }); r.trunks = cr > 5 && tr === cr;
+        build3DScene(); r.nat = cnt() > 10; let cr = 0, tr = 0; V3.root.traverse(o => { if (o.isInstancedMesh && o.userData.bois) cr = o.count; if (o.isInstancedMesh && o.userData.boisTronc) tr = o.count; }); r.trunks = cr > 5 && tr === cr; const T2 = boisTrees(B2); r.offRoad = T2.length >= 6 && T2.every(q => Math.abs(q.y / m + 50) > 3.9);
         close3D(); shapes = keep; tinCache = null; invalidateCache(); saveState(); return r; });
-    t.eq('import carte : chaussées en enrobé dans la 3D ; arbres des zones boisées avec leur tronc', im, { nat: true, trunks: true });
+    t.eq('import carte : chaussées en enrobé dans la 3D ; arbres des zones boisées avec leur tronc, jamais sur la route', im, { nat: true, trunks: true, offRoad: true });
 } };

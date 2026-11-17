@@ -197,7 +197,7 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         const file = new File([loc, def, cen, end], 'Projet.kmz'); const F = await kmzRead(file), r = {};
         await loadFileObject(file, '2427m².kmz'); r.open = /1 point\(s\), <b>1<\/b> ligne|1<\/b> point/.test(document.getElementById('tm-body').innerHTML) && /Poser sur le plan/.test(document.getElementById('tm-actions').textContent) && /\.kmz/.test(document.getElementById('project-input').accept); closeTopoModal();
         r.parse = F.map(f => f.k + (f.hole ? 'h' : '') + ':' + (f.fo || '') + ':' + f.name).join('|'); r.col = F[0].col;
-        const out = kmzPlace(F, 'Projet', 'Projet.kmz'), P = lccParams('L93'), b = out.find(x => x.type === 'point'), q = lccFwd(P, 44.5598, 6.0805);
+        const out = kmzPlace(F, 'Projet', 'Projet.kmz'), P = lccParams('CC45'), b = out.find(x => x.type === 'point'), q = lccFwd(P, 44.5598, 6.0805);
         r.l93 = Math.abs(realX(b.x) / 1000 - q.x) < 0.01 && Math.abs(realY(b.y) / 1000 - q.y) < 0.01 && b.z === 735420 && b.mat === 'Borne B12';
         r.layers = [...new Set(out.map(x => layers.find(l => l.id === x.layerId).name))].join('|'); r.lineCol = layers.find(l => l.id === out[0].layerId).color;
         r.poly = out.filter(x => x.type === 'poly' && !x.open).map(x => x.points.length).join(',');
@@ -207,6 +207,6 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
         // fond de carte plus net : diamètre visé, réglage gardé
         r.hd = [bmHdPx(), BM_HD.std, BM_HD.uhd].join(',') + '|' + !!document.getElementById('ps-bmhd');
         shapes = keepS; layers = keepL; geoOrigin = keepG; invalidateCache(); updateLayerUI(); draw(); return r; });
-    t.eq('KMZ : zip lu, dossiers en calques, couleurs, trous, altitude, Lambert 93 ; converti en DXF sans toucher au plan ; fond de carte plus net', kz,
+    t.eq('KMZ : zip lu, dossiers en calques, couleurs, trous, altitude, zone CC du lieu (CC45, système Auto) ; converti en DXF sans toucher au plan ; fond de carte plus net', kz,
         { open: true, parse: 'ln:Réseau:Canalisation|pg:Parcelles:Lot 1|pgh:Parcelles:Lot 1|pt:Parcelles:Borne B12', col: '#ff0000', l93: true, layers: 'KMZ · Réseau|KMZ · Parcelles', lineCol: '#ff0000', poly: '4,3', dxf: true, drop: true, hd: '2560,1280,4096|true' });
 } };
