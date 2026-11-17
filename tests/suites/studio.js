@@ -32,14 +32,22 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     t.eq('photo 360° : seulement dans le studio, bords du cylindre fondus, ciel à la teinte de la photo ; hauteur, distance, orientation', pn, { outside: true, inside: true, fade: true, tint: true, height: true, rot: true, noCycle: true, closed: true });
 
     // rendu : passes accumulées, ombres portées, scène affinée le temps du rendu puis rendue telle quelle
-    const rd = await ev(async () => { await studioOpen(); studio.q = 'haute'; studio.fmt = '16:9'; V3.rdSize = [200, 112]; V3.rdSpp = 3; const r = {}; let hq = null;
-        const keepB = build3DScene; window.build3DScene = function () { if (V3.hq) { hq = hq || {}; } keepB(); if (V3.hq) V3.root.traverse(o => { if (o.userData.grass) hq.grass = (hq.grass || 0) + o.count; if (o.userData.bois && o.material && o.material.vertexColors) hq.tree = true; }); };
+    const rd = await ev(async () => { await studioOpen(); studio.q = 'haute'; studio.gran = 'caill'; studio.fmt = '16:9'; V3.az = 2.4; V3.el = 0.12; V3.dist = 9; V3.target.set(-10, 3, 1.2); render3D(); V3.rdSize = [200, 112]; V3.rdSpp = 3; const r = {}; let hq = null;
+        const keepB = build3DScene; window.build3DScene = function () { if (V3.hq) { hq = hq || {}; } keepB(); if (V3.hq) V3.root.traverse(o => { if (o.userData.grass) hq.grass = (hq.grass || 0) + o.count; if (o.userData.bois && o.material && o.material.vertexColors) hq.tree = true; if (o.userData.grain) hq.grain = (hq.grain || 0) + o.count; if (o.userData.boisTronc && o.material.map === BARK_TEX) hq.bark = true; }); };
         studioRender(); await new Promise(res => { const k = setInterval(() => { if (!RD) { clearInterval(k); res(); } }, 100); });
         window.build3DScene = keepB; r.done = !!RD_LAST && RD_LAST.n === 3 && RD_LAST.cv.width === 200 && RD_LAST.cv.height === 112; r.ui = document.getElementById('rd-ov').style.display === 'flex' && !!document.querySelector('#rd-ov .vbtn.pri');
-        r.grass = !!(hq && hq.grass > 50); r.tree = !!(hq && hq.tree); let g = 0; V3.root.traverse(o => { if (o.userData.grass) g++; }); r.back = g === 0 && !V3.sun.castShadow && !V3.rdSky;
+        r.grass = !!(hq && hq.grass > 50); r.tree = !!(hq && hq.tree); r.grain = !!(hq && hq.grain > 20); r.bark = !!(hq && hq.bark); r.ctl = ['st-gh'].every(id => document.getElementById(id)) && /Granulométrie/.test(document.getElementById('t2-panel').textContent) && /Extrême/.test(document.getElementById('t2-panel').textContent); let g = 0; V3.root.traverse(o => { if (o.userData.grass) g++; }); r.back = g === 0 && !V3.sun.castShadow && !V3.rdSky;
         const d = RD_LAST.cv.getContext('2d').getImageData(0, 0, 200, 112).data; let lo = 255, hi = 0; for (let i = 0; i < d.length; i += 4) { const l = d[i] + d[i + 1] + d[i + 2]; lo = Math.min(lo, l); hi = Math.max(hi, l); } r.image = hi - lo > 60;
         rdUI('off'); studioClose(); delete V3.rdSize; delete V3.rdSpp; return r; });
-    t.eq('rendu : passes accumulées dans une image, scène affinée (herbe en 3D, arbres détaillés) le temps du rendu, puis vue normale', rd, { done: true, ui: true, grass: true, tree: true, back: true, image: true });
+    t.eq('rendu : passes accumulées dans une image, scène affinée (herbe en brins, terre en grains, écorce, arbres détaillés), réglages herbe / granulométrie / qualité Extrême le temps du rendu, puis vue normale', rd, { done: true, ui: true, grass: true, tree: true, grain: true, bark: true, ctl: true, back: true, image: true });
+
+    // réglages des matières : la hauteur de l'herbe et la granulométrie changent la taille des brins et des grains
+    const mt = await ev(async () => { studio.q = 'haute'; const sz = {}; const keepB = build3DScene;
+        const probe = async (k) => { V3.hq = { tree: 1, terr: 1, grass: 300000, earth: true, rc: (() => { const c = V3.camera.clone(); c.clearViewOffset(); c.updateProjectionMatrix(); c.updateMatrixWorld(true); return c; })() }; try { build3DScene(); } finally { V3.hq = null; }
+            let g = 0, gn = 0, e = 0, en = 0; const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3(); V3.root.traverse(o => { if (!o.isInstancedMesh) return; for (let i = 0; i < Math.min(o.count, 200); i++) { o.getMatrixAt(i, m); m.decompose(p, q, s); if (o.userData.grass) { g += s.z; gn++; } if (o.userData.grain) { e += s.z; en++; } } }); sz[k] = [gn ? g / gn : 0, en ? e / en : 0]; };
+        await studioOpen(); studio.grassH = 6; studio.gran = 'grav'; await probe('a'); studio.grassH = 30; studio.gran = 'blocs'; await probe('b'); studio.grassH = 12; studio.gran = 'grav'; build3DScene(); render3D(); studioClose();
+        return { grass: sz.b[0] > sz.a[0] * 3, gran: sz.b[1] > sz.a[1] * 4 }; });
+    t.eq('matières : hauteur de l\'herbe et granulométrie de la terre réglables', mt, { grass: true, gran: true });
 
     // ombres portées : un mur au soleil fait de l'ombre au sol dans le rendu, pas sans les ombres
     const sh = await ev(async () => { const m = mmToWorld(1000); await studioOpen(); V3.az = 0; V3.el = 1.4; V3.dist = 70; V3.target.set(0, 0, 0); v3SetHour(12); render3D(); studio.q = 'rapide'; studio.fin = false; V3.rdSize = [160, 120]; V3.rdSpp = 1;
