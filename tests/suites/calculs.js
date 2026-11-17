@@ -206,17 +206,17 @@ module.exports = { name: 'calculs', run: async (H, t) => {
 
     // Σ Calculs : un onglet par note (financière, cubature, pluviométrique) + Impressions ; note pluvio = méthode rationnelle ; dossier PDF avec sommaire
     await cub({ z: 99000, talus: { on: false } });
-    const cn = await ev(async () => { window.__cubPdf = null; pluvioNote = null; const tabs = () => [...document.querySelectorAll('#tm-body .calc-tabs button')].map(b => b.dataset.ct + (b.classList.contains('on') ? '*' : '')).join(',');
+    const cn = await ev(async () => { window.__cubPdf = null; pluvioNote = null; const tabs = () => [...document.querySelectorAll('#topo-modal .calc-tabs button')].map(b => b.dataset.ct + (b.classList.contains('on') ? '*' : '')).join(',');
         const noH = () => { const b = document.getElementById('tm-body'); return b.scrollWidth <= b.clientWidth + 1; };
         openMetre(); const r = { fin: tabs(), title: document.getElementById('tm-title').textContent, h1: noH(), later: /calcul…/.test(document.getElementById('mt-quant').textContent) }; await new Promise(res => setTimeout(res, 300)); r.quant = /Total HT/.test(document.getElementById('mt-quant').textContent);
         const c1 = cubComputeCached(), c2 = cubComputeCached(); invalidateCache(); r.cache = c1 === c2 && cubComputeCached() !== c1;
-        document.querySelector('#tm-body .calc-tabs [data-ct=cub]').click(); r.cub = tabs() + '|' + !!document.querySelector('#tm-body input[type=checkbox]'); r.h2 = noH();
-        document.querySelector("#tm-body .calc-tabs [data-ct=pluvio]").click(); r.pend = /Mesure des surfaces/.test(document.getElementById("pv-surf").textContent); await new Promise(res => setTimeout(res, 400)); r.pl = tabs(); r.h3 = noH();
+        document.querySelector('#topo-modal .calc-tabs [data-ct=cub]').click(); r.cub = tabs() + '|' + !!document.querySelector('#tm-body input[type=checkbox]'); r.h2 = noH();
+        document.querySelector("#topo-modal .calc-tabs [data-ct=pluvio]").click(); r.pend = /Mesure des surfaces/.test(document.getElementById("pv-surf").textContent); await new Promise(res => setTimeout(res, 400)); r.pl = tabs(); r.h3 = noH();
         const N = pluvioCfg(), R = pluvioCalc(N); r.area = Math.round(R.At); r.q = Math.abs(R.Q - R.Ca * 60 / 3600) < 1e-6 && /l\/s/.test(document.getElementById('pv-res').textContent);
         const i = document.getElementById('pv-i'); i.value = '120'; i.dispatchEvent(new Event('input', { bubbles: true })); r.i2 = pluvioCfg().I === 120 && Math.abs(pluvioCalc(pluvioCfg()).Q - 2 * R.Q) < 1e-6;
         r.noTest = !document.querySelector('#pv-test table');
         pluvioSaveTest({ I: 60, Tr: 15, Td: 30, rainV: 10, infV: 2, out: 7, ret: [{ area: 5, cap: 1, got: 1, pct: 1, max: 0.2, on: '' }] }, 1); openPluvio(); r.test = document.querySelectorAll('#pv-test tbody tr').length;
-        document.querySelector('#tm-body .calc-tabs [data-ct=print]').click(); r.pr = tabs() + '|' + document.querySelectorAll('#tm-body [data-pk]').length;
+        document.querySelector('#topo-modal .calc-tabs [data-ct=print]').click(); r.pr = tabs() + '|' + document.querySelectorAll('#tm-body [data-pk]').length;
         const keep = window.jspdf, J = keep.jsPDF; let got = null; window.jspdf = Object.assign({}, keep, { jsPDF: function (o) { const d = new J(o); d.save = (fn) => { got = { fn, pages: d.getNumberOfPages() }; }; return d; } });
         try { await calcDossierPDF(); } catch (e) { got = { err: e.message }; } finally { window.jspdf = keep; } r.pdf = got && /_notes_de_calcul\.pdf$/.test(got.fn) && got.pages >= 4; r.cubAuto = !!window.__cubPdf;
         r.save = !!(_projectData().pluvio && _projectData().pluvio.test); closeTopoModal(); return r; });

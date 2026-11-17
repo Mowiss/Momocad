@@ -582,7 +582,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     const pz = await ev(async () => { if (is3DOpen()) close3D(); const keep = shapes; shapes = []; const m = mmToWorld(1000), r = {};
         const pl = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [8, 0], [8, 6], [0, 6]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; shapes.push(pl); saveState();
         r.noBrushBtn = !document.getElementById('btn-brush'); await paintMode('zone'); r.zoneMode = mode === 'poly' && !!brushTool && /Peindre/.test(document.getElementById('t2-panel').textContent) && !!document.querySelector('#t2-panel [data-pm=zone]');
-        brushSet('pick', true); await new Promise(res => setTimeout(res, 200)); r.pick = mode + (document.getElementById('t2-panel').style.display === 'block' ? '+panel' : ''); brushChoose('galets'); brushPickClick({ x: 4 * m, y: -3 * m }); const z = shapes[shapes.length - 1]; r.made = !!(z.brush && z.brush.poly && z.brush.tex === 'galets' && z.points.length === 4);
+        brushSet('pick', true); await new Promise(res => setTimeout(res, 200)); r.pick = mode + (document.getElementById('t2-panel').style.display === 'flex' ? '+panel' : ''); brushChoose('galets'); brushPickClick({ x: 4 * m, y: -3 * m }); const z = shapes[shapes.length - 1]; r.made = !!(z.brush && z.brush.poly && z.brush.tex === 'galets' && z.points.length === 4);
         const n0 = shapes.length; brushChoose('gazon'); brushPickClick({ x: 4 * m, y: -3 * m }); r.repaint = shapes.length === n0 && z.brush.tex === 'gazon';
         await paintMode('vol'); r.vol = !!texPaint && !brushTool && mode === 'paint'; texChoose('brique'); r.shared = brushLast.tex === 'brique';
         const sx = 4 * m * camera.zoom + camera.x, sy = -3 * m * camera.zoom + camera.y; t2MouseDown(sx, sy, { button: 0 }); r.volRepaint = z.brush.tex === 'brique';
@@ -593,13 +593,13 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     const st = await ev(async () => { if (is3DOpen()) close3D(); const keep = shapes; shapes = []; const m = mmToWorld(1000);
         const pf = (P, z) => ({ type: 'poly', layerId: 'layer-0', zk: 1, points: P.map(([x, y]) => ({ x: x * m, y: -y * m, z })), talus: { on: false } });
         shapes.push(pf([[0, 0], [10, 0], [10, 10], [0, 10]], 100000), pf([[10, 0], [20, 0], [20, 10], [10, 10]], 101000)); invalidateCache(); saveState(); const r = {};
-        openParois(); r.card = !!document.querySelector('#blk-grid [onclick="startStair()"]'); document.querySelector('#blk-grid [onclick="startStair()"]').click(); r.mode = mode;
+        openParois(); r.card = !!document.querySelector('#blk-grid [onclick="startStair()"]'); closeFileMenus(); startStair(); r.mode = mode;   // la galerie Parois n'a plus de carte Escalier (revue des volets, P2)
         stairOpt = { w: 1200, h: 170, g: 280, nez: 30, mat: 'pierre' }; stairClick({ x: 12 * m, y: -5 * m }); stairClick({ x: 8.5 * m, y: -5 * m }); const S = shapes.find(x => x.stair);
         r.calc = S ? [S.stair.n, S.stair.h, S.stair.z0, S.stair.z1].join('/') : null; r.len = Math.round(mOf(Math.hypot(S.stair.b.x - S.stair.a.x, S.stair.b.y - S.stair.a.y)) * 100); r.bl = blondel(S.stair.h, S.stair.g).b;
         selectedShapes = [S]; stairPanel(S); const gi = document.getElementById('st-g'); gi.value = '30'; gi.dispatchEvent(new Event('input', { bubbles: true })); r.edit = S.stair.g === 300 && Math.round(mOf(Math.hypot(S.stair.b.x - S.stair.a.x, S.stair.b.y - S.stair.a.y)) * 100) === 180 && /Blondel/.test(document.getElementById('st-bl').textContent) && !!document.querySelector('#st-svg svg path') && /2h \+ g = 63,4 cm/.test(document.getElementById('st-svg').textContent); r.dir = !!S && S.stair.a.x < S.stair.b.x; r.notPlat = S && !isPlateforme(S);
         await open3D(); await new Promise(res => setTimeout(res, 500)); let n = 0; V3.root.traverse(o => { if (o.isMesh && o.userData.shape === S) n++; }); r.steps3D = n; close3D();
         t2PanelClose(); setMode('select-box'); shapes = keep; invalidateCache(); saveState(); return r; });
-    t.eq('escalier : bouton dans les parois, 2 clics, 6 marches de 16,7 cm (giron 28, Blondel 61,4), réglable ensuite, 6 marches en 3D', st, { card: true, mode: 'stair', calc: '6/167/100000/101000', len: 168, bl: 614, edit: true, dir: true, notPlat: true, steps3D: 6 });
+    t.eq('escalier : plus de carte dans la galerie Parois, 2 clics, 6 marches de 16,7 cm (giron 28, Blondel 61,4), réglable ensuite, 6 marches en 3D', st, { card: false, mode: 'stair', calc: '6/167/100000/101000', len: 168, bl: 614, edit: true, dir: true, notPlat: true, steps3D: 6 });
 
     // ESCALIER posé, cadre étiré aux poignées, puis Ctrl+Z : les talus restent (le modèle de terrain fini ne garde plus d'anciens objets après une annulation)
     const su = await ev(async () => { if (is3DOpen()) close3D(); const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
