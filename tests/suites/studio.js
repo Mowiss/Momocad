@@ -118,28 +118,45 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
 
     // volet de la vue 3D (Espace) : onglets, plus de bandeau ; ciels photo réalistes ; balade : clic droit = pause et bulles d'affichage
     const vv = await ev(async () => { const r = {}; await open3D(); v3PanelClose(); document.activeElement && document.activeElement.blur && document.activeElement.blur();
-        window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); const P = document.getElementById('t2-panel'); r.open = v3PanelOpen() && P.querySelectorAll('.v3v-rail button').length === 4;
+        window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); const P = document.getElementById('t2-panel'); r.open = v3PanelOpen() && P.querySelectorAll('.v3v-rail button').length === 3;
         r.band = getComputedStyle(document.getElementById('v3-band')).display === 'none';
         v3Panel('aff'); const s0 = v3Chk('v3-surf'); v3SetChk('v3-surf', !s0); r.toggle = v3Chk('v3-surf') === !s0; v3SetChk('v3-surf', s0);
         v3Panel('ciel'); r.photos = P.querySelectorAll('.v3v-card').length === 4 + Object.keys(SKY_PH).length;
         v3Panel('studio'); r.studio = stOn() && !!P.querySelector('.v3v-rail button.on') && /Studio/.test(P.querySelector('.v3v-rail button.on').textContent);
-        v3Panel('out'); r.frameOff = !stOn(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); r.closed = !v3PanelOpen();
+        v3Panel('aff'); r.frameOff = !stOn(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); r.closed = !v3PanelOpen();
         // ciel photo : téléchargé (ici simulé), posé sur la bulle, paysage dessiné et sol masqués
         const c = document.createElement('canvas'); c.width = 512; c.height = 256; const x = c.getContext('2d'); x.fillStyle = '#7ab'; x.fillRect(0, 0, 512, 128); x.fillStyle = '#585'; x.fillRect(0, 128, 512, 128); const blob = await new Promise(res => c.toBlob(res, 'image/png'));
         const keepF = window.fetch; window.fetch = async (u) => /cdn\.polyhaven\.com\/asset_img\/primary\/alps_field/.test(u) ? new Response(blob, { status: 200 }) : Promise.reject(new Error('x'));
         if (!v3Chk('v3-hz')) v3SetChk('v3-hz', true); v3HzType('ph:alps_field'); await (SKY_LOAD.alps_field || Promise.resolve()); await new Promise(res => setTimeout(res, 100)); window.fetch = keepF;
-        render3D(); r.sky = !!SKY_TEX.alps_field && V3.pano.visible && V3.pano.material.map === SKY_TEX.alps_field && !(V3.hz && V3.hz.visible) && !V3.gnd.visible;
+        render3D(); r.sky = !!SKY_TEX.alps_field && V3.pano.visible && V3.pano.material.map === SKY_TEX.alps_field && !(V3.hz && V3.hz.visible) && V3.gnd.visible && !!V3.pano.material.alphaMap && V3.sky.visible;   // le ciel et les lointains de la photo, notre sol devant
         v3HzType('montagne'); r.back = !V3.pano.visible;
         // image HDR (RGBE) décodée
         const hdr = []; const hd = '#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 8\n'; for (const ch of hd) hdr.push(ch.charCodeAt(0)); for (let y = 0; y < 2; y++) { hdr.push(2, 2, 0, 8); [200, 100, 50, 128].forEach(v => hdr.push(128 + 8, v)); }
         const hc = rgbeToCanvas(new Uint8Array(hdr)), px = hc && hc.getContext('2d').getImageData(3, 1, 1, 1).data; r.hdr = !!hc && hc.width === 8 && px[0] > px[1] && px[1] > px[2];
         // balade : clic droit = pause, bulles ; une bulle coche / décoche ; reclic droit = reprise
-        await momoFPS({ w: { x: 30 * mmToWorld(1000), y: -30 * mmToWorld(1000) } }); fpsPause({ clientX: 400, clientY: 300 }); const B = document.querySelectorAll('#fps-bub .fb'); r.bubbles = V3.fps.paused && B.length === 10 && /Studio/.test(B[9].textContent);
-        const t0 = v3Chk('v3-surf'); fpsBubble(3); r.bubToggle = v3Chk('v3-surf') === !t0 && document.querySelectorAll('#fps-bub .fb').length === 10; fpsBubble(3);
+        await momoFPS({ w: { x: 30 * mmToWorld(1000), y: -30 * mmToWorld(1000) } }); fpsPause({ clientX: 400, clientY: 300 }); const B = document.querySelectorAll('#fps-bub .fb'); r.bubbles = V3.fps.paused && B.length === 9 && /Studio/.test(B[8].title) && !!B[0].querySelector('svg') && ![...B].some(b => /Aberration/.test(b.title));
+        const t0 = v3Chk('v3-surf'); fpsBubble(3); r.bubToggle = v3Chk('v3-surf') === !t0 && document.querySelectorAll('#fps-bub .fb').length === 9; fpsBubble(3);
         const z0 = V3.fps.pos.clone(); V3.fps.keys.KeyW = true; fpsStep(0.5); V3.fps.keys.KeyW = false; r.still = V3.fps.pos.distanceTo(z0) < 1e-6;
         fpsResume(); r.resume = !V3.fps.paused && !document.getElementById('fps-bub'); r.noBadge = !document.querySelector('.v3-fk') || getComputedStyle(document.querySelector('.v3-fk')).display === 'none'; fpsStop(); return r; });
     t.eq('vue 3D : volet à onglets par Espace (affichage, ciel et paysage, outils, studio), plus de bandeau ; ciels photo réalistes ; balade : clic droit = pause et bulles d\'affichage', vv,
         { open: true, band: true, toggle: true, photos: true, studio: true, frameOff: true, closed: true, sky: true, back: true, hdr: true, bubbles: true, bubToggle: true, still: true, resume: true, noBadge: true });
+
+    // ta photo de paysage : posée sur l'horizon, répétée en miroir, haut fondu dans le ciel, sol à sa couleur
+    const hi = await ev(async () => { await open3D(); const c = document.createElement('canvas'); c.width = 800; c.height = 300; const x = c.getContext('2d'); x.fillStyle = '#3b82f6'; x.fillRect(0, 0, 800, 200); x.fillStyle = '#166534'; x.fillRect(0, 200, 800, 50); x.fillStyle = '#4ade80'; x.fillRect(0, 250, 800, 50);
+        hzImgSet.line = 0.83; hzImgBuild(c); if (!v3Chk('v3-hz')) v3SetChk('v3-hz', true); v3HzType('img'); render3D(); const T = HZ_IMG.tex, cam = V3.camera, Rc = cam.far * 0.6, Hc = 2 * Math.PI * Rc / T.userData.asp, bottom = V3.panoC.position.z - Hc / 2 - cam.position.z;
+        const r = { shown: V3.panoC.visible && V3.panoC.material.map === T && !V3.pano.visible, mirror: T.image.width / T.image.height > 5 && T.userData.base, onHz: bottom < 0 && bottom > -Rc * 0.03, fade: V3.panoC.material.alphaMap === V3.imgFade, gnd: V3.gnd.visible && V3.gnd.material.color.g > V3.gnd.material.color.r, sky: V3.sky.visible };
+        v3HzType('montagne'); render3D(); r.back = !V3.panoC.visible && V3.panoC.material.alphaMap === V3.cylFade; return r; });
+    t.eq('ta photo de paysage : sur l\'horizon tout autour (miroir), haut fondu dans le ciel, sol à sa couleur ; retour aux paysages dessinés', hi, { shown: true, mirror: true, onHz: true, fade: true, gnd: true, sky: true, back: true });
+
+    // relief réel alentour : anneau de terrain IGN jusqu'à 12 km, photo aérienne, brume ; caméra qui voit assez loin
+    const rl = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000); shapes.push({ type: 'basemap', layerId: 'layer-0', x: 0, y: 0, r: 150 * m, rot: 0, lat: 44.56, lon: 6.08, radiusM: 150, mapId: 'treal' });
+        for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) if (i * i + j * j <= 36) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 25 * m, y: -j * 25 * m, z: 800000 + i * 500, zk: 1, code: 'TN_IGN' });
+        tinCache = null; invalidateCache(); try { await asDB((st, r) => { const q = st.delete(realSite().key); q.onsuccess = () => r(true); q.onerror = () => r(false); }); } catch (e) {} REAL = null;
+        const keepF = window.fetch; let calls = 0; window.fetch = async (u) => { if (/altimetrie/.test(u)) { calls++; const n = decodeURIComponent(String(u).split('&lat=')[1] || '').split('|').length; return new Response(JSON.stringify({ elevations: Array.from({ length: n }, (_, k) => 800 + (k % 7) * 30) }), { status: 200 }); } return Promise.reject(new Error('x')); };
+        await open3D(); realSet(true); await (REAL_LOAD || Promise.resolve()); await new Promise(res => setTimeout(res, 50)); window.fetch = keepF; render3D();
+        let mesh = null; V3.root.traverse(o => { if (o.userData.real) mesh = o; }); const r = { calls: calls > 20, mesh: !!mesh && mesh.geometry.attributes.position.count === 41 * 144, far: V3.camera.far >= 12000, fog: !!(V3.scene.fog && V3.scene.fog.isRealFog), noHz: !(V3.hz && V3.hz.visible) && !V3.gnd.visible };
+        realSet(false); r.off = (() => { let k = 0; V3.root.traverse(o => { if (o.userData.real) k++; }); return k === 0 && !V3.scene.fog; })(); shapes = keep; tinCache = null; invalidateCache(); build3DScene(); render3D(); return r; });
+    t.eq('relief réel alentour : vrai terrain IGN jusqu\'à 12 km, photo aérienne, brume au loin ; s\'éteint proprement', rl, { calls: true, mesh: true, far: true, fog: true, noHz: true, off: true });
 
     // carto : système de coordonnées Auto par défaut, zone CC selon la latitude du lieu
     const cr = await ev(() => ({ def: bmSettings.crs, gap: crsPrefP(44.56).code, paris: crsPrefP(48.85).code, nice: crsPrefP(43.7).code, l93: (bmSettings.crs = 'L93', crsPrefP(44.56).code), back: (bmSettings.crs = 'auto', 1),
