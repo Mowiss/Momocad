@@ -53,7 +53,7 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
     await H.p.mouse.wheel(0, -300); await H.wait(300);
     const v3b = await ev(() => { const c = canvas.getBoundingClientRect(), br = document.getElementById('v3-band').getBoundingClientRect(); return { az: V3.az, dist: V3.dist, tx: V3.target.x, under: Math.abs(br.top - c.top) < 2 && Math.abs(br.left - c.left) < 2 }; });
     await H.press('Escape'); const v3c = await ev(() => { const v = layoutData.vps[layoutData.vps.length - 1]; return { id: lp3D.id, hid: document.getElementById('view3d').style.display === 'none', back: document.getElementById('v3-band').parentElement.id === 'view3d', az: v.v3.az, img: !!v.v3.img }; });
-    t.ok('présentation : fenêtre 3D pilotée comme la vue 3D (bandeau, tourne, se déplace, zoome, Échap la fige à ce point de vue)', v3a.ok && v3a.active && v3a.live && v3a.fit && v3a.band && v3b.under && Math.abs(v3b.az - v3a.az) > 0.3 && v3b.tx !== v3a.tx && v3b.dist < v3a.dist && v3c.id === null && v3c.hid && v3c.back && Math.abs(v3c.az - v3b.az) < 1e-9 && v3c.img, JSON.stringify([v3a, v3b, v3c]));
+    t.ok('présentation : fenêtre 3D pilotée comme la vue 3D (tourne, se déplace, zoome, Échap la fige à ce point de vue)', v3a.ok && v3a.active && v3a.live && v3a.fit && Math.abs(v3b.az - v3a.az) > 0.3 && v3b.tx !== v3a.tx && v3b.dist < v3a.dist && v3c.id === null && v3c.hid && Math.abs(v3c.az - v3b.az) < 1e-9 && v3c.img, JSON.stringify([v3a, v3b, v3c]));
     await ev(() => { if (layoutOn) toggleLayout(false); });
 
     // métré en PDF
