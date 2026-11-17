@@ -288,8 +288,8 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         await open3D(); await new Promise(res => setTimeout(res, 500)); let zc = -Infinity, nPieces = 0; const corner = { x: 20, y: 12 };
         const Zp = (V3.exag || 1) * (100 - V3.zmin), rp = V3.root.position;
         V3.root.traverse(o => { if (!o.isMesh || !o.material || o.material.opacity !== 0.32) return; nPieces++; const pa = o.geometry.attributes.position; for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i); const wx = mmToWorld(x * 1000), wy = -mmToWorld(y * 1000); if (Math.hypot(wx - 20 * m, wy + 12 * m) < 0.5 * m) zc = Math.max(zc, pa.getZ(i)); } });
-        r.top = Math.abs(zc - Zp) < 0.02; r.pieces = nPieces > 10; close3D(); shapes = keep; invalidateCache(); saveState(); return r; });
-    t.eq('tranchée sur plateforme : cotes du terrassement aux deux bouts, dessus qui suit le sol fini (3D découpée)', tq, { cotes: '100000/100000', top: true, pieces: true });
+        r.plan = nPieces === 0; close3D(); shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('tranchée sur plateforme : cotes du terrassement aux deux bouts ; en plan seulement (rien dans la vue 3D)', tq, { cotes: '100000/100000', plan: true });
 
     // ROUTES importées : la chaussée entre ses deux bords est en enrobé (plan et 3D, rendu naturel)
     const rd = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');

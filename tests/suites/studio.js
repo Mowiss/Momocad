@@ -78,6 +78,24 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         v3FullRes(); const pr = V3.renderer.getPixelRatio(); V3.rt = 120; render3DSoon(true); const low = V3.renderer.getPixelRatio() === Math.max(0.5, pr * 0.5); v3FullRes(); const back = V3.renderer.getPixelRatio() === pr; return { one, low, back }; });
     t.eq('fluidité 3D : un seul rendu par image d\'écran pendant un geste ; résolution réduite pendant le geste sur une scène lourde, puis rétablie', fl, { one: true, low: true, back: true });
 
+    // végétation : volet (arbres, buissons, broussailles), buissons sans tronc ; balade : plus rapide, Espace = sauter, F10 = studio ; herbe : jauge de densité, pas sur les marches ni les zones repeintes
+    const vg = await ev(async () => { close3D(); const m = mmToWorld(1000), r = {}; startBois(); const P = document.getElementById('t2-panel'); r.panel = P.dataset.kind === 'veg' && /Broussailles/.test(P.textContent);
+        vegSet('kind', 'buisson'); r.h = vegOpt.h.buisson === 1.8 && !!document.getElementById('veg-h'); boisCreate([[5, 40], [20, 40], [20, 55], [5, 55]].map(([x, y]) => ({ x: x * m, y: -y * m }))); const B = shapes[shapes.length - 1]; r.kind = B.bois.kind === 'buisson' && B.bois.h === 1.8 && B.name === 'Buissons';
+        r.closed = P.style.display === 'none'; await open3D(); let cr = 0, tr = 0; V3.root.traverse(o => { if (o.userData.bois) cr = o.count; if (o.userData.boisTronc) tr = o.count; }); r.noTrunk = cr > boisTrees(B).length - 1 && tr === cr - boisTrees(B).length;
+        shapes = shapes.filter(x => x !== B); vegOpt.kind = 'arbre'; vegSave(); invalidateCache(); build3DScene(); render3D(); return r; });
+    t.eq('végétation : volet (sorte, hauteur, couleur), zone de buissons (sans tronc)', vg, { panel: true, h: true, kind: true, closed: true, noTrunk: true });
+
+    const fp = await ev(async () => { const r = {}; await open3D(); await momoFPS({ w: { x: 30 * mmToWorld(1000), y: -30 * mmToWorld(1000) } }); const F = V3.fps, z0 = F.pos.z, x0 = F.pos.x, y0 = F.pos.y;
+        F.keys.KeyW = true; fpsStep(0.5); F.keys.KeyW = false; r.fast = Math.hypot(F.pos.x - x0, F.pos.y - y0) > 1.5;
+        for (let i = 0; i < 30; i++) fpsStep(0.05); const zj = F.pos.z; window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ' })); r.jump = F.vz > 0; for (let i = 0; i < 4; i++) fpsStep(0.05); r.up = F.pos.z > zj + 0.3; for (let i = 0; i < 60; i++) fpsStep(0.05); r.land = F.vz === 0 && Math.abs(F.pos.z - zj) < 0.3;
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', code: 'F10' })); await new Promise(res => setTimeout(res, 50)); r.studio = stOn() && !!V3.fps; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape' })); r.back = !stOn() && !!V3.fps; fpsStop(); return r; });
+    t.eq('balade Momo : déplacement plus rapide, Espace pour sauter (et retomber), F10 ouvre le studio photo, Échap le referme', fp, { fast: true, jump: true, up: true, land: true, studio: true, back: true });
+
+    const ns = await ev(async () => { const m = mmToWorld(1000), st = { type: 'line', layerId: 'layer-0', x1: 0, y1: 0, x2: 0, y2: 0, stair: { a: { x: 10 * m, y: -10 * m }, b: { x: 14 * m, y: -10 * m }, w: 1500, n: 5, z0: 100000, z1: 100800 } }, br = { type: 'poly', open: false, layerId: 'layer-0', points: [[30, 30], [34, 30], [34, 34], [30, 34]].map(([x, y]) => ({ x: x * m, y: -y * m })), brush: { tex: 'pave', d: 300, h: 1, top: true, poly: true } };
+        shapes.push(st, br); const f = v3NoSow(), r = { stair: f(12 * m, -10 * m) && !f(12 * m, -13 * m), brush: f(32 * m, -32 * m) && !f(36 * m, -32 * m) }; shapes = shapes.filter(x => x !== st && x !== br);
+        await studioOpen(); r.gauge = !!document.getElementById('st-gn') && stGrassTxt(800) === 'moquette'; studioClose(); return r; });
+    t.eq('herbe : jauge de densité (jusqu\'à la moquette) ; ni herbe ni grains sur les marches et les zones repeintes', ns, { stair: true, brush: true, gauge: true });
+
     // carto : système de coordonnées Auto par défaut, zone CC selon la latitude du lieu
     const cr = await ev(() => ({ def: bmSettings.crs, gap: crsPrefP(44.56).code, paris: crsPrefP(48.85).code, nice: crsPrefP(43.7).code, l93: (bmSettings.crs = 'L93', crsPrefP(44.56).code), back: (bmSettings.crs = 'auto', 1),
         guess: [pdfGuessCrs([{ v: 1945000 }, { v: 3290000 }]), pdfGuessCrs([{ v: 945000 }, { v: 6390000 }])].join(',') }));

@@ -177,23 +177,27 @@ module.exports = { name: 'fichiers', timeout: 240, run: async (H, t) => {
     const hy = await ev(async () => { const keepS = shapes, keepF = window.fetch; shapes = []; const lat0 = 44.56, lon0 = 6.08, cosL = Math.cos(lat0 * Math.PI / 180), m = mmToWorld(1000), LL = (e, n) => [lon0 + e / (111320 * cosL), lat0 + n / 111320];
         const b = { type: 'basemap', layerId: 'layer-0', x: 0, y: 0, r: 100 * m, rot: 0, lat: lat0, lon: lon0, radiusM: 100, mapId: 'thy' }; shapes.push(b);
         for (let e = -100; e <= 100; e += 5) for (let n = -100; n <= 100; n += 5) if (e * e + n * n <= 10000) shapes.push({ type: 'point', layerId: 'layer-0', x: e * m, y: -n * m, z: 100000 + n * 50 + Math.round(Math.abs(e) * 30), zk: 1, code: 'TN_IGN' });   // vallon vers le sud
-        tinCache = null; invalidateCache(); const tz0 = tinZ(1 * mmToWorld(1000), 0, getTIN());
+        const lay = ensureLayer('Routes — bords (TN)', '#a8a29e'); [1, -1].forEach(sg => shapes.push({ type: 'poly', open: true, layerId: lay, points: Array.from({ length: 41 }, (_, k) => ({ x: (k * 5 - 100) * m, y: -sg * 2.5 * m, z: 100000 + Math.round(Math.abs(k * 5 - 100) * 30) })), hatch: false, rtOf: 'rt1', road: { w: 5, rid: 'rt1-0' }, name: 'Bord de chaussée' }));   // une route traverse la rivière
+        shapes.push({ type: 'poly', layerId: ensureLayer('Zones boisées', '#4ade80'), points: [[-20, -40], [20, -40], [20, -10], [-20, -10]].map(([e, n]) => ({ x: e * m, y: -n * m })), bois: { h: 12, tex: 'vert' }, zk: 1, name: 'Bois' });
+        tinCache = null; invalidateCache(); const tz0 = tinZ(0.7 * mmToWorld(1000), 50 * mmToWorld(1000), getTIN());
         const ok = (o) => ({ ok: true, headers: { get: () => 'application/json' }, json: async () => o, text: async () => JSON.stringify(o) });
         window.fetch = async (u) => { if (/troncon_hydrographique/.test(u)) return ok({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { nature: 'Cours d\'eau', toponyme: 'La Luye', largeur: 4 }, geometry: { type: 'LineString', coordinates: [LL(0, -150), LL(1, 0), LL(0, 150)] } }, { type: 'Feature', properties: { fictif: true }, geometry: { type: 'LineString', coordinates: [LL(-50, -50), LL(50, 50)] } }] });
             if (/surface_hydrographique/.test(u)) return ok({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { nature: 'Plan d\'eau', toponyme: 'Étang' }, geometry: { type: 'Polygon', coordinates: [[LL(-70, 20), LL(-40, 20), LL(-40, 50), LL(-70, 50), LL(-70, 20)]] } }] });
             throw new Error('Failed to fetch'); };
         await hydroFetch(b); window.fetch = keepF; const r = {};
         const L = shapes.filter(x => x.rvOf && x.open && x.type === 'poly'), R = shapes.find(x => x.river), W = shapes.find(x => x.water && x.rvOf);
-        r.lines = L.filter(x => x.name === 'Haut de berge').length === 2 && L.filter(x => x.name === 'Bord de l\'eau').length === 3 && L.filter(x => x.name === 'Fond du lit').length === 1;
+        r.lines = L.filter(x => x.name === 'Haut de berge').length === 4 && L.filter(x => x.name === 'Bord de l\'eau').length === 5 && L.filter(x => x.name === 'Fond du lit').length === 2;   // deux tronçons : la route coupe la rivière
         r.down = !!R && (() => { const n = R.points.length / 2, z = R.river.zs.slice(0, n); return z.every((v, i) => !i || v <= z[i - 1]) && z[0] > z[n - 1]; })();
-        const tin = getTIN(), zBed = tinZ(1 * m, 0, tin); r.carved = tz0 - zBed > 800;   // le lit est creusé au milieu
+        const tin = getTIN(), zBed = tinZ(0.7 * m, 50 * m, tin); r.carved = tz0 - zBed > 800;   // le lit est creusé au milieu
         r.water = !!R && R.river.name === 'La Luye' && !!W && W.water.name === 'Étang' && shapes.some(x => x.code === 'HYD_FOND');
-        r.notTin = !isPlateforme(R) && !isPlateforme(W); r.fictif = shapes.filter(x => x.name === 'Fond du lit').length === 1;
-        await open3D(); let rv = 0; V3.root.traverse(o => { if (o.userData.river) rv++; }); r.water3D = rv === 1; close3D();
+        r.notTin = !isPlateforme(R) && !isPlateforme(W);
+        r.bridge = shapes.filter(x => x.rvOf).every(x => (x.points || [x]).every(q => Math.abs(q.y / m) > 3)) && shapes.filter(x => x.river).length === 2;   // la route passe au-dessus : lit et eau coupés de part et d'autre
+        { const Bz = shapes.find(x => x.bois), T = boisTrees(Bz), Rv = shapes.filter(x => x.river); r.dryTrees = T.length > 3 && T.every(q => !Rv.some(w => pointInPolygon(q.x, q.y, w.points))) && T.some(q => Math.abs(q.x / m) > 8); } r.fictif = shapes.filter(x => x.name === 'Fond du lit').length === 2;
+        await open3D(); let rv = 0; V3.root.traverse(o => { if (o.userData.river) rv++; }); r.water3D = rv === 2; close3D();
         r.widths = [HYD_W({ nature: 'Ruisseau' }), HYD_W({ importance: 6 }), HYD_W({ importance: 3 }), HYD_W({ toponyme: 'Le Rhône' }), HYD_W({ toponyme: 'Le Rhône', classe_de_largeur: 'Plus de 50 m' }), HYD_W({ largeur: 12 })].join(',') + '|' + (hydDepth(150) > hydDepth(1.5) * 4);
         r.ui = !!document.getElementById('bm-eau') && !!document.getElementById('ps-dt-eau') && bmSettings.data.eau === true;
         shapes = keepS; tinCache = null; invalidateCache(); saveState(); return r; });
-    t.eq('hydrographie : lit taillé en lignes de rupture (hauts de berge, bords de l\'eau, fond), eau qui ne remonte pas, étang avec fond et eau, eau en 3D ; largeur du ruisseau au fleuve', hy, { lines: true, down: true, carved: true, water: true, notTin: true, fictif: true, water3D: true, widths: '1.5,1.5,20,150,180,12|true', ui: true });
+    t.eq('hydrographie : lit taillé en lignes de rupture (hauts de berge, bords de l\'eau, fond), eau qui ne remonte pas, étang avec fond et eau, eau en 3D ; la route passe au-dessus ; pas d\'arbre dans l\'eau ; largeur du ruisseau au fleuve', hy, { lines: true, down: true, carved: true, water: true, notTin: true, bridge: true, dryTrees: true, fictif: true, water3D: true, widths: '1.5,1.5,20,150,180,12|true', ui: true });
     // beaucoup de points (grille IGN fine) : le terrain existe toujours (grille éclaircie, lignes de rupture gardées) ; avant, au-delà de 8 000 points plus de terrain du tout
     const tt = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000);
         for (let i = 0; i < 110; i++) for (let j = 0; j < 110; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * m, y: -j * m, z: 100000 + i * 50, zk: 1, code: 'TN_IGN' });
