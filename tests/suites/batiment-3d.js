@@ -613,4 +613,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         undo(); r.t3 = tal(); undo(); r.t4 = tal(); r.terrain = getTIN().nodes.length === 81;
         shapes = keep; invalidateCache(); saveState(); return r; });
     t.eq('escalier, cadre étiré, Ctrl+Z : talus toujours là, escalier jamais pris pour du terrain', su, { t0: 'true,true', noZ: true, t1: 'true,true', frame: true, t2: 'true,true', t3: 'true,true', t4: 'true,true', terrain: true });
+
+    // revue des volets (Bâtiment) : coupe + liste des fondations posées ; galerie Parois avec en-tête et coupe au survol ; plus de textures, catégories sur une rangée
+    const rv = await ev(() => { const r = {}, keep = shapes; shapes = []; const m = mmToWorld(1000);
+        fondPick = { t: 'filante', l: 500, h: 400 }; shapes.push({ type: 'line', layerId: 'layer-0', x1: 0, y1: 0, x2: 10 * m, y2: 0 }); const f = shapes[0]; f.sweep = Object.assign(sweepDefault('SF50'), { d: { l: 500, h: 400 }, al: 'axe', ref: 'bas', zs: 'trace' }); fondMake(f, 'filante');
+        fondPanel(); const P = document.getElementById('t2-panel'); r.svg = !!P.querySelector('#fd-svg svg') && /50 cm/.test(P.querySelector('#fd-svg').textContent) && /40 cm/.test(P.querySelector('#fd-svg').textContent);
+        r.list = /Fondations posées/.test(P.textContent) && /10,00 m/.test(P.textContent) && /2,00 m³/.test(P.textContent);
+        const li = document.getElementById('fd-l'); li.value = '60'; li.oninput(); r.live = /60 cm/.test(document.getElementById('fd-svg').textContent); t2PanelClose();
+        openParois(); r.par = document.getElementById('blk-title').textContent === 'Parois' && !document.querySelector('#blk-grid [onclick="startStair()"]'); const c = document.querySelector('#blk-grid [onmouseenter^=wallSec]'); c.dispatchEvent(new Event('mouseenter')); r.sec = !!document.querySelector('#wall-sec svg rect') && / mm/.test(document.getElementById('wall-sec').textContent); closeFileMenus();
+        r.tex = TEX_LIB.length >= 90 && ['beton-balaye', 'opus', 'evergreen', 'caillebotis', 'parquet-baton'].every(id => TEX_LIB.some(t => t.id === id) && !!texThumb(id));
+        texCat = 'sol'; texPanel(); const cats = document.querySelector('#t2-panel .tex-cats'); r.row = !!cats && getComputedStyle(cats).flexWrap === 'nowrap'; t2PanelClose();
+        shapes = keep; return r; });
+    t.eq('volets Bâtiment : coupe et liste des fondations (cotes en direct), galerie Parois avec en-tête et coupe au survol, plus de textures sur une rangée de catégories', rv, { svg: true, list: true, live: true, par: true, sec: true, tex: true, row: true });
 } };
