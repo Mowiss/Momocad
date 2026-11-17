@@ -96,6 +96,26 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         await studioOpen(); r.gauge = !!document.getElementById('st-gn') && stGrassTxt(800) === 'moquette'; studioClose(); return r; });
     t.eq('herbe : jauge de densité (jusqu\'à la moquette) ; ni herbe ni grains sur les marches et les zones repeintes', ns, { stair: true, brush: true, gauge: true });
 
+    // rendu : terrain naturel affiné (bien plus de triangles) et sans fente entre triangles voisins
+    const tf = await ev(async () => { await open3D(); build3DScene(); const t0 = V3.terrStats.tris; const rc = V3.camera.clone(); rc.clearViewOffset(); rc.updateProjectionMatrix(); rc.updateMatrixWorld(true);
+        V3.hq = { tree: 1, terr: 2, grass: 0, earth: false, rc }; try { build3DScene(); } finally { V3.hq = null; } const t1 = V3.terrStats.tris;
+        let M = null; V3.root.traverse(o => { if (o.isMesh && o.material && o.material.map && o.material.map.image === texCanvas('pelouse')) M = o; }); const E = new Map(), p = M.geometry.attributes.position, key = (i) => [p.getX(i), p.getY(i)].map(v => Math.round(v * 1000)).join(',');
+        for (let i = 0; i < p.count; i += 3) for (let k = 0; k < 3; k++) { const a = i + k, b = i + (k + 1) % 3, K = [key(a), key(b)].sort().join('|'); E.set(K, (E.get(K) || 0) + 1); }
+        let open = 0; E.forEach(v => { if (v === 1) open++; }); build3DScene(); render3D(); return { more: t1 > t0 * 2.5, border: open < Math.sqrt(t1) * 6 }; });
+    t.eq('rendu : terrain naturel affiné (bien plus de triangles), sans fente', tf, { more: true, border: true });
+
+    // grand fond (terrain grossier) : la chaussée est découpée au bord exact de la route (plus de pointes d'enrobé dans les champs), et la photo drapée ne la recouvre pas
+    const rc = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('TN', '#bef264');
+        for (let i = -10; i <= 10; i++) for (let j = -10; j <= 10; j++) shapes.push({ type: 'point', layerId: TN, x: i * 20 * m, y: -j * 20 * m, z: 100000 + i * 300 + j * 150, zk: 1, code: 'TN_IGN' });
+        const lay = ensureLayer('Routes — bords (TN)', '#a8a29e'); [1, -1].forEach(sg => shapes.push({ type: 'poly', open: true, layerId: lay, points: Array.from({ length: 50 }, (_, k) => { const t = -190 + k * 7.6, x = t, y = t * 0.45 + 13; return { x: x * m, y: -(y + sg * 3) * m, z: 100000 + Math.round(x * 15 + y * 7.5) }; }), hatch: false, rtOf: 'rt9', road: { w: 6, rid: 'rt9-0' }, name: 'Bord de chaussée' }));
+        tinCache = null; invalidateCache(); await open3D(); let bad = 0, tot = 0; const c = V3.center;
+        V3.root.traverse(o => { if (!(o.isMesh && o.material && o.material.map && o.material.map.image === texCanvas('enrobe'))) return; const pa = o.geometry.attributes.position; for (let i = 0; i < pa.count; i += 3) { tot++; const gx = (pa.getX(i) + pa.getX(i + 1) + pa.getX(i + 2)) / 3, gy = (pa.getY(i) + pa.getY(i + 1) + pa.getY(i + 2)) / 3; for (let k = 0; k < 3; k++) { const x = pa.getX(i + k) * 0.97 + gx * 0.03 + c.x, y = pa.getY(i + k) * 0.97 + gy * 0.03 + c.y; if (!roadAt(mmToWorld(x * 1000), mmToWorld(-y * 1000))) { bad++; break; } } } });   // chaque sommet de l'enrobé est sur la route
+        let fast = performance.now(); const pts = shapes.filter(x => x.type === 'point'), inB = bandTest([{ D: [{ x: 0, y: 0 }, { x: 100 * m, y: 0 }], h: 5 * m }]); const nIn = pts.filter(q => inB(q.x, q.y)).length; fast = performance.now() - fast;
+        const D = Array.from({ length: 200 }, (_, k) => ({ s: k * 2, z0: k % 2 ? 1000 : 0 })); smooth6(D, 'z');
+        mcProg('Test', 0.5, 'étape'); const bar = !!document.querySelector('#mc-prog .mp-bar i'); mcProg('', null);
+        shapes = keep; tinCache = null; invalidateCache(); build3DScene(); render3D(); return { road: tot > 20, outside: bad, band: nIn === 6, smooth: Math.abs(D[100].z - 500) < 30, bar, gone: !document.getElementById('mc-prog') }; });
+    t.eq('grand fond : chaussée découpée au bord exact (aucun triangle d\'enrobé hors de la route) ; bandes, lissage et barre de progression', rc, { road: true, outside: 0, band: true, smooth: true, bar: true, gone: true });
+
     // carto : système de coordonnées Auto par défaut, zone CC selon la latitude du lieu
     const cr = await ev(() => ({ def: bmSettings.crs, gap: crsPrefP(44.56).code, paris: crsPrefP(48.85).code, nice: crsPrefP(43.7).code, l93: (bmSettings.crs = 'L93', crsPrefP(44.56).code), back: (bmSettings.crs = 'auto', 1),
         guess: [pdfGuessCrs([{ v: 1945000 }, { v: 3290000 }]), pdfGuessCrs([{ v: 945000 }, { v: 6390000 }])].join(',') }));
