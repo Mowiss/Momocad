@@ -379,4 +379,21 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         shapes = keep; tinCache = null; invalidateCache(); saveState(); setMode('select-box'); return r; });
     t.eq('volets Topo : aperçu et style des courbes, mailles en série et rétractables, sondages et zone d\'effet partagée (recalcul qui garde les couches), légende, infiltration selon le sol, alerte de volume du bassin', tp,
         { prev: true, style: true, cont: true, cells: true, sonds: 'S1,S2|true', split: '2:200/200', resplit: true, legend: true, mailSet: 'G2 TEST', inf: true, bassin: true });
+
+    // revue des volets (Y, Σ, calques) : mini-plan des arêtes cliquable et pastilles par type ; Financier sans prix ; parcours de l'eau ; aperçu de la page de garde ; calques glissés-déposés et comptés
+    const v4 = await ev(async () => { const keep = shapes, keepL = layers.slice(); shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'), r = {};
+        for (let i = 0; i <= 12; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 200, zk: 1 });
+        const pl = { type: 'poly', layerId: 'layer-0', zk: 1, points: [[20, 15], [40, 15], [40, 25], [20, 25]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 101000 })), talus: { on: true, kR: '3/2', kD: '1/1', cx: true, edges: [null, { off: true }, null, null] } };
+        shapes.push(pl); tinCache = null; invalidateCache(); saveState(); selectedShapes = [pl]; openSelectionParamModal(); spTabGo('talus');
+        const g = document.querySelectorAll('#tal-x svg [data-te]'); r.mini = g.length === 4; g[2].dispatchEvent(new MouseEvent('click', { bubbles: true })); r.open = !!document.querySelector('#tal-x .tal-j[data-ti="2"][open]') && document.querySelectorAll('#tal-x .tal-j[open]').length === 1;
+        r.pill = [...document.querySelectorAll('#tal-x .tal-pill')].map(p => p.title).join(','); r.title = document.getElementById('selparam-title').textContent; closeSelectionParamModal(); selectedShapes = [];
+        openMetre(); await new Promise(res => setTimeout(res, 400)); r.prix = /prix à renseigner/.test(document.getElementById('tm-body').textContent);
+        calcTab('pluvio'); await new Promise(res => setTimeout(res, 300)); r.flow = /Parcours de l'eau/.test(document.getElementById('tm-body').textContent) && /Dessinez un bassin/.test(document.getElementById('pv-flow').textContent);
+        calcTab('print'); r.prev = /Sommaire/.test(document.getElementById('cp-prev').textContent) && /Note de cubature/.test(document.getElementById('cp-prev').textContent); closeTopoModal();
+        const a = ensureLayer('Essai A', '#ff0000'), b = ensureLayer('Essai B', '#00ff00'); setLayerGroup(b, 'Réseaux'); layMove(a, b); r.move = layers.findIndex(l => l.id === a) === layers.findIndex(l => l.id === b) - 1 && layGroupOf(layers.find(l => l.id === a)) === 'Réseaux';
+        const c = ensureLayer('Essai C', '#0000ff'); layMoveToGroup(c, 'Réseaux'); r.grp = layGroupOf(layers.find(l => l.id === c)) === 'Réseaux';
+        openLayerModal(); const nm = [...document.querySelectorAll('#layers-list .lay-name')].find(x => x.textContent.trim() === 'Terrain naturel'); r.count = nm && nm.dataset.n === '143'; r.drag = document.querySelectorAll('#layers-list .lay-row[draggable="true"]').length > 2; document.getElementById('layer-modal').classList.add('hidden');
+        layers = keepL; shapes = keep; tinCache = null; invalidateCache(); saveState(); updateLayerUI(); return r; });
+    t.eq('volets Y, Σ et calques : mini-plan cliquable et pastilles par type, nom de la plateforme en titre, prix à renseigner, parcours de l\'eau, aperçu de la page de garde, calques déplacés par glisser-déposer et comptés', v4,
+        { mini: true, open: true, pill: 'Déblai,Paroi,Déblai,Remblai', title: 'PF1 — à 101,00 m', prix: true, flow: true, prev: true, move: true, grp: true, count: true, drag: true });
 } };

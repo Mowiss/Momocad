@@ -53,7 +53,9 @@ function helpers(pg, rec) {
     H.tool = async (id) => { await H.ev(id => { const b = document.getElementById(id); if (!b) throw new Error('bouton absent : ' + id); b.click(); }, id); await p.waitForTimeout(150); await H.jl(); };
     H.Y = async (vals) => { await p.waitForTimeout(150); await H.ev(v => { if (document.getElementById('selparam-modal').classList.contains('hidden')) openSelectionParamModal(); for (const k in v) { const e = document.getElementById(k); if (!e) throw new Error('champ absent : ' + k); if (e.type === 'checkbox') e.checked = v[k]; else e.value = v[k]; } applySelectionLayer(); }, vals); await p.waitForTimeout(200); };
     H.next = async () => { await H.ev(() => document.querySelector('#mt-acts button[data-a=next]').click()); await p.waitForTimeout(300); H.seq = []; await H.jl(); };
-    H.state = async (label) => { await p.waitForTimeout(500); const r = await H.ev(() => [document.querySelector('#mt-bubble .mt-t').textContent, document.querySelector('#mt-bubble').classList.contains('done'), document.querySelectorAll('#mt-bubble .mt-do ol > li').length]); await H.jl();
+    H.state = async (label) => { await p.waitForTimeout(500); const rd = () => H.ev(() => [document.querySelector('#mt-bubble .mt-t').textContent, document.querySelector('#mt-bubble').classList.contains('done'), document.querySelectorAll('#mt-bubble .mt-do ol > li').length]); let r = await rd();
+        for (let w = 0; r[2] && !r[1] && w < 6; w++) { await p.waitForTimeout(500); r = await rd(); }   // machine chargée (suites en parallèle) : l'étape peut valider un peu plus tard
+        await H.jl();
         if (r[2]) rec.ok('étape « ' + r[0] + ' »', r[1], H.seq.join(' → '));   // une étape sans geste à faire (intro, bravo) n'est pas un contrôle
         H.seq = []; return r[1]; };
     // plan vierge, en mètres, vue centrée sur 0,0 ; renvoie le calque actif
