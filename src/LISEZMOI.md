@@ -13,3 +13,9 @@ On modifie les sources, puis :
     node tools/build.js --check   # vérifie que index.html correspond aux sources (fait aussi par l'intégration continue)
 
 Les modules partagent le même espace (un seul script) : l'ordre des numéros compte pour ce qui s'exécute au chargement.
+
+Contrôle des sources (aussi fait par l'intégration continue) :
+
+    npm install --no-save acorn acorn-walk
+    node tools/lint.js            # pas de nom déclaré deux fois, pas de variable créée par accident
+    node tools/lint.js --carte    # met à jour CARTE.md : ce que déclare chaque module
