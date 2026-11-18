@@ -16,17 +16,15 @@
             pierre:  { name: 'Pierre / enrochement', fill: '#d6d3d1', ink: '#292524', line: '#e7e5e4' },
             terre:   { name: 'Terre (terrain)', fill: '#d6b88a', ink: '#78350f', line: '#a16207' },
             air:     { name: "Lame d'air", fill: null, ink: '#64748b', line: '#94a3b8' },
+            metal:   { name: 'Métal (ossature)', fill: '#9ca3af', ink: '#374151', line: '#cbd5e1' },
         };
         // Parois indépendantes : un seul matériau chacune, tracées en traits (contour) sur un calque coloré par matériau.
         // On superpose soi-même (ex. béton puis isolant puis placo, côte à côte) et on recoupe les angles (Couper, Prolonger…).
         const WALL_PRESETS = [
             { id: 'w-beton20', name: 'Voile béton', layers: [['beton', 200]] },
-            { id: 'w-beton16', name: 'Béton', layers: [['beton', 160]] },
             { id: 'w-parp20', name: 'Parpaing', layers: [['parpaing', 200]] },
-            { id: 'w-parp15', name: 'Parpaing', layers: [['parpaing', 150]] },
             { id: 'w-brique', name: 'Brique', layers: [['brique', 200]] },
-            { id: 'w-laine100', name: 'Isolant laine', layers: [['isolant', 100]] },
-            { id: 'w-laine140', name: 'Isolant laine', layers: [['isolant', 140]] },
+            { id: 'w-laine140', name: 'Isolant laine', layers: [['isolant', 100]] },
             { id: 'w-pse', name: 'Isolant PSE', layers: [['pse', 140]] },
             { id: 'w-placo', name: 'Placo BA13', layers: [['placo', 13]] },
             { id: 'w-enduit', name: 'Enduit', layers: [['enduit', 15]] },
@@ -61,6 +59,7 @@
             const from = (x0, st) => x0 + Math.max(0, Math.floor((X0 - x0) / st)) * st;   // premier motif visible, en gardant la même trame
             const diag = (st, ang) => { st = thin(st, 3); const t = Math.tan(ang), ex = e / Math.abs(t), a0 = X0 - ex - st, x0 = Math.floor(a0 / st) * st; for (let x = x0; x < X1 + ex + st; x += st) { c.moveTo(x, 0); c.lineTo(x + e / t, e); } };   // hachures inclinées : elles débordent d'une épaisseur des deux côtés (sinon un coin reste vide)
             c.beginPath();
+            if (mat === 'metal') { c.save(); c.fillStyle = c.strokeStyle; c.globalAlpha *= 0.55; c.fillRect(Math.max(0, X0), 0, Math.min(Lmm, X1) - Math.max(0, X0), e); c.restore(); return; }   // ossature métallique : plein
             if (mat === 'isolant') {   // laine : boucles régulières sur l'épaisseur
                 const st = Math.max(e * 0.55, 8) * sc;
                 if (st * P < 3) { c.moveTo(X0, e / 2); c.lineTo(X1, e / 2); }
@@ -124,7 +123,22 @@
         }
         // tracé d'une paroi : clic début, clic fin (ou longueur + Entrée) ; les parois s'enchaînent
         let wallTool = null, wallStart = null;
-        function startWall(id) { const p = WALL_PRESETS.find(x => x.id === id); if (!p) return; closeFileMenus(); setMode('wall'); wallTool = wallFromPreset(p); wallTool.name = p.name; wallTool.align = wallOpt.align; if (wallOpt.e > 0) wallTool.layers[0].e = wallOpt.e; wallStart = null; wallChain = null; typedInput = ''; updateCommandMessage(); draw(); }
+        const WALL_ALIAS = { 'w-beton16': ['w-beton20', 160], 'w-laine100': ['w-laine140', 100], 'w-parp15': ['w-parp20', 150] };   // types retirés (même matériau, autre épaisseur) : l'épaisseur se règle
+        // PAROIS COMPLEXES : un sandwich de couches tracé d'un seul bloc (cloison, doublage, ossature), avec des montants tous les N mm dans une couche
+        const WALL_CX = [
+            { id: 'cx-72', name: 'Cloison 72/48', layers: [['placo', 13], ['isolant', 46], ['placo', 13]], studs: { li: 1, mat: 'metal', w: 35, sp: 600 } },
+            { id: 'cx-98', name: 'Cloison 98/48', layers: [['placo', 13], ['placo', 13], ['isolant', 46], ['placo', 13], ['placo', 13]], studs: { li: 2, mat: 'metal', w: 35, sp: 600 } },
+            { id: 'cx-dbl', name: 'Doublage 13 + 75', layers: [['isolant', 75], ['placo', 13]], studs: { li: 0, mat: 'metal', w: 35, sp: 600 } },
+            { id: 'cx-mob', name: 'Ossature bois 145', layers: [['placo', 13], ['isolant', 145], ['bois', 12]], studs: { li: 1, mat: 'bois', w: 45, sp: 600 } },
+            { id: 'cx-bet', name: 'Béton 20 + doublage', layers: [['beton', 200], ['isolant', 100], ['placo', 13]], studs: { li: 1, mat: 'metal', w: 35, sp: 600 } },
+        ];
+        let wallCxUser = []; try { wallCxUser = JSON.parse(localStorage.getItem('momocad-wallcx') || '[]') || []; } catch (e) {}
+        let wallCxEdit = null;   // composition en cours dans l'onglet Complexes
+        const wallCxAll = () => WALL_CX.concat(wallCxUser);
+        function wallCxTool(d) { return { align: wallOpt.align, cx: d.name || 'Complexe', layers: d.layers.map(([mat, e]) => ({ mat, e: +e })), studs: d.studs && d.studs.sp > 0 && d.studs.w > 0 ? Object.assign({}, d.studs) : null, name: d.name }; }
+        function startWallCx(d) { if (!d || !d.layers || !d.layers.length) return; closeFileMenus(); setMode('wall'); wallTool = wallCxTool(d); wallStart = null; wallChain = null; typedInput = ''; updateCommandMessage(); draw(); }
+        function startWall(id) { if (WALL_ALIAS[id]) { const [to, e] = WALL_ALIAS[id], p0 = WALL_PRESETS.find(x => x.id === to); if (!p0) return; closeFileMenus(); setMode('wall'); wallTool = wallFromPreset(p0); wallTool.name = p0.name; wallTool.align = wallOpt.align; wallTool.layers[0].e = e; wallStart = null; wallChain = null; typedInput = ''; updateCommandMessage(); draw(); return; }
+            const p = WALL_PRESETS.find(x => x.id === id); if (!p) return; closeFileMenus(); setMode('wall'); wallTool = wallFromPreset(p); wallTool.name = p.name; wallTool.align = wallOpt.align; if (wallOpt.e > 0) wallTool.layers[0].e = wallOpt.e; wallStart = null; wallChain = null; typedInput = ''; updateCommandMessage(); draw(); }
         // contour d'une paroi : 4 traits indépendants (faces + extrémités), sur le calque « Paroi <matériau> » de la couleur du matériau
         function wallSegs(x1, y1, x2, y2, w) { const B = wallBands({ x1, y1, x2, y2, wall: w }, 0, 0); if (!B.length) return []; const q = [B[0].pts[0], B[0].pts[1], B[B.length - 1].pts[2], B[B.length - 1].pts[3]]; return [[q[0], q[1]], [q[1], q[2]], [q[2], q[3]], [q[3], q[0]]]; }
         function wallLayerId(w) { const mat = w.layers[0].mat, M = WALL_MATS[mat] || WALL_MATS.air, id = ensureLayer('Paroi ' + M.name.toLowerCase(), M.line || '#ffffff'), l = layers.find(x => x.id === id);
@@ -133,8 +147,9 @@
         // Chaîne de parois : à chaque nouveau tronçon, la chaîne entière est redessinée avec des jonctions en onglet (bissectrice, 45° à l'équerre).
         // Faces et motifs se raccordent sur la ligne d'onglet ; extrémités seulement au début et à la fin (aucune si la chaîne est refermée).
         let wallChain = null;   // { pts:[{x,y}], shapes:[], lid, closed }
-        function wallChainGeom(P, w, closed) {
-            const k = mmToWorld(1), b0 = wallBase(w), T = wallThick(w), oa = b0 * k, ob = (b0 + T) * k, n = P.length, ns = closed ? n : n - 1;
+        function wallChainGeom(P, w, closed) { const k = mmToWorld(1), b0 = wallBase(w), T = wallThick(w); return wallChainGeomRaw(P, closed, b0 * k, (b0 + T) * k); }
+        function wallChainGeomRaw(P, closed, oa, ob) {
+            const k = mmToWorld(1), n = P.length, ns = closed ? n : n - 1;
             const U = []; for (let i = 0; i < ns; i++) { const a = P[i], b = P[(i + 1) % n], L = Math.hypot(b.x - a.x, b.y - a.y) || 1; U.push({ x: (b.x - a.x) / L, y: (b.y - a.y) / L }); }
             const joint = (o, v) => {
                 const ip = (v > 0 || closed) ? (v - 1 + ns) % ns : -1, inx = (v < ns || closed) ? v % ns : -1, V = P[v % n];
@@ -151,6 +166,7 @@
             return segs;
         }
         function wallChainShapes(P, w, closed, lid, gid, wz) {
+            if (w.cx) return wallChainShapesCx(P, w, closed, gid, wz);
             const out = [], mat = w.layers[0].mat, tag = (o) => { o.groupId = gid; o.wallMat = mat; if (wz) o.wz = Object.assign({}, wz); return o; };
             const L = (a, b) => tag({ type: 'line', layerId: lid, x1: a.x, y1: a.y, x2: b.x, y2: b.y });
             wallChainGeom(P, w, closed).forEach(g => {
@@ -161,6 +177,25 @@
             });
             return out;
         }
+        // paroi complexe : une bande hachurée par couche (sur le calque de son matériau), les faces et les limites entre couches, les montants dans leur couche ;
+        //      tout le tronçon forme un seul bloc (même groupe), sans fusion avec les autres parois
+        function wallChainShapesCx(P, w, closed, gid, wz) {
+            const out = [], k = mmToWorld(1), b0 = wallBase(w), tag = (o, mat) => { o.groupId = gid; o.wallMat = mat; o.wallCx = w.cx; if (wz) o.wz = Object.assign({}, wz); return o; };
+            const ln = (a, b, mat) => tag({ type: 'line', layerId: wallLayerId({ layers: [{ mat }] }), x1: a.x, y1: a.y, x2: b.x, y2: b.y }, mat);
+            let o = b0; const bands = w.layers.map(l => { const r = { l, oa: o * k, ob: (o + (+l.e || 0)) * k, o0: o }; o += +l.e || 0; return r; });
+            const segsN = closed ? P.length : P.length - 1, seg = [];
+            for (let i = 0; i < segsN; i++) seg.push([]);
+            bands.forEach((b, bi) => { const S = wallChainGeomOff(P, closed, b.oa, b.ob); S.forEach((g, i) => { if (b.l.mat !== 'air') seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: b.l.mat }] }), loops: [[g.A0, g.A1, g.B1, g.B0].map(q => ({ x: q.x, y: q.y }))] }, b.l.mat));
+                seg[i].push(ln(g.A0, g.A1, b.l.mat)); if (bi === bands.length - 1) seg[i].push(ln(g.B0, g.B1, b.l.mat)); }); });
+            // bouts : en travers de toute l'épaisseur, au début et à la fin d'une chaîne ouverte
+            const all = wallChainGeomOff(P, closed, bands[0].oa, bands[bands.length - 1].ob); if (!closed && all.length) { seg[0].push(ln(all[0].A0, all[0].B0, bands[0].l.mat)); const L = all[all.length - 1]; seg[seg.length - 1].push(ln(L.A1, L.B1, bands[0].l.mat)); }
+            // montants : dans leur couche, tous les « sp » mm (entraxe) depuis le début de chaque tronçon, plus un à chaque bout
+            const S = w.studs, sb = S && bands[S.li]; if (sb && S.sp > 0 && S.w > 0) for (let i = 0; i < segsN; i++) { const a = P[i], c = P[(i + 1) % P.length], L = Math.hypot(c.x - a.x, c.y - a.y); if (L < 1e-9) continue; const ux = (c.x - a.x) / L, uy = (c.y - a.y) / L, nx = uy, ny = -ux, sw = S.w * k, sp = S.sp * k;
+                const T = []; for (let t = sw / 2; t <= L - sw / 2 + 1e-9; t += sp) T.push(t); if (!T.length || L - sw / 2 - T[T.length - 1] > sw) T.push(L - sw / 2);
+                T.forEach(t => { const q = (tt, oo) => ({ x: a.x + ux * tt + nx * oo, y: a.y + uy * tt + ny * oo }); seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: S.mat }] }), loops: [[q(t - sw / 2, sb.oa), q(t + sw / 2, sb.oa), q(t + sw / 2, sb.ob), q(t - sw / 2, sb.ob)]], stud: 1 }, S.mat)); }); }
+            seg.forEach(x => out.push(...x)); out.last = seg[seg.length - 1] || []; return out; }
+        // géométrie d'une chaîne pour une bande [oa, ob] (monde, depuis le tracé, vers la gauche) : onglets aux angles
+        const wallChainGeomOff = (P, closed, oa, ob) => wallChainGeomRaw(P, closed, oa, ob);
         // FUSION DES PAROIS : en fin de tracé, les parois de même matériau (même calque, mêmes niveaux) qui se touchent ou se chevauchent
         // ne font plus qu'un seul contour : plus de hachures superposées ni de traits en travers aux jonctions (ouvertures gardées)
         function wallFuse(newShapes) {
@@ -220,7 +255,7 @@
                     if (ops.some(o => o && o.pts && (pointInPolygon(m.x, m.y, o.pts) || o.pts.some((q, k) => segD(m, q, o.pts[(k + 1) % o.pts.length]) < eps)))) continue;   // ouverture
                     add.push({ type: 'line', layerId: h.layerId, x1: a.x, y1: a.y, x2: b.x, y2: b.y, wallMat: h.wallMat, groupId: h.groupId, zk: h.zk, lvs: h.lvs, bid: h.bid, lvl: h.lvl, wz: h.wz ? Object.assign({}, h.wz) : undefined }); } });
             add.forEach(x => { Object.keys(x).forEach(k => x[k] === undefined && delete x[k]); shapes.push(x); }); return add.length; }
-        function wallChainEnd() { const C = wallChain; if (!C || !C.shapes || !C.shapes.length) return; const S = C.shapes.filter(x => shapes.includes(x)); wallFuse(S).then(n => { if (n >= 1) { saveState(); invalidateCache(); draw(); updateCommandMessageText(n > 1 ? 'PAROI : ' + n + ' tronçons en contact fusionnés en un seul contour.' : 'PAROI : arrêtée contre la paroi existante, sans chevauchement.'); } }); }
+        function wallChainEnd() { const C = wallChain; if (!C || !C.shapes || !C.shapes.length) return; const S = C.shapes.filter(x => shapes.includes(x)); if (S.some(x => x.wallCx)) return;   /* paroi complexe : déjà d'un seul bloc */ wallFuse(S).then(n => { if (n >= 1) { saveState(); invalidateCache(); draw(); updateCommandMessageText(n > 1 ? 'PAROI : ' + n + ' tronçons en contact fusionnés en un seul contour.' : 'PAROI : arrêtée contre la paroi existante, sans chevauchement.'); } }); }
         function wallAddTo(x2, y2) {
             // chaîne perdue (annuler, autre paroi…) : on repart du point courant
             if (!wallChain || wallChain.shapes.some(sh => !shapes.includes(sh)) || wallChain.closed) wallChain = { pts: [{ x: wallStart.x, y: wallStart.y }], shapes: [], lid: wallLayerId(wallTool), gid: 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 100000) };

@@ -116,8 +116,24 @@
         function wallOpeningsFor(w) { const out = [], zr = (h) => h && h.wz && hasZ(h.wz.b) && hasZ(h.wz.t) ? h.wz : null, Wz = zr(w); shapes.filter(x => x.openings && x.openings.length).forEach(x => { const Hz = zr(x); if (Wz && Hz && !(Hz.b < Wz.t - 1 && Wz.b < Hz.t - 1)) return; (x.openings || []).forEach(o => { if (o.pts && o.pts.some(q => pointInPolygon(q.x, q.y, w.loops[0])) || w.loops[0].some(q => pointInPolygon(q.x, q.y, o.pts)) || openSegHit(o, w)) out.push(o); }); }); return out; }
         function openSegHit(o, w) { const L = w.loops[0]; for (let i = 0; i < 4; i++) { const a = o.pts[i], b = o.pts[(i + 1) % 4]; for (let j = 0; j < L.length; j++) { const c = L[j], d = L[(j + 1) % L.length]; if (segInter(a, b, c, d)) return true; } } return false; }
         function segInter(a, b, c, d) { const o = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x)); return o(a, b, c) !== o(a, b, d) && o(c, d, a) !== o(c, d, b); }
+        // HAUT DE L'OUVERTURE : franc (droit), arche (rayon R ≥ demi-largeur ; plein cintre si R = demi-largeur) ou chapeau de gendarme
+        //      (de chaque côté deux arcs de même rayon R, creux puis bombé, tangents à l'horizontale au jambage et à la clé : flèche f = 2R − √(4R² − d²), d = demi-largeur).
+        //      o.h = hauteur à la clé (le plus haut point) ; les jambages montent à o.h − f.
+        function opTop(o, Wmm) { const t = o.top || 'droit', d = Wmm / 2; if (t === 'arche') { const R = Math.max(d, +o.R || d); return { t, R, f: R - Math.sqrt(Math.max(0, R * R - d * d)) }; }
+            if (t === 'gendarme') { const R = Math.max(Wmm / 4 + 1, +o.R || Wmm * 0.6); return { t, R, f: 2 * R - Math.sqrt(Math.max(0, 4 * R * R - d * d)) }; } return { t: 'droit', R: 0, f: 0 }; }
+        // contour de l'ouverture vue de face (mm : x le long du mur depuis le 1er jambage, z depuis le bas) ; n = points par arc
+        function opProfile(o, Wmm, n) { n = n || 24; const h = Math.max(10, o.h || 1000), T = opTop(o, Wmm), f = Math.min(T.f, h - 1), zs = h - f, out = [[0, 0], [Wmm, 0], [Wmm, zs]], d = Wmm / 2;
+            if (T.t === 'arche') { const R = T.R, cz = h - R, a0 = Math.atan2(zs - cz, d), a1 = Math.PI - a0; for (let i = 1; i < n; i++) { const a = a0 + (a1 - a0) * i / n; out.push([d + R * Math.cos(a), cz + R * Math.sin(a)]); } }
+            else if (T.t === 'gendarme') { const R = T.R, half = (side) => { const P = []; for (let i = 1; i <= n; i++) { const q = i / n; let x, z; if (q <= 0.5) { const a = Math.asin(Math.min(1, (d / 2) / R)) * (q * 2); x = R * Math.sin(a); z = zs + R - R * Math.cos(a); } else { const a = Math.asin(Math.min(1, (d / 2) / R)) * ((1 - q) * 2); x = d - R * Math.sin(a); z = h - R + R * Math.cos(a); } P.push(side > 0 ? [Wmm - x, z] : [x, z]); } return P; };
+                const Rh = half(1); Rh.forEach(p => out.push(p)); half(-1).reverse().slice(1).forEach(p => out.push(p)); }
+            out.push([0, zs]); return { pts: out, f, zs, h }; }
         function openingGeom(o, P, Zm, exag, w) {
             if (!w || !w.wz) return null; const zb = w.wz.b + (o.sill || 0), H = Math.max(10, o.h || 1000);
+            if (o.top && o.top !== 'droit') {   // haut cintré : le contour vu de face, poussé à travers l'épaisseur
+                const A0 = P(o.pts[0].x, o.pts[0].y), A1 = P(o.pts[1].x, o.pts[1].y), A3 = P(o.pts[3].x, o.pts[3].y), Wm = Math.hypot(A1.x - A0.x, A1.y - A0.y), Tm = Math.hypot(A3.x - A0.x, A3.y - A0.y); if (Wm < 1e-6 || Tm < 1e-6) return null;
+                const pr = opProfile(o, Wm * 1000), shp = new THREE.Shape(pr.pts.map(([x, z]) => new THREE.Vector2(x / 1000, z / 1000))), g = new THREE.ExtrudeGeometry(shp, { depth: Tm, bevelEnabled: false, curveSegments: 4 });
+                const eu = new THREE.Vector3((A1.x - A0.x) / Wm, (A1.y - A0.y) / Wm, 0), en = new THREE.Vector3((A3.x - A0.x) / Tm, (A3.y - A0.y) / Tm, 0), M = new THREE.Matrix4().makeBasis(eu, new THREE.Vector3(0, 0, exag), en).setPosition(A0.x, A0.y, Zm(zb));
+                g.applyMatrix4(M); g.computeVertexNormals(); return g; }
             const shp = new THREE.Shape(o.pts.map(q => { const r = P(q.x, q.y); return new THREE.Vector2(r.x, r.y); }));
             const g = new THREE.ExtrudeGeometry(shp, { depth: H / 1000 * exag, bevelEnabled: false }); g.translate(0, 0, Zm(zb)); return g;
         }
@@ -191,8 +207,8 @@
         }
         function openingFinish(b) {
             const a = openA, L = Math.hypot(b.x - a.x, b.y - a.y); if (L < mmToWorld(50)) return;
-            const pts = openingPts(openWall, a, b), k = openLast.kind === 'porte' ? 'porte' : 'fen';
-            const o = { pts, a, b, kind: k, sill: k === 'porte' ? 0 : 1000, h: k === 'porte' ? 2150 : 1250, hinge: 'a', side: 1, layerId: opLayerId() };
+            const pts = openingPts(openWall, a, b), k = ['porte', 'baie'].includes(openLast.kind) ? openLast.kind : 'fen';
+            const o = { pts, a, b, kind: k, sill: k === 'fen' ? 1000 : 0, h: k === 'fen' ? 1250 : 2150, hinge: 'a', side: 1, layerId: opLayerId(), top: openLast.top || 'droit' }; if (o.top !== 'droit' && openLast.Rk) o.R = openLast.Rk * L * mOf(1) * 1000;
             openLast.w = Math.round(L * mOf(1) * 1000) / 1000; try { localStorage.setItem('momocad-open', JSON.stringify(openLast)); } catch (e) {}
             openWall.openings = (openWall.openings || []).concat([o]); const host = openWall; openA = null; openWall = null; openDir = null; typedInput = ''; saveState(); setMode('select-box'); draw();
             openingDialog(host, o, true);
@@ -207,13 +223,16 @@
         function openingDialog(host, o, isNew) {
             const wM = Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1), inp = (id, v) => `<input id="${id}" type="text" inputmode="decimal" value="${String(v).replace('.', ',')}" style="width:90px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:5px 8px;text-align:right;outline:none;">`;
             const rb = (name, val, cur, lab) => `<label style="cursor:pointer;display:flex;align-items:center;gap:6px"><input type="radio" name="${name}" value="${val}" ${cur === val ? 'checked' : ''}> ${lab}</label>`;
-            const isDoor = o.kind === 'porte';
+            const isDoor = o.kind === 'porte' || o.kind === 'baie';
             const thk = Math.abs(opStretchTT(o)[1] - opStretchTT(o)[0]) * mOf(1) * 1000, Hw = host.wz && hasZ(host.wz.t) && hasZ(host.wz.b) ? host.wz.t - host.wz.b : 2500;
             const ti = (id, v, w, x, y, tip, hide) => `<input id="${id}" type="text" inputmode="decimal" value="${String(v).replace('.', ',')}" title="${MF.esc(tip)}" class="tal-in" oninput="opDiaDraw()" style="left:${x}%;top:${y}%;width:${w}px;${hide ? 'display:none;' : ''}">`;
             opDiaCtx = { Hw, thk };
             openTopoModal(isNew ? '🚪 Ouverture dans le mur' : '🚪 Ouverture — modifier', `<div style="display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:#e5e7eb;">
                 ${spChapter('op-dim', '▭', 'Type et dimensions', `<div style="display:flex;flex-direction:column;gap:8px">
-                <div style="display:flex;gap:16px;"><label style="cursor:pointer;"><input type="radio" name="op-k" value="fen" ${!isDoor ? 'checked' : ''} onchange="opKind('fen')"> Fenêtre</label><label style="cursor:pointer;"><input type="radio" name="op-k" value="porte" ${isDoor ? 'checked' : ''} onchange="opKind('porte')"> Porte</label></div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap"><label style="cursor:pointer;"><input type="radio" name="op-k" value="fen" ${o.kind === 'fen' || !o.kind ? 'checked' : ''} onchange="opKind('fen')"> Fenêtre</label><label style="cursor:pointer;"><input type="radio" name="op-k" value="porte" ${isDoor ? 'checked' : ''} onchange="opKind('porte')"> Porte</label><label style="cursor:pointer;" title="Passage sans porte ni fenêtre : le mur est simplement percé"><input type="radio" name="op-k" value="baie" ${o.kind === 'baie' ? 'checked' : ''} onchange="opKind('baie')"> Baie libre (sans porte)</label></div>
+                <div class="mf-sub" style="margin:0;">Haut de l'ouverture</div>
+                <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">${[['droit', 'Franc (droit)'], ['arche', 'Arche'], ['gendarme', 'Chapeau de gendarme']].map(([v, l]) => `<label style="cursor:pointer;"><input type="radio" name="op-top" value="${v}" ${(o.top || 'droit') === v ? 'checked' : ''} onchange="opTopUI()"> ${l}</label>`).join('')}
+                    <span id="op-r-box" style="display:${(o.top || 'droit') === 'droit' ? 'none' : 'inline-flex'};align-items:center;gap:6px">rayon ${inp('op-r', lenTxt(o.R || opTop(Object.assign({}, o, { R: 0 }), wM * 1000).R))} <span id="op-f" style="color:#9ca3af;font-size:12px"></span></span></div>
                 <div class="mf-sub" style="margin:0;">Vue de dessus</div>
                 <div class="tal-dia" id="op-dia-top"><svg id="op-svg-top" viewBox="0 0 360 210" width="100%" preserveAspectRatio="xMidYMid meet"></svg>
                     ${ti('op-w', lenTxt(wM * 1000), 64, 41, 4, 'Largeur de l\'ouverture, le long du mur, depuis le 1er point (' + LUN() + ')')}
@@ -232,28 +251,31 @@
                     <div style="display:flex;gap:16px;">${rb('op-sd', '1', String(o.side || 1), 'S\'ouvre d\'un côté du mur')}${rb('op-sd', '-1', String(o.side || 1), 'de l\'autre côté')}</div>
                 </div>`, false)}</div></div>`,
                 [['Supprimer', () => { host.openings = (host.openings || []).filter(x => x !== o); closeTopoModal(); saveState(); draw(); if (is3DOpen()) { build3DScene(); render3D(); } }, false]].concat(isNew ? [] : [['↔ Étirer dans l\'épaisseur', () => opStretchStart(host, o), false], ['Tout le complexe', () => { delete o.tt; o.pts = openingPts(host, o.a, o.b); closeTopoModal(); saveState(); draw(); if (is3DOpen()) { build3DScene(); render3D(); } updateCommandMessageText('OUVERTURE : elle traverse tout le complexe de paroi (' + calculateRealDistance(Math.abs(opStretchTT(o)[1] - opStretchTT(o)[0])) + ').'); }, false]]).concat([
-                 ['Valider', () => { const nv = (id) => parseFloat(String(document.getElementById(id).value).replace(/\s/g, '').replace(',', '.')); o.kind = (document.querySelector('input[name=op-k]:checked') || {}).value || 'fen';
+                 ['Valider', () => { const nv = (id) => parseFloat(String(document.getElementById(id).value).replace(/\s/g, '').replace(',', '.')); o.kind = (document.querySelector('input[name=op-k]:checked') || {}).value || 'fen'; o.top = (document.querySelector('input[name=op-top]:checked') || {}).value || 'droit'; { const rr = nv('op-r') * lenF(); if (o.top === 'droit') delete o.R; else if (rr > 0) o.R = rr; else delete o.R; }
                     const sl = nv('op-sill') * lenF(), hh = nv('op-h') * lenF(), ww = nv('op-w') * lenF() / 1000; if (sl >= 0) o.sill = sl; if (hh > 0) o.h = hh;   // saisies dans l'unité du dessin
                     if (ww > 0.05 && Math.abs(ww - wM) > 1e-6) { const L0 = Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) || 1, L1 = mmToWorld(ww * 1000); o.b = { x: o.a.x + (o.b.x - o.a.x) / L0 * L1, y: o.a.y + (o.b.y - o.a.y) / L0 * L1 }; o.pts = openingPts(host, o.a, o.b, o.tt); }
                     { const sh = document.getElementById('op-shift'), dv = sh ? nv('op-shift') * lenF() / 1000 : 0; if (dv && isFinite(dv)) { const L0 = Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) || 1, ux = (o.b.x - o.a.x) / L0, uy = (o.b.y - o.a.y) / L0, d = mmToWorld(dv * 1000); o.a = { x: o.a.x + ux * d, y: o.a.y + uy * d }; o.b = { x: o.b.x + ux * d, y: o.b.y + uy * d }; o.pts = openingPts(host, o.a, o.b, o.tt); } }
                     const hg = document.querySelector('input[name=op-hg]:checked'), sd = document.querySelector('input[name=op-sd]:checked'); if (hg) o.hinge = hg.value; if (sd) o.side = +sd.value;
                     { const vt = (document.querySelector('input[name=op-vt]:checked') || {}).value || 'none', vs = +((document.querySelector('input[name=op-vs]:checked') || {}).value || 1); if (vt === 'none') delete o.shut; else o.shut = { type: vt, side: vs === -1 ? -1 : 1 }; }
-                    openLast.kind = o.kind; openLast.w = ww > 0 ? ww : openLast.w; try { localStorage.setItem('momocad-open', JSON.stringify(openLast)); } catch (e) {}
+                    openLast.kind = o.kind; openLast.top = o.top; openLast.Rk = o.R ? o.R / (Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1) * 1000) : 0; openLast.w = ww > 0 ? ww : openLast.w; try { localStorage.setItem('momocad-open', JSON.stringify(openLast)); } catch (e) {}
                     closeTopoModal(); saveState(); draw(); if (is3DOpen()) { build3DScene(); render3D(); }
-                    updateCommandMessageText('OUVERTURE : ' + (o.kind === 'porte' ? 'porte' : 'fenêtre') + ' de ' + nfr(Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1), 2) + ' × ' + nfr(o.h / 1000, 2) + ' m, allège ' + nfr(o.sill / 1000, 2) + ' m. Un clic dessus pour la modifier ou la décaler ; elle perce le mur en 3D si le mur a ses niveaux (Y sur le mur).'); }, true]]));
+                    updateCommandMessageText('OUVERTURE : ' + ({ porte: 'porte', baie: 'baie libre', fen: 'fenêtre' }[o.kind] || 'fenêtre') + ({ arche: ' en arche', gendarme: ' en chapeau de gendarme' }[o.top] || '') + ' de ' + nfr(Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1), 2) + ' × ' + nfr(o.h / 1000, 2) + ' m, allège ' + nfr(o.sill / 1000, 2) + ' m. Un clic dessus pour la modifier ou la décaler ; elle perce le mur en 3D si le mur a ses niveaux (Y sur le mur).'); }, true]]));
             setTimeout(() => { opDiaDraw(); tmTabify(); }, 0); document.querySelectorAll('input[name=op-hg], input[name=op-sd], input[name=op-vt], input[name=op-vs]').forEach(r => r.addEventListener('change', opDiaDraw));
             const f = document.getElementById('op-w'); if (f) setTimeout(() => { f.focus(); f.select(); }, 30);
         }
         // fenêtre des ouvertures : schémas cotés (dessus et face), redessinés à chaque saisie
         let opDiaCtx = { Hw: 2500, thk: 200 };
         function opKind(k) { const sl = document.getElementById('op-sill'), h = document.getElementById('op-h'), dr = document.getElementById('op-door'), lb = document.getElementById('op-sill-lb');
-            if (k === 'porte') { sl.value = '0'; h.value = lenTxt(2150); sl.style.display = 'none'; if (lb) lb.style.display = 'none'; dr.style.display = 'flex'; }
+            if (k === 'porte' || k === 'baie') { sl.value = '0'; h.value = lenTxt(2150); sl.style.display = 'none'; if (lb) lb.style.display = 'none'; dr.style.display = k === 'porte' ? 'flex' : 'none'; }
             else { sl.value = lenTxt(1000); h.value = lenTxt(1250); sl.style.display = ''; if (lb) lb.style.display = ''; dr.style.display = 'none'; }
             opDiaDraw(); tmTabify(); }
+        function opTopUI() { const t = (document.querySelector('input[name=op-top]:checked') || {}).value || 'droit', b = document.getElementById('op-r-box'), r = document.getElementById('op-r'); if (b) b.style.display = t === 'droit' ? 'none' : 'inline-flex';
+            if (r && t !== 'droit') { const w = (parseFloat(String((document.getElementById('op-w') || {}).value || '').replace(/\s/g, '').replace(',', '.')) || 1) * lenF(); const cur = parseFloat(String(r.value).replace(/\s/g, '').replace(',', '.')) * lenF(); const T = opTop({ top: t, R: cur > 0 ? cur : 0 }, w); if (!(cur > 0) || cur < (t === 'arche' ? w / 2 : w / 4)) r.value = lenTxt(Math.round(T.R)); }
+            opDiaDraw(); }
         function opDiaDraw() {
             const top = document.getElementById('op-svg-top'), side = document.getElementById('op-svg-side'); if (!top || !side) return;
             const nv = (id) => { const e = document.getElementById(id); const v = e ? parseFloat(String(e.value).replace(/\s/g, '').replace(',', '.')) : NaN; return isFinite(v) ? v * lenF() : NaN; };
-            const door = ((document.querySelector('input[name=op-k]:checked') || {}).value) === 'porte', hgB = ((document.querySelector('input[name=op-hg]:checked') || {}).value) === 'b', sdN = ((document.querySelector('input[name=op-sd]:checked') || {}).value) === '-1';
+            const kd = ((document.querySelector('input[name=op-k]:checked') || {}).value) || 'fen', baie = kd === 'baie', door = kd === 'porte' || baie, hgB = ((document.querySelector('input[name=op-hg]:checked') || {}).value) === 'b', sdN = ((document.querySelector('input[name=op-sd]:checked') || {}).value) === '-1';
             const D = '#f59e0b', A = (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${D}" stroke-width="1"/>`, tick = (x, y) => `<path d="M${x - 4} ${y + 4}l8-8" stroke="${D}" stroke-width="1"/>`;
             // dessus : mur en bande, l'ouverture au milieu, cote de largeur, symbole fenêtre ou porte
             const y0 = 88, y1 = 120, x0 = 145, x1 = 215;
@@ -272,8 +294,10 @@
             const Hw = Math.max(1, opDiaCtx.Hw), sill = door ? 0 : Math.max(0, nv('op-sill') || 0), h = Math.max(10, nv('op-h') || 1000), Hs = Math.max(Hw, sill + h), k = 150 / Hs, g = 172, yb = g - sill * k, yt = g - (sill + h) * k, wx0 = 140, wx1 = 220;
             let f = `<defs><pattern id="opdf" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 7L7 0" stroke="#3f3f46" stroke-width="1"/></pattern></defs>
                 <rect x="40" y="${g - Hw * k}" width="280" height="${Hw * k}" fill="url(#opdf)" stroke="#d4d4d8" stroke-width="1.2"/><path d="M14 ${g}H346" stroke="#a1a1aa" stroke-width="1.4"/>
-                <rect x="${wx0}" y="${yt}" width="${wx1 - wx0}" height="${yb - yt}" fill="#111827" stroke="#e5e7eb" stroke-width="2"/>`;
-            f += door ? `<path d="M${wx0 + 6} ${yt + 6}h${wx1 - wx0 - 12}v${yb - yt - 6}h-${wx1 - wx0 - 12}z" stroke="#a16207" stroke-width="1.5" fill="#78350f" fill-opacity=".45"/><circle cx="${hgB ? wx0 + 14 : wx1 - 14}" cy="${(yt + yb) / 2 + 6}" r="2.5" fill="#fbbf24"/>`
+                <path d="${(() => { const top = (document.querySelector('input[name=op-top]:checked') || {}).value || 'droit', wmm = Math.max(10, nv('op-w') || 1000), rr = nv('op-r'), pr = opProfile({ top, R: rr > 0 ? rr : 0, h }, wmm, 16), sx = (wx1 - wx0) / wmm;
+                    const fe = document.getElementById('op-f'); if (fe) fe.textContent = top === 'droit' ? '' : 'flèche ' + lenTxt(Math.round(pr.f)) + ' · jambages ' + lenTxt(Math.round(pr.zs));
+                    return pr.pts.map(([x, z], i) => (i ? 'L' : 'M') + (wx0 + x * sx).toFixed(1) + ' ' + (yb - z * k).toFixed(1)).join('') + 'Z'; })()}" fill="#111827" stroke="#e5e7eb" stroke-width="2"/>`;
+            f += baie ? '' : door ? `<path d="M${wx0 + 6} ${yt + 6}h${wx1 - wx0 - 12}v${yb - yt - 6}h-${wx1 - wx0 - 12}z" stroke="#a16207" stroke-width="1.5" fill="#78350f" fill-opacity=".45"/><circle cx="${hgB ? wx0 + 14 : wx1 - 14}" cy="${(yt + yb) / 2 + 6}" r="2.5" fill="#fbbf24"/>`
                 : `<path d="M${(wx0 + wx1) / 2} ${yt}V${yb}M${wx0 + 5} ${yt + 5}h${wx1 - wx0 - 10}v${yb - yt - 10}h-${wx1 - wx0 - 10}z" stroke="#93c5fd" stroke-width="1.2" fill="#93c5fd" fill-opacity=".15"/>`;
             { const vt = (document.querySelector('input[name=op-vt]:checked') || {}).value, ww = wx1 - wx0;
                 if (vt === 'battant') [[wx0 - ww / 2, wx0], [wx1, wx1 + ww / 2]].forEach(([a, b]) => { f += `<rect x="${a}" y="${yt}" width="${b - a}" height="${yb - yt}" fill="#4d7c5a" stroke="#86efac" stroke-width="1"/>`; for (let yy = yt + 8; yy < yb; yy += 8) f += `<path d="M${a + 2} ${yy}H${b - 2}" stroke="#86efac" stroke-opacity=".35"/>`; });
@@ -293,7 +317,8 @@
                     if (opHidden(o)) { ctx.restore(); return; } const oL = opLayer(o), col = isPrinting ? '#000' : oL && oL.color ? oL.color : col0;
                     ctx.strokeStyle = col; ctx.lineWidth = 1 / ls; ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y); ctx.lineTo(p[3].x, p[3].y); ctx.moveTo(p[1].x, p[1].y); ctx.lineTo(p[2].x, p[2].y); ctx.stroke();
                     const mA = { x: (p[0].x + p[3].x) / 2, y: (p[0].y + p[3].y) / 2 }, mB = { x: (p[1].x + p[2].x) / 2, y: (p[1].y + p[2].y) / 2 };
-                    if (o.kind === 'porte') { const w = Math.hypot(mB.x - mA.x, mB.y - mA.y), sd = o.side === -1 ? -1 : 1, hb = o.hinge === 'b';
+                    if (o.kind === 'baie') { ctx.setLineDash([4 / ls, 3 / ls]); ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y); ctx.lineTo(p[1].x, p[1].y); ctx.moveTo(p[3].x, p[3].y); ctx.lineTo(p[2].x, p[2].y); ctx.stroke(); ctx.setLineDash([]); }   // baie libre : le linteau au-dessus, en tirets
+                    else if (o.kind === 'porte') { const w = Math.hypot(mB.x - mA.x, mB.y - mA.y), sd = o.side === -1 ? -1 : 1, hb = o.hinge === 'b';
                         const H = sd > 0 ? (hb ? p[2] : p[3]) : (hb ? p[1] : p[0]), J = sd > 0 ? (hb ? p[3] : p[2]) : (hb ? p[0] : p[1]);   // charnière et jambage opposé, sur la face qui reçoit le battant
                         const nx = (p[3].x - p[0].x) * sd, ny = (p[3].y - p[0].y) * sd, nl = Math.hypot(nx, ny) || 1, ux = nx / nl, uy = ny / nl;
                         const a0 = Math.atan2(J.y - H.y, J.x - H.x), a1 = Math.atan2(uy, ux);

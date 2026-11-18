@@ -338,7 +338,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         let sum = 0; Hh.forEach(h => sum += Math.abs(polyArea(h.loops[0]))); const U = polygonClipping.union(...Hh.map(poly)); let ua = 0; U.forEach(pg => ua += Math.abs(polyArea(pg[0].slice(0, -1).map(([x, y]) => ({ x, y })))));
         const r = { groups: new Set(Hh.map(h => h.groupId)).size, over: Math.round((sum - ua) / M(1) / M(1)), lines: shapes.filter(x => x.type === 'line' && x.wallMat).length, snap: !!(sn && (sn.axis || sn.face)) }; if (!r.snap) r.dbg = JSON.stringify([sf, sa, typeof view2D !== "undefined" ? view2D : null]); shapes = []; saveState(); return r; });
     t.eq('deux parois en T : fondues en un seul mur, sans chevauchement ni trait à la jonction', fu, { groups: 1, over: 0, lines: 8, snap: true });
-    const fm = await ev(async () => { shapes = []; camera.zoom = 1; const M = mmToWorld, b = WALL_PRESETS.find(w => w.id === 'w-beton20').id, i = WALL_PRESETS.find(w => w.id === 'w-laine100').id;
+    const fm = await ev(async () => { shapes = []; camera.zoom = 1; const M = mmToWorld, b = WALL_PRESETS.find(w => w.id === 'w-beton20').id, i = 'w-laine100';   /* type retiré : repris par l'isolant à 100 mm */
         startWall(b); wallStart = { x: 0, y: 0 }; wallAddTo(M(5000), 0); setMode('select-box'); await new Promise(r => setTimeout(r, 400));
         startWall(i); wallStart = { x: M(2500), y: M(1000) }; wallAddTo(M(2500), M(-3000)); setMode('select-box'); await new Promise(r => setTimeout(r, 800));
         const Hh = shapes.filter(isWallHatch); await loadPolyClip(); const poly = h => h.loops.map(l => { const r = l.map(q => [q.x, q.y]); r.push(r[0]); return r; });
@@ -666,4 +666,22 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         ev2('mousedown'); ev2('mouseup'); await new Promise(res => setTimeout(res, 200)); r.panel = /Étages/.test(document.getElementById('selparam-modal').textContent); closeSelectionParamModal();
         bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('bâtiment : contour coupé recollé et refermé (modification et ouverture), la pastille ouvre ses étages', bc, { one: true, load: true, panel: true });
+    // parois complexes (sandwich d'un seul bloc, montants tous les N mm) ; types en double retirés (l'épaisseur se règle) ; ouvertures : baie libre, arche, chapeau de gendarme
+    const cxo = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), r = {};
+        r.presets = ['w-beton16', 'w-laine100', 'w-parp15'].every(id => !WALL_PRESETS.some(p => p.id === id)); startWall('w-laine100'); r.alias = !!wallTool && wallTool.layers[0].mat === 'isolant' && wallTool.layers[0].e === 100; setMode('select-box');
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [8, 0], [8, 6], [0, 6]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; shapes.push(A); saveState(); bldMake(A, 'A', 100000, 2700); saveState();
+        startWallCx(WALL_CX[0]); wallStart = { x: 4 * m, y: 0 }; wallChain = null; wallAddTo(4 * m, -3 * m); wallAddTo(7.4 * m, -3 * m); wallChainEnd(); setMode('select-box'); await new Promise(res => setTimeout(res, 300));
+        const C = shapes.filter(x => x.wallCx), H = C.filter(isWallHatch), st = H.filter(x => x.stud);
+        r.cx = new Set(C.map(x => x.groupId)).size === 1 && H.filter(x => !x.stud).length === 6 && ['placo', 'isolant', 'metal'].every(mt => H.some(x => x.wallMat === mt)) && H.filter(x => x.wallMat === 'placo').every(x => (layers.find(l => l.id === x.layerId) || {}).name === 'Paroi plaque de plâtre');
+        r.studs = st.length === 6 + 7;   // 3 m : 0, 0,6 … 2,4 + bout (6) ; 3,4 m : 0 … 3,0 + bout (7)
+        const W = 1200, pr = opProfile({ top: 'arche', h: 2300, R: 600 }, W), pg = opProfile({ top: 'gendarme', h: 2300, R: 900 }, W), zmax = (P) => Math.max(...P.pts.map(q => q[1]));
+        r.arche = Math.abs(pr.f - 600) < 1e-6 && Math.abs(zmax(pr) - 2300) < 1 && Math.abs(pr.zs - 1700) < 1e-6;
+        r.gendarme = Math.abs(pg.f - (1800 - Math.sqrt(4 * 810000 - 360000))) < 1e-6 && Math.abs(zmax(pg) - 2300) < 1e-6 && pg.pts.some(q => Math.abs(q[0] - 600) < 1e-6 && Math.abs(q[1] - 2300) < 1e-6);
+        const host = H.find(x => x.wallMat === 'isolant' && !x.stud); openA = { x: 4 * m, y: -1 * m }; openWall = host; openDir = { x: 0, y: -1 }; openLast.kind = 'baie'; openLast.top = 'gendarme'; openLast.Rk = 0; openingFinish({ x: 4 * m, y: -2.2 * m });
+        const radios = ['baie', 'fen', 'porte'].every(v => document.querySelector('input[name=op-k][value=' + v + ']')) && ['droit', 'arche', 'gendarme'].every(v => document.querySelector('input[name=op-top][value=' + v + ']'));
+        document.querySelector('input[name=op-top][value=arche]').checked = true; opTopUI(); document.getElementById('op-r').value = '0,80'; [...document.querySelectorAll('#tm-actions button')].find(b => /Valider/.test(b.textContent)).click();
+        const o = host.openings[0]; r.dialog = radios && o.kind === 'baie' && o.top === 'arche' && Math.abs(o.R - 800) < 1e-6;
+        await open3D(); let jo = 0; V3.root.traverse(x => { if (x.userData && x.userData.opening === o) jo++; }); r.noJoinery = jo === 0; close3D();
+        selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true });
 } };

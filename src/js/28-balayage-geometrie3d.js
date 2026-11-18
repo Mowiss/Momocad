@@ -263,10 +263,13 @@
         }
         // menuiserie d'une ouverture : cadre 6 cm, vitrage (fenêtre) ou vantail bois (porte), au milieu de l'épaisseur du mur
         function joinery3D(root, w, o, P, Zm, exag) {
+            if (o.kind === 'baie') return;   // baie libre : rien dans le trou
             const Q = o.pts.map(q => P(q.x, q.y)), A = P(o.a.x, o.a.y), B = P(o.b.x, o.b.y), L = Math.hypot(B.x - A.x, B.y - A.y); if (L < 1e-6) return;
             const u = { x: (B.x - A.x) / L, y: (B.y - A.y) / L }, n = { x: -u.y, y: u.x };
             const su = Q.map(q => (q.x - A.x) * u.x + (q.y - A.y) * u.y), sn = Q.map(q => (q.x - A.x) * n.x + (q.y - A.y) * n.y);
-            const s0 = Math.min(...su), s1 = Math.max(...su), tm = (Math.min(...sn) + Math.max(...sn)) / 2, z0 = Zm(w.wz.b + (o.sill || 0)), z1 = z0 + Math.max(10, o.h || 1000) / 1000 * exag;
+            const s0 = Math.min(...su), s1 = Math.max(...su), tm = (Math.min(...sn) + Math.max(...sn)) / 2, z0 = Zm(w.wz.b + (o.sill || 0)), prA = o.top && o.top !== 'droit' ? opProfile(o, (s1 - s0) * 1000) : null, z1 = z0 + (prA ? prA.zs : Math.max(10, o.h || 1000)) / 1000 * exag;
+            if (prA) { const top = prA.pts.filter(([x, z]) => z >= prA.zs - 1e-6), sh = new THREE.Shape(top.map(([x, z]) => new THREE.Vector2(x / 1000, (z - prA.zs) / 1000))), g = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }), mm = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: o.kind === 'porte' ? 0x8b5a2b : 0xbfdbfe, transparent: o.kind !== 'porte', opacity: o.kind === 'porte' ? 1 : 0.45 }));   /* imposte cintrée */
+                const eu = new THREE.Vector3(u.x, u.y, 0), en = new THREE.Vector3(n.x, n.y, 0); g.applyMatrix4(new THREE.Matrix4().makeBasis(eu, new THREE.Vector3(0, 0, exag), en).setPosition(A.x + u.x * s0 + n.x * (tm - 0.02), A.y + u.y * s0 + n.y * (tm - 0.02), z1)); mm.userData.opening = o; root.add(mm); }
             const f = Math.min(0.06, (s1 - s0) / 6), door = o.kind === 'porte', ang = Math.atan2(u.y, u.x);
             const box = (a0, a1, b0, b1, d, mat) => { if (a1 - a0 < 1e-4 || b1 - b0 < 1e-4) return; const g = new THREE.BoxGeometry(a1 - a0, d, b1 - b0), m = new THREE.Mesh(g, mat);
                 const sc = (a0 + a1) / 2; m.position.set(A.x + u.x * sc + n.x * tm, A.y + u.y * sc + n.y * tm, (b0 + b1) / 2); m.rotation.z = ang; m.userData.opening = o; root.add(m); };
