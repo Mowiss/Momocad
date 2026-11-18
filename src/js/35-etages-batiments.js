@@ -69,6 +69,17 @@
                 bldBadgeHits.push({ x0, y0, x1: x0 + w, y1: y0 + h, id: z.bld.id }); });
             c.restore(); }
         function bldBadgeAt(sx, sy) { return bldBadgeHits.find(b => sx >= b.x0 && sx <= b.x1 && sy >= b.y0 && sy <= b.y1) || null; }
+        /* un contour de bâtiment reste une polyligne fermée, d'un seul tenant : s'il a été coupé (Couper au point, Ajuster…) ou ouvert,
+           ses morceaux sont recollés bout à bout et le contour refermé. Appelé à chaque modification et à l'ouverture d'un plan. */
+        function bldRepair() { const B = shapes.filter(s => s.bld && s.type === 'poly' && s.points && s.points.length >= 2); if (!B.length) return 0; const by = new Map(); B.forEach(s => { const k = s.bld.id || ''; if (!by.has(k)) by.set(k, []); by.get(k).push(s); });
+            let fixed = 0; const tol = mmToWorld(10), same = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < tol, cp = (q) => Object.assign({}, q);
+            by.forEach(P => { if (P.length === 1 && !P[0].open && P[0].points.length >= 3) return; const rest = P.slice().sort((a, b) => b.points.length - a.points.length), keep = rest.shift(); let C = keep.points.map(cp), guard = 0;
+                while (rest.length && guard++ < 100) { const e = C[C.length - 1], s0 = C[0]; let k = rest.findIndex(p => same(p.points[0], e) || same(p.points[p.points.length - 1], e) || same(p.points[0], s0) || same(p.points[p.points.length - 1], s0)); if (k < 0) k = 0;
+                    const p = rest.splice(k, 1)[0], Q = p.points.map(cp);
+                    if (same(Q[0], e)) C = C.concat(Q.slice(1)); else if (same(Q[Q.length - 1], e)) C = C.concat(Q.reverse().slice(1)); else if (same(Q[Q.length - 1], s0)) C = Q.slice(0, -1).concat(C); else if (same(Q[0], s0)) C = Q.reverse().slice(0, -1).concat(C); else C = C.concat(Q); }
+                C = C.filter((q, i) => i === 0 || !same(q, C[i - 1])); if (C.length > 2 && same(C[0], C[C.length - 1])) C.pop(); if (C.length < 3) return;
+                keep.points = C; delete keep.open; const gone = new Set(P.filter(x => x !== keep)); if (gone.size) { shapes = shapes.filter(x => !gone.has(x)); selectedShapes = selectedShapes.map(x => gone.has(x) ? keep : x).filter((x, i, A) => A.indexOf(x) === i); } fixed++; });
+            return fixed; }
         function bldOpen(id) { const Z = bldById(id); if (!Z) return; bldActivate(Z); selectedShapes = [Z]; (window.spOpenState = window.spOpenState || {})['bldlv'] = true; openSelectionParamModal(); draw(); }
         function bldPick(id) { lvlOn = true; lvlMarkAll(); lvlAct = id; const Z = bldCur(); if (Z) Z.bld.act = id; bldPanelDraw(); lvlRefresh(); const L = lvlList().find(x => x.id === id); updateCommandMessageText('ÉTAGES — ' + (Z ? Z.bld.nm : '') + ' : ' + lvlName(L) + ' (plancher ' + lvlRel(L) + ', cote ' + nfr(L.z / 1000, 2) + ' m, H ' + nfr(L.h / 1000, 2) + ' m) : un mur dessiné dans le contour va de ' + lvlRel(L) + ' à ' + lvlRel({ z: L.z + L.h }) + ' ; les autres étages sont masqués sur le plan.'); }
         function bldAll() { lvlOn = false; bldPanelDraw(); lvlRefresh(); updateCommandMessageText('ÉTAGES : toute la maquette est visible ; ce que vous dessinez dans le contour va toujours sur l\'étage de sa pastille.'); }

@@ -639,7 +639,8 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const wall = async (x1, x2, y) => { startWall('w-beton20'); wallStart = { x: M(x1 * 1000), y: -M(y * 1000) }; wallAddTo(M(x2 * 1000), -M(y * 1000)); setMode('select-box'); await new Promise(r => setTimeout(r, 200)); return shapes.filter(isWallHatch).pop(); };
         const w0 = await wall(1, 9, 1); bldAdd(true); const r1 = lvlSorted().find(x => x.id !== 'rdc'); bldPick(r1.id); const w1 = await wall(1, 9, 6); zoomExtents(); draw();
         const r = { off: [lvlOff2D(w0), lvlOff2D(w1)].join(','), pick: findShapeAt(5 * m, -1 * m) !== w0 };
-        selectedShapes = []; const bb = bldBadgeHits[0], rc = canvas.getBoundingClientRect(), ev2 = (t) => canvas.dispatchEvent(new MouseEvent(t, { clientX: rc.left + bb.x0 + 5, clientY: rc.top + bb.y0 + 5, button: 0, bubbles: true }));
+        const pl = { type: 'poly', open: true, layerId: activeLayerId, points: [{ x: 0, y: -8 * m }, { x: -3 * m, y: -10 * m }, { x: 2 * m, y: -12 * m }] }; shapes.push(pl); draw();   /* polyligne dont un sommet est sous la pastille, sélectionnée (poignées) */
+        selectedShapes = [pl]; draw(); const bb = bldBadgeHits[0], rc = canvas.getBoundingClientRect(), ev2 = (t) => canvas.dispatchEvent(new MouseEvent(t, { clientX: rc.left + bb.x0 + 5, clientY: rc.top + bb.y0 + 5, button: 0, bubbles: true }));
         ev2('mousedown'); ev2('mouseup'); await new Promise(res => setTimeout(res, 200)); closeSelectionParamModal(); r.badge = selectedShapes.length === 1 && selectedShapes[0] === A;
         bldPick('rdc'); r.back = [lvlOff2D(w0), lvlOff2D(w1)].join(','); selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; lvls = keepL; invalidateCache(); saveState(); draw(); return r; });
     t.eq('étages : sur le plan, les autres étages sont masqués et inattrapables ; la pastille sélectionne l\'emprise', pet, { off: 'true,false', pick: true, badge: true, back: 'false,true' });
@@ -654,4 +655,15 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         shapes = [hA]; const txt = JSON.stringify(projectData()); loadProjectText(txt, 'abime.mmc'); r.repaired = shapes.filter(x => x.type === 'line' && x.wallMat === 'isolant').length === 4 && /bordure/.test((document.getElementById('mc-toast') || {}).textContent || ''); { const t2 = document.getElementById('mc-toast'); if (t2) t2.remove(); }
         loadProjectText(txt, 'abime.mmc'); r.idem = wallBordersRepair() === 0; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('parois : la fusion garde les bordures des tronçons restés à part ; plan abîmé réparé à l\'ouverture', wb, { onA: true, hatches: true, repaired: true, idem: true });
+    // contour de bâtiment coupé en morceaux (ouvert) : recollé et refermé à la modification suivante comme à l'ouverture ; la pastille ouvre bien ses étages
+    const bc = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000);
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; shapes.push(A); saveState(); bldMake(A, 'A', 69000, 3000); saveState();
+        const P = A.points, p1 = Object.assign({}, A, { open: true, points: [P[0], P[1], P[2]].map(q => ({ x: q.x, y: q.y })) }), p2 = Object.assign({}, A, { open: true, points: [P[2], P[3], P[0]].map(q => ({ x: q.x, y: q.y })) });
+        shapes = shapes.filter(x => x !== A).concat([p1, p2]); saveState(); const Z = shapes.filter(x => x.bld), r = { one: Z.length === 1 && !Z[0].open && Z[0].points.length === 4 && Math.abs(Math.abs(polyArea(Z[0].points)) / m / m - 80) < 1e-6 };
+        const txt = JSON.stringify(Object.assign(projectData(), { shapes: [Object.assign({}, Z[0], { open: true, points: Z[0].points.slice(0, 3) }), Object.assign({}, Z[0], { open: true, points: [Z[0].points[2], Z[0].points[3], Z[0].points[0]] })] }));
+        loadProjectText(txt, 'coupe.mmc'); const t = document.getElementById('mc-toast'); r.load = shapes.filter(x => x.bld).length === 1 && !shapes.find(x => x.bld).open && !!t && /refermé/.test(t.textContent); if (t) t.remove();
+        zoomExtents(); draw(); const bb = bldBadgeHits[0], rc = canvas.getBoundingClientRect(), ev2 = (ty) => canvas.dispatchEvent(new MouseEvent(ty, { clientX: rc.left + bb.x0 + 5, clientY: rc.top + bb.y0 + 5, button: 0, bubbles: true }));
+        ev2('mousedown'); ev2('mouseup'); await new Promise(res => setTimeout(res, 200)); r.panel = /Étages/.test(document.getElementById('selparam-modal').textContent); closeSelectionParamModal();
+        bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('bâtiment : contour coupé recollé et refermé (modification et ouverture), la pastille ouvre ses étages', bc, { one: true, load: true, panel: true });
 } };
