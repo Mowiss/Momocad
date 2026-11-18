@@ -396,4 +396,22 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         layers = keepL; shapes = keep; tinCache = null; invalidateCache(); saveState(); updateLayerUI(); return r; });
     t.eq('volets Y, Σ et calques : mini-plan cliquable et pastilles par type, nom de la plateforme en titre, prix à renseigner, parcours de l\'eau, aperçu de la page de garde, calques déplacés par glisser-déposer et comptés', v4,
         { mini: true, open: true, pill: 'Déblai,Paroi,Déblai,Remblai', title: 'PF1 — à 101,00 m', prix: true, flow: true, prev: true, move: true, grp: true, count: true, drag: true });
+    // nappe : le niveau d'eau se gère dans le maillage (type Hydrogéologie) ; niveau plan, eau là où le sol est dessous ; hors de la décomposition du déblai ; l'outil EAU y mène
+    const np = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000 + i * 1000, zk: 1 });
+        tinCache = null; invalidateCache(); const r = {}; startWater(); r.tool = mailDraw && mailPick.k === 'hyd' && !document.getElementById('btn-water'); setMode('select-box'); mailDraw = false;
+        mailPick = { set: 'NAPPE', k: 'hyd' }; mailCreate([[-25, -25], [25, -25], [25, 25], [-25, 25]].map(([x, y]) => ({ x: x * m, y: -y * m }))); const c = mailList('NAPPE')[0];
+        r.made = !!c && c.maille.k === 'hyd' && !!c.water && c.water.nappe === 1 && c.name === 'N1'; mailCur = c; mailNappe('100,00'); r.z = c.water.z;
+        const M = waterMask(c); r.wet = M.wetA > 0 && M.wetA < M.A * 0.75; r.note = !mailSets().filter(x => x.k !== 'hyd').length && mailCubHTML({}) === '';
+        mailKind('geo'); r.off = !c.water; mailKind('hyd'); r.on = !!c.water; setMode('select-box'); try { t2PanelClose(); } catch (e) {}
+        shapes = keep; tinCache = null; invalidateCache(); saveState(); return r; });
+    t.eq('nappe : niveau d\'eau plan porté par une maille d\'hydrogéologie, eau là où le sol est dessous, hors décomposition du déblai, outil EAU', np, { tool: true, made: true, z: 100000, wet: true, note: true, off: true, on: true });
+    // bassin paysagé : plateforme en déblai (le fond), berges en talus, eau jusqu'au niveau permanent ; volume nominal (jusqu'au bord) et utile (permanent → surverse)
+    const bp = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -4; i <= 4; i++) for (let j = -4; j <= 4; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000, zk: 1 });
+        tinCache = null; invalidateCache(); bassinCreate([[-10, -5], [10, -5], [10, 5], [-10, 5]].map(([x, y]) => ({ x: x * m, y: -y * m }))); const s = shapes[shapes.length - 1]; bassinSet('t', 'pay');
+        const C = payCalc(s), w = shapes.find(x => x.payOf === s.pay.id), r = { plat: isPlateforme(s) && !s.bassin && s.points.every(q => q.z === 98500), eau: !!w && w.water.z === 99000, nom: Math.round(C.Vnom * 10) / 10, ut: Math.round(C.Vut * 10) / 10 };
+        const FM = finishedModel(); r.fond = Math.round(FM.at(0, 0).z); r.wet = waterMask(w).wetA > 150; payCur = s; paySet('tal', '2/1'); r.k2 = payCalc(s).k === 2 && !!s.talus && s.talus.kD === '2/1';
+        shapes = shapes.filter(x => x !== s); invalidateCache(); r.gone = !shapes.some(x => x.payOf); try { t2PanelClose(); } catch (e) {} setMode('select-box'); shapes = keep; tinCache = null; invalidateCache(); saveState(); return r; });
+    t.eq('bassin paysagé : plateforme en déblai remplie d\'eau, volumes nominal et utile, berges réglables, eau retirée avec le bassin', bp, { plat: true, eau: true, nom: 409.2, ut: 197.3, fond: 98500, wet: true, k2: true, gone: true });
 } };

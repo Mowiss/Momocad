@@ -633,4 +633,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         build3DScene(); r.nat = cnt() > 10; let cr = 0, tr = 0; V3.root.traverse(o => { if (o.isInstancedMesh && o.userData.bois) cr = o.count; if (o.isInstancedMesh && o.userData.boisTronc) tr = o.count; }); r.trunks = cr > 5 && tr === cr; const T2 = boisTrees(B2); r.offRoad = T2.length >= 6 && T2.every(q => Math.abs(q.y / m + 50) > 3.9);
         close3D(); shapes = keep; tinCache = null; invalidateCache(); saveState(); return r; });
     t.eq('import carte : chaussées en enrobé dans la 3D ; arbres des zones boisées avec leur tronc, jamais sur la route', im, { nat: true, trunks: true, offRoad: true });
+    // édition par étage : sur le plan, les autres étages (dessous compris) sont masqués et inattrapables ; la pastille sélectionne l'emprise du bâtiment
+    const pet = await ev(async () => { const keepS = shapes, keepL = lvls; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), M = mmToWorld;
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; shapes.push(A); saveState(); bldMake(A, 'A', 69000, 3000); saveState();
+        const wall = async (x1, x2, y) => { startWall('w-beton20'); wallStart = { x: M(x1 * 1000), y: -M(y * 1000) }; wallAddTo(M(x2 * 1000), -M(y * 1000)); setMode('select-box'); await new Promise(r => setTimeout(r, 200)); return shapes.filter(isWallHatch).pop(); };
+        const w0 = await wall(1, 9, 1); bldAdd(true); const r1 = lvlSorted().find(x => x.id !== 'rdc'); bldPick(r1.id); const w1 = await wall(1, 9, 6); zoomExtents(); draw();
+        const r = { off: [lvlOff2D(w0), lvlOff2D(w1)].join(','), pick: findShapeAt(5 * m, -1 * m) !== w0 };
+        selectedShapes = []; const bb = bldBadgeHits[0], rc = canvas.getBoundingClientRect(), ev2 = (t) => canvas.dispatchEvent(new MouseEvent(t, { clientX: rc.left + bb.x0 + 5, clientY: rc.top + bb.y0 + 5, button: 0, bubbles: true }));
+        ev2('mousedown'); ev2('mouseup'); await new Promise(res => setTimeout(res, 200)); closeSelectionParamModal(); r.badge = selectedShapes.length === 1 && selectedShapes[0] === A;
+        bldPick('rdc'); r.back = [lvlOff2D(w0), lvlOff2D(w1)].join(','); selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; lvls = keepL; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('étages : sur le plan, les autres étages sont masqués et inattrapables ; la pastille sélectionne l\'emprise', pet, { off: 'true,false', pick: true, badge: true, back: 'false,true' });
 } };
