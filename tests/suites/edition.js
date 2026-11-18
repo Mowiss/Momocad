@@ -129,4 +129,12 @@ module.exports = { name: 'edition', run: async (H, t) => {
         shapes.splice(-3, 3); selectedShapes = []; tinCache = null; invalidateCache(); draw();
         return { clamp: c0, ic, cards, rows, lab }; });
     t.eq('volets : paragraphe long réduit à sa première phrase (texte complet au survol), accroches en cartes illustrées, courbes de niveau alignées, onglets nommés', vu, { clamp: true, ic: 7, cards: 7, rows: true, lab: true });
+    // volume (dalle, poteau…) : dessous et dessus sur un schéma ; taper le dessus recale la base, épaisseur gardée
+    const dz = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), D = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 1020900 })), solid: { kind: 'box', H: 200 }, zk: 1, name: 'Dalle' };
+        shapes.push(D); saveState(); selectedShapes = [D]; openSelectionParamModal(); await new Promise(r => setTimeout(r, 300));
+        const T = document.getElementById('sp-ztop'), d = document.querySelector('#selparam-modal details[data-k=solz]'), r = { fig: !!d && !!d.querySelector('.sp-dia') && d.querySelector('.sp-dia').contains(T), top0: T && T.value === '1021,10' };
+        T.value = '1021,50'; T.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 700)); r.base = D.points.every(q => q.z === 1021300) && D.solid.H === 200;
+        const B = document.getElementById('sp-zall'); B.value = '1020,00'; B.dispatchEvent(new Event('input', { bubbles: true })); r.sync = T.value === '1020,20';
+        spCancel(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('volume : cotes du dessous et du dessus sur le schéma, le dessus tapé recale la base (épaisseur gardée)', dz, { fig: true, top0: true, base: true, sync: true });
 } };
