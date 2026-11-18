@@ -116,6 +116,7 @@
             const num = (id) => parseFloat(String(document.getElementById(id).value).replace(',', '.'));
             if (how === 'ech' && !(num('bg-ech') > 0)) { bgInfo("Indiquez l'échelle du PDF (ex. 200 pour 1:200)."); return; }
             if (how === 'larg' && !(num('bg-larg') > 0)) { bgInfo('Indiquez la largeur réelle.'); return; }
+            const ech0 = num('bg-ech'), larg0 = num('bg-larg');   // lus maintenant : la lecture du PDF (plus bas, en tâche de fond) ne doit pas les changer en route
             const btn = document.getElementById('bg-ok'); btn.textContent = 'Préparation…'; btn.disabled = true;
             try {
                 let dataUrl, iw, ih, mmW = 0;
@@ -135,10 +136,10 @@
                     }
                 }
                 let w;
-                if (how === 'ech') w = mmToWorld(mmW * num('bg-ech'));
-                else if (how === 'larg') w = (num('bg-larg') / unitsPerSquare) * GRID_SIZE;
+                if (how === 'ech') w = mmToWorld(mmW * ech0);
+                else if (how === 'larg') w = (larg0 / unitsPerSquare) * GRID_SIZE;
                 else w = (canvas.width * 0.8) / camera.zoom;
-                const h = w * ih / iw;
+                const h = w * ih / iw; if (!(w > 0) || !(h > 0) || !isFinite(w) || !isFinite(h)) { bgInfo('Dimensions de l\'image illisibles : vérifiez l\'échelle ou la largeur, puis réessayez.'); return; }
                 const id = 'bg' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
                 basemapStore[id] = dataUrl;
                 const c = screenToWorld(canvas.width / 2, canvas.height / 2);
