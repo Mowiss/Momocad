@@ -172,4 +172,18 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     const cr = await ev(() => ({ def: bmSettings.crs, gap: crsPrefP(44.56).code, paris: crsPrefP(48.85).code, nice: crsPrefP(43.7).code, l93: (bmSettings.crs = 'L93', crsPrefP(44.56).code), back: (bmSettings.crs = 'auto', 1),
         guess: [pdfGuessCrs([{ v: 1945000 }, { v: 3290000 }]), pdfGuessCrs([{ v: 945000 }, { v: 6390000 }])].join(',') }));
     t.eq('carto : système Auto par défaut (zone CC du lieu) ; un choix imposé reste respecté ; carroyage PDF deviné', cr, { def: 'auto', gap: 'CC45', paris: 'CC49', nice: 'CC44', l93: 'L93', back: 1, guess: 'CC44,L93' });
+    // fluidité : un seul calcul du modèle fini par image ; talus recalculés au plus 4 fois/s pendant un glissé puis à jour au lâcher ; arbres hors écran ignorés ; image de fond gardée
+    const pf = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
+        for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000 + i * 300, zk: 1 });
+        const pl = { type: 'poly', layerId: 'layer-0', zk: 1, points: [[-10, -8], [10, -8], [10, 8], [-10, 8]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 101000 })), talus: { on: true, kR: '3/2', kD: '1/1' } };
+        const bo = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [30, 0], [30, 30], [0, 30]].map(([x, y]) => ({ x: (x + 5000) * m, y: y * m })), bois: { h: 12 } };
+        shapes.push(pl, bo); tinCache = null; invalidateCache(); const r = {};
+        const k0 = finishedModel0; let n = 0; window.finishedModel0 = function () { n++; return k0.apply(this, arguments); }; try { invalidateCache(); draw(); } finally { window.finishedModel0 = k0; } r.memo = n === 1 && FRAME_MEMO === null;
+        const g1 = talusGeom(pl); pl.points[0].x += m * 0.5; invalidateCache(); MOUSE_HELD = true; const g2 = talusGeom(pl); r.stale = !!g1 && g2 === g1 && TALUS_STALE;
+        window.dispatchEvent(new MouseEvent('mouseup')); r.fresh = !MOUSE_HELD && talusGeom(pl) !== g1;
+        const c = document.createElement('canvas').getContext('2d'); c.canvas.width = c.canvas.height = 200; let L = 0; const lt = c.lineTo.bind(c); c.lineTo = (x, y) => { L++; lt(x, y); };
+        drawBois2D(c, bo, '#0a0', 0, 0, 1); const off = L; c.setTransform(1, 0, 0, 1, -bo.points[0].x, 0); L = 0; drawBois2D(c, bo, '#0a0', 0, 0, 1); r.cull = off <= 4 && L > off + 10;
+        basemapStore.tst = 'data:image/gif;base64,R0lGODlhAQABAAAAACw='; bmImg('tst'); const im = basemapImgCache.tst; bmImg('tst'); r.img = basemapImgCache.tst === im; delete basemapStore.tst; delete basemapImgCache.tst;
+        shapes = keep; tinCache = null; invalidateCache(); draw(); return r; });
+    t.eq('fluidité : modèle fini calculé une fois par image, talus allégés pendant un glissé, arbres hors écran ignorés, image de fond gardée', pf, { memo: true, stale: true, fresh: true, cull: true, img: true });
 } };
