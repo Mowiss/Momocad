@@ -158,11 +158,15 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     const ld = await ev(async () => { await mcLoad.open('Import du fond de carte', ['Fond de carte', 'Terrain IGN', 'Routes']); mcLoad.set(0, 1); mcLoad.set('Terrain IGN', 0.5, 'Terrain IGN : altitudes… 50 %'); await new Promise(r => setTimeout(r, 600));
         const el = document.getElementById('mc-load'), cs = getComputedStyle(el), segs = [...el.querySelectorAll('.ml-seg')], r = { shown: el.classList.contains('ml-in') && !el.querySelector('.ml-title, .ml-leg, .ml-step') && parseFloat(cs.opacity) > 0.9 && /blur/.test(cs.backdropFilter || cs.webkitBackdropFilter || ''),
             segs: segs.length === 3 && new Set(segs.map(c => c.getAttribute('stroke'))).size === 3 && parseFloat(segs[0].style.strokeDasharray) > parseFloat(segs[1].style.strokeDasharray) && segs[2].style.opacity === '0',
-            text: /Terrain IGN/.test(el.querySelector('#ml-tp').textContent) && getComputedStyle(el.querySelector('.ml-turn')).animationName === 'ml-turn', m3d: getComputedStyle(el.querySelector('.ml-m svg')).animationName === 'ml-m', click: cs.pointerEvents === 'none' };
+            text: /Terrain IGN/.test(el.querySelector('#ml-tp').textContent) && getComputedStyle(el.querySelector('.ml-turn')).animationName === 'ml-turn', m3d: getComputedStyle(el.querySelector('.ml-m svg')).animationName === 'none', fluid: (mcLoad.set(2, null), await new Promise(res => setTimeout(res, 600)), mcLoad.shown[2] > 0.08 && mcLoad.shown[2] < 0.93), click: cs.pointerEvents === 'none' };
         await mcLoad.close(); await new Promise(res => setTimeout(res, 600)); r.gone = !document.getElementById('mc-load') && !mcLoad.on;
         await mcLoad.open('Balade Momo', ['Balade Momo'], { fun: true }); r.fun = ML_FUN.some(f => mcLoad.txt.startsWith(f)); mcLoad.min = 0; await mcLoad.close();
         await new Promise(res => setTimeout(res, 600)); let seen = 0; const ko = mcLoad.open.bind(mcLoad); mcLoad.open = function () { seen++; return ko.apply(this, arguments); }; close3D(); await open3D(); mcLoad.open = ko; r.open3D = seen === 1; await mcLoad.close(); return r; });
-    t.eq('écran de chargement : flou en fondu, M en 3D, barre en parts de couleurs autour du cercle, texte tournant, rien en dessous ; phrases de balade ; ouvert par la vue 3D', ld, { shown: true, segs: true, text: true, m3d: true, click: true, gone: true, fun: true, open3D: true });
+    t.eq('écran de chargement : flou en fondu, logo fixe, avancée continue, barre en parts de couleurs autour du cercle, texte tournant, rien en dessous ; phrases de balade ; ouvert par la vue 3D', ld, { shown: true, segs: true, text: true, m3d: true, fluid: true, click: true, gone: true, fun: true, open3D: true });
+
+    // fond de carte : la fenêtre de configuration s'ouvre à chaque import
+    const bmw = await ev(async () => { closeBasemapModal(); startBmPlace(); await new Promise(res => setTimeout(res, 300)); const ok = document.getElementById('basemap-modal').style.display === 'flex' && mode !== 'bmplace'; closeBasemapModal(); return ok; });
+    t.ok('fond de carte : la fenêtre de configuration s\'ouvre à chaque import', bmw);
 
     // carto : système de coordonnées Auto par défaut, zone CC selon la latitude du lieu
     const cr = await ev(() => ({ def: bmSettings.crs, gap: crsPrefP(44.56).code, paris: crsPrefP(48.85).code, nice: crsPrefP(43.7).code, l93: (bmSettings.crs = 'L93', crsPrefP(44.56).code), back: (bmSettings.crs = 'auto', 1),
