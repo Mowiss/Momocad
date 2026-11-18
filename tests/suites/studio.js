@@ -99,7 +99,7 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     // rendu : terrain naturel affiné (bien plus de triangles) et sans fente entre triangles voisins
     const tf = await ev(async () => { await open3D(); build3DScene(); const t0 = V3.terrStats.tris; const rc = V3.camera.clone(); rc.clearViewOffset(); rc.updateProjectionMatrix(); rc.updateMatrixWorld(true);
         V3.hq = { tree: 1, terr: 2, grass: 0, earth: false, rc }; try { build3DScene(); } finally { V3.hq = null; } const t1 = V3.terrStats.tris;
-        let M = null; V3.root.traverse(o => { if (o.isMesh && o.material && o.material.map && o.material.map.image === texCanvas('pelouse')) M = o; }); const E = new Map(), p = M.geometry.attributes.position, key = (i) => [p.getX(i), p.getY(i)].map(v => Math.round(v * 1000)).join(',');
+        let M = null; V3.root.traverse(o => { if (o.isMesh && o.material && o.material.map && [texCanvas('pelouse'), texCanvas('pelouse', 512)].includes(o.material.map.image)) M = o; }); const E = new Map(), p = M.geometry.attributes.position, key = (i) => [p.getX(i), p.getY(i)].map(v => Math.round(v * 1000)).join(',');
         for (let i = 0; i < p.count; i += 3) for (let k = 0; k < 3; k++) { const a = i + k, b = i + (k + 1) % 3, K = [key(a), key(b)].sort().join('|'); E.set(K, (E.get(K) || 0) + 1); }
         let open = 0; E.forEach(v => { if (v === 1) open++; }); build3DScene(); render3D(); return { more: t1 > t0 * 2.5, border: open < Math.sqrt(t1) * 6 }; });
     t.eq('rendu : terrain naturel affiné (bien plus de triangles), sans fente', tf, { more: true, border: true });
@@ -196,4 +196,22 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         studioClose(); fpsResume(); r.marche = !V3.fps.paused; await studioOpen(); r.volet = V3.fps.paused && stOn(); fpsResume(); r.reprise = !V3.fps.paused;
         studioClose(); fpsStop(); close3D(); shapes = keep; invalidateCache(); draw(); return r; });
     t.eq('balade : le studio photo fige la vue et rend le pointeur (bulle ou volet), clic droit pour reprendre', fh, { bulle: true, marche: true, volet: true, reprise: true });
+    // textures en relief au rendu : carte de normales tirée du motif ; la pierre appareillée se raccorde d'un carreau à l'autre
+    const tr = await ev(async () => { if (!is3DOpen()) await open3D(); const view = texMaterial('pierre'); V3.hq = { tree: 1, terr: 1 }; let hq; try { hq = texMaterial('pierre'); } finally { V3.hq = null; }
+        const c = texCanvas('pierre'), d = c.getContext('2d').getImageData(0, 0, 256, 256).data, px = (x, y) => { const k = 4 * (y * 256 + x); return [d[k], d[k + 1], d[k + 2]]; }; let diff = 0;
+        for (let y = 0; y < 256; y++) { const a = px(0, y), b = px(255, y), e = px(1, y); diff += a[0] > 135 && b[0] > 135 && Math.abs(a[0] - b[0]) > 12 ? 1 : 0; }   // une pierre à cheval sur le bord garde sa teinte des deux côtés
+        const n = texNormal('pierre').getContext('2d').getImageData(0, 0, 512, 512).data; let flat = 0; for (let k = 0; k < n.length; k += 4) if (Math.abs(n[k] - 128) < 3 && Math.abs(n[k + 1] - 128) < 3) flat++;
+        return { vue: view.type, rendu: hq.type, normales: !!hq.normalMap, relief: flat < n.length / 4 * 0.9, raccord: diff < 4 ? true : diff }; });
+    t.eq('rendu : textures en relief (carte de normales), pierre appareillée sans couture', tr, { vue: 'MeshLambertMaterial', rendu: 'MeshStandardMaterial', normales: true, relief: true, raccord: true });
+    // À IMPORTER : un interrupteur à icône par donnée (sans texte), cadastre et bâti séparés ; le bâti seul ne touche pas aux parcelles
+    const ic = await ev(async () => { const L = [...document.querySelectorAll('#bm-data label.bm-ic')], r = { n: L.length, svg: L.every(l => l.querySelector('svg') && l.title && !l.textContent.replace(/\d+ m/g, '').trim()) };
+        const kp = cadParcels, kw = cadWfs, keep = shapes; let asked = []; const sq = (x, y) => ({ type: 'Feature', properties: { numero: '12', section: 'AB' }, geometry: { type: 'Polygon', coordinates: [[[x, y], [x + 0.0002, y], [x + 0.0002, y + 0.0002], [x, y + 0.0002], [x, y]]] } });
+        window.cadParcels = async () => { asked.push('parc'); return [sq(6.08, 44.56)]; }; window.cadWfs = async () => { asked.push('bati'); return { features: [sq(6.0801, 44.5601)] }; };
+        try { shapes = []; const b = { type: 'basemap', x: 0, y: 0, r: mmToWorld(200000), lat: 44.5601, lon: 6.0801, mapId: 'tcad' }; shapes.push(b);
+            await cadFetch(b, { parc: true, bati: true }); const n1 = [shapes.filter(x => x.cadOf === 'tcad' && !x.cadBati).length, shapes.filter(x => x.cadBati).length]; asked = [];
+            await cadFetch(b, { parc: false, bati: true }); r.bati = asked.join(',') + '|' + [shapes.filter(x => x.cadOf === 'tcad' && !x.cadBati).length, shapes.filter(x => x.cadBati).length].join('/') + '|' + n1.join('/');
+            bmSettings.data.bati = true; bmSettings.ov.cad = false; r.step = bmImportSteps(b, { cad: false }).map(x => x[0]).filter(n => /Cadastre|Bâti/.test(n)).join(','); }
+        finally { window.cadParcels = kp; window.cadWfs = kw; shapes = keep; bmSettings.data.bati = false; invalidateCache(); }
+        return r; });
+    t.eq('À IMPORTER : interrupteurs à icône sans texte, cadastre et bâti séparés, le bâti seul ne remplace que le bâti', ic, { n: 6, svg: true, bati: 'bati|2/1|2/1', step: 'Bâti' });
 } };

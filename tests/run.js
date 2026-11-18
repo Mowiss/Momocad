@@ -23,7 +23,7 @@ async function runSuite(browser, file) {
         if (S.tuto) { await H.ev(t => startTuto(t), S.tuto); await H.wait(1200); }
         await Promise.race([S.run(H, rec), new Promise((_, rj) => setTimeout(() => rj(new Error('délai dépassé (' + (S.timeout || 180) + ' s)')), (S.timeout || 180) * 1000))]);
         await H.shot(name);
-    } catch (e) { res.fatal = e.message.split('\n')[0]; try { pg && await pg.p.screenshot({ path: path.join(OUT, name + '.png') }); } catch (e2) {} }
+    } catch (e) { res.fatal = e.message.split('\n').slice(0, 4).join(' | '); try { pg && await pg.p.screenshot({ path: path.join(OUT, name + '.png') }); } catch (e2) {} }
     if (pg) {
         rec.ok('aucune erreur JavaScript', !pg.errs.length, pg.errs.slice(0, 3).join(' | '));
         const unexpected = pg.alerts.filter(a => !(S.alertsOk || []).some(r => r.test(a)));
