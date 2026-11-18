@@ -310,7 +310,7 @@
         }
         // ---- FICHIERS .mmc : numéro de format, mise à niveau des anciens fichiers, contrôle à l'ouverture (objets illisibles écartés, calques manquants recréés),
         //      ouverture « tout ou rien » : si quelque chose casse en cours de route, le plan précédent est remis tel quel.
-        const MMC_FORMAT = 2, MMC_LOAD_FIX = { walls: 0, bld: 0 };
+        const MMC_FORMAT = 2, MMC_LOAD_FIX = { walls: 0, bld: 0, wz: 0 };
         const MMC_MIGR = { 1: (d) => d };   // format 1 (fichiers sans numéro) → 2 : même contenu, le numéro apparaît
         function mmcPrepare(d) { const rep = { dropped: 0, fixed: 0, newer: false, from: +d.format || 1 }; if (rep.from > MMC_FORMAT) rep.newer = true;
             for (let f = rep.from; f < MMC_FORMAT; f++) if (MMC_MIGR[f]) d = MMC_MIGR[f](d) || d; d.format = MMC_FORMAT;
@@ -328,10 +328,10 @@
             let data;
             try { data = JSON.parse(text); } catch (err) { mcToast('Ce fichier n\'est pas un plan MomoCAD lisible (' + err.message + ').'); return false; }
             if (!data || !Array.isArray(data.shapes)) { mcToast('Ce fichier n\'est pas un plan MomoCAD.'); return false; }
-            const rep = mmcPrepare(data); MMC_LOAD_FIX.walls = 0; MMC_LOAD_FIX.bld = 0; let prev = null; try { prev = typeof shapes !== 'undefined' && shapes.length ? JSON.stringify(projectData()) : null; } catch (e) {} const prevName = fileName;
+            const rep = mmcPrepare(data); MMC_LOAD_FIX.walls = 0; MMC_LOAD_FIX.bld = 0; MMC_LOAD_FIX.wz = 0; let prev = null; try { prev = typeof shapes !== 'undefined' && shapes.length ? JSON.stringify(projectData()) : null; } catch (e) {} const prevName = fileName;
             try { if (!loadProjectData(data, name)) return false; }
             catch (e) { mcIncident(e, 'ouverture du fichier'); if (prev) { try { loadProjectData(JSON.parse(prev), prevName); } catch (e2) {} } mcToast('Ce fichier n\'a pas pu être ouvert entièrement : le plan précédent est conservé.'); return false; }
-            const notes = []; if (rep.newer) notes.push('créé par une version plus récente de MomoCAD : mets MomoCAD à jour (Ctrl+Shift+R) pour tout retrouver'); if (rep.dropped) notes.push(rep.dropped + ' objet(s) illisible(s) écarté(s)'); if (rep.fixed) notes.push(rep.fixed + ' objet(s) réparé(s)'); if (MMC_LOAD_FIX.walls) notes.push(MMC_LOAD_FIX.walls + ' bordure(s) de paroi manquante(s) refaite(s)'); if (MMC_LOAD_FIX.bld) notes.push(MMC_LOAD_FIX.bld + ' contour(s) de bâtiment refermé(s)');
+            const notes = []; if (rep.newer) notes.push('créé par une version plus récente de MomoCAD : mets MomoCAD à jour (Ctrl+Shift+R) pour tout retrouver'); if (rep.dropped) notes.push(rep.dropped + ' objet(s) illisible(s) écarté(s)'); if (rep.fixed) notes.push(rep.fixed + ' objet(s) réparé(s)'); if (MMC_LOAD_FIX.walls) notes.push(MMC_LOAD_FIX.walls + ' bordure(s) de paroi manquante(s) refaite(s)'); if (MMC_LOAD_FIX.bld) notes.push(MMC_LOAD_FIX.bld + ' contour(s) de bâtiment refermé(s)'); if (MMC_LOAD_FIX.wz) notes.push(MMC_LOAD_FIX.wz + ' morceau(x) de paroi sans hauteur remis à la hauteur de leur étage (visibles en 3D)');
             if (notes.length) mcToast('Fichier ouvert — ' + notes.join(' ; ') + '.', null, 15000); return true; }
         function loadProjectData(data, name) {
             if (mode === 'print' || mode === 'preview') setMode('select-box');
@@ -373,7 +373,7 @@
             lvls = Array.isArray(data.levels) && data.levels.length ? data.levels : null; lvlsGlobal = null; bldActId = null; lvlAct = 'rdc'; if (lvlOn) lvlToggle(false);
             if (data.talus) { cubState.talus = data.talus.on !== false; cubState.kR = data.talus.kR || '3/2'; cubState.kD = data.talus.kD || '1/1'; }
             pluvioNote = data.pluvio || null; mailNote = data.maill || null;
-            shapes = data.shapes; lvlMarkAll(); if (lvls) lvlChain(); markZKnown(); lightenTalusLimits(shapes); MMC_LOAD_FIX.walls = wallBordersRepair(); MMC_LOAD_FIX.bld = bldRepair(); selectedShapes = []; shapesHistory = []; historyStep = -1;
+            shapes = data.shapes; lvlMarkAll(); if (lvls) lvlChain(); markZKnown(); lightenTalusLimits(shapes); MMC_LOAD_FIX.walls = wallBordersRepair(); MMC_LOAD_FIX.bld = bldRepair(); MMC_LOAD_FIX.wz = wallWzRepair(); selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI();
             if (data.view && data.view.zoom > 0) {
                 camera.zoom = data.view.zoom;

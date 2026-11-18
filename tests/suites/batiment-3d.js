@@ -683,5 +683,17 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const o = host.openings[0]; r.dialog = radios && o.kind === 'baie' && o.top === 'arche' && Math.abs(o.R - 800) < 1e-6;
         await open3D(); let jo = 0; V3.root.traverse(x => { if (x.userData && x.userData.opening === o) jo++; }); r.noJoinery = jo === 0; close3D();
         selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    // paroi enregistrée sans hauteur (dessinée pendant que le contour était cassé) : remise à l'étage de son bâtiment à l'ouverture et au dessin, donc visible en 3D
+    const wzr = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000);
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; shapes.push(A); saveState(); bldMake(A, 'A', 69000, 3000); saveState();
+        const box = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        const h1 = { type: 'hatch', layerId: activeLayerId, wallMat: 'isolant', groupId: 'g-wz', lvs: 1, loops: [box(1, 1, 5, 1.1)] }, l1 = { type: 'line', layerId: activeLayerId, wallMat: 'isolant', groupId: 'g-wz', lvs: 1, x1: 1 * m, y1: -1 * m, x2: 5 * m, y2: -1 * m };
+        const txt = JSON.stringify(Object.assign(projectData(), { shapes: shapes.concat([h1, l1]) })); loadProjectText(txt, 'sans-hauteur.mmc');
+        const t = document.getElementById('mc-toast'), H = shapes.find(x => x.type === 'hatch' && x.groupId === 'g-wz'), L = shapes.find(x => x.type === 'line' && x.groupId === 'g-wz');
+        const r = { load: !!H && H.wz && H.wz.b === 69000 && H.wz.t === 72000 && L.wz && L.wz.t === 72000 && is3DObj(H), toast: !!t && /hauteur/.test(t.textContent) }; if (t) t.remove();
+        await open3D(); let n = 0; V3.root.traverse(o => { if (o.userData && o.userData.shape === H) n++; }); r.mesh = n > 0; close3D();
+        const h2 = { type: 'hatch', layerId: activeLayerId, wallMat: 'beton', groupId: 'g-out', loops: [box(14, 1, 18, 1.2)] }; shapes.push(h2); saveState(); r.outside = !!h2.wz && h2.wz.b === 69000 && h2.wz.t === 72000;
+        bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('paroi sans hauteur remise à la hauteur de son étage : visible en 3D (ouverture du fichier et dessin hors contour)', wzr, { load: true, toast: true, mesh: true, outside: true });
     t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true });
 } };
