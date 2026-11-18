@@ -1,0 +1,68 @@
+<body class="flex flex-col h-screen relative">
+<!-- Animation d'ouverture : les 2 M de MOMO fusionnent ; CAD est tracé à plat avec des traits de construction, puis se dresse -->
+<style>
+#mc-splash{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;
+  background:radial-gradient(circle at 50% 50%,#ffffff 0%,#eef2f6 55%,#dde4ec 100%);animation:mcs-out .5s ease-in 3.7s forwards}
+#mc-splash.mcs-skip{animation:mcs-out .25s ease-in forwards}
+#mc-splash .mcs-box{position:relative;width:min(30vmin,300px);aspect-ratio:1280/1230;animation:mcs-pulse .45s ease-out 3.3s both}
+@keyframes mcs-pulse{0%,100%{transform:scale(1)}40%{transform:scale(1.05)}}
+#mc-splash .mcs-p{position:absolute;inset:0;will-change:transform,opacity}
+#mc-splash .mcs-p svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#mc-splash .mcs-m1{animation:mcs-m1 1.6s both}
+#mc-splash .mcs-m2{animation:mcs-m2 1.6s both}
+#mc-splash .mcs-o1{transform-origin:17.58% 49.84%;animation:mcs-o 1s .08s both}
+#mc-splash .mcs-o2{transform-origin:152.73% 49.84%;animation:mcs-o 1s .16s both}
+#mc-splash .mcs-cad{transform-origin:99.06% 98.78%;transform:rotate(90deg);animation:mcs-cad 1.4s 1.85s both}
+#mc-splash .mcs-cl line{stroke:#06b6d4;stroke-width:4;stroke-dasharray:22 14;opacity:0;transform-box:fill-box;animation:mcs-clh .45s cubic-bezier(.2,.8,.2,1) both,mcs-fade .35s ease-in 2.35s forwards}
+#mc-splash .mcs-cl line.h{transform-origin:0 50%}
+#mc-splash .mcs-cl line.v{transform-origin:50% 0;animation-name:mcs-clv,mcs-fade}
+#mc-splash .mcs-dots circle{fill:#06b6d4;opacity:0;animation:mcs-dot .25s ease-out both,mcs-fade .35s ease-in 2.35s forwards}
+#mc-splash .mcs-co{fill:none;stroke:#2c5b7c;stroke-width:9;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:mcs-trace .8s cubic-bezier(.45,0,.25,1) 1.45s forwards,mcs-fade .3s ease-in 2.45s forwards}
+#mc-splash .mcs-cf{fill:#2c5b7c;opacity:0;animation:mcs-fill .4s ease-out 2.15s forwards}
+@keyframes mcs-clh{from{opacity:0;transform:scaleX(0)}to{opacity:.85;transform:none}}
+@keyframes mcs-clv{from{opacity:0;transform:scaleY(0)}to{opacity:.85;transform:none}}
+@keyframes mcs-dot{from{opacity:0}to{opacity:1}}
+@keyframes mcs-trace{to{stroke-dashoffset:0}}
+@keyframes mcs-fill{to{opacity:1}}
+@keyframes mcs-fade{to{opacity:0}}
+#mc-splash .mcs-glow{position:absolute;left:50%;top:50%;width:10%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%) scale(0);
+  border:2px solid rgba(44,91,124,.35);opacity:0;animation:mcs-ring .7s ease-out 1.25s both}
+@keyframes mcs-m1{
+  0%{opacity:0;transform:translate(-82.97%,15.61%) scale(.9)}
+  15%{opacity:1;transform:translate(-82.97%,15.61%) scale(1)}
+  44%{transform:translate(-82.97%,15.61%);animation-timing-function:cubic-bezier(.65,0,.35,1)}
+  78%{transform:translate(0,15.61%);animation-timing-function:cubic-bezier(.34,1.56,.64,1)}
+  100%{opacity:1;transform:translate(0,0)}}
+@keyframes mcs-m2{
+  0%,10%{opacity:0;transform:translate(52.19%,-15.04%) scale(.9)}
+  25%{opacity:1;transform:translate(52.19%,-15.04%) scale(1)}
+  44%{transform:translate(52.19%,-15.04%);animation-timing-function:cubic-bezier(.65,0,.35,1)}
+  78%{transform:translate(0,-15.04%);animation-timing-function:cubic-bezier(.34,1.56,.64,1)}
+  100%{opacity:1;transform:translate(0,0)}}
+@keyframes mcs-o{
+  0%{opacity:0;transform:scale(.6)}
+  25%{opacity:1;transform:scale(1)}
+  48%{opacity:1;transform:scale(1);animation-timing-function:cubic-bezier(.6,-0.3,.7,.4)}
+  80%,100%{opacity:0;transform:scale(0)}}
+/* CAD tracé couché, à plat (traits de construction, contour, remplissage), puis il se dresse autour de son coin bas droit */
+@keyframes mcs-cad{
+  0%,57%{transform:rotate(90deg);animation-timing-function:cubic-bezier(.34,1.45,.64,1)}
+  100%{transform:rotate(0deg)}}
+@keyframes mcs-ring{0%{opacity:.9;transform:translate(-50%,-50%) scale(0)}100%{opacity:0;transform:translate(-50%,-50%) scale(14)}}
+@keyframes mcs-out{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){#mc-splash{display:none}}
+</style>
+<div id="mc-splash" aria-hidden="true"><div class="mcs-box">
+  <div class="mcs-glow"></div>
+  <div class="mcs-p mcs-o1"><svg viewBox="0 0 1280 1230"><circle cx="225" cy="613" r="311" fill="none" stroke="#808080" stroke-width="138"/></svg></div>
+  <div class="mcs-p mcs-o2"><svg viewBox="0 0 1280 1230"><circle cx="1955" cy="613" r="311" fill="none" stroke="#808080" stroke-width="138"/></svg></div>
+  <div class="mcs-p mcs-m2"><svg viewBox="0 0 1280 1230"><path transform="translate(7 385)" fill="#808080" d="M0 0L417 579L830 0V827H693V430L417 816L138 429V827H0Z"/></svg></div>
+  <div class="mcs-p mcs-m1"><svg viewBox="0 0 1280 1230"><path transform="translate(7 8)" fill="#808080" d="M0 0L417 579L830 0V827H693V430L417 816L138 429V827H0Z"/></svg></div>
+  <div class="mcs-p mcs-cad"><svg viewBox="0 0 1280 1230"><g class="mcs-cl"><line class="v" x1="885" y1="-140" x2="885" y2="1370" style="animation-delay:0.90s,2.35s"/><line class="v" x1="1268" y1="-140" x2="1268" y2="1370" style="animation-delay:1.00s,2.35s"/><line class="v" x1="1075" y1="-140" x2="1075" y2="1370" style="animation-delay:1.10s,2.35s;stroke-width:2.5"/><line class="h" x1="760" y1="15" x2="1390" y2="15" style="animation-delay:1.15s,2.35s"/><line class="h" x1="760" y1="368" x2="1390" y2="368" style="animation-delay:1.23s,2.35s"/><line class="h" x1="760" y1="407" x2="1390" y2="407" style="animation-delay:1.31s,2.35s"/><line class="h" x1="760" y1="823" x2="1390" y2="823" style="animation-delay:1.39s,2.35s"/><line class="h" x1="760" y1="1215" x2="1390" y2="1215" style="animation-delay:1.47s,2.35s"/></g><g class="mcs-dots"><circle cx="885" cy="15" r="11" style="animation-delay:1.55s,2.35s"/><circle cx="1268" cy="15" r="11" style="animation-delay:1.57s,2.35s"/><circle cx="885" cy="368" r="11" style="animation-delay:1.59s,2.35s"/><circle cx="1268" cy="368" r="11" style="animation-delay:1.61s,2.35s"/><circle cx="885" cy="823" r="11" style="animation-delay:1.63s,2.35s"/><circle cx="1268" cy="1215" r="11" style="animation-delay:1.65s,2.35s"/></g><path class="mcs-co" pathLength="1" d="M885 368V195C885 60 960 15 1075 15C1200 15 1268 60 1268 195V368Z"/><path class="mcs-co" pathLength="1" d="M972 250H1181V215C1181 160 1170 135 1075 135C985 135 972 160 972 215Z"/><path class="mcs-co" pathLength="1" d="M885 550L1268 407V530L1205 549V684L1268 702V823L885 680Z"/><path class="mcs-co" pathLength="1" d="M986 616L1122 574V658Z"/><path class="mcs-co" pathLength="1" d="M998 845C930 868 880 910 880 1020C880 1150 960 1215 1075 1215C1200 1215 1273 1150 1273 1018C1273 920 1220 860 1142 842L1110 944C1160 955 1185 980 1185 1020C1185 1080 1150 1095 1075 1095C1000 1095 968 1080 968 1018C968 975 990 955 1020 948Z"/><path class="mcs-cf" fill-rule="evenodd" d="M885 368V195C885 60 960 15 1075 15C1200 15 1268 60 1268 195V368ZM972 250H1181V215C1181 160 1170 135 1075 135C985 135 972 160 972 215Z M885 550L1268 407V530L1205 549V684L1268 702V823L885 680ZM986 616L1122 574V658Z M998 845C930 868 880 910 880 1020C880 1150 960 1215 1075 1215C1200 1215 1273 1150 1273 1018C1273 920 1220 860 1142 842L1110 944C1160 955 1185 980 1185 1020C1185 1080 1150 1095 1075 1095C1000 1095 968 1080 968 1018C968 975 990 955 1020 948Z"/></svg></div>
+</div></div>
+<script>(function(){var s=document.getElementById('mc-splash');if(!s)return;
+function done(){if(s&&s.parentNode)s.parentNode.removeChild(s);s=null;}
+function skip(){if(s&&!s.classList.contains('mcs-skip')){s.classList.add('mcs-skip');setTimeout(done,300);}}
+s.addEventListener('animationend',function(e){if(e.target===s&&e.animationName==='mcs-out')done();});
+setTimeout(done,4400);
+['mousedown','keydown','touchstart','wheel'].forEach(function(ev){window.addEventListener(ev,skip,{once:true,capture:true,passive:true});});})();</script>

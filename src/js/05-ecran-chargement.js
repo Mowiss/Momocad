@@ -1,0 +1,99 @@
+        // ---- ÉCRAN DE CHARGEMENT : l'écran se floute en fondu, le logo MomoCAD au centre (le M tourne en 3D), la barre de chargement fait le tour du cercle,
+        //      découpée en parts de couleurs quand plusieurs choses se chargent (fond, terrain, bois, routes…), et un texte tourne doucement autour : ce qui charge.
+        //      En balade Momo, des phrases de randonneur. API : mcLoad.open(titre, [étapes], { fun }), mcLoad.set(i, avancement 0..1 ou null, texte), mcLoad.close()
+        const ML_COLORS = ['#00ff90', '#38bdf8', '#f59e0b', '#a78bfa', '#f472b6', '#facc15', '#2dd4bf'];
+        const ML_FUN = ['Nouage des lacets', 'Étirement avant exploration', 'Préparation du pique-nique', 'Remplissage de la gourde', 'Réglage des bretelles du sac', 'Coup d\'œil à la boussole', 'Échauffement des mollets', 'Crème solaire sur le nez', 'Repérage du sentier', 'Casquette bien vissée'];
+        const mcLoad = { on: false, el: null, names: [], f: [], t0: 0, min: 700, txt: '', funT: null, closing: null,
+            open(title, names, opt) { opt = opt || {}; if (this.closing) { clearTimeout(this.closing); this.closing = null; }
+                this.names = (names && names.length ? names : [title]).slice(); this.f = this.names.map(() => 0); this.shown = this.names.map(() => 0); this.min = opt.min || 700; this.title = title;
+                if (!this.on) this.t0 = performance.now(); this.on = true; let el = this.el; if (!el) { el = this.el = document.createElement('div'); el.id = 'mc-load'; document.body.appendChild(el); }
+                el.innerHTML = this.svg(); el.classList.remove('ml-out'); requestAnimationFrame(() => el.classList.add('ml-in')); this.draw();
+                clearInterval(this.funT); this.funT = null; if (opt.fun) { let k = Math.floor(Math.random() * ML_FUN.length); const tick = () => { this.say(ML_FUN[k++ % ML_FUN.length] + '…'); }; tick(); this.funT = setInterval(tick, 1300); } else this.say(this.names[0] + '…');
+                return this.ready(); },
+            has(n) { return this.on && this.names.includes(n); },
+            set(i, f, text) { if (!this.on) return; if (typeof i === 'string') i = this.names.indexOf(i); if (i < 0) return; for (let k = 0; k < i; k++) this.f[k] = 1; this.f[i] = f === null ? null : Math.max(0, Math.min(1, f)); if (text && !this.funT) this.say(text); this.tick(); this.draw(); },
+            // avancée fluide : une part « en cours » sans mesure avance d'elle-même (vite au début, puis plus doucement, jusqu'à 92 %), les valeurs mesurées glissent
+            tick() { if (this.tk) return; this.shown = this.shown || []; const step = () => { if (!this.on) { this.tk = null; return; } let moving = false;
+                    this.names.forEach((n, i) => { const f = this.f[i], cur = this.shown[i] || 0, goal = f === null ? Math.min(0.92, cur + Math.max(0.004, (0.92 - cur) * 0.035)) : f, nx = f === null ? goal : cur + (goal - cur) * 0.25; this.shown[i] = Math.abs(nx - goal) < 0.002 ? goal : nx; if (f === null || this.shown[i] !== f) moving = true; });
+                    this.draw(); this.tk = moving ? requestAnimationFrame(step) : null; }; this.tk = requestAnimationFrame(step); },
+            say(t) { this.txt = t; const tp = this.el && this.el.querySelector('#ml-tp'), lb = this.el && this.el.querySelector('.ml-step'); if (tp) { const one = t + '   ·   ', k = Math.max(1, Math.round(3003 / (one.length * 19))); tp.textContent = one.repeat(k); tp.setAttribute('textLength', '2990'); tp.setAttribute('lengthAdjust', 'spacing'); }   /* le texte fait juste le tour */ if (lb) lb.textContent = t; },
+            draw() { const el = this.el; if (!el) return; const C = 2 * Math.PI * 418, n = this.names.length, gap = n > 1 ? 10 : 0, seg = C / n;
+                this.names.forEach((nm, i) => { const c = el.querySelector('#ml-s' + i); if (!c) return; const f = (this.shown && this.shown[i] !== undefined) ? this.shown[i] : (this.f[i] || 0), len = Math.max(0, seg - gap); c.style.opacity = f < 0.003 ? '0' : '';
+                    c.style.strokeDasharray = Math.max(0.001, len * f) + ' ' + C; c.style.strokeDashoffset = -(i * seg + gap / 2) + (f === null ? 0 : 0); }); },
+            svg() { const n = this.names.length, M = (x, y) => [(500 + (x - 948) * 0.571).toFixed(1), (500 + (y - 970) * 0.571).toFixed(1)].join(',');
+                const segs = this.names.map((nm, i) => `<circle id="ml-s${i}" class="ml-seg" cx="500" cy="500" r="418" stroke="${ML_COLORS[i % ML_COLORS.length]}"/>`).join('');
+                const leg = n > 1 ? `<div class="ml-leg">` + this.names.map((nm, i) => `<span><i style="background:${ML_COLORS[i % ML_COLORS.length]}"></i>${nm}</span>`).join('') + `</div>` : '';
+                return `<div class="ml-box"><div class="ml-logo"><svg class="ml-ring" viewBox="0 0 1000 1000"><circle cx="500" cy="500" r="405" fill="none" stroke="#828282" stroke-width="64"/>
+                    <circle cx="500" cy="500" r="418" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="24"/><g transform="rotate(-90 500 500)">${segs}</g>
+                    <g class="ml-turn"><path id="ml-path" d="M500,500 m-478,0 a478,478 0 1,1 956,0 a478,478 0 1,1 -956,0" fill="none"/><text class="ml-txt"><textPath id="ml-tp" href="#ml-path"></textPath></text></g></svg>
+                    <div class="ml-m"><svg viewBox="0 0 1000 1000"><g fill="none" stroke="#828282" stroke-width="63" stroke-linejoin="miter" stroke-miterlimit="8"><polyline points="${M(670, 1530)} ${M(670, 560)} ${M(948, 960)} ${M(1225, 560)} ${M(1225, 1530)}"/><polyline points="${M(670, 960)} ${M(948, 1350)} ${M(1225, 960)}"/></g></svg></div></div>
+                    </div>`; },
+            ready() { return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))); },
+            close() { if (!this.on) return Promise.resolve(); this.f = this.f.map(() => 1); this.tick(); this.draw(); const wait = Math.max(0, this.min - (performance.now() - this.t0));
+                return new Promise(res => { this.closing = setTimeout(() => { this.closing = null; clearInterval(this.funT); this.funT = null; this.on = false; const el = this.el; if (el) { el.classList.remove('ml-in'); el.classList.add('ml-out'); setTimeout(() => { if (!this.on && el.parentNode) { el.remove(); if (this.el === el) this.el = null; } }, 480); } res(); }, wait + 180); }); } };
+        function mcProg(title, f, label) { if (f === null) { if (mcLoad.on && mcLoad.prog) { mcLoad.prog = false; mcLoad.close(); } return; }   // ancien appel : une barre, une étape
+            if (!mcLoad.on) { mcLoad.open(title, [title]); mcLoad.prog = true; } const i = mcLoad.names.indexOf(title); if (i >= 0) mcLoad.set(i, f, label ? title + ' : ' + label : title); else mcLoad.say(label ? title + ' : ' + label : title); }
+        const mcBreath = () => new Promise(r => setTimeout(r, 0));
+        // altitude lissée le long d'un axe (gaussienne de 6 m, ± 13 m) : fenêtre glissante sur l'abscisse (rapide même pour des kilomètres)
+        function smooth6(D, key) { let j0 = 0; for (let i = 0; i < D.length; i++) { const q = D[i]; while (j0 < D.length && D[j0].s < q.s - 13.2) j0++; let sw = 0, sz = 0;
+                for (let j = j0; j < D.length && D[j].s <= q.s + 13.2; j++) { const r = D[j]; if (!hasZ(r.z0)) continue; const d = (r.s - q.s) / 6, w = Math.exp(-d * d); sw += w; sz += w * r.z0; } q[key] = sw ? sz / sw : null; } }
+        const HYD_W = (pr) => { const w = +(pr.largeur || pr.largeur_de_cours_d_eau || 0); if (w > 0.3 && w < 300) return w; const c = String(pr.classe_de_largeur || ''), n = String(pr.nature || '');
+            const imp = +pr.importance || 0, big = /^(le |la |l')?(rh[oô]ne|loire|seine|garonne|dordogne|rhin|durance|is[eè]re|sa[oô]ne|moselle|meuse|charente|lot|tarn|allier|vienne|marne|oise|somme|adour)\b/i.test(String(pr.toponyme || pr.nom || ''));
+            if (/plus de 50/i.test(c)) return big ? 180 : 70; if (/15 et 50/i.test(c)) return 25;   // du ruisseau au fleuve : classe de largeur, rang d'importance, grands fleuves par leur nom
+            if (big) return 150; if (imp) return [0, 120, 50, 20, 8, 3.5, 1.5][Math.min(6, imp)];
+            return /canal/i.test(n) ? 6 : /ruisseau|ravine|fossé|écoulement/i.test(n) ? 1.5 : 3; };
+        const hydDepth = (w) => Math.max(0.35, Math.min(6, 0.3 + Math.sqrt(w) * 0.32)), hydBank = (w) => Math.max(0.35, Math.min(3, 0.25 + Math.sqrt(w) * 0.2));   // ruisseau : 0,7 m de lit ; fleuve de 150 m : 4 m de fond, 2,7 m de berge
+        async function hydroFetch(b) { if (isOffline()) { netWarn('Les cours d\'eau'); return; } const tin0 = getTIN(); if (!tin0) { updateCommandMessageText('COURS D\'EAU : il faut d\'abord le terrain (Terrain IGN : points cotés) pour tailler les lits.'); return; }
+            const E = bmEmprise(b), W = bmWorldOfLL(b), tag = (b.mapId || 'bm') + '-hy', M = mmToWorld(1000), inC = (q) => (q.x - b.x) ** 2 + (q.y - b.y) ** 2 <= b.r * b.r;
+            updateCommandMessageText('COURS D\'EAU : téléchargement des rivières, ruisseaux et plans d\'eau (IGN)…'); let F = [], S = [];
+            try { const js = await cadWfs('BDTOPO_V3:troncon_hydrographique', E, 2000); F = (js && js.features) || []; } catch (e) { updateCommandMessageText('COURS D\'EAU : rien reçu de l\'IGN (' + e.message + ').'); return; }
+            try { const js = await cadWfs('BDTOPO_V3:surface_hydrographique', E, 2000); S = (js && js.features) || []; } catch (e) {}
+            await loadPolyClip().catch(() => {}); const circ = []; for (let k = 0; k < 96; k++) { const a = k / 96 * Math.PI * 2; circ.push([b.x + Math.cos(a) * b.r, b.y + Math.sin(a) * b.r]); } circ.push(circ[0]);
+            const surf = []; S.forEach(f => { const pr = f.properties || {}; cadRings(f.geometry, b).filter(r => !r.hole).forEach(r => { const ring = r.pts.map(c => { const q = W(c[1], c[0]); return [q.x, q.y]; }); if (ring.length < 3) return; ring.push(ring[0]);
+                let parts = [[ring]]; if (window.polygonClipping) { try { parts = polygonClipping.intersection([ring], [circ]); } catch (e) { return; } } parts.forEach(poly => { const pts = rdpSimplify(poly[0].slice(0, -1).map(([x, y]) => ({ x, y })), 0.3 * M); if (pts.length >= 3) surf.push({ pts, name: pr.toponyme || pr.nom || (/plan d'eau|étang|lac|bassin/i.test(pr.nature || '') ? 'Plan d\'eau' : 'Rivière') }); }); }); });
+            const inSurf = (q) => surf.some(T => pointInPolygon(q.x, q.y, T.pts));
+            // les routes passent TOUJOURS au-dessus de l'eau : le lit s'arrête de part et d'autre de la chaussée (pont, buse), l'eau aussi
+            const RP = roadPolys(), roadNear = (q, rb) => RP.length && [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]].some(([a, c]) => roadAt(q.x + a * rb, q.y + c * rb));
+            if (RP.length && window.polygonClipping) for (let k = surf.length - 1; k >= 0; k--) { try { const D = polygonClipping.difference([surf[k].pts.map(q => [q.x, q.y]).concat([[surf[k].pts[0].x, surf[k].pts[0].y]])], ...RP.map(r => [r.P.map(q => [q.x, q.y]).concat([[r.P[0].x, r.P[0].y]])]));
+                const nw = D.map(poly => poly[0].slice(0, -1).map(([x, y]) => ({ x, y }))).filter(P => P.length >= 3).map(pts => ({ pts, name: surf[k].name })); surf.splice(k, 1, ...nw); } catch (e) {} }
+            shapes = shapes.filter(x => x.rvOf !== tag); const layL = cartoGroup(ensureLayer('Cours d\'eau — lit (TN)', '#38bdf8')), layE = cartoGroup(ensureLayer('Cours d\'eau — eau', '#0ea5e9'));
+            const bands = [], lines = [];
+            F.forEach(f => { const pr = f.properties || {}; if (pr.fictif === true || /^(vrai|true|oui)$/i.test(String(pr.fictif || ''))) return; const g = f.geometry; if (!g) return;
+                const L = g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : [], w = HYD_W(pr);
+                L.forEach(cs => { const swap = cs.length && Math.abs(cs[0][0] - b.lat) < Math.abs(cs[0][0] - b.lon), Q = cs.map(c => swap ? W(c[0], c[1]) : W(c[1], c[0])), Dn = []; let cur = [];
+                    for (let i = 0; i < Q.length; i++) { if (i) { const a2 = Q[i - 1], c2 = Q[i], m = Math.max(1, Math.ceil(Math.hypot(c2.x - a2.x, c2.y - a2.y) / (2 * M))); for (let k = 1; k < m; k++) Dn.push({ x: a2.x + (c2.x - a2.x) * k / m, y: a2.y + (c2.y - a2.y) * k / m }); } Dn.push(Q[i]); }
+                    const rb = (w / 2 + 0.4) * M; Dn.forEach(q => { if (inC(q) && !inSurf(q) && !roadNear(q, rb)) cur.push(q); else { if (cur.length > 2) lines.push({ P: cur, w, name: pr.toponyme || pr.nom || (w <= 2 ? 'Ruisseau' : 'Cours d\'eau') }); cur = []; } }); if (cur.length > 2) lines.push({ P: cur, w, name: pr.toponyme || pr.nom || (w <= 2 ? 'Ruisseau' : 'Cours d\'eau') }); }); });
+            let nL = 0, lenT = 0;
+            lines.forEach(L => { let D = L.P.map(q => ({ x: q.x, y: q.y })); let s = 0; D.forEach((q, i) => { if (i) s += Math.hypot(q.x - D[i - 1].x, q.y - D[i - 1].y) / M; q.s = s; q.z0 = tinZ(q.x, q.y, tin0); });
+                smooth6(D, 't');
+                D = D.filter(q => hasZ(q.t)); if (D.length < 3) return; if (D[0].t < D[D.length - 1].t) D.reverse();   // de l'amont vers l'aval
+                const w = L.w, bank = hydBank(w) * 1000, dep = hydDepth(w) * 1000; let lv = Infinity; D.forEach(q => { lv = Math.min(lv, q.t - bank); q.wl = lv; });   // l'eau ne remonte jamais
+                const off = (q, i, d) => { const a = D[Math.max(0, i - 1)], c = D[Math.min(D.length - 1, i + 1)], l = Math.hypot(c.x - a.x, c.y - a.y) || 1; return { x: q.x - (c.y - a.y) / l * d, y: q.y + (c.x - a.x) / l * d }; };
+                const hw = Math.max(0.3, w / 2) * M, top = hw + hydBank(w) * 1.6 * M, line = (d, zf, name) => { const P = D.map((q, i) => { let o = d ? off(q, i, d) : { x: q.x, y: q.y }; if (d && Math.abs(d) > hw * 1.01 && RP.length && roadAt(o.x, o.y)) { for (const f of [0.8, 0.65, 0.5, 0.35, 0.2]) { o = off(q, i, Math.sign(d) * (hw + (Math.abs(d) - hw) * f)); if (!roadAt(o.x, o.y)) break; } }   /* rivière le long d'une route : la berge se resserre contre la chaussée, le lit reste */ return Object.assign(o, { z: Math.round(zf(q)) }); }).filter((q, i, A) => i === 0 || i === A.length - 1 || i % 2 === 0); if (P.length > 1) shapes.push({ type: 'poly', open: true, layerId: layL, points: P, hatch: false, rvOf: tag, name }); return P; };
+                [1, -1].forEach(sg => line(top * sg, q => Math.max(q.t, q.wl + 200), 'Haut de berge'));
+                const eL = line(hw, q => q.wl, 'Bord de l\'eau'), eR = line(-hw, q => q.wl, 'Bord de l\'eau'); line(0, q => q.wl - dep, 'Fond du lit');
+                const n = Math.min(eL.length, eR.length); if (n > 1) { const pts = eL.slice(0, n).map(q => ({ x: q.x, y: q.y })).concat(eR.slice(0, n).reverse().map(q => ({ x: q.x, y: q.y }))), zs = eL.slice(0, n).map(q => q.z).concat(eR.slice(0, n).reverse().map(q => q.z));
+                    shapes.push({ type: 'poly', layerId: layE, points: pts, hatch: false, rvOf: tag, river: { zs, name: L.name, w }, name: L.name, zk: 1 }); }
+                bands.push({ D, h: top + 0.5 * M }); nL++; lenT += Math.abs(D[D.length - 1].s - D[0].s); });
+            // plans d'eau, larges rivières : niveau = point bas du bord, bord en ligne de rupture, fond un peu plus bas
+            let nS = 0; surf.forEach(T => { let lv = Infinity; T.pts.forEach((q, i) => { const r = T.pts[(i + 1) % T.pts.length], m = Math.max(1, Math.ceil(Math.hypot(r.x - q.x, r.y - q.y) / (2 * M))); for (let k = 0; k < m; k++) { const z = tinZ(q.x + (r.x - q.x) * k / m, q.y + (r.y - q.y) * k / m, tin0); if (hasZ(z)) lv = Math.min(lv, z); } }); if (!isFinite(lv)) return; lv = Math.round(lv - 100);
+                const ring = T.pts.map(q => ({ x: q.x, y: q.y, z: lv })); ring.push(Object.assign({}, ring[0])); shapes.push({ type: 'poly', open: true, layerId: layL, points: ring, hatch: false, rvOf: tag, name: 'Bord de l\'eau' });
+                shapes.push({ type: 'poly', layerId: layE, points: T.pts.map(q => ({ x: q.x, y: q.y })), hatch: false, rvOf: tag, water: { z: lv, name: T.name }, name: T.name, zk: 1 });
+                const xs = T.pts.map(q => q.x), ys = T.pts.map(q => q.y), st = 5 * M, dep = Math.max(1000, Math.min(3000, Math.sqrt(Math.abs(T.pts.reduce((a, q, i) => { const r = T.pts[(i + 1) % T.pts.length]; return a + q.x * r.y - r.x * q.y; }, 0) / 2)) / M * 40));
+                for (let x = Math.min(...xs) + st / 2; x < Math.max(...xs); x += st) for (let y = Math.min(...ys) + st / 2; y < Math.max(...ys); y += st) { if (!pointInPolygon(x, y, T.pts) || roadNear({ x, y }, 2 * M)) continue; let dm = Infinity; T.pts.forEach((q, i) => { dm = Math.min(dm, t2SegDist({ x, y }, q, T.pts[(i + 1) % T.pts.length])); }); if (dm < 3 * M) continue;
+                    shapes.push({ type: 'point', layerId: layL, x, y, z: Math.round(lv - Math.min(dep, 1000 + (dm / M - 3) * 150)), rvOf: tag, code: 'HYD_FOND', zk: 1 }); }
+                bands.push({ poly: T.pts }); nS++; });
+            const before = shapes.length, inB = bandTest(bands); shapes = shapes.filter(x => !(x.type === 'point' && x.code === 'TN_IGN' && inB(x.x, x.y))); const rm = before - shapes.length;
+            tinCache = null; invalidateCache(); saveState(); updateLayerUI(); draw(); if (is3DOpen()) { build3DScene(); render3D(); }
+            updateCommandMessageText(nL || nS ? 'COURS D\'EAU : ' + (nL ? nL + ' tronçon(s), ' + nfr(lenT, 0) + ' m de lit taillé (haut de berge, bord de l\'eau, fond du lit en lignes de rupture)' : '') + (nL && nS ? ' ; ' : '') + (nS ? nS + ' plan(s) d\'eau' : '') + ', eau posée (calque « Cours d\'eau — eau ») ; ' + rm + ' point(s) IGN du lit retiré(s).' : 'COURS D\'EAU : aucun cours d\'eau connu de l\'IGN sur ce cercle.'); }
+        // eau d'un cours d'eau : en plan, le lit mouillé en bleu ; en 3D, un plan d'eau qui suit la pente (bord gauche puis bord droit à rebours, une cote par sommet)
+        function drawRiver2D(c, s, sel, dx, dy) { c.save(); c.fillStyle = sel ? 'rgba(236,72,153,.28)' : 'rgba(56,189,248,.45)'; c.beginPath(); s.points.forEach((q, i) => i ? c.lineTo(q.x + dx, q.y + dy) : c.moveTo(q.x + dx, q.y + dy)); c.closePath(); c.fill(); c.restore(); }
+        function riverBuild3D(root, P, Zm) { shapes.filter(s => s.river && s.points && s.points.length >= 4 && s.river.zs && s.river.zs.length === s.points.length).forEach(s => { const l = layers.find(x => x.id === (s.layerId || 'layer-0')); if (l && l.visible === false) return;
+                const N = s.points.length, n = N / 2 | 0, V = s.points.map((q, i) => { const r = P(q.x, q.y); return [r.x, r.y, Zm(s.river.zs[i]) + 0.03]; }), pos = [];
+                for (let i = 0; i + 1 < n; i++) { const a = V[i], b2 = V[i + 1], c2 = V[N - 1 - i], d = V[N - 2 - i]; pos.push(...a, ...b2, ...c2, ...b2, ...d, ...c2); }
+                const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+                { const uv = []; for (let i = 0; i < pos.length; i += 3) uv.push(pos[i] / 4, pos[i + 1] / 4); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); }
+                const m = new THREE.Mesh(g, v3WaterMat() || new THREE.MeshLambertMaterial({ color: 0x1d4ed8, emissive: 0x0c2a6b, transparent: true, opacity: 0.66, side: THREE.DoubleSide, depthWrite: false })); m.renderOrder = 5; m.userData.shape = s; m.userData.river = true; m.userData.water = true; root.add(m);
+                if (V3.hq && V3.hq.riv) { const L = [], R = []; for (let i = 0; i < n; i++) { L.push(V[i]); R.push(V[N - 1 - i]); } v3RiverBanks(root, [L, R], s.river.w || 4); } }); }
+        function cadFetchSelected() { const b = selectedShapes.find(x => x.type === 'basemap'); if (b) cadFetch(b); }
+        function tnFetchSelected() { const b = selectedShapes.find(x => x.type === 'basemap'); if (b) tnFetch(b, (bmSettings.tn || {}).pas || 5); }

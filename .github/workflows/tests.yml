@@ -11,6 +11,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: index.html assemblé depuis src/
+        run: node tools/build.js --check
       - run: npm install --no-save playwright@1.48.2
       - run: npx playwright install --with-deps chromium
       - run: node tests/run.js -j 2
