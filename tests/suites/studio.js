@@ -181,9 +181,19 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         const k0 = finishedModel0; let n = 0; window.finishedModel0 = function () { n++; return k0.apply(this, arguments); }; try { invalidateCache(); draw(); } finally { window.finishedModel0 = k0; } r.memo = n === 1 && FRAME_MEMO === null;
         const g1 = talusGeom(pl); pl.points[0].x += m * 0.5; invalidateCache(); MOUSE_HELD = true; const g2 = talusGeom(pl); r.stale = !!g1 && g2 === g1 && TALUS_STALE;
         window.dispatchEvent(new MouseEvent('mouseup')); r.fresh = !MOUSE_HELD && talusGeom(pl) !== g1;
-        const c = document.createElement('canvas').getContext('2d'); c.canvas.width = c.canvas.height = 200; let L = 0; const lt = c.lineTo.bind(c); c.lineTo = (x, y) => { L++; lt(x, y); };
-        drawBois2D(c, bo, '#0a0', 0, 0, 1); const off = L; c.setTransform(1, 0, 0, 1, -bo.points[0].x, 0); L = 0; drawBois2D(c, bo, '#0a0', 0, 0, 1); r.cull = off <= 4 && L > off + 10;
+        const c = document.createElement('canvas').getContext('2d'); c.canvas.width = c.canvas.height = 200; c.setTransform(1, 0, 0, 1, -bo.points[0].x, 0); drawBois2D(c, bo, '#0a0', 0, 0, 1);
+        const T = boisTrees(bo, 4000), P1 = BOIS_PATHS.get(T).full; c.setTransform(1, 0, 0, 1, -bo.points[0].x + 50, 0); drawBois2D(c, bo, '#0a0', 0, 0, 1); c.setTransform(1e-6, 0, 0, 1e-6, 0, 0); drawBois2D(c, bo, '#0a0', 0, 0, 1);
+        r.cull = !!P1 && BOIS_PATHS.get(T).full === P1 && !!BOIS_PATHS.get(T).simple;
+        // navigation : dessin lent → l'image du plan suit la vue, plan net à l'arrêt
+        draw(); NAV.ms = 40; navBegin(); const S = NAV.snap; camera.x += 30; navDraw(); r.nav = !!S && NAV.snap === S && !NAV.full; await new Promise(res => setTimeout(res, 300)); r.nav = r.nav && !NAV.snap && NAV.full; NAV.ms = 0;
         basemapStore.tst = 'data:image/gif;base64,R0lGODlhAQABAAAAACw='; bmImg('tst'); const im = basemapImgCache.tst; bmImg('tst'); r.img = basemapImgCache.tst === im; delete basemapStore.tst; delete basemapImgCache.tst;
         shapes = keep; tinCache = null; invalidateCache(); draw(); return r; });
-    t.eq('fluidité : modèle fini calculé une fois par image, talus allégés pendant un glissé, arbres hors écran ignorés, image de fond gardée', pf, { memo: true, stale: true, fresh: true, cull: true, img: true });
+    t.eq('fluidité : modèle fini calculé une fois par image, talus allégés pendant un glissé, bois tracé une fois (ronds simples de loin), vue qui suit sans attendre, image de fond gardée', pf, { memo: true, stale: true, fresh: true, cull: true, nav: true, img: true });
+    // balade Momo : ouvrir le studio photo (bulle ou volet) fige la vue, rend le pointeur, retire le voile des bulles ; clic droit = reprendre
+    const fh = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'); for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: j * 10 * m, z: 100000, zk: 1 });
+        invalidateCache(); const ml = mcLoad.min; await momoFPS({ w: { x: 0, y: 0 } }); const r = {}; fpsPause(); fpsBubble(10); await new Promise(res => setTimeout(res, 100));
+        r.bulle = !!V3.fps && V3.fps.paused && !document.getElementById('fps-bub') && stOn() && document.getElementById('t2-panel').dataset.kind === 'studio';
+        studioClose(); fpsResume(); r.marche = !V3.fps.paused; await studioOpen(); r.volet = V3.fps.paused && stOn(); fpsResume(); r.reprise = !V3.fps.paused;
+        studioClose(); fpsStop(); close3D(); shapes = keep; invalidateCache(); draw(); return r; });
+    t.eq('balade : le studio photo fige la vue et rend le pointeur (bulle ou volet), clic droit pour reprendre', fh, { bulle: true, marche: true, volet: true, reprise: true });
 } };

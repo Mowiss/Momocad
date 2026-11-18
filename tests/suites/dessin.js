@@ -72,7 +72,7 @@ module.exports = { name: 'dessin', run: async (H, t) => {
     // plan PDF calé : Y › Points topo du plan lit les cotes dans le PDF (pas dans l'image) et implante un point à chaque repère, à l'altitude lue
     await H.ev(() => { shapes = []; saveState(); });
     await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'topo.pdf')); await H.wait(1500);
-    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.p.waitForFunction(() => { const bg = shapes.find(x => x.type === 'bgimage'); return bg && bg.pdfTopo && isFinite(bg.w) && bg.w > 0 && !document.getElementById('busy-ov'); }, null, { timeout: 30000 }).catch(() => {}); await H.wait(300);
+    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.p.waitForFunction(() => { const bg = shapes.find(x => x.type === 'bgimage'); return bg && bg.pdfTopo && isFinite(bg.w) && bg.w > 0 && !document.getElementById('busy-ov') && !!pdfVecCache[bg.mapId]; }, null, { timeout: 90000 }).catch(() => {}); await H.wait(300);
     const pt = await H.ev(() => { const bg = shapes.find(x => x.type === 'bgimage'); if (!bg || !bg.pdfTopo) return null; selectedShapes = [bg]; openSelectionParamModal();
         const btn = [...document.querySelectorAll('#selparam-modal .sp-act, #selparam-modal button')].find(b => /Importer points/.test(b.textContent)); if (!btn) return 'pas de bouton'; btn.click();
         const imp = [...document.querySelectorAll('#tm-actions button')].find(b => /Importer/.test(b.textContent)); imp.click();
@@ -85,7 +85,7 @@ module.exports = { name: 'dessin', run: async (H, t) => {
     // plan PDF : talus reconnu à ses hachures (tête et pied en lignes de rupture 3D, Z tiré des cotes posées dessus) ; traits du plan dans un calque à son nom, sans les repères des points
     await H.ev(() => { shapes = []; saveState(); });
     await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'talus.pdf')); await H.wait(1500);
-    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.p.waitForFunction(() => { const bg = shapes.find(x => x.type === 'bgimage'); return bg && bg.pdfTopo && isFinite(bg.w) && bg.w > 0 && !document.getElementById('busy-ov'); }, null, { timeout: 30000 }).catch(() => {}); await H.wait(300);
+    await H.ev(() => { document.querySelector('input[name=bg-scale][value=ech]').checked = true; document.getElementById('bg-ech').value = '200'; }); await H.ev(() => insertBgImage()); await H.p.waitForFunction(() => { const bg = shapes.find(x => x.type === 'bgimage'); return bg && bg.pdfTopo && isFinite(bg.w) && bg.w > 0 && !document.getElementById('busy-ov') && !!pdfVecCache[bg.mapId]; }, null, { timeout: 90000 }).catch(() => {}); await H.wait(300);
     const tl = await H.ev(() => { const bg = shapes.find(x => x.type === 'bgimage'); if (!bg) return 'pas de fond'; selectedShapes = [bg]; pdfTopoDialog(bg); ['pi-pts', 'pi-tal', 'pi-trc'].forEach(id => document.getElementById(id).checked = true);
         [...document.querySelectorAll('#tm-actions button')].find(b => /Importer/.test(b.textContent)).click();
         const lay = (n) => (layers.find(l => l.name === n) || {}).id, BL = shapes.filter(x => x.layerId === lay('Talus (PDF)')), hd = BL.find(x => /Tête/.test(x.name)), ft = BL.find(x => /Pied/.test(x.name));
@@ -163,7 +163,7 @@ module.exports = { name: 'dessin', run: async (H, t) => {
     t.eq('pointillés recousus en une seule polyligne', st, [34, 2]);
     // plan PDF avec carroyage : l'échelle du cartouche est proposée d'office, puis le plan se cale tout seul sur ses coordonnées (CC44, tourné de 5°)
     await H.ev(() => { shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); });
-    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'grid.pdf')); await H.wait(1800);
+    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'grid.pdf')); await H.wait(1800); await H.p.waitForFunction(() => !/wait/.test(document.getElementById('bg-ech-st').className + document.getElementById('bg-grid-st').className), null, { timeout: 60000 }).catch(() => {});
     const gq = require(path.join(__dirname, '..', 'fixtures', 'grid_pt.json'));
     const gp = await H.ev(async (q) => { const r0 = { ech: document.getElementById('bg-ech').value, row: document.getElementById('bg-grid-row').style.display, chk: document.getElementById('bg-grid').checked };
         await insertBgImage(); const bg = shapes.find(x => x.type === 'bgimage'); if (!bg) return r0; const P = bgUV(bg, q.u, q.v), e = Math.hypot(realX(P.x) / 1000 - q.X, realY(P.y) / 1000 - q.Y);
@@ -171,7 +171,7 @@ module.exports = { name: 'dessin', run: async (H, t) => {
         shapes = []; geoOrigin = { x: 0, y: 0 }; saveState(); return r; }, gq);
     t.eq('PDF avec carroyage : échelle 1/500 lue, plan calé sur ses coordonnées CC44 (< 5 cm), rotation 5°', gp, { ech: '500', row: 'flex', chk: true, crs: 'CC44', errOk: true, rot: 5, grid: true, msg: true });
     // fenêtre d'insertion : l'échelle et le carroyage trouvés sont annoncés ; calage à la main sur 2 croix (clic aimanté sur les croix lues, coordonnées tapées) = même résultat que le calage automatique
-    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'grid.pdf')); await H.wait(1800);
+    await H.p.setInputFiles('#bgimage-input', path.join(__dirname, '..', 'fixtures', 'grid.pdf')); await H.wait(1800); await H.p.waitForFunction(() => !/wait/.test(document.getElementById('bg-ech-st').className + document.getElementById('bg-grid-st').className), null, { timeout: 60000 }).catch(() => {});
     const gm = await H.ev(async (q) => { const st = { ech: document.getElementById('bg-ech-st').className, grid: document.getElementById('bg-grid-st').className, chip: !!document.querySelector('#bg-ech-chips button.on') };
         document.getElementById('bg-gridman').checked = true; bgGridToggled(true); const gOff = !document.getElementById('bg-grid').checked; await insertBgImage(); const bg = shapes.find(x => x.type === 'bgimage'); const r = { st, gOff, mode };
         const G = bg.pdfGrid, fit = pdfGridFit(G, 'CC44'), C = G.cx.map(c => ({ c, p: bgUV(bg, c[0], c[1]) })); let A = C[0], B = C[0]; C.forEach(a => C.forEach(b => { if (Math.hypot(a.p.x - b.p.x, a.p.y - b.p.y) > Math.hypot(A.p.x - B.p.x, A.p.y - B.p.y)) { A = a; B = b; } }));
