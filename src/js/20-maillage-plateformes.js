@@ -697,6 +697,9 @@
             if (one && one.water && document.getElementById('sp-wz')) { const v = parseFloat(String(document.getElementById('sp-wz').value).replace(/\s/g, '').replace(',', '.')); if (isFinite(v)) one.water.z = Math.round(v * 1000); const nm = document.getElementById('sp-wname').value.trim(); if (nm) { one.water.name = nm; one.name = nm; } }
             const pn = document.getElementById('sp-pfname'); if (pn && one) { const v = pn.value.trim(); if (v) one.pfName = v; else delete one.pfName; }
             const lt = document.getElementById('sp-ltt'); if (lt && one) { const v = lt.value.trim(); if (v) one.ltText = v; else delete one.ltText; }
+            { const nv = (id) => { const e = document.getElementById(id); return e ? t2Num(e.value) : NaN; };   /* bassins : hauteur, couverture, profondeur directement dans Y */
+              if (one && one.bassin) { let v = nv('sp-bsH'); if (v > 0) one.bassin.H = Math.round(v * 1000); v = nv('sp-bsD'); if (v >= 300) one.bassin.D = Math.round(v); v = nv('sp-bscov'); if (v >= 0) one.bassin.cover = Math.round(v * 1000); }
+              if (one && one.pay) { let v = nv('sp-pyzg'); if (isFinite(v)) one.pay.zg = Math.round(v * 1000); v = nv('sp-pyprof'); if (v > 0) one.pay.prof = Math.round(v * 1000); v = nv('sp-pyperm'); if (v >= 0) one.pay.perm = Math.round(v * 1000); payApplyGeom(one); } }
             const hb = document.getElementById('sp-h');
             if (hb && one && one.solid) { const hv = parseFloat(String(hb.value).replace(',', '.')); if (hv > 0) one.solid.H = hv * lenF(); }
             { const bt = document.getElementById('sp-battop'); if (bt && one && one.batEx && one.solid) { const v = parseFloat(String(bt.value).replace(/\s/g, '').replace(',', '.')); if (isFinite(v)) { const top = Math.round(v * 1000), b = one.points[0].z || 0; one.solid.H = Math.max(100, top - b); one.batTop = b + one.solid.H; } } }

@@ -414,4 +414,11 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const FM = finishedModel(); r.fond = Math.round(FM.at(0, 0).z); r.wet = waterMask(w).wetA > 150; payCur = s; paySet('tal', '2/1'); r.k2 = payCalc(s).k === 2 && !!s.talus && s.talus.kD === '2/1';
         shapes = shapes.filter(x => x !== s); invalidateCache(); r.gone = !shapes.some(x => x.payOf); try { t2PanelClose(); } catch (e) {} setMode('select-box'); shapes = keep; tinCache = null; invalidateCache(); saveState(); return r; });
     t.eq('bassin paysagé : plateforme en déblai remplie d\'eau, volumes nominal et utile, berges réglables, eau retirée avec le bassin', bp, { plat: true, eau: true, nom: 409.2, ut: 197.3, fond: 98500, wet: true, k2: true, gone: true });
+    // bassins : hauteur et profondeur réglables directement dans la fenêtre Y
+    const by = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), set = async (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(r => setTimeout(r, 650)); };
+        bassinCreate([[0, 0], [10, 0], [10, 5], [0, 5]].map(([x, y]) => ({ x: x * m, y: -y * m }))); t2PanelClose(); const b = shapes.find(x => x.bassin); selectedShapes = [b]; openSelectionParamModal(); await new Promise(r => setTimeout(r, 300));
+        const r = { field: !!document.getElementById('sp-bsH') }; await set('sp-bsH', '1,40'); r.H = b.bassin.H === 1400 && Math.abs(bassinCalc(b).Vut - 50 * 1.4 * 0.95) < 0.01; spLiveCommit(); closeSelectionParamModal();
+        selectedShapes = [b]; payMake(b); t2PanelClose(); selectedShapes = [b]; openSelectionParamModal(); await new Promise(r => setTimeout(r, 300)); await set('sp-pyprof', '2,00'); r.prof = b.pay.prof === 2000 && b.points.every(q => q.z === b.pay.zg - 2000);
+        spLiveCommit(); closeSelectionParamModal(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('bassins : hauteur du stockage et profondeur du bassin paysagé réglables dans la fenêtre Y', by, { field: true, H: true, prof: true });
 } };
