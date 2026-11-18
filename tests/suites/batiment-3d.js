@@ -643,4 +643,15 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         ev2('mousedown'); ev2('mouseup'); await new Promise(res => setTimeout(res, 200)); closeSelectionParamModal(); r.badge = selectedShapes.length === 1 && selectedShapes[0] === A;
         bldPick('rdc'); r.back = [lvlOff2D(w0), lvlOff2D(w1)].join(','); selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; lvls = keepL; invalidateCache(); saveState(); draw(); return r; });
     t.eq('étages : sur le plan, les autres étages sont masqués et inattrapables ; la pastille sélectionne l\'emprise', pet, { off: 'true,false', pick: true, badge: true, back: 'false,true' });
+    // parois : une fusion ne fait plus disparaître les bordures d'un tronçon resté hors de la fusion (autre bâtiment, autres niveaux) ; un plan abîmé est réparé à l'ouverture
+    const wb = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), lid = ensureLayer('Paroi isolant (laine)', '#facc15'), g1 = 'grp-t1', g2 = 'grp-t2';
+        const rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        const wall = (P, g, wz) => { const h = { type: 'hatch', layerId: lid, loops: [P], wallMat: 'isolant', groupId: g, wz }; const L = P.map((a, i) => { const b = P[(i + 1) % P.length]; return { type: 'line', layerId: lid, x1: a.x, y1: a.y, x2: b.x, y2: b.y, wallMat: 'isolant', groupId: g, wz }; }); return [h, L]; };
+        const [hA, LA] = wall(rect(0, 0, 4, 0.1), g1, { b: 0, t: 2500 }), [hB, LB] = wall(rect(4, 0, 8, 0.1), g1, { b: 300, t: 2800 }), [hN, LN] = wall(rect(8, 0, 12, 0.1), g2, { b: 300, t: 2800 });
+        shapes.push(hA, hB, hN, ...LA, ...LB, ...LN); await wallFuse([hN]);
+        const lines = shapes.filter(x => x.type === 'line' && x.wallMat), onA = lines.filter(l => Math.max(l.x1, l.x2) <= 4 * m + 1).length, r = { onA: onA >= 3, hatches: shapes.filter(isWallHatch).length === 3 };
+        // plan abîmé : une paroi sans ses bordures retrouve ses traits à l'ouverture
+        shapes = [hA]; const txt = JSON.stringify(projectData()); loadProjectText(txt, 'abime.mmc'); r.repaired = shapes.filter(x => x.type === 'line' && x.wallMat === 'isolant').length === 4 && /bordure/.test((document.getElementById('mc-toast') || {}).textContent || ''); { const t2 = document.getElementById('mc-toast'); if (t2) t2.remove(); }
+        loadProjectText(txt, 'abime.mmc'); r.idem = wallBordersRepair() === 0; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('parois : la fusion garde les bordures des tronçons restés à part ; plan abîmé réparé à l\'ouverture', wb, { onA: true, hatches: true, repaired: true, idem: true });
 } };

@@ -180,7 +180,7 @@
                     if (!hs.length || !proto) return; let U; try { U = PC0.union(...hs.map(poly0)); } catch (err) { return; }
                     shapes = shapes.filter(x => !ln.includes(x));
                     U.forEach(pg => pg.forEach(r => { const L = r.slice(0, -1); L.forEach(([ax, ay], k) => { const [bx, by] = L[(k + 1) % L.length]; if (Math.hypot(bx - ax, by - ay) > 1e-9) shapes.push(Object.assign({}, proto, { x1: ax, y1: ay, x2: bx, y2: by })); }); })); });
-                if (!H0.length) return redo.size ? 1 : 0;
+                if (!H0.length) { wallBordersRepair(); return redo.size ? 1 : 0; }
                 const PC = window.polygonClipping, sameKey = (h) => [h.wallMat, h.layerId, JSON.stringify(h.wz || null)].join('|'), key = sameKey(H0[0]);
                 const ring = (l) => { const r = l.map(q => [q.x, q.y]); r.push(r[0]); return r; }, poly = (h) => (h.loops || []).map(ring);
                 const cand = shapes.filter(x => isWallHatch(x) && sameKey(x) === key && x.loops && x.loops[0] && x.loops[0].length >= 3), groupOf = (h) => h.groupId ? shapes.filter(x => x.groupId === h.groupId) : [h];
@@ -190,7 +190,7 @@
                 while (grew && guard++ < 50) { grew = false; const U = [...inC].map(poly);
                     cand.forEach(h => { if (inC.has(h)) return; try { const bbA = h.loops[0]; const hit = U.some(u => { const r = PC.union(u, poly(h)); return r.length < 2; }); if (hit) { inC.add(h); grew = true; } } catch (err) {} });
                     [...inC].forEach(h => groupOf(h).filter(x => isWallHatch(x) && sameKey(x) === key).forEach(x => { if (!inC.has(x)) { inC.add(x); grew = true; } })); }
-                if (inC.size < 2) return redo.size ? 1 : 0;
+                if (inC.size < 2) { wallBordersRepair(); return redo.size ? 1 : 0; }
                 let U; try { U = PC.union(...[...inC].map(poly)); } catch (err) { return 0; }
                 const members = [...inC], groups = new Set(members.map(h => h.groupId).filter(Boolean)), lid = members[0].layerId, mat = members[0].wallMat, wz = members[0].wz, gid = 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);
                 const tag = (o) => { o.groupId = gid; o.wallMat = mat; if (wz) o.wz = Object.assign({}, wz); return o; }, out = [];
@@ -204,9 +204,22 @@
                 // contour : celui de l'ensemble fusionné, sans trait aux jonctions
                 U.forEach(pg => pg.forEach(r => { const L = r.slice(0, -1); L.forEach(([ax, ay], k) => { const [bx, by] = L[(k + 1) % L.length]; if (Math.hypot(bx - ax, by - ay) > 1e-9) out.push(tag({ type: 'line', layerId: lid, x1: ax, y1: ay, x2: bx, y2: by })); }); }));
                 const drop = new Set(members.filter(h => H0.includes(h) && oldU)); shapes.forEach(x => { if (x.groupId && groups.has(x.groupId) && x.type === 'line' && x.wallMat === mat) drop.add(x); });
-                shapes = shapes.filter(x => !drop.has(x)).concat(out); return members.length;
+                shapes = shapes.filter(x => !drop.has(x)).concat(out); wallBordersRepair(); return members.length;   /* tronçons d'un groupe restés hors de la fusion (autre bâtiment, autres niveaux) : leurs bordures sont refaites */
             }, () => 0);
         }
+        // BORDURES DES PAROIS : chaque côté libre d'une paroi a son trait. Un côté sans trait (ni contre une autre paroi du même matériau, ni dans une ouverture)
+        //      reçoit le sien. Sert après une fusion et à l'ouverture d'un plan (plans abîmés par l'ancienne fusion : bordures disparues).
+        function wallBordersRepair() { const H = shapes.filter(h => isWallHatch(h) && h.loops && h.loops[0] && h.loops[0].length >= 3), L = shapes.filter(x => x.type === 'line' && x.wallMat), eps = mmToWorld(3), add = [];
+            const segD = (p, a, b) => { const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy; let t = l2 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy); };
+            H.forEach(h => { const P = h.loops[0], n = P.length; let A2 = 0; for (let i = 0; i < n; i++) A2 += P[i].x * P[(i + 1) % n].y - P[(i + 1) % n].x * P[i].y; const sg = A2 > 0 ? 1 : -1;
+                const Lm = L.filter(l => l.wallMat === h.wallMat), others = H.filter(o => o !== h && o.wallMat === h.wallMat), ops = h.openings || [];
+                for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % n], len = Math.hypot(b.x - a.x, b.y - a.y); if (len < mmToWorld(5)) continue;
+                    const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, nx = (b.y - a.y) / len * sg, ny = -(b.x - a.x) / len * sg, out = { x: m.x + nx * eps, y: m.y + ny * eps };
+                    if (Lm.some(l => segD(m, { x: l.x1, y: l.y1 }, { x: l.x2, y: l.y2 }) < eps)) continue;   // déjà bordé
+                    if (others.some(o => o.loops && o.loops[0] && pointInPolygon(out.x, out.y, o.loops[0]))) continue;   // jonction avec une paroi du même matériau
+                    if (ops.some(o => o && o.pts && (pointInPolygon(m.x, m.y, o.pts) || o.pts.some((q, k) => segD(m, q, o.pts[(k + 1) % o.pts.length]) < eps)))) continue;   // ouverture
+                    add.push({ type: 'line', layerId: h.layerId, x1: a.x, y1: a.y, x2: b.x, y2: b.y, wallMat: h.wallMat, groupId: h.groupId, zk: h.zk, lvs: h.lvs, bid: h.bid, lvl: h.lvl, wz: h.wz ? Object.assign({}, h.wz) : undefined }); } });
+            add.forEach(x => { Object.keys(x).forEach(k => x[k] === undefined && delete x[k]); shapes.push(x); }); return add.length; }
         function wallChainEnd() { const C = wallChain; if (!C || !C.shapes || !C.shapes.length) return; const S = C.shapes.filter(x => shapes.includes(x)); wallFuse(S).then(n => { if (n >= 1) { saveState(); invalidateCache(); draw(); updateCommandMessageText(n > 1 ? 'PAROI : ' + n + ' tronçons en contact fusionnés en un seul contour.' : 'PAROI : arrêtée contre la paroi existante, sans chevauchement.'); } }); }
         function wallAddTo(x2, y2) {
             // chaîne perdue (annuler, autre paroi…) : on repart du point courant
