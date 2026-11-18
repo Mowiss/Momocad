@@ -46,6 +46,8 @@
             const tol = 0.5;
             for (const s of shapes) {
                 if (s.zk) continue; s.zk = 1;
+                /* dessiné dans un contour de bâtiment (cloison, trait de repère…) : c'est du bâtiment, pas du terrain ; il ne reçoit pas d'altitude au passage */
+                if (s.type !== 'point' && !s.bld && (s.bid || s.lvl || ((lvlOn || bldZones().length) && (() => { const p = bldRep(s); return p && bldZoneAt(p.x, p.y); })()))) continue;
                 shapeVertices(s).forEach(v => {
                     if (hasZ(v.get())) return;
                     const zs = zAt(v.x, v.y, tol, s);

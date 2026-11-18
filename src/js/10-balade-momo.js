@@ -158,6 +158,7 @@
             vis.forEach(s => shapeVertices(s).forEach(v => { const z = v.get(); if (hasZ(z)) zs.push(z / 1000); }));
             vis.forEach(s => { if (s.type === 'mesh') { zs.push(s.z0 / 1000, (s.z0 + s.bb.h * (s.sc || 1)) / 1000); meshCorners(s).forEach(c => ext(P(c.x, c.y))); } });
             vis.forEach(s => { if (s.wallMat && s.wz && hasZ(s.wz.b) && hasZ(s.wz.t)) zs.push(s.wz.b / 1000, s.wz.t / 1000); });
+            vis.forEach(s => { if (s.stair2) { const Z = st2Z(s); if (hasZ(Z.z0) && hasZ(Z.z1)) zs.push(Z.z0 / 1000, Z.z1 / 1000); } });
             vis.forEach(s => { if (!s.sweep) return; const G = sweepGeomCached(s); if (G) G.rings.forEach(R => R[0].forEach(q => zs.push(q.Z / 1000))); });
             const zmin = zs.length ? arrMin(zs) : 0, zmax = zs.length ? arrMax(zs) : 0; V3.zmin = zmin; V3.gz0 = zs.length ? (zs.reduce((a, z) => a + z, 0) / zs.length - zmin) * exag : 0;
             const Zm = (zmm) => hasZ(zmm) ? (zmm / 1000 - zmin) * exag : 0;   // sans altitude : posé au niveau le plus bas
@@ -195,6 +196,7 @@
             try { bois3D(root, vis, P, Zm, exag); } catch (e) { console.error(e); }
             try { bassin3D(root, vis, P, Zm); } catch (e) { console.error(e); }
             try { stair3D(root, vis, P, Zm); } catch (e) { console.error(e); }
+            try { stair2_3D(root, vis, P, Zm); } catch (e) { console.error(e); }
             try { waterBuild3D(root, P, Zm); } catch (e) { console.error(e); }
             try { riverBuild3D(root, P, Zm); } catch (e) { console.error(e); }
             try { realLand3D(root, P, Zm); } catch (e) { console.error(e); }

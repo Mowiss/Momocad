@@ -419,6 +419,9 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         bassinCreate([[0, 0], [10, 0], [10, 5], [0, 5]].map(([x, y]) => ({ x: x * m, y: -y * m }))); t2PanelClose(); const b = shapes.find(x => x.bassin); selectedShapes = [b]; openSelectionParamModal(); await new Promise(r => setTimeout(r, 300));
         const r = { field: !!document.getElementById('sp-bsH') }; await set('sp-bsH', '1,40'); r.H = b.bassin.H === 1400 && Math.abs(bassinCalc(b).Vut - 50 * 1.4 * 0.95) < 0.01; spLiveCommit(); closeSelectionParamModal();
         selectedShapes = [b]; payMake(b); t2PanelClose(); selectedShapes = [b]; openSelectionParamModal(); await new Promise(r => setTimeout(r, 300)); await set('sp-pyprof', '2,00'); r.prof = b.pay.prof === 2000 && b.points.every(q => q.z === b.pay.zg - 2000);
+        spLiveCommit(); closeSelectionParamModal();
+        const w = shapes.find(x => x.payOf === b.pay.id); selectedShapes = [w]; openSelectionParamModal(); await new Promise(r => setTimeout(r, 300)); r.redirect = selectedShapes[0] === b && !!document.getElementById('sp-pyzw');
+        const zw = (b.pay.zg - 2000 + 800) / 1000; await set('sp-pyzw', String(zw).replace('.', ',')); r.water = b.pay.perm === 800 && shapes.find(x => x.payOf === b.pay.id).water.z === b.pay.zg - 2000 + 800;
         spLiveCommit(); closeSelectionParamModal(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
-    t.eq('bassins : hauteur du stockage et profondeur du bassin paysagé réglables dans la fenêtre Y', by, { field: true, H: true, prof: true });
+    t.eq('bassins : hauteur du stockage et profondeur du bassin paysagé réglables dans la fenêtre Y ; Y sur l\'eau d\'un bassin paysagé ouvre le bassin, la cote de l\'eau se règle', by, { field: true, H: true, prof: true, redirect: true, water: true });
 } };

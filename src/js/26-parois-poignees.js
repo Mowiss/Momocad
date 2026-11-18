@@ -112,7 +112,7 @@
                 c.save(); c.setLineDash([]); c.strokeStyle = sel ? '#ec4899' : (isPrinting ? '#000' : '#9ca3af'); c.lineWidth = (sel ? 2 : 0.8) / ls; c.beginPath(); b.pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.stroke(); c.restore();
             });
         }
-        function wallFromPreset(p) { return { align: 'gauche', layers: p.layers.map(([mat, e]) => ({ mat, e })) }; }
+        function wallFromPreset(p) { return { align: 'gauche', layers: p.layers.map(l => ({ mat: cxBandMat(l), e: l[1] })) }; }
         function wallThumb(p) {
             const cv = document.createElement('canvas'); cv.width = cv.height = 120; const c = cv.getContext('2d'), w = wallFromPreset(p), T = wallThick(w), k = Math.min(100 / Math.max(T * 1.25, 1), 0.3);
             c.translate(60 - T * k / 2, 10); c.scale(k, k);   // coupe verticale : couches côte à côte, 100 px de haut
@@ -125,17 +125,28 @@
         let wallTool = null, wallStart = null;
         const WALL_ALIAS = { 'w-beton16': ['w-beton20', 160], 'w-laine100': ['w-laine140', 100], 'w-parp15': ['w-parp20', 150] };   // types retirés (même matériau, autre épaisseur) : l'épaisseur se règle
         // PAROIS COMPLEXES : un sandwich de couches tracé d'un seul bloc (cloison, doublage, ossature), avec des montants tous les N mm dans une couche
+        /* une couche d'ossature est une couche à part entière : ['oss-metal' | 'oss-bois', épaisseur, { w: largeur des montants, sp: entraxe, fill: remplissage entre montants }] */
         const WALL_CX = [
-            { id: 'cx-72', name: 'Cloison 72/48', layers: [['placo', 13], ['isolant', 46], ['placo', 13]], studs: { li: 1, mat: 'metal', w: 35, sp: 600 } },
-            { id: 'cx-98', name: 'Cloison 98/48', layers: [['placo', 13], ['placo', 13], ['isolant', 46], ['placo', 13], ['placo', 13]], studs: { li: 2, mat: 'metal', w: 35, sp: 600 } },
-            { id: 'cx-dbl', name: 'Doublage 13 + 75', layers: [['isolant', 75], ['placo', 13]], studs: { li: 0, mat: 'metal', w: 35, sp: 600 } },
-            { id: 'cx-mob', name: 'Ossature bois 145', layers: [['placo', 13], ['isolant', 145], ['bois', 12]], studs: { li: 1, mat: 'bois', w: 45, sp: 600 } },
-            { id: 'cx-bet', name: 'Béton 20 + doublage', layers: [['beton', 200], ['isolant', 100], ['placo', 13]], studs: { li: 1, mat: 'metal', w: 35, sp: 600 } },
+            { id: 'cx-72', name: 'Cloison 72/48', layers: [['placo', 13], ['oss-metal', 46, { w: 35, sp: 600, fill: 'isolant' }], ['placo', 13]] },
+            { id: 'cx-98', name: 'Cloison 98/48', layers: [['placo', 13], ['placo', 13], ['oss-metal', 46, { w: 35, sp: 600, fill: 'isolant' }], ['placo', 13], ['placo', 13]] },
+            { id: 'cx-dbl', name: 'Doublage 13 + 75', layers: [['oss-metal', 75, { w: 35, sp: 600, fill: 'isolant' }], ['placo', 13]] },
+            { id: 'cx-mob', name: 'Ossature bois 145', layers: [['placo', 13], ['oss-bois', 145, { w: 45, sp: 600, fill: 'isolant' }], ['bois', 12]] },
+            { id: 'cx-bet', name: 'Béton 20 + doublage', layers: [['beton', 200], ['oss-metal', 100, { w: 35, sp: 600, fill: 'isolant' }], ['placo', 13]] },
         ];
-        let wallCxUser = []; try { wallCxUser = JSON.parse(localStorage.getItem('momocad-wallcx') || '[]') || []; } catch (e) {}
+        const CX_OSS = { 'oss-metal': { name: 'Ossature métal', s: 'metal', w: 35, line: '#cbd5e1' }, 'oss-bois': { name: 'Ossature bois', s: 'bois', w: 45, line: '#f59e0b' } };
+        const cxBandMat = (l) => CX_OSS[l[0]] ? ((l[2] || {}).fill || 'air') : l[0];
+        /* changer le matériau d'une couche (une ossature garde ses réglages), régler montants et remplissage d'une couche d'ossature */
+        function cxLayerMat(l, v) { if (CX_OSS[v]) { const o = l[2] || { w: CX_OSS[v].w, sp: 600, fill: CX_OSS[l[0]] ? 'isolant' : (['isolant', 'pse'].includes(l[0]) ? l[0] : 'isolant') }; return [v, l[1], o]; } return [v, l[1]]; }
+        function cxLayerOss(l, k, v) { if (!CX_OSS[l[0]]) return; const o = l[2] = l[2] || { w: CX_OSS[l[0]].w, sp: 600, fill: 'isolant' }, n = Math.max(0, parseFloat(String(v).replace(',', '.')) || 0);
+            if (k === 'ow') o.w = Math.max(5, n || o.w); else if (k === 'osp') o.sp = Math.max(o.w * 2, n || o.sp); else if (k === 'ofill') o.fill = v; }
+        /* ancienne forme (montants « dans » une couche, studs.li) : la couche devient une couche d'ossature */
+        function cxNorm(d) { if (!d) return d; const D = JSON.parse(JSON.stringify(d)); D.layers = (D.layers || []).map(l => l.slice());
+            if (D.studs && D.layers[D.studs.li]) { const L = D.layers[D.studs.li]; if (!CX_OSS[L[0]]) D.layers[D.studs.li] = [D.studs.mat === 'bois' ? 'oss-bois' : 'oss-metal', +L[1], { w: D.studs.w || 35, sp: D.studs.sp || 600, fill: L[0] }]; }
+            delete D.studs; return D; }
+        let wallCxUser = []; try { wallCxUser = (JSON.parse(localStorage.getItem('momocad-wallcx') || '[]') || []).map(cxNorm); } catch (e) {}
         let wallCxEdit = null;   // composition en cours dans l'onglet Complexes
         const wallCxAll = () => WALL_CX.concat(wallCxUser);
-        function wallCxTool(d) { return { align: wallOpt.align, cx: d.name || 'Complexe', layers: d.layers.map(([mat, e]) => ({ mat, e: +e })), studs: d.studs && d.studs.sp > 0 && d.studs.w > 0 ? Object.assign({}, d.studs) : null, name: d.name }; }
+        function wallCxTool(d) { d = cxNorm(d); return { align: wallOpt.align, cx: d.name || 'Complexe', layers: d.layers.map(l => { const O = CX_OSS[l[0]], o = l[2] || {}; return O ? { mat: o.fill || 'air', e: +l[1], oss: { s: O.s, w: +o.w || O.w, sp: +o.sp || 600 }, src: l[0] } : { mat: l[0], e: +l[1] }; }), name: d.name }; }
         function startWallCx(d) { if (!d || !d.layers || !d.layers.length) return; closeFileMenus(); setMode('wall'); wallTool = wallCxTool(d); wallStart = null; wallChain = null; typedInput = ''; updateCommandMessage(); draw(); }
         function startWall(id) { if (WALL_ALIAS[id]) { const [to, e] = WALL_ALIAS[id], p0 = WALL_PRESETS.find(x => x.id === to); if (!p0) return; closeFileMenus(); setMode('wall'); wallTool = wallFromPreset(p0); wallTool.name = p0.name; wallTool.align = wallOpt.align; wallTool.layers[0].e = e; wallStart = null; wallChain = null; typedInput = ''; updateCommandMessage(); draw(); return; }
             const p = WALL_PRESETS.find(x => x.id === id); if (!p) return; closeFileMenus(); setMode('wall'); wallTool = wallFromPreset(p); wallTool.name = p.name; wallTool.align = wallOpt.align; if (wallOpt.e > 0) wallTool.layers[0].e = wallOpt.e; wallStart = null; wallChain = null; typedInput = ''; updateCommandMessage(); draw(); }
@@ -185,21 +196,21 @@
             let o = b0; const bands = w.layers.map(l => { const r = { l, oa: o * k, ob: (o + (+l.e || 0)) * k, o0: o }; o += +l.e || 0; return r; });
             const segsN = closed ? P.length : P.length - 1, seg = [];
             for (let i = 0; i < segsN; i++) seg.push([]);
-            const cxd = { name: w.cx, layers: w.layers.map(l => [l.mat, +l.e]), studs: w.studs ? Object.assign({}, w.studs) : null, align: w.align || 'gauche', c: closed ? 1 : 0 };
+            const cxd = { name: w.cx, layers: w.layers.map(l => l.oss ? [l.src || (l.oss.s === 'bois' ? 'oss-bois' : 'oss-metal'), +l.e, { w: l.oss.w, sp: l.oss.sp, fill: l.mat }] : [l.mat, +l.e]), align: w.align || 'gauche', c: closed ? 1 : 0 };
             bands.forEach((b, bi) => { const S = wallChainGeomOff(P, closed, b.oa, b.ob); S.forEach((g, i) => { if (b.l.mat !== 'air') seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: b.l.mat }] }), loops: [[g.A0, g.A1, g.B1, g.B0].map(q => ({ x: q.x, y: q.y }))], cxB: bi, cxS: i, cxd: JSON.parse(JSON.stringify(cxd)) }, b.l.mat));
                 seg[i].push(ln(g.A0, g.A1, b.l.mat)); if (bi === bands.length - 1) seg[i].push(ln(g.B0, g.B1, b.l.mat)); }); });
             // bouts : en travers de toute l'épaisseur, au début et à la fin d'une chaîne ouverte
             const all = wallChainGeomOff(P, closed, bands[0].oa, bands[bands.length - 1].ob); if (!closed && all.length) { seg[0].push(ln(all[0].A0, all[0].B0, bands[0].l.mat)); const L = all[all.length - 1]; seg[seg.length - 1].push(ln(L.A1, L.B1, bands[0].l.mat)); }
-            // montants : dans leur couche, tous les « sp » mm (entraxe) depuis le début de chaque tronçon, plus un à chaque bout
-            const S = w.studs, sb = S && bands[S.li]; if (sb && S.sp > 0 && S.w > 0) for (let i = 0; i < segsN; i++) { const a = P[i], c = P[(i + 1) % P.length], L = Math.hypot(c.x - a.x, c.y - a.y); if (L < 1e-9) continue; const ux = (c.x - a.x) / L, uy = (c.y - a.y) / L, nx = uy, ny = -ux, sw = S.w * k, sp = S.sp * k;
+            // montants : dans chaque couche d'ossature, tous les « sp » mm (entraxe) depuis le début de chaque tronçon, plus un à chaque bout
+            bands.forEach(sb => { const S = sb.l.oss ? { mat: sb.l.oss.s, w: sb.l.oss.w, sp: sb.l.oss.sp } : null; if (S && S.sp > 0 && S.w > 0) for (let i = 0; i < segsN; i++) { const a = P[i], c = P[(i + 1) % P.length], L = Math.hypot(c.x - a.x, c.y - a.y); if (L < 1e-9) continue; const ux = (c.x - a.x) / L, uy = (c.y - a.y) / L, nx = uy, ny = -ux, sw = S.w * k, sp = S.sp * k;
                 const T = []; for (let t = sw / 2; t <= L - sw / 2 + 1e-9; t += sp) T.push(t); if (!T.length || L - sw / 2 - T[T.length - 1] > sw) T.push(L - sw / 2);
-                T.forEach(t => { const q = (tt, oo) => ({ x: a.x + ux * tt + nx * oo, y: a.y + uy * tt + ny * oo }); seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: S.mat }] }), loops: [[q(t - sw / 2, sb.oa), q(t + sw / 2, sb.oa), q(t + sw / 2, sb.ob), q(t - sw / 2, sb.ob)]], stud: 1 }, S.mat)); }); }
+                T.forEach(t => { const q = (tt, oo) => ({ x: a.x + ux * tt + nx * oo, y: a.y + uy * tt + ny * oo }); seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: S.mat }] }), loops: [[q(t - sw / 2, sb.oa), q(t + sw / 2, sb.oa), q(t + sw / 2, sb.ob), q(t - sw / 2, sb.ob)]], stud: 1 }, S.mat)); }); } });
             seg.forEach(x => out.push(...x)); out.last = seg[seg.length - 1] || []; return out; }
         /* PAROI COMPLEXE POSÉE : retrouver son tracé et sa composition depuis ses hachures (elles suivent déplacements, rotations, symétries), puis la refaire avec une autre composition */
         function wallCxRecover(gid) { const G = shapes.filter(x => x.groupId === gid && x.wallCx), Hs = G.filter(x => x.type === 'hatch' && !x.stud && x.loops && x.loops[0] && x.loops[0].length === 4); if (!Hs.length) return null;
-            let def = (Hs.find(x => x.cxd) || {}).cxd; if (def) def = JSON.parse(JSON.stringify(def));
-            else { const d = wallCxAll().find(x => x.name === G[0].wallCx); if (!d) return null; def = { name: d.name, layers: JSON.parse(JSON.stringify(d.layers)), studs: d.studs ? Object.assign({}, d.studs) : null, align: 'gauche' };
-                const nb = d.layers.filter(l => l[0] !== 'air').length, bi0 = d.layers.findIndex(l => l[0] !== 'air'); if (!nb || Hs.length % nb) return null; Hs.forEach((h, j) => { h.cxB = j % nb === 0 ? bi0 : -1; h.cxS = Math.floor(j / nb); }); }
+            let def = (Hs.find(x => x.cxd) || {}).cxd; if (def) def = cxNorm(def);
+            else { const d = wallCxAll().find(x => x.name === G[0].wallCx); if (!d) return null; def = Object.assign(cxNorm(d), { align: 'gauche' }); delete def.id; delete def.user;
+                const nb = def.layers.filter(l => cxBandMat(l) !== 'air').length, bi0 = def.layers.findIndex(l => cxBandMat(l) !== 'air'); if (!nb || Hs.length % nb) return null; Hs.forEach((h, j) => { h.cxB = j % nb === 0 ? bi0 : -1; h.cxS = Math.floor(j / nb); }); }
             const bmin = Math.min(...Hs.filter(h => h.cxB >= 0).map(h => h.cxB)), H0 = Hs.filter(h => h.cxB === bmin).sort((a, b) => a.cxS - b.cxS); if (!H0.length) return null;
             const k = mmToWorld(1), tool = wallCxTool(def); tool.align = def.align || 'gauche'; let o = wallBase(tool); for (let i = 0; i < bmin; i++) o += +def.layers[i][1] || 0; const oa = o * k;
             const L = H0.map(h => { const [A0, A1, B1, B0] = h.loops[0], len = Math.hypot(A1.x - A0.x, A1.y - A0.y) || 1, u = { x: (A1.x - A0.x) / len, y: (A1.y - A0.y) / len }; return { A0, A1, B0, u, n: { x: u.y, y: -u.x } }; });

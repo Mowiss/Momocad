@@ -7,7 +7,7 @@
         // Plateforme / ouvrage : polyligne fermée, tous les sommets à la même altitude (ex. plateforme dessinée puis Z via Y).
         // Elle ne fait pas partie du terrain naturel : elle est modélisée à part (dalle plane + talus en 3D, cubatures).
         function isPlateforme(s) {
-            if (s && (s.solid || s.sweep || s.water || s.river || s.trench || s.brush || s.bld || s.bois || s.stair || s.bassin || s.maille)) return false;   // solide 3D, balayage, eau, tranchée, contour de bâtiment : ni plateforme ni terrain
+            if (s && (s.solid || s.sweep || s.water || s.river || s.trench || s.brush || s.bld || s.bois || s.stair || s.stair2 || s.bassin || s.maille)) return false;   // solide 3D, balayage, eau, tranchée, contour de bâtiment : ni plateforme ni terrain
             if (s && s.type === 'circle') return hasZ(s.z) && s.r > 0 && !s.gen && !s.elev;   // plateforme ronde
             if (!s || s.type !== 'poly' || s.open || s.points.length < 3 || s.gen || s.elev) return false;   // elev : polyligne 2D DXF avec simple élévation, pas une plateforme
             const z0 = s.points[0].z; if (!hasZ(z0) || !s.points.every(p => hasZ(p.z))) return false;

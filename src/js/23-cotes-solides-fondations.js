@@ -105,14 +105,18 @@
         const SOLID_POLY = (k) => k === 'box' || k === 'pyr' || k === 'roof';   // solides posés sur un contour (les autres sur un cercle)
         let solidTool = null, solidBaseLen = 0;
         function startSolidTool(kind) {
-            if (kind === 'roof') { const ok = selectedShapes.filter(x => !x.solid && !x.gen && x.type === 'poly' && !x.open && x.points.length >= 3 && !isPlateforme(x)); if (ok.length) { roofDialog(ok[0]); return; } }
-            if (kind === 'pyr' || kind === 'roof') { const ok = selectedShapes.filter(x => !x.solid && !x.gen && x.type === 'poly' && !x.open && x.points.length >= 3 && !isPlateforme(x));   // contour déjà dessiné : il devient la base
+            if (kind === 'roof') { const ok = selectedShapes.filter(x => !x.solid && !x.gen && !x.bld && x.type === 'poly' && !x.open && x.points.length >= 3 && !isPlateforme(x)); if (ok.length) { roofDialog(ok[0]); return; } }
+            if (kind === 'pyr' || kind === 'roof') { const ok = selectedShapes.filter(x => !x.solid && !x.gen && !x.bld && x.type === 'poly' && !x.open && x.points.length >= 3 && !isPlateforme(x));   // contour déjà dessiné : il devient la base
                 if (ok.length) { ok.forEach(x => { const c = polyCentroid(x.points), t = getTIN(), tz = t ? tinZ(c.x, c.y, t) : undefined, z0 = hasZ(x.points[0].z) ? x.points[0].z : hasZ(tz) ? tz : 0;
                         x.points.forEach(q => { q.z = z0; }); x.solid = kind === 'roof' ? { kind: 'roof', H: 0, p: 35, e: 200 } : { kind: 'pyr', H: 1000, k: 0 }; x.zk = 1; });
                     saveState(); selectedShapes = ok; draw(); if (ok.length === 1) setTimeout(openSelectionParamModal, 30); return; } }
             if (kind === 'dalle') {   // dalle : un pavé de 20 cm ; un contour fermé déjà sélectionné devient la dalle
-                const ok = selectedShapes.filter(x => !x.solid && !x.gen && x.type === 'poly' && !x.open && x.points.length >= 3 && !isPlateforme(x));
-                if (ok.length) { ok.forEach(x => { const z0 = hasZ(x.points[0].z) ? x.points[0].z : 0; x.points.forEach(q => { q.z = z0; }); x.solid = { kind: 'box', H: 200 }; x.zk = 1; x.name = 'Dalle'; }); saveState(); selectedShapes = ok; draw(); if (ok.length === 1) setTimeout(openSelectionParamModal, 30); return; }
+                const ok = selectedShapes.filter(x => !x.solid && !x.gen && !x.bld && x.type === 'poly' && !x.open && x.points.length >= 3 && !isPlateforme(x));
+                /* un contour de bâtiment sélectionné : la dalle est une copie de son emprise (le contour reste le contour) ; sur un étage, le dessus de la dalle est au plancher */
+                const bs = selectedShapes.filter(x => x.bld && x.type === 'poly' && x.points.length >= 3).map(Z => { if ((bldCur() || null) !== Z) bldActivate(Z); const L = lvlList().find(x => x.id === lvlAct && !x.roof) || (Z.bld.lvls || []).find(x => x.id === 'rdc'), z0 = L ? L.z - 200 : 0;
+                    const d = { type: 'poly', layerId: activeLayerId, points: Z.points.map(q => ({ x: q.x, y: q.y, z: z0 })), solid: { kind: 'box', H: 200 }, zk: 1, lvs: 1, name: 'Dalle', bid: Z.bld.id, lvl: L ? L.id : 'rdc' }; shapes.push(d); return d; });
+                if (bs.length) { saveState(); selectedShapes = bs; draw(); if (bs.length === 1) setTimeout(openSelectionParamModal, 30); return; }
+                if (ok.length) { ok.forEach(x => { const P = bldRep(x), Z = P && bldZones().length ? bldZoneAt(P.x, P.y) : null, L = Z ? (Z.bld.lvls || []).find(l => l.id === (x.lvl || ((bldCur() || null) === Z ? lvlAct : Z.bld.act) || 'rdc')) : lvlCur(); const z0 = L ? L.z - 200 : hasZ(x.points[0].z) ? x.points[0].z : 0; x.points.forEach(q => { q.z = z0; }); x.solid = { kind: 'box', H: 200 }; x.zk = 1; x.name = 'Dalle'; if (Z) { x.bid = Z.bld.id; x.lvl = L ? L.id : x.lvl; } }); saveState(); selectedShapes = ok; draw(); if (ok.length === 1) setTimeout(openSelectionParamModal, 30); return; }
                 setMode('poly'); solidTool = 'box'; solidDalle = true; solidBaseLen = shapes.length;   // contour libre, point par point (une dalle n'est pas forcément rectangulaire)
                 document.getElementById('btn-poly').classList.remove('active'); document.getElementById('btn-dalle').classList.add('active'); markActivePal();
                 updateCommandMessage(); draw(); return;

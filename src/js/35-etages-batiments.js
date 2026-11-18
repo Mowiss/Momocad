@@ -71,6 +71,11 @@
         function bldBadgeAt(sx, sy) { return bldBadgeHits.find(b => sx >= b.x0 && sx <= b.x1 && sy >= b.y0 && sy <= b.y1) || null; }
         /* un contour de bâtiment reste une polyligne fermée, d'un seul tenant : s'il a été coupé (Couper au point, Ajuster…) ou ouvert,
            ses morceaux sont recollés bout à bout et le contour refermé. Appelé à chaque modification et à l'ouverture d'un plan. */
+        /* contour de bâtiment devenu un volume (outil Dalle lancé avec le contour sélectionné) : le volume devient une dalle à part, posée sous le plancher du RDC s'il était à une altitude sans rapport ; le contour redevient un contour */
+        function bldSolidRepair() { let n = 0; shapes.slice().forEach(Z => { if (!Z.bld || !Z.solid || Z.type !== 'poly') return; const so = Z.solid, R = (Z.bld.lvls || []).find(x => x.id === 'rdc'), H = so.H || 200, zb = Z.points[0] && Z.points[0].z;
+                const near = R && hasZ(zb) && Math.abs(zb - R.z) < 5000, z0 = near ? zb : R ? R.z - H : (hasZ(zb) ? zb : 0);
+                const d = { type: 'poly', layerId: Z.layerId, points: Z.points.map(q => ({ x: q.x, y: q.y, z: z0 })), solid: JSON.parse(JSON.stringify(so)), zk: 1, lvs: 1, name: Z.name && Z.name !== Z.bld.nm ? Z.name : 'Dalle', bid: Z.bld.id, lvl: 'rdc' };
+                delete Z.solid; Z.points.forEach(q => { delete q.z; }); if (Z.name === 'Dalle') delete Z.name; shapes.splice(shapes.indexOf(Z) + 1, 0, d); n++; }); return n; }
         function bldRepair() { const B = shapes.filter(s => s.bld && s.type === 'poly' && s.points && s.points.length >= 2); if (!B.length) return 0; const by = new Map(); B.forEach(s => { const k = s.bld.id || ''; if (!by.has(k)) by.set(k, []); by.get(k).push(s); });
             let fixed = 0; const tol = mmToWorld(10), same = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < tol, cp = (q) => Object.assign({}, q);
             by.forEach(P => { if (P.length === 1 && !P[0].open && P[0].points.length >= 3) return; const rest = P.slice().sort((a, b) => b.points.length - a.points.length), keep = rest.shift(); let C = keep.points.map(cp), guard = 0;
@@ -122,7 +127,7 @@
         function lvlRank(id) { return lvlList().findIndex(L => L.id === id); }
         function lvlHidden(s) { if (!lvlOn || !lvls) return false; const id = lvlOf(s); return !!id && lvlRank(id) > lvlRank(lvlAct); }
         function lvlMine(s, id) { return s.lvl === id && (bldOfObj(s) || null) === (bldCur() || null); }
-        /* plan : en éditant un étage, les autres étages (dessous compris) sont masqués et inattrapables ; la 3D garde les étages du dessous */
+        /* plan : en éditant un étage, ceux du dessus sont masqués, ceux du dessous translucides ; ni les uns ni les autres ne se sélectionnent ni ne s'accrochent ; la 3D garde les étages du dessous */
         function lvlOff2D(s) { return lvlHidden(s) || lvlBelow(s); }
         function lvlBelow(s) { if (!lvlOn || !lvls || lvlAct === 'toit') return false; const id = lvlOf(s); return !!id && lvlRank(id) < lvlRank(lvlAct); }
         // objets créés pendant qu'un étage est actif : rangés dans cet étage ; un mur prend la hauteur de l'étage
@@ -133,7 +138,7 @@
                 if (Z) { if ((bldCur() || null) !== Z) bldActivate(Z); s.bid = Z.bld.id; }
                 else if (hasZ0) { if (bldActId) bldActivate(null); if (!lvlOn || !lvls) return; }
                 if (s.lvl) return; const L = lvlList().find(x => x.id === lvlAct); s.lvl = lvlAct;
-                if (L && !L.roof && s.wallMat && !s.wz) s.wz = { b: L.z, t: L.z + L.h }; }); wallWzRepair(); }
+                if (L && !L.roof && s.wallMat && !s.wz) s.wz = { b: L.z, t: L.z + L.h }; }); wallWzRepair(); wallBidRepair(); }
         /* paroi sans hauteur (dessinée hors contour, contour cassé au moment du dessin…) : elle prend celle de son groupe, sinon l'étage du bâtiment où elle se trouve, sinon le RDC du bâtiment le plus proche ; sans quoi elle n'existerait qu'en plan */
         function wallWzRepair() { const W = shapes.filter(s => s.wallMat && !(s.wz && hasZ(s.wz.b) && hasZ(s.wz.t) && s.wz.t > s.wz.b)); if (!W.length) return 0;
             const byG = new Map(); shapes.forEach(s => { if (s.wallMat && s.groupId && s.wz && hasZ(s.wz.b) && hasZ(s.wz.t) && s.wz.t > s.wz.b && !byG.has(s.groupId)) byG.set(s.groupId, s); });
@@ -146,6 +151,11 @@
                 else { const z = lvlGuessZ(); s.wz = { b: z, t: z + 2800 }; }
                 if (s.groupId && !byG.has(s.groupId)) byG.set(s.groupId, s); n++; });
             return n; }
+        /* morceaux de paroi sans bâtiment (centre juste hors du contour, mur posé sur le contour) : celui de leur groupe, sinon le contour à moins d'un mètre ; sans quoi ils resteraient visibles et cliquables à tous les étages */
+        function wallBidRepair() { const B = bldZones(); if (!B.length) return 0; const W = shapes.filter(s => s.wallMat && !s.bid); if (!W.length) return 0; const byG = new Map(); shapes.forEach(s => { if (s.wallMat && s.bid && s.groupId && !byG.has(s.groupId)) byG.set(s.groupId, s); });
+            const tol = mmToWorld(1000); let n = 0; W.forEach(s => { const g = s.groupId && byG.get(s.groupId); let Z = g ? bldById(g.bid) : null; if (g && !s.lvl && g.lvl) s.lvl = g.lvl;
+                if (!Z) { const p = bldRep(s); if (!p) return; Z = bldZoneAt(p.x, p.y); if (!Z) { let bd = tol; B.forEach(z => { const d = distToPoly(p.x, p.y, z.points); if (d < bd) { bd = d; Z = z; } }); } }
+                if (Z) { s.bid = Z.bld.id; n++; } }); return n; }
         function lvlMarkAll() { shapes.forEach(s => { s.lvs = 1; }); }
         function lvlToggle(on) { lvlOn = on === undefined ? !lvlOn : !!on; if (lvlOn) { lvlInit(); lvlMarkAll(); } const b = document.getElementById('btn-etages'); if (b) b.classList.toggle('active', lvlOn); lvlUI(); lvlRefresh();
             updateCommandMessageText(lvlOn ? 'ÉTAGES : cliquez un niveau pour y travailler (on voit cet étage et tout ce qui est dessous) ; ▲ + ajoute un étage, ▼ − un sous-sol ; double-clic sur un niveau : nom, altitude, hauteur.' : 'ÉTAGES : outil éteint, toute la maquette est visible.'); }

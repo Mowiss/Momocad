@@ -709,4 +709,45 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         G().forEach(x => { if (x.loops) x.loops.forEach(L => L.forEach(q => { q.y = -q.y; })); if (x.type === 'line') { x.y1 = -x.y1; x.y2 = -x.y2; } }); const b0 = band0(); spCxSet('e', 1, '46'); r.mirror = band0() === b0;
         closeSelectionParamModal(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('paroi complexe : Y modifie sa composition, refaite sur le même tracé (déplacée, symétrisée), ouvertures et hauteur gardées', cxy, { path: true, moved: true, tab: true, edit: true, mirror: true });
+    // escalier d'étage : polyligne de bas en haut, relie le RDC au R+1, palier à l'angle, Blondel, garde-corps ; suit la hauteur d'étage
+    const esc2 = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m });
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState();
+        const r = {}; st2Opt.gc = 'deux'; st2Opt.hc = 175; st2Opt.g = 270; st2Opt.just = 'axe'; st2Opt.w = 900; startStair2(); currentPolygon = [pt(1, 1), pt(5, 1), pt(5, 5)]; isDrawing = true; finishPline(); r.noUpper = !shapes.some(x => x.stair2);
+        bldActivate(A, 'rdc'); lvlAdd(true); bldActivate(A, 'rdc'); saveState(); startStair2(); currentPolygon = [pt(1, 1), pt(5, 1), pt(5, 5)]; isDrawing = true; finishPline(); t2PanelClose(); setMode('select-box');
+        const s = shapes.find(x => x.stair2), G = s && st2Geo(s); r.made = !!G && G.z0 === 100000 && G.z1 === 102800 && G.n === 16 && Math.abs(G.h - 175) < 1e-9 && G.nl === 1 && G.lands.length >= 1 && G.rails.length === 2 && s.bid === A.bld.id;
+        r.risers = !!G && G.seg.reduce((a, q) => a + q.t + 1, 0) === G.n && G.treads.length === G.n - 2;
+        r.blondel = (() => { st2Edit = s; st2Set('blondel'); return s.stair2.g === 280; })();
+        bldSetH('rdc', '3,00'); const G2 = st2Geo(s); r.follow = G2.z1 === 103000 && G2.n === 17;
+        selectedShapes = [s]; openSelectionParamModal(); await new Promise(res => setTimeout(res, 300)); r.y = !!document.querySelector('#selparam-modal details[data-k=stair2]') && !!document.getElementById('st2-w'); closeSelectionParamModal(); selectedShapes = []; st2Edit = null;
+        await open3D(); let n = 0; V3.root.traverse(o => { if (o.userData && o.userData.shape === s) n++; }); r.mesh3d = n > 20; close3D();
+        bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('escalier d\'étage : polyligne de bas en haut entre deux étages voisins, palier à l\'angle, Blondel, garde-corps, suit la hauteur d\'étage, réglable avec Y, en 3D', esc2, { noUpper: true, made: true, risers: true, blondel: true, follow: true, y: true, mesh3d: true });
+    // ossature = une couche à part : ses montants restent dans sa bande quand on la déplace ; anciennes compositions (montants « dans » une couche) converties
+    const oss = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        r.presets = WALL_CX.every(d => !d.studs) && WALL_CX[0].layers[1][0] === 'oss-metal' && JSON.stringify(cxNorm({ name: 'x', layers: [['placo', 13], ['isolant', 46]], studs: { li: 1, mat: 'bois', w: 45, sp: 400 } }).layers[1]) === JSON.stringify(['oss-bois', 46, { w: 45, sp: 400, fill: 'isolant' }]);
+        startWallCx({ name: 'T', layers: [['placo', 13], ['oss-metal', 48, { w: 35, sp: 600, fill: 'air' }], ['placo', 13]] }); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(3, 0).x, pt(3, 0).y); wallChainEnd(); setMode('select-box');
+        const G = () => shapes.filter(x => x.wallCx), gid = G()[0].groupId, band = (mt) => { const off = (h) => Math.min(...h.loops[0].map(q => -q.y / m)); return off; };
+        const studY = () => { const S = G().filter(x => x.stud); return S.length ? [Math.min(...S.map(x => Math.min(...x.loops[0].map(q => -q.y)))), Math.max(...S.map(x => Math.max(...x.loops[0].map(q => -q.y))))].map(v => +(worldToMm(v)).toFixed(1)) : null; };
+        r.vide = G().filter(x => x.type === 'hatch' && !x.stud).length === 2 && G().filter(x => x.stud).length === 6;
+        const y0 = studY(); selectedShapes = G(); spCxSet('up', 1); const y1 = studY(); r.moved = !!y0 && !!y1 && Math.abs((y0[1] - y0[0]) - 48) < 0.5 && Math.abs((y1[1] - y1[0]) - 48) < 0.5 && Math.abs(y1[0] - y0[0]) > 5 && wallCxRecover(gid).def.layers[0][0] === 'oss-metal';
+        spCxSet('ofill', 0, 'isolant'); r.fill = G().some(x => x.type === 'hatch' && !x.stud && x.wallMat === 'isolant'); closeSelectionParamModal();
+        selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('parois complexes : l\'ossature est une couche (montants dans sa bande, même déplacée), remplissage vide ou isolant, anciennes compositions converties', oss, { presets: true, vide: true, moved: true, fill: true });
+    // étage du dessus actif : le RDC reste visible (translucide) mais ne se clique pas, même un mur posé à cheval sur le contour
+    const up = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m });
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState(); bldActivate(A, 'rdc'); lvlAdd(true); saveState();
+        const W = { type: 'hatch', layerId: activeLayerId, wallMat: 'beton', groupId: 'g-up', lvs: 1, wz: { b: 100000, t: 102800 }, loops: [[pt(2, -0.15), pt(8, -0.15), pt(8, 0.05), pt(2, 0.05)]] }; shapes.push(W); saveState();
+        const r = { bid: W.bid === A.bld.id }; const hi = lvlSorted()[1].id; bldPick(hi); zoomExtents(); draw(); const c = { x: 5 * m, y: -(-0.05) * m };
+        r.noClick = findShapeAt(c.x, c.y) !== W; r.below = lvlBelow(W) && !lvlHidden(W);
+        bldAll(); bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('étage du dessus actif : le RDC translucide, ni cliquable ni accrochable (mur à cheval sur le contour compris)', up, { bid: true, noClick: true, below: true });
+    // contour de bâtiment + outil Dalle : une dalle à part sous le plancher (le contour reste un contour) ; ancien fichier réparé ; un trait d'étage n'entre jamais dans le terrain
+    const bd = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m });
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState();
+        selectedShapes = [A]; startSolidTool('dalle'); closeSelectionParamModal(); const D = shapes.find(x => x.solid && !x.bld), r = { split: !A.solid && !!D && D.points.every(q => q.z === 99800) && D.bid === A.bld.id };
+        shapes = shapes.filter(x => x !== D); A.solid = { kind: 'box', H: 200 }; A.points.forEach(q => { q.z = 0; }); const txt = JSON.stringify(projectData()); loadProjectText(txt, 'dalle.mmc'); const t = document.getElementById('mc-toast');
+        const A2 = shapes.find(x => x.bld), D2 = shapes.find(x => x.solid && !x.bld); r.load = !A2.solid && !!D2 && D2.points[0].z === 99800 && !!t && /dalle/.test(t.textContent); if (t) t.remove();
+        const L = { type: 'line', layerId: activeLayerId, x1: 2 * m, y1: -2 * m, x2: 3 * m, y2: -2 * m, z2: 0, lvl: 'rdc', bid: A2.bld.id, zk: 1, lvs: 1 }; shapes.push(L); invalidateCache(); r.noTin = !tinNodes().some(n => n.z === 0);
+        selectedShapes = []; bldActivate(null); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('contour de bâtiment + Dalle : une dalle à part sous le plancher, ancien fichier réparé ; un trait d\'étage ne fait jamais le terrain', bd, { split: true, load: true, noTin: true });
 } };
