@@ -235,4 +235,7 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         try { await studioRender(); for (let i = 0; i < 300 && RD; i++) await new Promise(r => setTimeout(r, 100)); } finally { window.rdReflUpdate = k; }
         studio.q = kq; studio.res = kr; studioClose(); try { rdClose(); } catch (e) {} shapes = keep; tinCache = null; invalidateCache(); build3DScene(); return { passes: n >= RD_Q.rapide.spp, on }; });
     t.eq('eau au rendu : reflet en miroir des objets proches, recalculé à chaque passe', rf, { passes: true, on: true });
+    // moteur 3D à jour (r159) réglé comme avant : pas de gestion des couleurs, sortie linéaire, lumières à l'ancienne ; même image qu'en r128
+    const t3 = await ev(async () => { if (!is3DOpen()) await open3D(); const R = V3.renderer; return { rev: THREE.REVISION, cm: !THREE.ColorManagement.enabled, out: R.outputColorSpace === THREE.LinearSRGBColorSpace, legacy: R.useLegacyLights === true, lambert: !!THREE.ShaderChunk.map_fragment }; });
+    t.eq('moteur 3D r159, réglé pour garder le rendu d\'avant', t3, { rev: '159', cm: true, out: true, legacy: true, lambert: true });
 } };

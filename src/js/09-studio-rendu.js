@@ -201,7 +201,7 @@
                 V3.hq = { tree: studio.tree ? Q.tree : 1, terr: Q.terr, grass: studio.grass ? Q.grass : 0, earth: !!studio.earth, riv: !!studio.riv, wave: !!studio.wave, realHD: !!studio.realHD, rc };
                 try { build3DScene(); } finally { V3.hq = null; }
                 rdStep('Préparation de la lumière…', 0); await rdWait();
-                R = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true }); R.setPixelRatio(1); R.setSize(W, H, false); R.setClearColor(V3.renderer.getClearColor(new THREE.Color()), 1); R.outputEncoding = V3.renderer.outputEncoding; R.clippingPlanes = v3CutPlanes();
+                R = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true }); R.setPixelRatio(1); R.setSize(W, H, false); R.setClearColor(V3.renderer.getClearColor(new THREE.Color()), 1); if ('outputColorSpace' in R) R.outputColorSpace = V3.renderer.outputColorSpace; else R.outputEncoding = V3.renderer.outputEncoding; R.clippingPlanes = v3CutPlanes();
                 const sh = !!studio.sh; R.shadowMap.enabled = sh; R.shadowMap.type = THREE.PCFSoftShadowMap;
                 V3.root.updateMatrixWorld(true); V3.root.traverse(o => { if (!o.isMesh) return; const tr = o.material && o.material.transparent; o.castShadow = sh && !o.userData.grass && !o.userData.water && !(o.userData.grain && stGranD() < 0.03) && !o.userData.drape && !(tr && o.material.opacity < 0.7); o.receiveShadow = sh; });
                 // zone des ombres : autour du point visé, à la taille de ce qu'on voit (pas tout un fond IGN de 2 km)

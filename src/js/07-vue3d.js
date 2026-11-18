@@ -74,12 +74,16 @@
         // VUE 3D (three.js, chargé à la demande) : orbite autour du plan, boussole façon AutoCAD avec vues animées
         // Repère 3D en mètres : x = Est, y = Nord, z = altitude (exagérée), origine au centre du dessin.
         // =====================================================================
-        const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js';
+        /* moteur 3D r159 réglé comme avant (r128) : pas de gestion des couleurs, sortie linéaire, lumières à l'ancienne intensité ; même rendu, moteur à jour */
+        function threeCompat(T) { if (!T || T.__mc) return T; T.__mc = true; if (T.ColorManagement) T.ColorManagement.enabled = false;
+            const RW = T.WebGLRenderer; if ('outputColorSpace' in RW.prototype || +T.REVISION >= 152) { const W = function (o) { const r = new RW(o); if ('outputColorSpace' in r) r.outputColorSpace = T.LinearSRGBColorSpace; if ('useLegacyLights' in r) { const w0 = console.warn; console.warn = () => {}; try { r.useLegacyLights = true; } finally { console.warn = w0; } } return r; }; W.prototype = RW.prototype; T.WebGLRenderer = W; }
+            return T; }
         let threePromise = null, V3 = null;
         function loadThree() {
-            if (window.THREE) return Promise.resolve(window.THREE);
+            if (window.THREE) return Promise.resolve(threeCompat(window.THREE));
             if (!threePromise) threePromise = new Promise((res, rej) => {
-                loadJSFirst([MC_LIB + 'three.min.js', THREE_URL]).then(() => res(window.THREE), () => { threePromise = null; rej(new Error('moteur 3D indisponible (connexion ?)')); });
+                loadJSFirst([MC_LIB + 'three.min.js?r159', THREE_URL, 'https://unpkg.com/three@0.159.0/build/three.min.js']).then(() => res(threeCompat(window.THREE)), () => { threePromise = null; rej(new Error('moteur 3D indisponible (connexion ?)')); });
             });
             return threePromise;
         }

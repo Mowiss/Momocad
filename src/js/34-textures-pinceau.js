@@ -163,6 +163,7 @@
         /* relief en profondeur au rendu (parallaxe) : chaque texel est vu à sa hauteur, les grains, joints et pierres se masquent entre eux selon l'angle de vue */
         function texPOM(m, id, tile) { const hc = texHeightCache[id]; if (!hc) return; const th = new THREE.CanvasTexture(hc); th.wrapS = th.wrapT = THREE.RepeatWrapping;
             const depth = 0.03 / Math.max(0.2, tile || 1);   // 3 cm de relief (en unités du motif)
+            const UV = THREE.ShaderChunk.map_fragment.includes('vMapUv') ? 'vMapUv' : 'vUv';   // r151+ : une coordonnée par carte
             m.onBeforeCompile = (sh) => { sh.uniforms.pomH = { value: th }; sh.uniforms.pomD = { value: depth };
                 sh.fragmentShader = sh.fragmentShader.replace('void main() {', `uniform sampler2D pomH; uniform float pomD;
                     vec2 pomUv(vec2 uv) { vec3 p = -vViewPosition, dp1 = dFdx(p), dp2 = dFdy(p); vec2 du1 = dFdx(uv), du2 = dFdy(uv); vec3 Nn = normalize(cross(dp1, dp2)), V = normalize(vViewPosition); if (dot(Nn, V) < 0.0) Nn = -Nn;
@@ -170,9 +171,9 @@
                         vec3 Vt = normalize(vec3(dot(V, T), dot(V, B), dot(V, Nn))); float nL = mix(40.0, 10.0, abs(Vt.z)), ld = 1.0 / nL; vec2 P = Vt.xy / max(Vt.z, 0.2) * pomD, dl = P * ld;
                         vec2 c = uv; float cd = 0.0, d = 1.0 - textureGrad(pomH, c, du1, du2).r; for (int i = 0; i < 40; i++) { if (cd >= d) break; c -= dl; d = 1.0 - textureGrad(pomH, c, du1, du2).r; cd += ld; }
                         vec2 pr = c + dl; float a = d - cd, b = (1.0 - textureGrad(pomH, pr, du1, du2).r) - cd + ld, w = a / (a - b + 1e-6); return mix(c, pr, clamp(w, 0.0, 1.0)); }
-                    void main() { vec2 pUv = pomUv(vUv);`)
-                    .replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment.replace(/vUv/g, 'pUv'))
-                    .replace('#include <normal_fragment_maps>', THREE.ShaderChunk.normal_fragment_maps.replace(/texture2D\( normalMap, vUv \)/g, 'texture2D( normalMap, pUv )')); };
+                    void main() { vec2 pUv = pomUv(${UV});`)
+                    .replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment.split(UV).join('pUv'))
+                    .replace('#include <normal_fragment_maps>', THREE.ShaderChunk.normal_fragment_maps.replace(/texture2D\( normalMap, (vUv|vNormalMapUv) \)/g, 'texture2D( normalMap, pUv )')); };
             m.customProgramCacheKey = () => 'pom' + depth.toFixed(4); m.userData.pom = true; }
         const texThumbCache = {};
         function texThumb(id) { if (texThumbCache[id]) return texThumbCache[id]; const src = texCanvas(id); if (!src) return ''; const cv = document.createElement('canvas'); cv.width = cv.height = 56; cv.getContext('2d').drawImage(src, 0, 0, 256, 256, 0, 0, 56, 56); return (texThumbCache[id] = cv.toDataURL('image/jpeg', 0.85)); }
