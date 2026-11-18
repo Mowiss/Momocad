@@ -112,34 +112,25 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         V3.root.traverse(o => { if (!(o.isMesh && o.material && o.material.map && o.material.map.image === texCanvas('enrobe'))) return; const pa = o.geometry.attributes.position; for (let i = 0; i < pa.count; i += 3) { tot++; const gx = (pa.getX(i) + pa.getX(i + 1) + pa.getX(i + 2)) / 3, gy = (pa.getY(i) + pa.getY(i + 1) + pa.getY(i + 2)) / 3; for (let k = 0; k < 3; k++) { const x = pa.getX(i + k) * 0.97 + gx * 0.03 + c.x, y = pa.getY(i + k) * 0.97 + gy * 0.03 + c.y; if (!roadAt(mmToWorld(x * 1000), mmToWorld(-y * 1000))) { bad++; break; } } } });   // chaque sommet de l'enrobé est sur la route
         let fast = performance.now(); const pts = shapes.filter(x => x.type === 'point'), inB = bandTest([{ D: [{ x: 0, y: 0 }, { x: 100 * m, y: 0 }], h: 5 * m }]); const nIn = pts.filter(q => inB(q.x, q.y)).length; fast = performance.now() - fast;
         const D = Array.from({ length: 200 }, (_, k) => ({ s: k * 2, z0: k % 2 ? 1000 : 0 })); smooth6(D, 'z');
-        mcProg('Test', 0.5, 'étape'); const bar = !!document.querySelector('#mc-prog .mp-bar i'); mcProg('', null);
+        mcProg('Test', 0.5, 'étape'); const bar = !!document.querySelector('#mc-load .ml-seg'); mcLoad.min = 0; mcProg('', null); await new Promise(res => setTimeout(res, 700));
         shapes = keep; tinCache = null; invalidateCache(); build3DScene(); render3D(); return { road: tot > 20, outside: bad, band: nIn === 6, smooth: Math.abs(D[100].z - 500) < 30, bar, gone: !document.getElementById('mc-prog') }; });
     t.eq('grand fond : chaussée découpée au bord exact (aucun triangle d\'enrobé hors de la route) ; bandes, lissage et barre de progression', rc, { road: true, outside: 0, band: true, smooth: true, bar: true, gone: true });
 
-    // volet de la vue 3D (Espace) : onglets, plus de bandeau ; ciels photo réalistes ; balade : clic droit = pause et bulles d'affichage
+    // volet de la vue 3D (Espace) : onglets, plus de bandeau ; onglet Décor (relief réel, panorama importé) ; balade : clic droit = pause et bulles d'affichage
     const vv = await ev(async () => { const r = {}; await open3D(); v3PanelClose(); document.activeElement && document.activeElement.blur && document.activeElement.blur();
         window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); const P = document.getElementById('t2-panel'); r.open = v3PanelOpen() && P.querySelectorAll('.v3v-rail button').length === 3;
         r.band = getComputedStyle(document.getElementById('v3-band')).display === 'none';
         v3Panel('aff'); const s0 = v3Chk('v3-surf'); v3SetChk('v3-surf', !s0); r.toggle = v3Chk('v3-surf') === !s0; v3SetChk('v3-surf', s0);
-        v3Panel('ciel'); r.photos = P.querySelectorAll('.v3v-card').length === 4 + Object.keys(SKY_PH).length;
+        v3Panel('ciel'); r.photos = /Relief réel/.test(P.textContent) && /Panorama importé/.test(P.textContent) && !/Paysages dessinés|Ciels photo/.test(P.textContent) && /Décor/.test(P.querySelector('.v3v-rail button.on').textContent);
         v3Panel('studio'); r.studio = stOn() && !!P.querySelector('.v3v-rail button.on') && /Studio/.test(P.querySelector('.v3v-rail button.on').textContent);
         v3Panel('aff'); r.frameOff = !stOn(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); r.closed = !v3PanelOpen();
-        // ciel photo : téléchargé (ici simulé), posé sur la bulle, paysage dessiné et sol masqués
-        const c = document.createElement('canvas'); c.width = 512; c.height = 256; const x = c.getContext('2d'); x.fillStyle = '#7ab'; x.fillRect(0, 0, 512, 128); x.fillStyle = '#585'; x.fillRect(0, 128, 512, 128); const blob = await new Promise(res => c.toBlob(res, 'image/png'));
-        const keepF = window.fetch; window.fetch = async (u) => /cdn\.polyhaven\.com\/asset_img\/primary\/alps_field/.test(u) ? new Response(blob, { status: 200 }) : Promise.reject(new Error('x'));
-        if (!v3Chk('v3-hz')) v3SetChk('v3-hz', true); v3HzType('ph:alps_field'); await (SKY_LOAD.alps_field || Promise.resolve()); await new Promise(res => setTimeout(res, 100)); window.fetch = keepF;
-        render3D(); r.sky = !!SKY_TEX.alps_field && V3.pano.visible && V3.pano.material.map === SKY_TEX.alps_field && !(V3.hz && V3.hz.visible) && V3.gnd.visible && !!V3.pano.material.alphaMap && V3.sky.visible;   // le ciel et les lointains de la photo, notre sol devant
-        v3HzType('montagne'); r.back = !V3.pano.visible;
-        // image HDR (RGBE) décodée
-        const hdr = []; const hd = '#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 8\n'; for (const ch of hd) hdr.push(ch.charCodeAt(0)); for (let y = 0; y < 2; y++) { hdr.push(2, 2, 0, 8); [200, 100, 50, 128].forEach(v => hdr.push(128 + 8, v)); }
-        const hc = rgbeToCanvas(new Uint8Array(hdr)), px = hc && hc.getContext('2d').getImageData(3, 1, 1, 1).data; r.hdr = !!hc && hc.width === 8 && px[0] > px[1] && px[1] > px[2];
         // balade : clic droit = pause, bulles ; une bulle coche / décoche ; reclic droit = reprise
         await momoFPS({ w: { x: 30 * mmToWorld(1000), y: -30 * mmToWorld(1000) } }); fpsPause({ clientX: 400, clientY: 300 }); const B = document.querySelectorAll('#fps-bub .fb'); r.bubbles = V3.fps.paused && B.length === 9 && /Studio/.test(B[8].title) && !!B[0].querySelector('svg') && ![...B].some(b => /Aberration/.test(b.title));
         const t0 = v3Chk('v3-surf'); fpsBubble(3); r.bubToggle = v3Chk('v3-surf') === !t0 && document.querySelectorAll('#fps-bub .fb').length === 9; fpsBubble(3);
         const z0 = V3.fps.pos.clone(); V3.fps.keys.KeyW = true; fpsStep(0.5); V3.fps.keys.KeyW = false; r.still = V3.fps.pos.distanceTo(z0) < 1e-6;
         fpsResume(); r.resume = !V3.fps.paused && !document.getElementById('fps-bub'); r.noBadge = !document.querySelector('.v3-fk') || getComputedStyle(document.querySelector('.v3-fk')).display === 'none'; fpsStop(); return r; });
-    t.eq('vue 3D : volet à onglets par Espace (affichage, ciel et paysage, outils, studio), plus de bandeau ; ciels photo réalistes ; balade : clic droit = pause et bulles d\'affichage', vv,
-        { open: true, band: true, toggle: true, photos: true, studio: true, frameOff: true, closed: true, sky: true, back: true, hdr: true, bubbles: true, bubToggle: true, still: true, resume: true, noBadge: true });
+    t.eq('vue 3D : volet à onglets par Espace (affichage, ciel et paysage, outils, studio), plus de bandeau ; onglet Décor (relief réel, panorama importé) ; balade : clic droit = pause et bulles d\'affichage', vv,
+        { open: true, band: true, toggle: true, photos: true, studio: true, frameOff: true, closed: true, bubbles: true, bubToggle: true, still: true, resume: true, noBadge: true });
 
     // ta photo de paysage : posée sur l'horizon, répétée en miroir, haut fondu dans le ciel, sol à sa couleur
     const hi = await ev(async () => { await open3D(); const c = document.createElement('canvas'); c.width = 800; c.height = 300; const x = c.getContext('2d'); x.fillStyle = '#3b82f6'; x.fillRect(0, 0, 800, 200); x.fillStyle = '#166534'; x.fillRect(0, 200, 800, 50); x.fillStyle = '#4ade80'; x.fillRect(0, 250, 800, 50);
@@ -155,8 +146,23 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         const keepF = window.fetch; let calls = 0; window.fetch = async (u) => { if (/altimetrie/.test(u)) { calls++; const n = decodeURIComponent(String(u).split('&lat=')[1] || '').split('|').length; return new Response(JSON.stringify({ elevations: Array.from({ length: n }, (_, k) => 800 + (k % 7) * 30) }), { status: 200 }); } return Promise.reject(new Error('x')); };
         await open3D(); realSet(true); await (REAL_LOAD || Promise.resolve()); await new Promise(res => setTimeout(res, 50)); window.fetch = keepF; render3D();
         let mesh = null; V3.root.traverse(o => { if (o.userData.real) mesh = o; }); const r = { calls: calls > 20, mesh: !!mesh && mesh.geometry.attributes.position.count === 41 * 144, far: V3.camera.far >= 12000, fog: !!(V3.scene.fog && V3.scene.fog.isRealFog), noHz: !(V3.hz && V3.hz.visible) && !V3.gnd.visible };
+        { const keepF2 = window.fetch; window.fetch = async (u) => { if (/altimetrie/.test(u)) { const n = decodeURIComponent(String(u).split('&lat=')[1] || '').split('|').length; return new Response(JSON.stringify({ elevations: Array.from({ length: n }, (_, k) => 800 + (k % 5) * 20) }), { status: 200 }); } return Promise.reject(new Error('x')); };
+          try { await asDB((st, rr) => { const q = st.delete(realSite().key + ':hd'); q.onsuccess = () => rr(true); q.onerror = () => rr(false); }); } catch (e) {} REAL_HD = null; await realLoadHD(); window.fetch = keepF2;
+          const rc = V3.camera.clone(); rc.updateMatrixWorld(true); V3.hq = { tree: 1, terr: 1, grass: 0, earth: false, realHD: true, rc }; try { build3DScene(); } finally { V3.hq = null; } let hd = null; V3.root.traverse(o => { if (o.userData.real) hd = o; });
+          r.hd = !!hd && hd.userData.hd && hd.geometry.attributes.position.count === 81 * 288; build3DScene(); let sd = null; V3.root.traverse(o => { if (o.userData.real) sd = o; }); r.sdBack = !!sd && !sd.userData.hd; }
+        { const c = document.createElement('canvas'); c.width = 400; c.height = 100; hzImgBuild(c); v3HzType('img'); r.excl1 = !realOn() && v3HzKind === 'img'; realSet(true); r.excl2 = realOn() && v3HzKind !== 'img'; }
         realSet(false); r.off = (() => { let k = 0; V3.root.traverse(o => { if (o.userData.real) k++; }); return k === 0 && !V3.scene.fog; })(); shapes = keep; tinCache = null; invalidateCache(); build3DScene(); render3D(); return r; });
-    t.eq('relief réel alentour : vrai terrain IGN jusqu\'à 12 km, photo aérienne, brume au loin ; s\'éteint proprement', rl, { calls: true, mesh: true, far: true, fog: true, noHz: true, off: true });
+    t.eq('relief réel alentour : vrai terrain IGN jusqu\'à 12 km, photo aérienne, brume au loin ; rechargé en haute définition pour le rendu ; exclusif avec le panorama importé ; s\'éteint proprement', rl, { calls: true, mesh: true, far: true, fog: true, noHz: true, hd: true, sdBack: true, excl1: true, excl2: true, off: true });
+
+    // écran de chargement : flou en fondu, logo dont le M tourne, barre autour du cercle en parts de couleurs, texte qui tourne ; phrases de randonneur pour la balade
+    const ld = await ev(async () => { await mcLoad.open('Import du fond de carte', ['Fond de carte', 'Terrain IGN', 'Routes']); mcLoad.set(0, 1); mcLoad.set('Terrain IGN', 0.5, 'Terrain IGN : altitudes… 50 %'); await new Promise(r => setTimeout(r, 600));
+        const el = document.getElementById('mc-load'), cs = getComputedStyle(el), segs = [...el.querySelectorAll('.ml-seg')], r = { shown: el.classList.contains('ml-in') && !el.querySelector('.ml-title, .ml-leg, .ml-step') && parseFloat(cs.opacity) > 0.9 && /blur/.test(cs.backdropFilter || cs.webkitBackdropFilter || ''),
+            segs: segs.length === 3 && new Set(segs.map(c => c.getAttribute('stroke'))).size === 3 && parseFloat(segs[0].style.strokeDasharray) > parseFloat(segs[1].style.strokeDasharray) && segs[2].style.opacity === '0',
+            text: /Terrain IGN/.test(el.querySelector('#ml-tp').textContent) && getComputedStyle(el.querySelector('.ml-turn')).animationName === 'ml-turn', m3d: getComputedStyle(el.querySelector('.ml-m svg')).animationName === 'ml-m', click: cs.pointerEvents === 'none' };
+        await mcLoad.close(); await new Promise(res => setTimeout(res, 600)); r.gone = !document.getElementById('mc-load') && !mcLoad.on;
+        await mcLoad.open('Balade Momo', ['Balade Momo'], { fun: true }); r.fun = ML_FUN.some(f => mcLoad.txt.startsWith(f)); mcLoad.min = 0; await mcLoad.close();
+        await new Promise(res => setTimeout(res, 600)); let seen = 0; const ko = mcLoad.open.bind(mcLoad); mcLoad.open = function () { seen++; return ko.apply(this, arguments); }; close3D(); await open3D(); mcLoad.open = ko; r.open3D = seen === 1; await mcLoad.close(); return r; });
+    t.eq('écran de chargement : flou en fondu, M en 3D, barre en parts de couleurs autour du cercle, texte tournant, rien en dessous ; phrases de balade ; ouvert par la vue 3D', ld, { shown: true, segs: true, text: true, m3d: true, click: true, gone: true, fun: true, open3D: true });
 
     // carto : système de coordonnées Auto par défaut, zone CC selon la latitude du lieu
     const cr = await ev(() => ({ def: bmSettings.crs, gap: crsPrefP(44.56).code, paris: crsPrefP(48.85).code, nice: crsPrefP(43.7).code, l93: (bmSettings.crs = 'L93', crsPrefP(44.56).code), back: (bmSettings.crs = 'auto', 1),

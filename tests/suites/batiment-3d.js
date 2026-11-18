@@ -11,21 +11,18 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     t.ok('aucun tracé de plan dessiné par-dessus les volumes (toit, murs)', r.segs === 0, JSON.stringify(r));
     // rendu naturel et ciel
     await ev(() => { ['v3-nat', 'v3-hz'].forEach(id => { if (!document.getElementById(id).checked) document.querySelector('[data-for="' + id + '"]').click(); }); v3Sky(); render3D(); }); await H.wait(800);   // rendu naturel et ciel (allumés par défaut)
-    t.ok('ciel et paysage affichés avec le bouton Paysage', await ev(() => !!(V3.sky && V3.sky.visible)));
+    t.ok('ciel affiché', await ev(() => !!(V3.sky && V3.sky.visible)));
     const sun = await ev(() => { v3SetHour(9); const a = V3.sun.position.clone(); v3SetHour(18); const b = V3.sun.position.clone(); return [a.x, b.x]; });
     t.ok('le soleil suit l\'heure (matin à l\'est, soir à l\'ouest)', sun[0] > 0 && sun[1] < 0, JSON.stringify(sun));
-    const hz1 = await ev(() => V3.hz && V3.hz.visible && V3.hz.userData.seed); await ev(() => v3NewHorizon()); await H.wait(200);
-    t.ok('horizon affiché, et un nouveau à la demande', hz1 && await ev((a) => V3.hz.userData.seed !== a, hz1), hz1);
-    const kinds = await ev(() => ['montagne', 'ville', 'plaine', 'village'].map(k => { v3HzType(k); return V3.hz.userData.key.split(':')[0] + (V3.hz.userData.lights ? '+nuit' : ''); }));
-    t.eq('horizon : quatre paysages (la ville et le village s\'éclairent la nuit)', kinds, ['montagne', 'ville+nuit', 'plaine', 'village+nuit']);
+    t.ok('plus de paysage dessiné : le ciel seul (le décor vient du relief réel ou d\'un panorama importé)', await ev(() => !(V3.hz && V3.hz.visible) && V3.sky.visible));
     const pano = await ev(async () => { const c = document.createElement('canvas'); c.width = 512; c.height = 256; c.getContext('2d').fillRect(0, 0, 512, 256); const b = await new Promise(r => c.toBlob(r));
-        const ok = await v3PanoFromBlob(b, false); stPano.on = true; await studioOpen(); render3D(); const r = [ok, V3.pano.visible, V3.hz.visible, V3.gnd.visible]; studioClose(); stPano.on = false; return r; });
+        const ok = await v3PanoFromBlob(b, false); stPano.on = true; await studioOpen(); render3D(); const r = [ok, V3.pano.visible, !!(V3.hz && V3.hz.visible), V3.gnd.visible]; studioClose(); stPano.on = false; return r; });
     t.eq('photo 360° (studio photo) : remplace ciel et horizon', pano, [true, true, false, false]);
     const cyl = await ev(async () => { const c = document.createElement('canvas'); c.width = 1300; c.height = 200; c.getContext('2d').fillRect(0, 0, 1300, 200); const b = await new Promise(r => c.toBlob(r));
         await v3PanoFromBlob(b, false); stPano.on = true; await studioOpen(); render3D(); const r = [V3.pano.visible, V3.panoC.visible]; studioClose(); stPano.on = false; return r; });
     t.eq('panorama de téléphone (très allongé) : posé sur un cylindre, pas étiré sur une bulle', cyl, [false, true]);
     await ev(() => { document.querySelector('[data-for="v3-hz"]').click(); }); await H.wait(300);
-    t.ok('ciel et horizon masqués', await ev(() => !V3.sky.visible && !V3.hz.visible));
+    t.ok('ciel masqué', await ev(() => !V3.sky.visible && !(V3.hz && V3.hz.visible)));
     await ev(() => { document.querySelector('[data-for="v3-nat"]').click(); close3D(); });
     // façade : la vue de côté est rendue par le moteur 3D
     await ev(() => setView2D(0, 0)); await H.wait(1500); await p.waitForFunction(() => !view2dAnim, null, { timeout: 15000 }); await H.wait(300);
@@ -36,7 +33,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
     // en plan, les façades sont en couleurs unies : les textures sont réservées au rendu 3D
     const nt = await ev(() => { let n = 0; V3.root.traverse(o => [].concat(o.material || []).forEach(m => { if (m.map || (o.isMesh && m.colorWrite !== false)) n++; })); return n; });
     t.eq('façade en plan : filaire seul, ni couleur ni texture', nt, 0);
-    const nt2 = await ev(async () => { open3D(); await new Promise(r => setTimeout(r, 800)); let n = 0; V3.root.traverse(o => [].concat(o.material || []).forEach(m => { if (m.map) n++; })); close3D(); return n; });
+    const nt2 = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 200)); let n = 0; V3.root.traverse(o => [].concat(o.material || []).forEach(m => { if (m.map) n++; })); close3D(); return n; });
     t.ok('rendu 3D : les textures reviennent', nt2 > 0, nt2);
     await ev(() => setView2D(0, 90));
 
