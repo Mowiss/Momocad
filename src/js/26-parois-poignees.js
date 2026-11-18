@@ -185,7 +185,8 @@
             let o = b0; const bands = w.layers.map(l => { const r = { l, oa: o * k, ob: (o + (+l.e || 0)) * k, o0: o }; o += +l.e || 0; return r; });
             const segsN = closed ? P.length : P.length - 1, seg = [];
             for (let i = 0; i < segsN; i++) seg.push([]);
-            bands.forEach((b, bi) => { const S = wallChainGeomOff(P, closed, b.oa, b.ob); S.forEach((g, i) => { if (b.l.mat !== 'air') seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: b.l.mat }] }), loops: [[g.A0, g.A1, g.B1, g.B0].map(q => ({ x: q.x, y: q.y }))] }, b.l.mat));
+            const cxd = { name: w.cx, layers: w.layers.map(l => [l.mat, +l.e]), studs: w.studs ? Object.assign({}, w.studs) : null, align: w.align || 'gauche', c: closed ? 1 : 0 };
+            bands.forEach((b, bi) => { const S = wallChainGeomOff(P, closed, b.oa, b.ob); S.forEach((g, i) => { if (b.l.mat !== 'air') seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: b.l.mat }] }), loops: [[g.A0, g.A1, g.B1, g.B0].map(q => ({ x: q.x, y: q.y }))], cxB: bi, cxS: i, cxd: JSON.parse(JSON.stringify(cxd)) }, b.l.mat));
                 seg[i].push(ln(g.A0, g.A1, b.l.mat)); if (bi === bands.length - 1) seg[i].push(ln(g.B0, g.B1, b.l.mat)); }); });
             // bouts : en travers de toute l'épaisseur, au début et à la fin d'une chaîne ouverte
             const all = wallChainGeomOff(P, closed, bands[0].oa, bands[bands.length - 1].ob); if (!closed && all.length) { seg[0].push(ln(all[0].A0, all[0].B0, bands[0].l.mat)); const L = all[all.length - 1]; seg[seg.length - 1].push(ln(L.A1, L.B1, bands[0].l.mat)); }
@@ -194,6 +195,27 @@
                 const T = []; for (let t = sw / 2; t <= L - sw / 2 + 1e-9; t += sp) T.push(t); if (!T.length || L - sw / 2 - T[T.length - 1] > sw) T.push(L - sw / 2);
                 T.forEach(t => { const q = (tt, oo) => ({ x: a.x + ux * tt + nx * oo, y: a.y + uy * tt + ny * oo }); seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: S.mat }] }), loops: [[q(t - sw / 2, sb.oa), q(t + sw / 2, sb.oa), q(t + sw / 2, sb.ob), q(t - sw / 2, sb.ob)]], stud: 1 }, S.mat)); }); }
             seg.forEach(x => out.push(...x)); out.last = seg[seg.length - 1] || []; return out; }
+        /* PAROI COMPLEXE POSÉE : retrouver son tracé et sa composition depuis ses hachures (elles suivent déplacements, rotations, symétries), puis la refaire avec une autre composition */
+        function wallCxRecover(gid) { const G = shapes.filter(x => x.groupId === gid && x.wallCx), Hs = G.filter(x => x.type === 'hatch' && !x.stud && x.loops && x.loops[0] && x.loops[0].length === 4); if (!Hs.length) return null;
+            let def = (Hs.find(x => x.cxd) || {}).cxd; if (def) def = JSON.parse(JSON.stringify(def));
+            else { const d = wallCxAll().find(x => x.name === G[0].wallCx); if (!d) return null; def = { name: d.name, layers: JSON.parse(JSON.stringify(d.layers)), studs: d.studs ? Object.assign({}, d.studs) : null, align: 'gauche' };
+                const nb = d.layers.filter(l => l[0] !== 'air').length, bi0 = d.layers.findIndex(l => l[0] !== 'air'); if (!nb || Hs.length % nb) return null; Hs.forEach((h, j) => { h.cxB = j % nb === 0 ? bi0 : -1; h.cxS = Math.floor(j / nb); }); }
+            const bmin = Math.min(...Hs.filter(h => h.cxB >= 0).map(h => h.cxB)), H0 = Hs.filter(h => h.cxB === bmin).sort((a, b) => a.cxS - b.cxS); if (!H0.length) return null;
+            const k = mmToWorld(1), tool = wallCxTool(def); tool.align = def.align || 'gauche'; let o = wallBase(tool); for (let i = 0; i < bmin; i++) o += +def.layers[i][1] || 0; const oa = o * k;
+            const L = H0.map(h => { const [A0, A1, B1, B0] = h.loops[0], len = Math.hypot(A1.x - A0.x, A1.y - A0.y) || 1, u = { x: (A1.x - A0.x) / len, y: (A1.y - A0.y) / len }; return { A0, A1, B0, u, n: { x: u.y, y: -u.x } }; });
+            const flip = ((L[0].B0.x - L[0].A0.x) * L[0].n.x + (L[0].B0.y - L[0].A0.y) * L[0].n.y) < 0; L.forEach(l => { if (flip) l.n = { x: -l.n.x, y: -l.n.y }; l.p = { x: l.A0.x - l.n.x * oa, y: l.A0.y - l.n.y * oa }; });
+            const closed = def.c !== undefined ? !!def.c : L.length > 2 && Math.hypot(L[L.length - 1].A1.x - L[0].A0.x, L[L.length - 1].A1.y - L[0].A0.y) < 2 * k;
+            const meet = (a, b) => { const den = a.u.x * b.u.y - a.u.y * b.u.x; if (Math.abs(den) < 1e-9) return { x: b.p.x, y: b.p.y }; const t = ((b.p.x - a.p.x) * b.u.y - (b.p.y - a.p.y) * b.u.x) / den; return { x: a.p.x + a.u.x * t, y: a.p.y + a.u.y * t }; };
+            const P = []; if (closed) { for (let i = 0; i < L.length; i++) P.push(meet(L[(i - 1 + L.length) % L.length], L[i])); }
+            else { P.push({ x: L[0].p.x, y: L[0].p.y }); for (let i = 1; i < L.length; i++) P.push(meet(L[i - 1], L[i])); const e = L[L.length - 1]; P.push({ x: e.A1.x - e.n.x * oa, y: e.A1.y - e.n.y * oa }); }
+            if (flip) P.reverse(); return { P, closed, def, G }; }
+        function wallCxRebuild(gid, def) { const R = wallCxRecover(gid); if (!R) return null; const w = wallCxTool(def), s0 = R.G[0]; w.align = def.align || R.def.align || 'gauche';
+            const ops = []; R.G.forEach(x => (x.openings || []).forEach(o => ops.push(o))); const at = shapes.indexOf(s0);
+            const N = wallChainShapesCx(R.P, w, R.closed, gid, s0.wz); N.forEach(x => { ['bid', 'lvl', 'zk'].forEach(f => { if (s0[f] !== undefined) x[f] = s0[f]; }); x.lvs = 1; });
+            const old = new Set(R.G); shapes = shapes.filter(x => !old.has(x)); shapes.splice(Math.max(0, Math.min(at, shapes.length)), 0, ...N);
+            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => { const m = { x: (o.a.x + o.b.x) / 2, y: (o.a.y + o.b.y) / 2 }; let best = null, bd = Infinity; Hn.forEach(h => { const Q = h.loops[0]; if (bd < 0) return; if (pointInPolygon(m.x, m.y, Q)) { bd = -1; best = h; return; } const d = distToPoly(m.x, m.y, Q); if (d < bd) { bd = d; best = h; } });
+                if (best) { best.openings = (best.openings || []).concat([o]); try { o.pts = openingPts(best, o.a, o.b); } catch (e) {} } });
+            return N; }
         // géométrie d'une chaîne pour une bande [oa, ob] (monde, depuis le tracé, vers la gauche) : onglets aux angles
         const wallChainGeomOff = (P, closed, oa, ob) => wallChainGeomRaw(P, closed, oa, ob);
         // FUSION DES PAROIS : en fin de tracé, les parois de même matériau (même calque, mêmes niveaux) qui se touchent ou se chevauchent

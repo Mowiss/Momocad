@@ -181,7 +181,7 @@
         function selKind() {
             const S = selectedShapes, one = S.length === 1 ? S[0] : null;
             const wallG = S.length && S.every(x => x.wallMat);
-            if (wallG) { const g = new Set(S.map(x => x.groupId)).size, m = WALL_MATS[S[0].wallMat]; return { k: 'wall', t: (g > 1 ? g + ' murs' : 'Mur') + ' — ' + (m ? m.name : 'paroi') }; }
+            if (wallG) { const g = new Set(S.map(x => x.groupId)).size, m = WALL_MATS[S[0].wallMat]; if (g === 1 && S.every(x => x.wallCx)) return { k: 'wall', t: 'Paroi complexe — ' + S[0].wallCx }; return { k: 'wall', t: (g > 1 ? g + ' murs' : 'Mur') + ' — ' + (m ? m.name : 'paroi') }; }
             if (S.length && S.every(x => x.groupId) && new Set(S.map(x => x.groupId)).size === 1) return { k: 'block', t: 'Bloc' + (S[0].block ? ' « ' + S[0].block + ' »' : '') + ' (' + S.length + ' objets)' };
             if (!one) return { k: S.every(x => x.type === 'point') ? 'points' : 'multi', t: S.length + ' objets' + (S.every(x => x.type === 'point') ? ' (points topo)' : '') };
             if (one.type === 'cline') return { k: 'cline', t: 'Trait de construction (sans calque)' };
@@ -265,6 +265,30 @@
             const one = selectedShapes.length === 1 ? selectedShapes[0] : null; if (!SOL_H(one)) return; const T = document.getElementById('sp-ztop'), B = document.getElementById(one.type === 'circle' ? 'sp-z' : 'sp-zall'); if (!T || !B) return;
             const H = spSolH(one), nb = spNum(B.id), nt = spNum('sp-ztop');
             if (id === 'sp-ztop') { if (isFinite(nt)) B.value = fmtZ(Math.round(nt * 1000 - H)); } else T.value = isFinite(nb) ? fmtZ(Math.round(nb * 1000 + H)) : ''; spFigRedraw(); }, true);
+        /* fenêtre Y d'une paroi complexe : sa composition se modifie, la paroi est refaite sur le même tracé (hauteur, étage et ouvertures gardés) */
+        function spCxHTML(D) { const MAT = Object.keys(WALL_MATS).filter(m => !['sable', 'gnt', 'pierre', 'terre'].includes(m)), sel = (on, opts, v, st) => `<select class="mf-in mf-sel" style="${st || ''}" onchange="${on}">${opts.map(([a, b]) => `<option value="${a}" ${String(a) === String(v) ? 'selected' : ''}>${MF.esc(b)}</option>`).join('')}</select>`;
+            const num = (on, v, w) => `<input type="text" inputmode="decimal" class="mf-in" style="width:${w || 58}px" value="${v}" onchange="${on}">`, St = D.studs;
+            let h = MF.row('Remplacer par', sel("spCxSet('preset',0,this.value)", [['', '—']].concat(wallCxAll().map((d, i) => [i, d.name + ' (' + d.layers.reduce((a, l) => a + (+l[1] || 0), 0) + ' mm)'])), ''), '');
+            h += MF.row('Alignement sur le tracé', sel("spCxSet('align',0,this.value)", [['gauche', 'face gauche'], ['axe', 'axe'], ['droite', 'face droite']], D.align || 'gauche'), '');
+            { const T = D.layers.reduce((a, l) => a + (+l[1] || 0), 0), W = 340, k = (W - 20) / Math.max(T, 1); let x = 10, g = ''; D.layers.forEach(([mt, e], i) => { const M = WALL_MATS[mt] || {}, w = Math.max(3, e * k); g += `<rect x="${x.toFixed(1)}" y="6" width="${w.toFixed(1)}" height="40" fill="${M.line || '#9ca3af'}" fill-opacity=".35" stroke="${M.line || '#9ca3af'}" stroke-width="1.2"/>`;
+                if (St && St.li === i) for (let yy = 10; yy < 46; yy += 12) g += `<rect x="${(x + 1).toFixed(1)}" y="${yy}" width="${Math.max(2, w - 2).toFixed(1)}" height="4" fill="${(WALL_MATS[St.mat] || {}).line || '#cbd5e1'}"/>`; x += w; });
+              h += `<svg viewBox="0 0 ${W} 52" width="100%" style="display:block;margin:4px 0 8px">${g}</svg>`; }
+            h += MF.sub('Couches, de la face gauche du tracé à la face droite');
+            D.layers.forEach((l, i) => { h += `<div class="mf-row"><span class="mf-l" style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:18px;border-radius:3px;background:${(WALL_MATS[l[0]] || {}).line || '#9ca3af'}"></span>${sel(`spCxSet('mat',${i},this.value)`, MAT.map(m => [m, WALL_MATS[m].name]), l[0], 'width:200px;max-width:none')}</span><span class="mf-c">${num(`spCxSet('e',${i},this.value)`, l[1])}<span class="mf-u">mm</span><button type="button" class="sp-act" title="Monter" onclick="spCxSet('up',${i})" ${i ? '' : 'disabled'}>↑</button><button type="button" class="sp-act" title="Retirer la couche" onclick="spCxSet('del',${i})" ${D.layers.length < 2 ? 'disabled' : ''}>✕</button></span></div>`; });
+            h += MF.acts([['＋ Couche', "spCxSet('add')", 'Ajoute une couche sur la face droite']]);
+            h += `<div class="mf-row"><label class="mf-ck"><input type="checkbox" ${St ? 'checked' : ''} onchange="spCxSet('studs',0,this.checked)"><span>Montants</span></label><span class="mf-c"></span></div>`;
+            if (St) h += MF.row('Dans la couche', sel("spCxSet('sli',0,this.value)", D.layers.map((l, i) => [i, (i + 1) + '. ' + WALL_MATS[l[0]].name]), St.li, 'width:200px;max-width:none'), '') + MF.row('Matière', sel("spCxSet('smat',0,this.value)", [['metal', 'métal'], ['bois', 'bois']], St.mat), '')
+                + MF.row('Largeur', num("spCxSet('sw',0,this.value)", St.w), 'mm') + MF.row('Entraxe (un tous les…)', num("spCxSet('ssp',0,this.value)", St.sp), 'mm');
+            return h + MF.hint('Chaque changement refait la paroi sur le même tracé : hauteur, étage, portes et fenêtres sont gardés.'); }
+        function spCxSet(k, i, v) { const one = selectedShapes.find(x => x.wallCx); if (!one) return; const gid = one.groupId, R = wallCxRecover(gid); if (!R) return; const D = R.def, num = (x) => Math.max(0, parseFloat(String(x).replace(',', '.')) || 0);
+            if (k === 'preset') { const d = wallCxAll()[+v]; if (!d || v === '') return; D.name = d.name; D.layers = JSON.parse(JSON.stringify(d.layers)); D.studs = d.studs ? Object.assign({}, d.studs) : null; }
+            else if (k === 'align') D.align = v; else if (k === 'mat') D.layers[i][0] = v; else if (k === 'e') D.layers[i][1] = Math.max(1, num(v)); else if (k === 'add') D.layers.push(['placo', 13]);
+            else if (k === 'del' && D.layers.length > 1) { D.layers.splice(i, 1); if (D.studs && D.studs.li >= D.layers.length) D.studs.li = D.layers.length - 1; }
+            else if (k === 'up' && i > 0) { const t = D.layers[i - 1]; D.layers[i - 1] = D.layers[i]; D.layers[i] = t; }
+            else if (k === 'studs') D.studs = v ? { li: Math.min(1, D.layers.length - 1), mat: 'metal', w: 35, sp: 600 } : null;
+            else if (D.studs) { if (k === 'sli') D.studs.li = +v; if (k === 'smat') D.studs.mat = v; if (k === 'sw') D.studs.w = Math.max(5, num(v)); if (k === 'ssp') D.studs.sp = Math.max(D.studs.w * 2, num(v)); }
+            if (k !== 'preset' && k !== 'align') D.name = /\(modifié\)$/.test(D.name) ? D.name : D.name + ' (modifié)';
+            const N = wallCxRebuild(gid, D); if (!N) return; clearTimeout(spLiveT); selectedShapes = N; invalidateCache(); saveState(); draw(); refresh3D(); spLiveCommit(); openSelectionParamModal(); }
         function spFigMount() {
             const one = selectedShapes.length === 1 ? selectedShapes[0] : null;
             document.querySelectorAll('#selparam-modal details.sp-ch').forEach(d => { const k = d.dataset.k, F = SP_FIG[k]; if (!F || d.querySelector('.sp-dia')) return; const slots = F.slots.filter(([id]) => { const e = document.getElementById(id); return e && d.contains(e) && e.offsetParent !== null || (e && d.contains(e) && !e.closest('.hidden')); }); if (!slots.length) return;
@@ -321,6 +345,7 @@
                     + MF.hint('Les deux niveaux remplis : le mur est extrudé dans la vue 3D. Champs vidés : mur 2D seulement.'), true, hasZ(wz.t) ? zv(wz.b) + ' → ' + zv(wz.t) + ' m' : '2D');
                 { const L = []; selectedShapes.forEach(x => (x.openings || []).forEach((o, j) => L.push([(o.kind === 'porte' ? '🚪 Porte ' : o.kind === 'baie' ? '⛩ Baie libre ' : '🪟 Fenêtre ') + nfr(Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1), 2) + ' × ' + nfr((o.h || 0) / 1000, 2) + ' m', 'spOpenEdit(' + shapes.indexOf(x) + ',' + j + ')', 'Modifier, décaler ou supprimer cette ouverture'])));
                   if (L.length) h += spChapter('wallops', '▯', 'Portes et fenêtres', MF.acts(L) + MF.hint('Un clic sur une ouverture, dans le plan, l\'ouvre aussi. Elles suivent le mur quand on le déplace, le tourne ou le copie.'), true, L.length + ''); }
+                { const gids = new Set(selectedShapes.map(x => x.groupId)), R = gids.size === 1 && selectedShapes.every(x => x.wallCx) ? wallCxRecover([...gids][0]) : null; if (R) h += spChapter('wallcx', '▤', 'Complexe', spCxHTML(R.def), true, R.def.layers.reduce((a, l) => a + (+l[1] || 0), 0) + ' mm'); }
                 h += spChapter('wallact', '⚙', 'Actions', MF.acts([['Éclater le mur', 'closeSelectionParamModal();explodeOrUngroup()', 'Défait le bloc : tronçons et hachures redeviennent indépendants (pour recouper les angles)'], ['Vue 3D', 'closeSelectionParamModal();open3D()']]), false);
             } else if (one && ['dim', 'dimr', 'dim-angle'].includes(one.type)) {   // cotes : texte personnalisé
                 const v = one.type === 'dim' ? (() => { const g = dimGeom(one); return g ? calculateRealDistance(g.dist) : ''; })() : one.type === 'dimr' ? (() => { const g = t2DimRGeom(one); return g ? t2DimRText(one, g.r) : ''; })() : '';

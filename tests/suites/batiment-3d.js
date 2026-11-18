@@ -696,4 +696,17 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('paroi sans hauteur remise à la hauteur de son étage : visible en 3D (ouverture du fichier et dessin hors contour)', wzr, { load: true, toast: true, mesh: true, outside: true });
     t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true });
+    // paroi complexe posée : Y modifie sa composition ; refaite sur le même tracé (même après déplacement et symétrie), ouvertures et hauteur gardées
+    const cxy = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), P = (R) => JSON.stringify(R.P.map(q => [+(q.x / m).toFixed(3), +(-q.y / m).toFixed(3)]));
+        startWallCx(WALL_CX[0]); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallAddTo(pt(6, 4).x, pt(6, 4).y); wallChainEnd(); setMode('select-box');
+        const G = () => shapes.filter(x => x.wallCx), gid = G()[0].groupId, r = { path: P(wallCxRecover(gid)) === '[[0,0],[6,0],[6,4]]' };
+        const h = G().find(x => x.type === 'hatch' && !x.stud); h.openings = [{ a: pt(2, 0), b: pt(3, 0), kind: 'porte', sill: 0, h: 2150, pts: openingPts(h, pt(2, 0), pt(3, 0)), layerId: h.layerId }];
+        G().forEach(x => { if (x.loops) x.loops.forEach(L => L.forEach(q => { q.x += 10 * m; })); if (x.type === 'line') { x.x1 += 10 * m; x.x2 += 10 * m; } (x.openings || []).forEach(o => { o.a.x += 10 * m; o.b.x += 10 * m; }); });
+        r.moved = P(wallCxRecover(gid)) === '[[10,0],[16,0],[16,4]]';
+        selectedShapes = G(); openSelectionParamModal(); await new Promise(res => setTimeout(res, 300)); r.tab = !!document.querySelector('#selparam-modal details[data-k=wallcx]');
+        spCxSet('e', 1, '100'); const R = wallCxRecover(gid); r.edit = R.def.layers[1][1] === 100 && P(R) === '[[10,0],[16,0],[16,4]]' && G().reduce((a, x) => a + (x.openings || []).length, 0) === 1 && G().every(x => x.wz) && selectedShapes.length === G().length;
+        const band0 = () => JSON.stringify(G().filter(x => x.type === 'hatch' && x.cxB === 0).map(x => x.loops[0].map(q => [+(q.x / m).toFixed(3), +(q.y / m).toFixed(3)])).flat().sort());
+        G().forEach(x => { if (x.loops) x.loops.forEach(L => L.forEach(q => { q.y = -q.y; })); if (x.type === 'line') { x.y1 = -x.y1; x.y2 = -x.y2; } }); const b0 = band0(); spCxSet('e', 1, '46'); r.mirror = band0() === b0;
+        closeSelectionParamModal(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('paroi complexe : Y modifie sa composition, refaite sur le même tracé (déplacée, symétrisée), ouvertures et hauteur gardées', cxy, { path: true, moved: true, tab: true, edit: true, mirror: true });
 } };
