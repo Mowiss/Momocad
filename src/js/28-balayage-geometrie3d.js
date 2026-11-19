@@ -321,6 +321,10 @@
                 let g = null;
                 const holePaths = holesOf(so).map(h => new THREE.Path(h.map(q => { const r = P(q.x, q.y); return new THREE.Vector2(r.x, r.y); })));
                 if (['tube', 'tcone', 'pyr', 'torus', 'rev', 'roof'].includes(k)) { const m = solidMesh3D(so, P, z0, Hm, exag, new THREE.MeshBasicMaterial(), ext); g = m ? m.geometry : null; }
+                else if (k === 'box' && slabTremies(so).length) { /* dalle percée par la trémie d'un escalier : contour moins trémies (et trous) */
+                    const ring = (A) => A.map(q => [q.x, q.y]); let MP = [[ring(so.points), ...holesOf(so).map(ring)]]; try { MP = polygonClipping.difference(MP, ...slabTremies(so).map(p => [p[0]])); } catch (e) {}
+                    const shapes3 = MP.map(Pg => { const toV = (R) => R.map(([x, y]) => { const r = P(x, y); ext(r); return new THREE.Vector2(r.x, r.y); }); const sh = new THREE.Shape(toV(Pg[0])); Pg.slice(1).forEach(h => sh.holes.push(new THREE.Path(toV(h)))); return sh; });
+                    g = new THREE.ExtrudeGeometry(shapes3, { depth: Math.max(Hm, 1e-3), bevelEnabled: false }); g.translate(0, 0, z0); }
                 else if (k === 'box' || (k === 'cyl' && holePaths.length)) { const shp = new THREE.Shape((k === 'cyl' ? pierceRing(so) : so.points).map(q => { const r = P(q.x, q.y); ext(r); return new THREE.Vector2(r.x, r.y); })); holePaths.forEach(hp => shp.holes.push(hp));
                     g = new THREE.ExtrudeGeometry(shp, { depth: Math.max(Hm, 1e-3), bevelEnabled: false }); g.translate(0, 0, z0); }
                 else { const c = P(so.x, so.y), r = worldToMm(so.r) / 1000; ext({ x: c.x - r, y: c.y - r }); ext({ x: c.x + r, y: c.y + r });

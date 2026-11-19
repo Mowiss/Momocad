@@ -150,7 +150,7 @@
             const showSurf = document.getElementById('v3-surf').checked, showBg = document.getElementById('v3-bg').checked;
             const root = new THREE.Group(); V3.root = root; V3.labels = []; V3.snaps = []; V3.exag = exag; V3.flat = v3Flat;
             const SN = new Map(), snap = (x, y, z, k) => { const key = Math.round(x * 1000) + ',' + Math.round(y * 1000) + ',' + Math.round(z * 1000); if (!SN.has(key) || (k === 'end' && SN.get(key).k !== 'end')) SN.set(key, { v: new THREE.Vector3(x, y, z), k }); };
-            const vis = shapes.filter(s => { if (s.brush || lvlHidden(s) || s.secOf || s.secMark || s.cutDef) return false; const l = layers.find(x => x.id === (s.layerId || 'layer-0')); return !l || l.visible !== false; });
+            const vis = shapes.filter(s => { if (s.brush || s.secOf || s.secMark || s.cutDef) return false; const l = layers.find(x => x.id === (s.layerId || 'layer-0')); return !l || l.visible !== false; });
             // altitudes et étendue
             const zs = [], P = (wx, wy) => ({ x: worldToMm(wx) / 1000, y: -worldToMm(wy) / 1000 });
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

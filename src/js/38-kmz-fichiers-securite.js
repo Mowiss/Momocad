@@ -373,7 +373,7 @@
             lvls = Array.isArray(data.levels) && data.levels.length ? data.levels : null; lvlsGlobal = null; bldActId = null; lvlAct = 'rdc'; if (lvlOn) lvlToggle(false);
             if (data.talus) { cubState.talus = data.talus.on !== false; cubState.kR = data.talus.kR || '3/2'; cubState.kD = data.talus.kD || '1/1'; }
             pluvioNote = data.pluvio || null; mailNote = data.maill || null;
-            shapes = data.shapes; lvlMarkAll(); if (lvls) lvlChain(); markZKnown(); lightenTalusLimits(shapes); MMC_LOAD_FIX.walls = wallBordersRepair(); MMC_LOAD_FIX.bld = bldRepair(); MMC_LOAD_FIX.bsol = bldSolidRepair(); MMC_LOAD_FIX.wz = wallWzRepair(); wallBidRepair(); selectedShapes = []; shapesHistory = []; historyStep = -1;
+            shapes = data.shapes; lvlMarkAll(); if (lvls) lvlChain(); markZKnown(); lightenTalusLimits(shapes); MMC_LOAD_FIX.walls = wallBordersRepair(); MMC_LOAD_FIX.bld = bldRepair(); if (shapes.some(x => x.stair2)) try { loadPolyClip().then(() => { invalidateCache(); draw(); }, () => {}); } catch (e) {} MMC_LOAD_FIX.bsol = bldSolidRepair(); MMC_LOAD_FIX.wz = wallWzRepair(); wallBidRepair(); selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI();
             if (data.view && data.view.zoom > 0) {
                 camera.zoom = data.view.zoom;

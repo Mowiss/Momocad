@@ -45,6 +45,18 @@
                 return R; };
             const gc = S.gc || 'aucun', rails = []; if (gc === 'gauche' || gc === 'deux') rails.push(rail(ob - mmToWorld(40))); if (gc === 'droite' || gc === 'deux') rails.push(rail(oa + mmToWorld(40)));
             return { z0, z1, n, h, g, T, nl, seg, Q, treads, lands, risers, rails, need: worldToMm(need) / 1000, have: worldToMm(have) / 1000, short: worldToMm(short) / 1000, oa, ob, oc, pt }; }
+        /* clic dans l'emprise d'un escalier (pas seulement sur son tracé) : il passe avant la dalle ou le sol dessous */
+        function st2At(wx, wy) { for (let i = shapes.length - 1; i >= 0; i--) { const s = shapes[i]; if (!s.stair2 || lvlOff2D(s)) continue; const l = layers.find(x => x.id === (s.layerId || 'layer-0')); if (l && (l.visible === false || l.locked)) continue;
+                const G = st2Geo(s); if (!G) continue; if (G.Q.some(q => q && pointInPolygon(wx, wy, [q.A0, q.A1, q.B1, q.B0])) || G.treads.some(t => pointInPolygon(wx, wy, t.poly))) return s; } return null; }
+        /* TRÉMIE : là où l'échappée sous la dalle du dessus ferait moins de 2 m, la dalle est ouverte ; anneaux [x, y] en coordonnées du plan, déjà réunis */
+        const ST2_ECH = 2000;
+        function st2Tremie(s, soffit) { const G = st2Geo(s); if (!G || !window.polygonClipping) return []; const lim = soffit - ST2_ECH, R = (P) => [P.map(q => [q.x, q.y])];
+            const parts = G.treads.filter(t => t.z > lim).map(t => R(t.poly)).concat(G.lands.filter(L => !L.top && L.z > lim).flatMap(L => L.polys.map(R))); if (!parts.length) return [];
+            try { return polygonClipping.union(...parts); } catch (e) { return parts; } }
+        /* trémies qui percent une dalle : escaliers dont l'arrivée est au dessus de cette dalle (à 40 cm près), découpées sur son contour */
+        function slabTremies(so) { if (!so || !so.solid || so.solid.kind !== 'box' || so.type !== 'poly' || so.stair2 || !window.polygonClipping) return []; const zb = so.points[0].z; if (!hasZ(zb)) return []; const zt = zb + (so.solid.H || 0);
+            const ring = [so.points.map(q => [q.x, q.y])], out = []; shapes.forEach(s => { if (!s.stair2 || (so.bid && s.bid && so.bid !== s.bid)) return; const Z = st2Z(s); if (!(Math.abs(zt - Z.z1) < 400 && zb < Z.z1)) return;
+                const T = st2Tremie(s, zb); if (!T.length) return; try { out.push(...polygonClipping.intersection(ring, T)); } catch (e) {} }); return out; }
         function st2Make(P) { const L = st2LevelsAt(P[0]); if (L.err) { updateCommandMessageText('ESCALIER D\'ÉTAGE : ' + L.err + '.'); return null; }
             const s = { type: 'poly', open: true, layerId: ensureLayer('Escaliers', '#d6c7a1'), points: P.map(q => ({ x: q.x, y: q.y })), hatch: false, zk: 1, name: 'Escalier', lvs: 1, lvl: L.lo.id,
                 stair2: Object.assign(JSON.parse(JSON.stringify(st2Opt)), { lo: L.lo.id, hi: L.hi.id, z0: L.lo.z, z1: L.hi.z }) };
@@ -52,7 +64,7 @@
         function st2Msg(s) { const G = st2Geo(s); if (!G) return 'ESCALIER : étages introuvables.'; const S = s.stair2, B = blondel(G.h, S.g);
             return 'ESCALIER : ' + G.n + ' marches de ' + nfr(G.h / 10, 1) + ' cm, giron ' + nfr(S.g / 10, 1) + ' cm (Blondel ' + nfr(B.b / 10, 1) + ' cm' + (B.ok ? ' ✓' : ', hors de 60 à 64') + '), de ' + nfr(G.z0 / 1000, 2) + ' à ' + nfr(G.z1 / 1000, 2)
                 + (G.nl ? ', ' + G.nl + ' palier(s)' : '') + (G.short > 0.005 ? ' — il manque ' + nfr(G.short, 2) + ' m de tracé : la dernière volée dépasse le bout' : '') + '.'; }
-        function startStair2() { closeFileMenus(); setMode('pline'); stair2Draw = true; st2Panel(); updateCommandMessage(); draw(); }
+        function startStair2() { try { loadPolyClip().then(() => draw(), () => {}); } catch (e) {} closeFileMenus(); setMode('pline'); stair2Draw = true; st2Panel(); updateCommandMessage(); draw(); }
         // ---- volet de l'escalier : avant le tracé (réglages par défaut) ou sur un escalier sélectionné
         let st2Edit = null;
         function st2T() { return st2Edit && shapes.includes(st2Edit) ? st2Edit.stair2 : st2Opt; }
@@ -87,6 +99,7 @@
             c.stroke();
             if (nz > 0) { c.setLineDash([3 / lineScale, 3 / lineScale]); c.beginPath(); G.risers.forEach((r, j) => { if (r.t - nz < r.q.st - 1e-9 && j === 0) return; mv(G.pt(r.q, r.t - nz, G.oa)); ln(G.pt(r.q, r.t - nz, G.ob)); }); c.stroke(); c.setLineDash([]); }
             if (G.rails.length) { c.lineWidth = 2 / lineScale; c.beginPath(); G.rails.forEach(R => { R.forEach((p, i) => i ? ln(p) : mv(p)); }); c.stroke(); c.lineWidth = 1 / lineScale; }
+            if (lvlOn && lvlAct === S.hi) { const T = st2Tremie(s, G.z1 - 200); c.save(); c.setLineDash([6 / lineScale, 4 / lineScale]); c.lineWidth = 1.4 / lineScale; T.forEach(Pg => Pg.forEach(Rg => { c.beginPath(); Rg.forEach((q, i) => i ? c.lineTo(q[0] + dx, q[1] + dy) : c.moveTo(q[0] + dx, q[1] + dy)); c.closePath(); c.stroke(); })); c.restore(); }
             // ligne de foulée : sur l'axe, du pied jusqu'à la dernière marche, flèche au bout
             const F = []; G.seg.forEach((q, i) => { if (i === 0) F.push(G.pt(q, Math.max(0, q.p0 - G.g / 2), G.oc)); else F.push(G.pt(q, 0, G.oc)); }); const qL = G.seg[G.seg.length - 1], end = G.pt(qL, qL.p0 + qL.t * G.g, G.oc); F.push(end);
             c.beginPath(); c.arc(F[0].x + dx, F[0].y + dy, mmToWorld(60), 0, Math.PI * 2); c.stroke(); c.beginPath(); F.forEach((p, i) => i ? ln(p) : mv(p)); c.stroke();
@@ -103,7 +116,8 @@
             const nz = mmToWorld(S.nez || 0);
             G.treads.forEach(t => { const Pl = nz > 0 && t.poly ? (() => { const q = G.seg[t.i], a0 = (t.poly[0].x - q.A.x) * q.u.x + (t.poly[0].y - q.A.y) * q.u.y; return [G.pt(q, a0 - nz, G.oa), t.poly[1], t.poly[2], G.pt(q, a0 - nz, G.ob)]; })() : t.poly;
                 if (wood) { const q = G.seg[t.i], a0 = (t.poly[0].x - q.A.x) * q.u.x + (t.poly[0].y - q.A.y) * q.u.y, e = mmToWorld(22); prism(Pl, t.z - 50, t.z); prism([G.pt(q, a0, G.oa), G.pt(q, a0 + e, G.oa), G.pt(q, a0 + e, G.ob), G.pt(q, a0, G.ob)], t.z - G.h, t.z - 50); } else prism(Pl, Math.max(G.z0, t.z - G.h - 180), t.z); });
-            G.lands.forEach(L => L.polys.forEach(Pl => prism(Pl, L.z - (wood ? 60 : 200), L.z)));
+            const onSlab = (L) => L.top && shapes.some(d => d.solid && d.solid.kind === 'box' && d.type === 'poly' && !d.bld && hasZ(d.points[0].z) && Math.abs(d.points[0].z + (d.solid.H || 0) - G.z1) < 400 && L.polys.every(Pl => Pl.every(q => pointInPolygon(q.x, q.y, d.points))));   /* arrivée sur la dalle du dessus : pas de second palier */
+            G.lands.forEach(L => { if (!onSlab(L)) L.polys.forEach(Pl => prism(Pl, L.z - (wood ? 60 : 200), L.z)); });
             const rm = new THREE.MeshLambertMaterial({ color: 0x374151 }), glass = new THREE.MeshLambertMaterial({ color: 0xbfdbfe, emissive: 0x1e3a5f, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false }), H = S.gch || 1000;
             const bar = (a, b, r) => { const A = new THREE.Vector3(a.x, a.y, a.z), B = new THREE.Vector3(b.x, b.y, b.z), L = A.distanceTo(B); if (L < 1e-4) return; const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 8), rm); m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize()); m.userData.shape = s; root.add(m); };
             G.rails.forEach(R => { const V = R.map(p => { const a = P(p.x, p.y); return { x: a.x, y: a.y, zb: Zm(p.z), zt: Zm(p.z + H) }; });

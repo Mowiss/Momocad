@@ -411,7 +411,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const w = shapes.filter(isWallHatch).find(h => h.lvl && h.lvl !== 'rdc'), roof = shapes.find(x => x.roofDef); o.wall = !!w && w.wz.b === lvls[0].z + lvls[0].h;
         lvlPick('rdc'); await open3D(); await new Promise(r => setTimeout(r, 800)); let inScene = false, roofIn = false; V3.root.traverse(x => { if (x.userData.shape === w) inScene = true; if (x.userData.shape === roof) roofIn = true; });
         o.rdc = [lvlHidden(w), lvlHidden(roof), inScene, roofIn]; lvlToggle(false); o.off = [lvlHidden(w), lvlHidden(roof), getComputedStyle(document.getElementById('lvl-box')).display]; close3D(); return o; });
-    t.eq('étages : niveaux, mur rangé sur son étage, étages du dessus masqués', lv, { start: ['RDC', 'TOIT'], box: 'block', added: ['RDC', 'R + 1', 'TOIT'], wall: true, rdc: [true, true, false, false], off: [false, false, 'none'] });
+    t.eq('étages : niveaux, mur rangé sur son étage, étages du dessus masqués en plan, toujours là en 3D', lv, { start: ['RDC', 'TOIT'], box: 'block', added: ['RDC', 'R + 1', 'TOIT'], wall: true, rdc: [true, true, true, true], off: [false, false, 'none'] });
     // étages calés sur le RDC : la cote du RDC est le zéro, chaque étage posé sur celui du dessous (+ H) ; un mur tracé sur un étage va de son plancher à plancher + H ;
     // changer la cote du RDC ou une hauteur déplace les étages au-dessus et leurs murs ; une dalle tracée sur l'étage a son dessus au plancher
     const lc = await ev(async () => { const keepS = shapes, keepL = lvls; shapes = []; lvls = null; saveState(); lvlToggle(true); lvlSet('rdc', 69000, 3000); lvlAdd(true); lvlAdd(true); const S = lvlSorted(), o = { z0: S.map(L => L.z), rel: S.map(lvlRel) };
@@ -760,4 +760,15 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const th = document.querySelector('#sp-thumb path'); r.closed = !!th && /Z$/.test(th.getAttribute('d'));
         closeSelectionParamModal(); selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('étages : coupe du bâtiment cliquable (étage, sous-sol, toit), vue de dessus fermée', bs, { svg: true, pick: true, roof: true, closed: true });
+    // trémie automatique dans la dalle du dessus ; escalier sélectionnable dans son emprise et visible sur ses deux étages ; 3D : tous les étages ; étage de toiture (égout)
+    const trem = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m });
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState(); bldActivate(A, 'rdc'); lvlAdd(true); saveState();
+        const hi = lvlSorted()[1].id; bldPick(hi); selectedShapes = [A]; startSolidTool('dalle'); closeSelectionParamModal(); const D = shapes.find(x => x.solid && !x.bld);
+        bldPick('rdc'); startStair2(); currentPolygon = [pt(1, 1), pt(5, 1), pt(5, 5)]; isDrawing = true; finishPline(); t2PanelClose(); setMode('select-box'); const s = shapes.find(x => x.stair2); await loadPolyClip();
+        const r = {}; const T = slabTremies(D); r.tremie = T.length === 1 && T[0][0].length >= 5;
+        bldPick(hi); r.upper = !lvlOff2D(s) && findShapeAt(pt(3, 1.25).x, pt(3, 1.25).y) === s; bldPick('rdc'); r.lower = findShapeAt(pt(3, 1.25).x, pt(3, 1.25).y) === s;
+        await open3D(); let n = 0; V3.root.traverse(o => { if (o.userData && o.userData.shape === D) n++; }); r.d3 = n > 0; close3D();
+        bldAddRoof(); const L = lvlSorted(), Tl = L[L.length - 1]; r.roof = !!Tl.roofLv && Tl.z === 105600 && bldEgout(A) === 105600 + Tl.h; bldAdd(true); const L2 = lvlSorted(); r.roofTop = !!L2[L2.length - 1].roofLv && L2.length === 4;
+        bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('trémie découpée dans la dalle du dessus, escalier cliquable dans son emprise sur ses deux étages, 3D avec tous les étages, étage de toiture (égout) toujours en haut', trem, { tremie: true, upper: true, lower: true, d3: true, roof: true, roofTop: true });
 } };
