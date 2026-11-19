@@ -219,6 +219,13 @@
                     return C1.every(c => { const j = C0.findIndex((d, k) => !used.has(k) && Math.hypot(d[0] - c[0], d[1] - c[1]) < tol); if (j < 0) return false; used.add(j); return true; }); };
                 const P0 = src.wp.P.map(q => ({ x: q.x, y: q.y })); if (same(P0)) R = { P: P0, closed: !!src.wp.c, tool: src.wp.t, G }; else { const P1 = P0.slice().reverse(); if (same(P1)) R = { P: P1, closed: !!src.wp.c, tool: src.wp.t, G }; } }
             if (!R && G.some(x => x.wallCx)) { const C = wallCxRecover(gid); if (C) { const t = wallCxTool(C.def); t.align = C.def.align || 'gauche'; R = { P: C.P, closed: C.closed, tool: t, G }; } }
+            /* paroi simple tracée avant que son tracé soit gardé : retrouvé depuis ses tronçons (un quadrilatère par tronçon, face A = le tracé), vérifié en la refaisant */
+            if (!R && H.length && !G.some(x => x.wallCx) && H.every(h => h.loops.length === 1 && h.loops[0].length === 4)) { const Hs = H.slice().sort((a, b) => shapes.indexOf(a) - shapes.indexOf(b)), k1 = mmToWorld(1);
+                const q = Hs.map(h => { const [A0, A1, , B0] = h.loops[0], L = Math.hypot(A1.x - A0.x, A1.y - A0.y) || 1, nx = (A1.y - A0.y) / L, ny = -(A1.x - A0.x) / L; return { A0, A1, t: (B0.x - A0.x) * nx + (B0.y - A0.y) * ny }; });
+                const T = Math.abs(q[0].t), closed = q.length > 2 && Math.hypot(q[q.length - 1].A1.x - q[0].A0.x, q[q.length - 1].A1.y - q[0].A0.y) < 2 * k1;
+                if (T > k1 && q.every(x => Math.abs(Math.abs(x.t) - T) < 2 * k1)) { let P = q.map(x => ({ x: x.A0.x, y: x.A0.y })); if (!closed) P.push({ x: q[q.length - 1].A1.x, y: q[q.length - 1].A1.y }); if (q[0].t < 0) P = P.reverse();
+                    const tool = { align: 'gauche', layers: [{ mat: H[0].wallMat, e: Math.round(worldToMm(T)) }] }, cen = (h) => { const L = h.loops[0]; let x = 0, y = 0; L.forEach(v => { x += v.x; y += v.y; }); return [x / L.length, y / L.length]; }, C0 = H.map(cen), used = new Set();
+                    const TT = wallChainShapes(P, tool, closed, G[0].layerId, gid, null).filter(x => x.type === 'hatch'); if (TT.length === H.length && TT.map(cen).every(c => { const j = C0.findIndex((d, kk) => !used.has(kk) && Math.hypot(d[0] - c[0], d[1] - c[1]) < mmToWorld(5)); if (j < 0) return false; used.add(j); return true; })) R = { P, closed, tool, G }; } }
             WALL_PATH_MEMO.set(mk, R); return R; }
         /* refaire une paroi sur un autre tracé (même composition, hauteur, étage ; portes et fenêtres reposées sur le morceau le plus proche) */
         function wallRebuildPath(gid, P, closed, tool, G0) { const G = G0 || shapes.filter(x => x.groupId === gid && x.wallMat); if (!G.length || P.length < 2) return null; const s0 = G[0], at = shapes.indexOf(s0), ops = [];
@@ -378,7 +385,8 @@
                     const mem = selectedShapes.filter(x => x.groupId === s.groupId), b = getShapesBoundingBox(mem);
                     /* paroi : son tracé comme une polyligne — sommets ▪ (déplacer), + au milieu des tronçons (ajouter un sommet) */
                     if (s.wallMat) { const W = wallPathOf(s.groupId); if (W) { const n = W.P.length; W.P.forEach((q, i) => out.push({ s, x: q.x, y: q.y, kind: 'w-vtx', i, gid: s.groupId }));
-                        for (let i = 0; i < (W.closed ? n : n - 1); i++) { const a = W.P[i], c2 = W.P[(i + 1) % n]; out.push({ s, x: (a.x + c2.x) / 2, y: (a.y + c2.y) / 2, kind: 'w-add', i, gid: s.groupId }); } } }
+                        const off = 15 / camera.zoom; for (let i = 0; i < (W.closed ? n : n - 1); i++) { const a = W.P[i], c2 = W.P[(i + 1) % n], L = Math.hypot(c2.x - a.x, c2.y - a.y) || 1; out.push({ s, x: (a.x + c2.x) / 2, y: (a.y + c2.y) / 2, kind: 'w-edge', i, gid: s.groupId, ang: Math.atan2(c2.y - a.y, c2.x - a.x) });
+                            if (L > off * 3.2) out.push({ s, x: (a.x + c2.x) / 2 + (c2.x - a.x) / L * off, y: (a.y + c2.y) / 2 + (c2.y - a.y) / L * off, kind: 'w-add', i, gid: s.groupId }); } } }
                     if (b) out.push({ s, x: b.centerX, y: b.centerY, kind: 'g-move', group: mem }); continue;
                 }
                 if (isBg(s) || s.type === 'mesh' || s.type === 'pdfvec') continue;
@@ -392,8 +400,8 @@
             return best;
         }
         function startGrip(g) {
-            if (g.kind === 'w-vtx' || g.kind === 'w-add') { const W = wallPathOf(g.gid); if (!W) return; gripDrag = { g, x0: g.x, y0: g.y, targets: [], orig: [], wall: { W, cur: W.G, orig: W.G.slice(), at: shapes.indexOf(W.G[0]) } };
-                updateCommandMessageText(g.kind === 'w-add' ? 'PAROI : placez le nouveau sommet (accroches actives, Maj / F8 = ortho, Échap = annuler).' : 'PAROI : déplacez le sommet (accroches actives, Maj / F8 = ortho, Échap = annuler).'); return; }
+            if (g.kind === 'w-vtx' || g.kind === 'w-add' || g.kind === 'w-edge') { const W = wallPathOf(g.gid); if (!W) return; gripDrag = { g, x0: g.x, y0: g.y, targets: [], orig: [], wall: { W, cur: W.G, orig: W.G.slice(), at: shapes.indexOf(W.G[0]) } };
+                updateCommandMessageText(g.kind === 'w-edge' ? 'PAROI : tirez le tronçon perpendiculairement (les tronçons voisins suivent dans leur alignement ; Échap = annuler).' : g.kind === 'w-add' ? 'PAROI : placez le nouveau sommet (accroches actives, Maj / F8 = ortho, Échap = annuler).' : 'PAROI : déplacez le sommet (accroches actives, Maj / F8 = ortho, Échap = annuler).'); return; }
             const targets = g.group || [g.s];
             gripDrag = { g, x0: g.x, y0: g.y, targets, orig: targets.map(t => JSON.stringify(t)) };
             targets.forEach(t => t._nosnap = true); invalidateCache();
@@ -401,6 +409,10 @@
         }
         function gripApply(X, Y, shift) {
             const D = gripDrag; if (!D) return; const g = D.g;
+            if (D.wall && g.kind === 'w-edge') { const W = D.wall.W, P = W.P.map(q => ({ x: q.x, y: q.y })), n = P.length, i = g.i, j = (i + 1) % n, a = P[i], b = P[j], L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L, d = (X - D.x0) * nx + (Y - D.y0) * ny;
+                const A2 = { x: a.x + nx * d, y: a.y + ny * d }, B2 = { x: b.x + nx * d, y: b.y + ny * d }, cut = (p, q, r, t) => { const den = (q.x - p.x) * (t.y - r.y) - (q.y - p.y) * (t.x - r.x); if (Math.abs(den) < 1e-12) return null; const k = ((r.x - p.x) * (t.y - r.y) - (r.y - p.y) * (t.x - r.x)) / den; return { x: p.x + (q.x - p.x) * k, y: p.y + (q.y - p.y) * k }; };   /* voisins : gardent leur direction, s'allongent ou se raccourcissent */
+                const hasPrev = W.closed || i > 0; P[i] = (hasPrev && cut(P[(i - 1 + n) % n], a, A2, B2)) || A2; P[j] = ((W.closed || i + 1 < n - 1) && cut(P[(j + 1) % n], b, A2, B2)) || B2;
+                const N = wallRebuildPath(g.gid, P, W.closed, W.tool, D.wall.cur); if (N) { N.forEach(x => { x._nosnap = true; }); D.wall.cur = N; selectedShapes = N; } updateCommandMessageText('PAROI : tronçon décalé de ' + calculateRealDistance(Math.abs(d)) + ' (Échap = annuler).'); return; }
             if (D.wall) { if ((orthoMode || shift)) { if (Math.abs(X - D.x0) > Math.abs(Y - D.y0)) Y = D.y0; else X = D.x0; } const W = D.wall.W, P = W.P.map(q => ({ x: q.x, y: q.y }));
                 if (g.kind === 'w-vtx') { P[g.i] = { x: X, y: Y }; } else P.splice(g.i + 1, 0, { x: X, y: Y });
                 const N = wallRebuildPath(g.gid, P, W.closed, W.tool, D.wall.cur); if (N) { N.forEach(x => { x._nosnap = true; }); D.wall.cur = N; selectedShapes = N; } return; }
@@ -456,7 +468,7 @@
                 if ((g.kind === 'op-face' || g.kind === 'op-end' || g.kind === 'op-move') && !hot) { c.fillStyle = '#f59e0b'; c.strokeStyle = '#fef3c7'; }
                 if (g.kind === 'op-move') { c.beginPath(); c.arc(g.x, g.y, t * 1.1, 0, 2 * Math.PI); c.fill(); c.stroke(); continue; }
                 if (g.kind === 'p-add' || g.kind === 'w-add') { if (!hot) c.fillStyle = '#16a34a'; c.beginPath(); c.arc(g.x, g.y, t * 1.05, 0, 2 * Math.PI); c.fill(); c.stroke(); c.strokeStyle = '#fff'; c.lineWidth = 1.4 / camera.zoom; c.beginPath(); c.moveTo(g.x - t * 0.6, g.y); c.lineTo(g.x + t * 0.6, g.y); c.moveTo(g.x, g.y - t * 0.6); c.lineTo(g.x, g.y + t * 0.6); c.stroke(); c.lineWidth = 1 / camera.zoom; continue; }
-                if (g.kind === 'p-edge' || g.kind === 'op-face') { c.save(); c.translate(g.x, g.y); c.rotate(g.ang); c.fillRect(-t * 1.7, -t * 0.7, t * 3.4, t * 1.4); c.strokeRect(-t * 1.7, -t * 0.7, t * 3.4, t * 1.4); c.restore(); }
+                if (g.kind === 'p-edge' || g.kind === 'op-face' || g.kind === 'w-edge') { c.save(); c.translate(g.x, g.y); c.rotate(g.ang); c.fillRect(-t * 1.7, -t * 0.7, t * 3.4, t * 1.4); c.strokeRect(-t * 1.7, -t * 0.7, t * 3.4, t * 1.4); c.restore(); }
                 else { c.fillRect(g.x - t, g.y - t, 2 * t, 2 * t); c.strokeRect(g.x - t, g.y - t, 2 * t, 2 * t); }
             }
             c.restore();
