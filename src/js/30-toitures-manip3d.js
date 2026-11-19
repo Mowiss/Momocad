@@ -454,6 +454,7 @@
                 const hp = hits.find(h => h.object.userData && (h.object.userData.shape || h.object.userData.paroiOf));
                 if (hp && hp.object.userData.paroiOf) { paroiPaint(hp.object.userData.paroiOf); return; }
                 if (texPaint.kind === 'paint') { const H = v3BrushHit(e), zp = H && H.n.z > 0.6 ? brushZoneAt(H.q.x, H.q.y) : null; if (zp && (!s || isPlateforme(s))) { brushZoneRepaint(zp, texPaint.tex); return; } }
+                if (s && isWallHatch(s) && !e.shiftKey) { const hw = hits.find(h => h.object.userData && h.object.userData.shape === s && h.face); if (hw) { wallFacePaint(s, hw, (x, y) => ({ x: worldToMm(x) / 1000, y: -worldToMm(y) / 1000 })); return; } }
                 if (s) texApply(s); return; }
             if (e.shiftKey && s) selectedShapes = selectedShapes.includes(s) ? selectedShapes.filter(x => x !== s) : selectedShapes.concat([s]);
             else selectedShapes = s ? [s] : [];

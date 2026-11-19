@@ -249,4 +249,17 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         const B = bm.userData.blk; let hit = null; V3.root.traverse(o => { if (!hit && o.isMesh && o.userData.blk === B) hit = o; }); pick3D(at(hit)); r.blk = !!(B.btex && Object.values(B.btex).includes('tx-velours'));
         fpsPaintStop(); r.resumed = !texPaint && !V3.fps.paused; fpsStop(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('vue Momo : pinceau (vue figée, meuble peint en textile, reprise de la balade) ; textures textiles', fpaint, { textile: true, walk: true, frozen: true, blk: true, resumed: true });
+    // peinture d'une paroi face par face : chaque parement sa texture, Maj + clic = toute la paroi
+    const fface = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {}, Pm = (x, y) => ({ x: worldToMm(x) / 1000, y: -worldToMm(y) / 1000 });
+        wallOpt.align = 'gauche'; startWall(WALL_PRESETS[0].id); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallChain = null; wallStart = null; setMode('select-box'); const W = shapes.find(x => x.type === 'hatch' && x.wallMat); W.wz = { b: 100000, t: 102700 }; saveState();
+        await open3D(); startPaint('paint'); const mesh = () => { let me = null; V3.root.traverse(o => { if (!me && o.isMesh && o.userData.shape && o.userData.shape.wallMat) me = o; }); return me; };
+        const shoot = (y, dir) => { const me = mesh(); me.updateMatrixWorld(true); const o = me.localToWorld(new THREE.Vector3(3, y, Zm0())), d = me.localToWorld(new THREE.Vector3(3, y + dir, Zm0())).sub(o).normalize(); return new THREE.Raycaster(o, d).intersectObject(me)[0]; }, Zm0 = () => { const me = mesh(); me.geometry.computeBoundingBox(); return (me.geometry.boundingBox.min.z + me.geometry.boundingBox.max.z) / 2; };
+        const t1 = 'tx-velours', t2 = TEX_LIB.find(t => t.id !== t1 && t.cat !== 'textile').id;
+        texPaint.tex = t1; wallFacePaint(W2(), shoot(-1, 1), Pm); function W2() { return shapes.find(x => x.type === 'hatch' && x.wallMat); }
+        texPaint.tex = t2; wallFacePaint(W2(), shoot(1, -1), Pm); const F = W2().ftex || {}; r.two = Object.keys(F).length === 2 && Object.values(F).includes(t1) && Object.values(F).includes(t2);
+        const me = mesh(); r.mats = Array.isArray(me.material) && me.material.length === 3 && me.geometry.groups.length === 3;
+        texPaint.kind = 'texclear'; wallFacePaint(W2(), shoot(-1, 1), Pm); r.clear = Object.keys(W2().ftex || {}).length === 1;
+        texPaint.kind = 'paint'; texPaint.tex = t1; texApply(W2()); r.whole = W2().tex === t1 && !W2().ftex;
+        texStop(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('paroi peinte face par face (deux parements, deux textures), gomme d\'une face, Maj + clic = toute la paroi', fface, { two: true, mats: true, clear: true, whole: true });
 } };

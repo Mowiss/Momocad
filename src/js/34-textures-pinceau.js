@@ -254,11 +254,25 @@
         let texCat = null; try { texCat = localStorage.getItem('momocad-texcat'); } catch (e) {}
         function texCatSet(k) { texCat = k; try { localStorage.setItem('momocad-texcat', k); } catch (e) {} texPanel(); }
         function texChoose(id) { texLast = id; brushLast.tex = id; brushSaveOpt(); try { localStorage.setItem('momocad-tex', id); } catch (e) {} if (texPaint) texPaint.tex = id; texPanel(); texMsg(); }
+        /* PEINTURE PAR FACE : chaque face d'une paroi (ses deux parements, ses bouts, le dessus, le dessous) garde sa propre texture (s.ftex[clé]) */
+        function wallFaceKey(o, P, c, nr) { if (nr.z > 0.7) return 'top'; if (nr.z < -0.7) return 'bot'; const L = (o.loops && o.loops[0]) || [], E = L.map(q => P(q.x, q.y)); let best = null, bd = Infinity; const h = Math.hypot(nr.x, nr.y) || 1, nx = nr.x / h, ny = nr.y / h;
+            E.forEach((a, k) => { const b = E[(k + 1) % E.length], l = Math.hypot(b.x - a.x, b.y - a.y); if (l < 1e-9) return; const ex = -(b.y - a.y) / l, ey = (b.x - a.x) / l; if (Math.abs(ex * nx + ey * ny) < 0.7) return; const t = Math.max(0, Math.min(1, ((c.x - a.x) * (b.x - a.x) + (c.y - a.y) * (b.y - a.y)) / (l * l))), d = Math.hypot(c.x - a.x - (b.x - a.x) * t, c.y - a.y - (b.y - a.y) * t); if (d < bd) { bd = d; best = k; } });
+            return best === null ? 'side' : 'f' + best; }
+        function wallFaceMesh(o, g, base, P) { const G = g.index ? g.toNonIndexed() : g, p = G.attributes.position.array, nt = Math.floor(p.length / 9), mats = [base], mi = {}, idx = new Array(nt);
+            for (let t = 0; t < nt; t++) { const a = t * 9, ux = p[a + 3] - p[a], uy = p[a + 4] - p[a + 1], uz = p[a + 5] - p[a + 2], vx = p[a + 6] - p[a], vy = p[a + 7] - p[a + 1], vz = p[a + 8] - p[a + 2]; let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1;
+                const tx = o.ftex[wallFaceKey(o, P, { x: (p[a] + p[a + 3] + p[a + 6]) / 3, y: (p[a + 1] + p[a + 4] + p[a + 7]) / 3 }, { x: nx / l, y: ny / l, z: nz / l })];
+                if (tx && mi[tx] === undefined) { const m = texMaterial(tx); mi[tx] = m ? mats.push(m) - 1 : 0; } idx[t] = tx ? mi[tx] : 0; }
+            const out = [], N = new THREE.BufferGeometry(); for (let k = 0; k < mats.length; k++) { const s0 = out.length / 3; for (let t = 0; t < nt; t++) if (idx[t] === k) for (let j = 0; j < 9; j++) out.push(p[t * 9 + j]); if (out.length / 3 > s0) N.addGroup(s0, out.length / 3 - s0, k); }
+            N.setAttribute('position', new THREE.Float32BufferAttribute(out, 3)); N.computeVertexNormals(); const T = TEX_LIB.find(t => t.id === (o.tex || Object.values(o.ftex)[0])); return new THREE.Mesh(texGeometry(N, T ? T.tile : 1), mats); }
+        function wallFacePaint(s, hit, P) { const loc = hit.object.worldToLocal(hit.point.clone()), n = hit.face.normal, k = wallFaceKey(s, P, loc, n), cur = (s.ftex || {})[k];
+            if (texPaint.kind === 'texpick') { const t = cur || s.tex; if (t) { texLast = t; try { localStorage.setItem('momocad-tex', t); } catch (e) {} startPaint('paint', true); } return; }
+            if (texPaint.kind === 'texclear') { if (s.ftex) { delete s.ftex[k]; if (!Object.keys(s.ftex).length) delete s.ftex; } } else s.ftex = Object.assign({}, s.ftex || {}, { [k]: texPaint.tex });
+            saveState(); build3DScene(); render3D(); updateCommandMessageText(texPaint.kind === 'texclear' ? 'GOMME À TEXTURE : face rendue. Cliquez une autre face, ou Échap.' : 'PEINDRE : face habillée en « ' + (TEX_LIB.find(t => t.id === texPaint.tex) || {}).name + ' ». Chaque face se peint à part ; Maj + clic : toute la paroi. Échap pour finir.'); }
         function texTargets(s) { return s.groupId && s.wallMat ? shapes.filter(x => x.groupId === s.groupId && is3DObj(x)) : [s]; }
         function texApply(s) {
             if (!s || !is3DObj(s) || !texPaint) { updateCommandMessageText(TEX_NAMES[(texPaint || {}).kind || 'paint'] + ' : cliquez un volume (pavé, extrusion, balayage, mur à niveaux, toiture…).'); return; }
             if (texPaint.kind === 'texpick') { if (s.tex) { texLast = s.tex; try { localStorage.setItem('momocad-tex', s.tex); } catch (e) {} startPaint('paint'); updateCommandMessageText('PIPETTE : texture « ' + (TEX_LIB.find(t => t.id === s.tex) || {}).name + ' » reprise — cliquez les volumes à peindre.'); } else updateCommandMessageText('PIPETTE : ce volume n\'a pas de texture (il a la couleur de son calque).'); return; }
-            texTargets(s).forEach(x => { if (texPaint.kind === 'texclear') delete x.tex; else x.tex = texPaint.tex; });
+            texTargets(s).forEach(x => { delete x.ftex; if (texPaint.kind === 'texclear') delete x.tex; else x.tex = texPaint.tex; });
             saveState(); if (is3DOpen()) { build3DScene(); render3D(); } else draw();
             updateCommandMessageText(texPaint.kind === 'texclear' ? 'GOMME À TEXTURE : couleur du calque rendue. Cliquez un autre volume, ou Échap.' : 'PEINDRE : « ' + (TEX_LIB.find(t => t.id === texPaint.tex) || {}).name + ' » posé. Cliquez un autre volume, ou Échap. (Vue 3D : bulle œil près de la rosace.)');
         }
