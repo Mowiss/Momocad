@@ -384,9 +384,9 @@
                     if (seenG.has(s.groupId)) continue; seenG.add(s.groupId);
                     const mem = selectedShapes.filter(x => x.groupId === s.groupId), b = getShapesBoundingBox(mem);
                     /* paroi : son tracé comme une polyligne — sommets ▪ (déplacer), + au milieu des tronçons (ajouter un sommet) */
-                    if (s.wallMat) { const W = wallPathOf(s.groupId); if (W) { const n = W.P.length; W.P.forEach((q, i) => out.push({ s, x: q.x, y: q.y, kind: 'w-vtx', i, gid: s.groupId }));
-                        const off = 15 / camera.zoom; for (let i = 0; i < (W.closed ? n : n - 1); i++) { const a = W.P[i], c2 = W.P[(i + 1) % n], L = Math.hypot(c2.x - a.x, c2.y - a.y) || 1; out.push({ s, x: (a.x + c2.x) / 2, y: (a.y + c2.y) / 2, kind: 'w-edge', i, gid: s.groupId, ang: Math.atan2(c2.y - a.y, c2.x - a.x) });
-                            if (L > off * 3.2) out.push({ s, x: (a.x + c2.x) / 2 + (c2.x - a.x) / L * off, y: (a.y + c2.y) / 2 + (c2.y - a.y) / L * off, kind: 'w-add', i, gid: s.groupId }); } } }
+                    if (s.wallMat) { const I = wallPathsOf(s.groupId); if (I) I.paths.forEach((W, pi) => { const n = W.P.length; W.P.forEach((q, i) => out.push({ s, x: q.x, y: q.y, kind: 'w-vtx', i, pi, gid: s.groupId }));
+                        const off = 15 / camera.zoom; for (let i = 0; i < (W.closed ? n : n - 1); i++) { const a = W.P[i], c2 = W.P[(i + 1) % n], L = Math.hypot(c2.x - a.x, c2.y - a.y) || 1; out.push({ s, x: (a.x + c2.x) / 2, y: (a.y + c2.y) / 2, kind: 'w-edge', i, pi, gid: s.groupId, ang: Math.atan2(c2.y - a.y, c2.x - a.x) });
+                            if (L > off * 3.2) out.push({ s, x: (a.x + c2.x) / 2 + (c2.x - a.x) / L * off, y: (a.y + c2.y) / 2 + (c2.y - a.y) / L * off, kind: 'w-add', i, pi, gid: s.groupId }); } }); }
                     if (b) out.push({ s, x: b.centerX, y: b.centerY, kind: 'g-move', group: mem }); continue;
                 }
                 if (isBg(s) || s.type === 'mesh' || s.type === 'pdfvec') continue;
@@ -400,7 +400,7 @@
             return best;
         }
         function startGrip(g) {
-            if (g.kind === 'w-vtx' || g.kind === 'w-add' || g.kind === 'w-edge') { const W = wallPathOf(g.gid); if (!W) return; gripDrag = { g, x0: g.x, y0: g.y, targets: [], orig: [], wall: { W, cur: W.G, orig: W.G.slice(), at: shapes.indexOf(W.G[0]) } };
+            if (g.kind === 'w-vtx' || g.kind === 'w-add' || g.kind === 'w-edge') { const W = wallDragStart(g); if (!W) return; gripDrag = { g, x0: g.x, y0: g.y, targets: [], orig: [], wall: W };
                 updateCommandMessageText(g.kind === 'w-edge' ? 'PAROI : tirez le tronçon perpendiculairement (les tronçons voisins suivent dans leur alignement ; Échap = annuler).' : g.kind === 'w-add' ? 'PAROI : placez le nouveau sommet (accroches actives, Maj / F8 = ortho, Échap = annuler).' : 'PAROI : déplacez le sommet (accroches actives, Maj / F8 = ortho, Échap = annuler).'); return; }
             const targets = g.group || [g.s];
             gripDrag = { g, x0: g.x, y0: g.y, targets, orig: targets.map(t => JSON.stringify(t)) };
@@ -409,13 +409,7 @@
         }
         function gripApply(X, Y, shift) {
             const D = gripDrag; if (!D) return; const g = D.g;
-            if (D.wall && g.kind === 'w-edge') { const W = D.wall.W, P = W.P.map(q => ({ x: q.x, y: q.y })), n = P.length, i = g.i, j = (i + 1) % n, a = P[i], b = P[j], L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L, d = (X - D.x0) * nx + (Y - D.y0) * ny;
-                const A2 = { x: a.x + nx * d, y: a.y + ny * d }, B2 = { x: b.x + nx * d, y: b.y + ny * d }, cut = (p, q, r, t) => { const den = (q.x - p.x) * (t.y - r.y) - (q.y - p.y) * (t.x - r.x); if (Math.abs(den) < 1e-12) return null; const k = ((r.x - p.x) * (t.y - r.y) - (r.y - p.y) * (t.x - r.x)) / den; return { x: p.x + (q.x - p.x) * k, y: p.y + (q.y - p.y) * k }; };   /* voisins : gardent leur direction, s'allongent ou se raccourcissent */
-                const hasPrev = W.closed || i > 0; P[i] = (hasPrev && cut(P[(i - 1 + n) % n], a, A2, B2)) || A2; P[j] = ((W.closed || i + 1 < n - 1) && cut(P[(j + 1) % n], b, A2, B2)) || B2;
-                const N = wallRebuildPath(g.gid, P, W.closed, W.tool, D.wall.cur); if (N) { N.forEach(x => { x._nosnap = true; }); D.wall.cur = N; selectedShapes = N; } updateCommandMessageText('PAROI : tronçon décalé de ' + calculateRealDistance(Math.abs(d)) + ' (Échap = annuler).'); return; }
-            if (D.wall) { if ((orthoMode || shift)) { if (Math.abs(X - D.x0) > Math.abs(Y - D.y0)) Y = D.y0; else X = D.x0; } const W = D.wall.W, P = W.P.map(q => ({ x: q.x, y: q.y }));
-                if (g.kind === 'w-vtx') { P[g.i] = { x: X, y: Y }; } else P.splice(g.i + 1, 0, { x: X, y: Y });
-                const N = wallRebuildPath(g.gid, P, W.closed, W.tool, D.wall.cur); if (N) { N.forEach(x => { x._nosnap = true; }); D.wall.cur = N; selectedShapes = N; } return; }
+            if (D.wall) { if (g.kind !== 'w-edge' && (orthoMode || shift)) { if (Math.abs(X - D.x0) > Math.abs(Y - D.y0)) Y = D.y0; else X = D.x0; } const m = wallDragApply(D.wall, g, X, Y, D); if (m) updateCommandMessageText(m); return; }
             D.targets.forEach((t, k) => { const o = JSON.parse(D.orig[k]); Object.keys(t).forEach(key => { if (key !== '_nosnap') delete t[key]; }); Object.assign(t, o); });
             if ((orthoMode || shift) && g.kind !== 'c-rad' && g.kind !== 'a-end') { if (Math.abs(X - D.x0) > Math.abs(Y - D.y0)) Y = D.y0; else X = D.x0; }
             const dx = X - D.x0, dy = Y - D.y0, s = g.s;
@@ -445,7 +439,7 @@
         }
         function endGrip(cancel) {
             const D = gripDrag; if (!D) return;
-            if (D.wall) { D.wall.cur.forEach(x => delete x._nosnap); if (cancel) { const cur = new Set(D.wall.cur); shapes = shapes.filter(x => !cur.has(x)); shapes.splice(Math.max(0, Math.min(D.wall.at, shapes.length)), 0, ...D.wall.orig); selectedShapes = D.wall.orig.slice(); }
+            if (D.wall) { wallDragEnd(D.wall, cancel);
                 gripDrag = null; invalidateCache(); if (!cancel) saveState(); updateCommandMessageText(cancel ? 'POIGNÉE : annulé.' : 'PAROI : tracé modifié.'); draw(); if (typeof refresh3D === 'function') refresh3D(); return; }
             if (cancel) D.targets.forEach((t, k) => { const o = JSON.parse(D.orig[k]); Object.keys(t).forEach(key => delete t[key]); Object.assign(t, o); });
             D.targets.forEach(t => delete t._nosnap); gripDrag = null; invalidateCache();
