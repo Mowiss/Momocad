@@ -42,6 +42,7 @@
         function v3FullRes() { if (!V3 || !V3.lowRes) return; V3.renderer.setPixelRatio(V3.lowRes); V3.lowRes = 0; render3D(); }
         function render3D() {
             if (!V3 || !is3DOpen()) return; const rt0 = performance.now();
+            if (V3.cl) V3.cl.visible = d3Active();   /* traits de construction : visibles en 3D seulement pendant un outil de dessin 3D */
             if (V3.pin && !V3.fps) { if (V3.root && V3.pinRoot) { V3.pin.add(V3.root.position.clone().sub(V3.pinRoot)); V3.pinRoot.copy(V3.root.position); } V3.target.copy(V3.pin); v3PinMark(); }   /* ancrage : la vue tourne et zoome autour de lui */
             const { camera, target } = V3, ce = Math.cos(V3.el);
             if (V3.sky && (!!V3.panoWant !== (stOn() && stPano.on) || !!V3.stWant !== stOn())) v3Sky();   // photo 360° : seulement dans le studio photo

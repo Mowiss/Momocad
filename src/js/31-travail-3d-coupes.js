@@ -17,7 +17,7 @@
             if (best) return { v: best.v.clone(), k: best.k };
             const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(mx / W * 2 - 1, -my / H * 2 + 1), V3.camera);
             {   // près d'un trait de construction : le point du trait le plus proche du rayon de la souris
-                let bc = null, bdc = 10; D3C.lines.forEach(L => { const [o, d] = d3ClScene(L), O = o.clone().add(off), q = new THREE.Vector3();
+                let bc = null, bdc = 10; (V3.cl && V3.cl.visible === false ? [] : D3C.lines).forEach(L => { const [o, d] = d3ClScene(L), O = o.clone().add(off), q = new THREE.Vector3();
                     ray.ray.distanceSqToSegment(O.clone().addScaledVector(d, -1e5), O.clone().addScaledVector(d, 1e5), null, q);
                     const w = q.clone().project(V3.camera), dd = Math.hypot((w.x + 1) / 2 * W - mx, (1 - w.y) / 2 * H - my); if (w.z <= 1 && dd < bdc) { bdc = dd; bc = q.sub(off); } });
                 if (bc) return { v: bc, k: 'cl' }; }

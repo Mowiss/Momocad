@@ -818,4 +818,11 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         g = allGrips().find(x => x.kind === 'w-vtx' && x.i === 1); startGrip(g); gripApply(pt(8, 0).x, pt(8, 0).y); endGrip(false); r.cx = Math.abs(wallCxRecover(cg).P[1].x - pt(8, 0).x) < 1e-3 && shapes.filter(x => x.groupId === cg && x.stud).length === 15;
         shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
     t.eq('tracés comme une polyligne : + ajoute un sommet (dalle, emprise), parois simples et complexes éditables par leur tracé, annulation, symétrie', pl, { poly: true, wgrips: true, cancel: true, add: true, move: true, mirror: true, cx: true });
+    // emprise : m² et périmètre dans le panneau du bâtiment ; traits de construction invisibles en 3D hors outil de dessin 3D
+    const em = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState();
+        bldOpen(A.bld.id); await new Promise(res => setTimeout(res, 300)); const tx = document.getElementById('selparam-modal').textContent; r.area = /80,00\s*m²/.test(tx) && /périmètre 36,00 m/.test(tx); closeSelectionParamModal();
+        shapes.push(clMake(0, 0, 1, 0)); saveState(); await open3D(); d3ClBuild(); render3D(); r.clHidden = !!V3.cl && V3.cl.visible === false; close3D();
+        selectedShapes = []; bldActivate(null); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('emprise du bâtiment en m² (et périmètre) ; traits de construction cachés en 3D', em, { area: true, clHidden: true });
 } };
