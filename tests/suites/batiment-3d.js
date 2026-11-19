@@ -791,8 +791,8 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         v3PinToggle(); r.pick = !!V3.pinPick; let me = null; V3.root.traverse(o => { if (!me && o.isMesh && o.userData.shape === shapes[0]) me = o; }); me.geometry.computeBoundingBox(); const c = me.geometry.boundingBox.getCenter(new THREE.Vector3()); c.z = me.geometry.boundingBox.max.z; me.localToWorld(c);
         const v = c.clone().project(V3.camera), cr = V3.renderer.domElement.getBoundingClientRect(); v3PinAt({ clientX: cr.left + (v.x + 1) / 2 * cr.width, clientY: cr.top + (1 - v.y) / 2 * cr.height });
         r.set = !!V3.pin && !V3.pinPick && V3.pin.distanceTo(c) < 0.5; V3.az += 1; V3.target.set(0, 0, 0); render3D(); r.stays = V3.target.distanceTo(V3.pin) < 1e-6 && !!V3.pinMesh && V3.pinMesh.visible;
-        v3PinToggle(); r.off = !V3.pin && !V3.pinMesh.visible; close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
-    t.eq('vue 3D : drapeau d\'ancrage (rosace) planté d\'un clic, la vue reste centrée sur lui, se retire', pin, { btn: true, pick: true, set: true, stays: true, off: true });
+        V3.fps = { pos: new THREE.Vector3(), yaw: 0, pitch: 0 }; try { render3D(); } catch (e) {} r.fpsHidden = !V3.pinMesh.visible; V3.fps = null; render3D(); v3PinToggle(); r.off = !V3.pin && !V3.pinMesh.visible; close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('vue 3D : drapeau d\'ancrage (rosace) planté d\'un clic, la vue reste centrée sur lui, se retire', pin, { btn: true, pick: true, set: true, stays: true, fpsHidden: true, off: true });
     // recoupe d'un toit (pan + pignons, surfaces ouvertes) : coupé par le plan vertical, la partie retirée ne réapparaît pas ailleurs
     const rcp2 = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
         const base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, 6], [0, 6]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })) }; shapes.push(base); roofDialog(base, true); document.querySelector('input[name=rf-p][value="1"]').click();
