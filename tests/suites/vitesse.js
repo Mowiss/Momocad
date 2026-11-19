@@ -21,5 +21,10 @@ module.exports = { name: 'vitesse', run: async (H, t) => {
     t.ok('gros projet : déplacer la vue, moins de ' + L.vue + ' ms par image', R.vue < L.vue, Math.round(R.vue) + ' ms');
     t.ok('gros projet : redessin après une modification, moins de ' + L.modif + ' ms', R.modif < L.modif, Math.round(R.modif) + ' ms');
     t.ok('gros projet : ouverture de la vue 3D en moins de ' + L.vue3d / 1000 + ' s', R.vue3d < L.vue3d, Math.round(R.vue3d) + ' ms');
+    // traits de construction (droites infinies en tirets) : tracés seulement sur la partie visible — une droite de 20 000 km en tirets faisait ramer le plan
+    const cl = await ev(() => { shapes = []; const m = mmToWorld(1000); for (let i = 0; i < 25; i++) { const an = i * 0.37; shapes.push(clMake(i * m, -i * m, Math.cos(an), Math.sin(an))); } invalidateCache(); camera.zoom = 40;
+        const P = CanvasRenderingContext2D.prototype, lt = P.lineTo; let mx = 0; P.lineTo = function (x, y) { const T = this.getTransform(), X = T.a * x + T.c * y + T.e, Y = T.b * x + T.d * y + T.f; mx = Math.max(mx, Math.abs(X), Math.abs(Y)); return lt.call(this, x, y); };
+        try { draw(); } finally { P.lineTo = lt; } shapes = []; invalidateCache(); draw(); return mx; });
+    t.ok('traits de construction : tracés sur la partie visible seulement', cl < 20000, Math.round(cl) + ' px');
     require('fs').mkdirSync(require('path').join(__dirname, '..', 'out'), { recursive: true }); require('fs').writeFileSync(require('path').join(__dirname, '..', 'out', 'vitesse.json'), JSON.stringify(R, null, 1));
 } };

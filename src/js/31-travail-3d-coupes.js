@@ -147,18 +147,24 @@
             render3D(); try { draw(); } catch (e) {}
         }
         // dans le plan 2D : les traits non verticaux en tirets cyan, les verticaux en petit viseur
+        /* droite infinie : tracée seulement sur la partie visible du canevas (une droite de 20 000 km en tirets coûtait des dizaines de ms à chaque image) ; motif des tirets accroché au point de la droite */
+        function clStrokeInf(c, x, y, ux, uy, period) { let M; try { M = c.getTransform().invertSelf(); } catch (e) { M = null; } const W = c.canvas.width, H = c.canvas.height;
+            let t0 = -1e7, t1 = 1e7; if (M) { const C = [[0, 0], [W, 0], [W, H], [0, H]].map(([a, b]) => ({ x: M.a * a + M.c * b + M.e, y: M.b * a + M.d * b + M.f })), T = C.map(q => (q.x - x) * ux + (q.y - y) * uy); t0 = Math.min(...T); t1 = Math.max(...T);
+                const nx = -uy, ny = ux, D = C.map(q => (q.x - x) * nx + (q.y - y) * ny); if (Math.min(...D) > 0 || Math.max(...D) < 0) return; }
+            if (period > 0) c.lineDashOffset = -(((t0 % period) + period) % period) + period;
+            c.beginPath(); c.moveTo(x + ux * t0, y + uy * t0); c.lineTo(x + ux * t1, y + uy * t1); c.stroke(); c.lineDashOffset = 0; }
         function drawCLines(c) {
             if (mode !== 'cline2') return;   // aperçu : le trait qui serait posé sur l'arête survolée (Maj : la perpendiculaire au point)
-            const ed = cl2Edge({ x: currentX, y: currentY }); if (!ed) return; const big = 1e7, sh = !!window.__shiftDown;
+            const ed = cl2Edge({ x: currentX, y: currentY }); if (!ed) return; const sh = !!window.__shiftDown;
             const sn = sh && typeof findSnap === 'function' ? findSnap(currentX, currentY) : null, q = sh ? (sn || { x: currentX, y: currentY }) : ed.base, d = sh ? { x: -ed.dir.y, y: ed.dir.x } : ed.dir;
             c.save(); c.strokeStyle = 'rgba(34,211,238,.55)'; c.lineWidth = 1 / camera.zoom; c.setLineDash([3 / camera.zoom, 4 / camera.zoom]);
-            c.beginPath(); c.moveTo(q.x - d.x * big, q.y - d.y * big); c.lineTo(q.x + d.x * big, q.y + d.y * big); c.stroke(); c.restore();
+            const dl = Math.hypot(d.x, d.y) || 1; clStrokeInf(c, q.x, q.y, d.x / dl, d.y / dl, 7 / camera.zoom); c.restore();
         }
         window.addEventListener('keydown', e => { if (e.key === 'Shift') { window.__shiftDown = true; if (mode === 'cline2') draw(); } });
         window.addEventListener('keyup', e => { if (e.key === 'Shift') { window.__shiftDown = false; if (mode === 'cline2') draw(); } });
         function drawCLine2D(c, s, sel, dx, dy, ls) {
-            const big = 1e7, x = s.x + dx, y = s.y + dy; c.save(); c.strokeStyle = sel ? '#ec4899' : 'rgba(34,211,238,.8)'; c.lineWidth = (sel ? 2 : 1) / ls; c.setLineDash([8 / ls, 5 / ls]);
-            c.beginPath(); c.moveTo(x - s.ux * big, y - s.uy * big); c.lineTo(x + s.ux * big, y + s.uy * big); c.stroke(); c.restore();
+            const x = s.x + dx, y = s.y + dy; c.save(); c.strokeStyle = sel ? '#ec4899' : 'rgba(34,211,238,.8)'; c.lineWidth = (sel ? 2 : 1) / ls; c.setLineDash([8 / ls, 5 / ls]);
+            clStrokeInf(c, x, y, s.ux, s.uy, 13 / ls); c.restore();
         }
         // ---- TRAIT DE CONSTRUCTION (plan) : cliquer une arête, puis chaque clic pose une parallèle infinie ----
         const CL2 = { dir: null, base: null, typed: '' }; let cl2Cache = null;
