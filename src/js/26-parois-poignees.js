@@ -232,8 +232,7 @@
             G.forEach(x => (x.openings || []).forEach(o => ops.push(o))); const N = wallChainShapes(P, tool, closed, tool.cx ? null : wallLayerId(tool), gid, s0.wz);
             N.forEach(x => { ['bid', 'lvl', 'zk'].forEach(f => { if (s0[f] !== undefined) x[f] = s0[f]; }); x.lvs = 1; });
             const old = new Set(G); shapes = shapes.filter(x => !old.has(x)); shapes.splice(Math.max(0, Math.min(at, shapes.length)), 0, ...N);
-            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => { const m = { x: (o.a.x + o.b.x) / 2, y: (o.a.y + o.b.y) / 2 }; let best = null, bd = Infinity; Hn.forEach(h => { if (bd < 0) return; if (pointInPolygon(m.x, m.y, h.loops[0])) { bd = -1; best = h; return; } const d = distToPoly(m.x, m.y, h.loops[0]); if (d < bd) { bd = d; best = h; } });
-                if (best) { best.openings = (best.openings || []).concat([o]); try { o.pts = openingPts(best, o.a, o.b); } catch (e) {} } });
+            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => wallOpHome(o, Hn));
             return N; }
         function wallCxRecover(gid) { const G = shapes.filter(x => x.groupId === gid && x.wallCx), Hs = G.filter(x => x.type === 'hatch' && !x.stud && x.loops && x.loops[0] && x.loops[0].length === 4); if (!Hs.length) return null;
             let def = (Hs.find(x => x.cxd) || {}).cxd; if (def) def = cxNorm(def);
@@ -252,8 +251,7 @@
             const ops = []; R.G.forEach(x => (x.openings || []).forEach(o => ops.push(o))); const at = shapes.indexOf(s0);
             const N = wallChainShapesCx(R.P, w, R.closed, gid, s0.wz); N.forEach(x => { ['bid', 'lvl', 'zk'].forEach(f => { if (s0[f] !== undefined) x[f] = s0[f]; }); x.lvs = 1; });
             const old = new Set(R.G); shapes = shapes.filter(x => !old.has(x)); shapes.splice(Math.max(0, Math.min(at, shapes.length)), 0, ...N);
-            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => { const m = { x: (o.a.x + o.b.x) / 2, y: (o.a.y + o.b.y) / 2 }; let best = null, bd = Infinity; Hn.forEach(h => { const Q = h.loops[0]; if (bd < 0) return; if (pointInPolygon(m.x, m.y, Q)) { bd = -1; best = h; return; } const d = distToPoly(m.x, m.y, Q); if (d < bd) { bd = d; best = h; } });
-                if (best) { best.openings = (best.openings || []).concat([o]); try { o.pts = openingPts(best, o.a, o.b); } catch (e) {} } });
+            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => wallOpHome(o, Hn));
             return N; }
         // géométrie d'une chaîne pour une bande [oa, ob] (monde, depuis le tracé, vers la gauche) : onglets aux angles
         const wallChainGeomOff = (P, closed, oa, ob) => wallChainGeomRaw(P, closed, oa, ob);

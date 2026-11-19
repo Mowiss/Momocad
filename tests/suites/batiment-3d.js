@@ -843,6 +843,18 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
             selectedShapes = shapes.filter(x => x.wallMat === 'beton'); g = allGrips().find(x => x.kind === 'w-edge' && x.pi === 0 && Math.abs(x.y - pt(0, 0).y) < mmToWorld(150)); startGrip(g); gripApply(g.x, g.y + pt(0, -1).y); endGrip(false); const yb1 = Math.max(...ys(bri)); r.follow = Math.abs(yb1 - yb0 - pt(0, -1).y) < mmToWorld(3); const D = H(bri).find(h => h.openings && h.openings.length); r.door = !!D && Math.abs(D.openings[0].a.y - pt(6, 2).y) < 1e-6; }
         shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
     t.eq('pièces modulables : paroi fusionnée retouchée tracé par tracé, la cloison accrochée suit le mur tiré, porte gardée, annulable', modu, { fused: true, grip: true, refend: true, still2: true, bgrip: true, undo: true, follow: true, door: true });
+    // ouverture : le mur bouge sous elle (sommet déplacé) → elle reste dans le mur, à sa taille, et reste retouchable ; une ouverture restée hors du mur est remise dedans au chargement
+    const opk = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        wallOpt.align = 'gauche'; startWall(WALL_PRESETS[0].id); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallAddTo(pt(6, 4).x, pt(6, 4).y); wallChain = null; wallStart = null; setMode('select-box');
+        const wg = shapes.find(x => x.wallMat).groupId, host = shapes.find(x => x.groupId === wg && x.type === 'hatch' && x.loops[0].some(q => Math.abs(q.y) < 1e-9 && Math.abs(q.x - pt(0, 0).x) < 1e-9));
+        const o = { a: pt(2, -0.1), b: pt(3, -0.1), kind: 'porte', sill: 0, h: 2100, layerId: host.layerId }; o.pts = openingPts(host, o.a, o.b); host.openings = [o]; saveState(); const A0 = Math.abs(polyArea(o.pts));
+        selectedShapes = shapes.filter(x => x.groupId === wg); const g = allGrips().find(x => x.kind === 'w-vtx' && x.i === 0); startGrip(g); gripApply(g.x, g.y + pt(0, 1.5).y); endGrip(false);
+        const H = shapes.filter(x => x.groupId === wg && x.type === 'hatch'), h2 = H.find(x => x.openings && x.openings.length), o2 = h2 && h2.openings[0], mm = o2 && { x: (o2.a.x + o2.b.x) / 2, y: (o2.a.y + o2.b.y) / 2 };
+        r.inWall = !!o2 && pointInPolygon(mm.x, mm.y, h2.loops[0]); r.size = !!o2 && Math.abs(polyArea(o2.pts)) < A0 * 1.6;
+        selectedShapes = [h2]; r.grips = allGrips().filter(x => x.kind === 'op-end' || x.kind === 'op-move').length === 3;
+        o2.a = { x: o2.a.x, y: o2.a.y - pt(0, 2).y }; o2.b = { x: o2.b.x, y: o2.b.y - pt(0, 2).y }; r.rep = wallOpRepair() === 1; const h3 = shapes.find(x => x.openings && x.openings.includes(o2)), m3 = { x: (o2.a.x + o2.b.x) / 2, y: (o2.a.y + o2.b.y) / 2 }; r.back = !!h3 && pointInPolygon(m3.x, m3.y, h3.loops[0]) && wallOpRepair() === 0;
+        shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('ouverture : reste dans le mur qui bouge sous elle, à sa taille, retouchable ; remise dans le mur au chargement', opk, { inWall: true, size: true, grips: true, rep: true, back: true });
     // emprise : m² et périmètre dans le panneau du bâtiment ; traits de construction invisibles en 3D hors outil de dessin 3D
     const em = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
         const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState();
