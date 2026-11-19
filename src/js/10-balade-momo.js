@@ -34,7 +34,7 @@
             let pv = null; if (h) { pv = h.object.userData.leaf ? h.object.parent : null; if (!pv) { const o = h.object.userData.opening; V3.root.traverse(m => { if (m.userData.leaf && m.userData.leaf === o) pv = m.parent; }); } }
             if (!pv) { let best = 2.6; V3.root.updateMatrixWorld(true); V3.root.traverse(m => { if (!m.userData.door) return; const c = new THREE.Box3().setFromObject(m).getCenter(new THREE.Vector3()), dx = c.x - F.pos.x, dy = c.y - F.pos.y, d = Math.hypot(dx, dy); if (d < best && (dx * dir.x + dy * dir.y) / (d || 1) > 0.5) { best = d; pv = m; } }); }   // porte ouverte : on vise l'embrasure
             if (!pv || !pv.userData.door) return false;
-            const D = pv.userData.door; if (D.open) D.to = D.a0; else { const nx = -Math.sin(D.a0), ny = Math.cos(D.a0), side = (F.pos.x - pv.position.x) * nx + (F.pos.y - pv.position.y) * ny; D.to = D.a0 + (side > 0 ? -1 : 1) * Math.PI / 2; } D.open = !D.open;
+            const D = pv.userData.door; if (D.open) D.to = D.a0; else if (D.sw) D.to = D.a0 + D.sw; else { const nx = -Math.sin(D.a0), ny = Math.cos(D.a0), side = (F.pos.x - pv.position.x) * nx + (F.pos.y - pv.position.y) * ny; D.to = D.a0 + (side > 0 ? -1 : 1) * Math.PI / 2; } D.open = !D.open;
             (F.anim = F.anim || new Set()).add(pv); updateCommandMessageText(D.open ? 'VUE MOMO : porte ouverte (E pour la refermer).' : 'VUE MOMO : porte fermée.'); return true; }
         // altitude du sol fini (mm) sous un point du plan : plateforme, terrain, ou la dalle qui le porte
         function groundZAt(wx, wy, slabs) { const tin = getTIN(); let FM = null; try { FM = finishedModel(); } catch (e) {}

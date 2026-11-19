@@ -836,4 +836,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         await open3D(); let n = 0; V3.root.traverse(o => { if (o.userData && o.userData.shape === T) n++; }); r.d3 = n > 6; close3D();
         selectedShapes = []; bldActivate(null); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('plan de travail et bar déroulés en polyligne : sur le plancher, meubles bas contre le mur, pieds, cliquables, réglables avec Y, en 3D', ctp, { made: true, hit: true, wallSide: true, legs: true, y: true, set: true, d3: true });
+    // portes : en 3D, gonds et sens d'ouverture comme sur le plan (les 4 combinaisons côté / gonds)
+    const doors = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), out = [];
+        startWall(WALL_PRESETS[0].id); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(8, 0).x, pt(8, 0).y); wallChain = null; wallStart = null; setMode('select-box'); const host = shapes.find(x => x.type === 'hatch' && x.wallMat); host.wz = { b: 100000, t: 102700 };
+        for (const [side, hinge] of [[1, 'a'], [1, 'b'], [-1, 'a'], [-1, 'b']]) {
+            const pa = pt(3, 0), pb = pt(4, 0), o = { a: pa, b: pb, kind: 'porte', sill: 0, h: 2100, side, hinge, layerId: host.layerId }; o.pts = openingPts(host, pa, pb); host.openings = [o]; invalidateCache();
+            await open3D(); let pv = null; V3.root.traverse(x => { if (x.userData && x.userData.door) pv = x; }); const D = pv.userData.door, ctr = () => { V3.root.updateMatrixWorld(true); return new THREE.Box3().setFromObject(pv.children[0]).getCenter(new THREE.Vector3()); };
+            pv.rotation.z = D.a0; const cc = ctr(), piv = pv.getWorldPosition(new THREE.Vector3()); pv.rotation.z = D.a0 + D.sw; const co = ctr(); close3D();
+            const p = o.pts, hb = hinge === 'b', H = side > 0 ? (hb ? p[2] : p[3]) : (hb ? p[1] : p[0]), nx = (p[3].x - p[0].x) * side, ny = (p[3].y - p[0].y) * side, mid = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 };
+            const sw3 = [co.x - piv.x, co.y - piv.y], sw2 = [nx, -ny], hg3 = [piv.x - cc.x, piv.y - cc.y], hg2 = [H.x - mid.x, -(H.y - mid.y)], dot = (a, b) => (a[0] * b[0] + a[1] * b[1]) / (Math.hypot(...a) * Math.hypot(...b) || 1);
+            out.push(dot(sw3, sw2) > 0.9 && hg3[0] * hg2[0] > 0); }
+        shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return out; });
+    t.eq('portes : en 3D, gonds et sens d\'ouverture comme sur le plan (4 combinaisons)', doors, [true, true, true, true]);
 } };

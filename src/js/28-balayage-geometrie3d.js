@@ -278,8 +278,10 @@
             if (o.kind === 'garage') { const pm = new THREE.MeshLambertMaterial({ color: 0xe5e7eb }), gm = new THREE.MeshLambertMaterial({ color: 0x9ca3af }), a0 = s0 + f, a1 = s1 - f, nP = 5, ph = (z1 - f - z0) / nP;   /* porte sectionnelle : 5 panneaux, joints marqués */
                 for (let i = 0; i < nP; i++) { box(a0, a1, z0 + i * ph + 0.006, z0 + (i + 1) * ph - 0.006, 0.045, pm); box(a0, a1, z0 + (i + 1) * ph - 0.006, z0 + (i + 1) * ph + 0.006, 0.03, gm); } }
             else if (door) { const tm2 = texMaterial('bois') || new THREE.MeshLambertMaterial({ color: 0xa0522d }), a0 = s0 + f, a1 = s1 - f;   // vantail sur ses gonds : il s'ouvre dans la vue Momo
-                if (a1 - a0 > 1e-4 && z1 - f - z0 > 1e-4) { const pv = new THREE.Group(); pv.position.set(A.x + u.x * a0 + n.x * tm, A.y + u.y * a0 + n.y * tm, 0); pv.rotation.z = ang; pv.userData.door = { a0: ang, open: false, to: ang };
-                    const m = new THREE.Mesh(new THREE.BoxGeometry(a1 - a0, 0.04, z1 - f - z0), tm2); m.position.set((a1 - a0) / 2, 0, (z0 + z1 - f) / 2); m.userData.opening = o; m.userData.leaf = o; pv.add(m); root.add(pv); } }
+                /* comme sur le plan : gonds du côté choisi (o.hinge), battant qui s'ouvre vers la face choisie (o.side) */
+                if (a1 - a0 > 1e-4 && z1 - f - z0 > 1e-4) { const hb = o.hinge === 'b', sd = o.side === -1 ? -1 : 1, dir = (Math.sign(sn[3] - sn[0]) || 1) * sd, ht = (Math.max(...sn) - Math.min(...sn)) / 2, pn = tm + dir * Math.max(0, ht - 0.03), ps = hb ? a1 : a0;
+                    const pv = new THREE.Group(); pv.position.set(A.x + u.x * ps + n.x * pn, A.y + u.y * ps + n.y * pn, 0); pv.rotation.z = ang; pv.userData.door = { a0: ang, open: false, to: ang, sw: (hb ? -dir : dir) * Math.PI / 2 };
+                    const m = new THREE.Mesh(new THREE.BoxGeometry(a1 - a0, 0.04, z1 - f - z0), tm2); m.position.set((hb ? -1 : 1) * (a1 - a0) / 2, 0, (z0 + z1 - f) / 2); m.userData.opening = o; m.userData.leaf = o; pv.add(m); root.add(pv); } }
             if (!door) { box(s0, s1, z0, z0 + f, 0.07, frame); box(s0 + f, s1 - f, z0 + f, z1 - f, 0.012, new THREE.MeshLambertMaterial({ color: 0x9ccbf0, transparent: true, opacity: 0.38, depthWrite: false }));
                 box((s0 + s1) / 2 - f / 3, (s0 + s1) / 2 + f / 3, z0 + f, z1 - f, 0.05, frame); }   // meneau : deux vantaux
             if (o.shut && o.shut.type) {   // volets sur la face extérieure : battants ouverts contre la façade, ou volet roulant à demi-relevé dans ses coulisses
