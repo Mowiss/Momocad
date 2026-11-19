@@ -784,4 +784,13 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         selectedShapes = [D]; rcpClear(null); closeSelectionParamModal(); r.clear = !D.cuts && Math.abs(await bbx() - 10) < 0.05;
         shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
     t.eq('recouper : le côté non gardé disparaît (plan et 3D), la recoupe suit l\'objet et se retire', rcp1, { cut: true, d3: true, moved: true, clear: true });
+    // drapeau d'ancrage de la vue 3D : bouton de la rosace, un clic sur la maquette le plante ; la vue tourne et zoome autour, le déplacement ne le quitte pas
+    const pin = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        [[0, 0], [20, 0], [0, 15]].forEach(([x0, y0], i) => shapes.push({ type: 'poly', layerId: activeLayerId, points: [[x0, y0], [x0 + 6, y0], [x0 + 6, y0 + 5], [x0, y0 + 5]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'box', H: 3000 + i * 1000 }, zk: 1 }));
+        saveState(); await open3D(); r.btn = [...document.querySelectorAll('#v3-rose g[onclick]')].some(g => /v3PinToggle/.test(g.getAttribute('onclick')));
+        v3PinToggle(); r.pick = !!V3.pinPick; let me = null; V3.root.traverse(o => { if (!me && o.isMesh && o.userData.shape === shapes[0]) me = o; }); me.geometry.computeBoundingBox(); const c = me.geometry.boundingBox.getCenter(new THREE.Vector3()); c.z = me.geometry.boundingBox.max.z; me.localToWorld(c);
+        const v = c.clone().project(V3.camera), cr = V3.renderer.domElement.getBoundingClientRect(); v3PinAt({ clientX: cr.left + (v.x + 1) / 2 * cr.width, clientY: cr.top + (1 - v.y) / 2 * cr.height });
+        r.set = !!V3.pin && !V3.pinPick && V3.pin.distanceTo(c) < 0.5; V3.az += 1; V3.target.set(0, 0, 0); render3D(); r.stays = V3.target.distanceTo(V3.pin) < 1e-6 && !!V3.pinMesh && V3.pinMesh.visible;
+        v3PinToggle(); r.off = !V3.pin && !V3.pinMesh.visible; close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('vue 3D : drapeau d\'ancrage (rosace) planté d\'un clic, la vue reste centrée sur lui, se retire', pin, { btn: true, pick: true, set: true, stays: true, off: true });
 } };

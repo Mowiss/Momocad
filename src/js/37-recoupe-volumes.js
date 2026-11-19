@@ -35,3 +35,17 @@
                     c.fillStyle = 'rgba(244,63,94,.28)'; rcp.T.forEach(s => { const bb = getShapesBoundingBox([s]); if (bb) c.fillRect(bb.minX, bb.minY, bb.maxX - bb.minX, bb.maxY - bb.minY); }); } }
             c.restore(); }
         function rcpClear(gid) { const S = shapes.filter(x => (gid && x.groupId === gid) || selectedShapes.includes(x)); S.forEach(x => { delete x.cuts; }); invalidateCache(); saveState(); draw(); refresh3D(); if (selectedShapes.length) openSelectionParamModal(); }
+        // ---- POINT D'ANCRAGE de la vue 3D (drapeau de la rosace) : un clic sur la maquette le pose ; la caméra tourne et zoome toujours autour ; un 2e clic sur le drapeau le retire
+        function v3PinToggle() { if (!V3) return; if (V3.pin) { V3.pin = null; V3.pinRoot = null; V3.pinWarn = 0; v3PinMark(); updateCommandMessageText('VUE 3D : point d\'ancrage retiré.'); }
+            else { V3.pinPick = !V3.pinPick; updateCommandMessageText(V3.pinPick ? 'VUE 3D : cliquez un point de la maquette (sol, mur, toit…) pour y planter le drapeau.' : 'VUE 3D : pose du point d\'ancrage annulée.'); }
+            render3D(); }
+        function v3PinAt(e) { const cv = V3.renderer.domElement, r = cv.getBoundingClientRect(), ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), V3.camera);
+            const h = ray.intersectObjects(V3.root.children, true).find(x => x.object.visible !== false && !(x.object.userData && x.object.userData.pinMark)); if (!h) { updateCommandMessageText('VUE 3D : rien sous le curseur — cliquez sur la maquette.'); return; }
+            V3.pinPick = false; const d = V3.camera.position.distanceTo(h.point); V3.pin = h.point.clone(); V3.pinRoot = V3.root.position.clone(); V3.target.copy(V3.pin); V3.dist = Math.max(V3.R * 0.01, Math.min(d, V3.R * 50)); V3.pinWarn = 0;
+            updateCommandMessageText('VUE 3D : drapeau planté — glisser tourne autour, la molette zoome sur lui. Drapeau de la rosace pour le retirer.'); render3D(); }
+        // repère du drapeau dans la scène (mât + fanion), à taille constante à l'écran
+        function v3PinMark() { if (!V3 || !V3.scene) return; let M = V3.pinMesh; if (!V3.pin) { if (M) M.visible = false; return; }
+            if (!M) { M = new THREE.Group(); const mat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, depthTest: false, transparent: true }), pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1, 6), mat); pole.rotation.x = Math.PI / 2; pole.position.z = 0.5;
+                const fl = new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 1, 0.55, 0, 0.82, 0, 0, 0.64], 3)), new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, depthTest: false, transparent: true }));
+                [pole, fl].forEach(x => { x.renderOrder = 999; x.userData.pinMark = 1; M.add(x); }); M.userData.pinMark = 1; V3.scene.add(M); V3.pinMesh = M; }
+            M.visible = true; M.position.copy(V3.pin); const s = Math.max(0.05, V3.dist * 0.06); M.scale.set(s, s, s); M.rotation.z = -V3.az; }

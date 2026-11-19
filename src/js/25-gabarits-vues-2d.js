@@ -212,13 +212,16 @@
             const chev = (x, dir) => { const w = 4.6, tip = (x0) => `<polyline points="${x0 - dir * w},-7 ${x0},0 ${x0 - dir * w},7"/>`;
                 return `<g style="cursor:pointer;" onclick="roseSpin(${dir},'${where}')"><title>Tourner d'un quart de tour vers la ${dir < 0 ? 'gauche' : 'droite'} (autour de Z)</title><rect x="${x - 9}" y="-12" width="18" height="24" fill="transparent"/>`
                     + `<g fill="none" stroke="#9ca3af" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${tip(x + dir * 2.6)}${tip(x - dir * 3.4)}</g></g>`; };
+            const pinOn = typeof V3 !== 'undefined' && V3 && V3.pin, pinPick = typeof V3 !== 'undefined' && V3 && V3.pinPick, pc = pinPick ? '#4ade80' : pinOn ? '#fbbf24' : '#9ca3af';
+            const flag = where === '3d' ? `<g style="cursor:pointer;" onclick="v3PinToggle()"><title>${pinOn ? 'Point d\'ancrage posé : la vue tourne et zoome autour de lui. Clic : le retirer' : pinPick ? 'Cliquez un point de la maquette pour y poser l\'ancrage (Échap : annuler)' : 'Poser un point d\'ancrage : la vue tournera et zoomera toujours autour de lui'}</title><circle cx="-38" cy="38" r="12" fill="${pinOn ? '#78350f' : '#0f172a'}" stroke="${pc}" stroke-width="1.6" ${pinPick ? 'stroke-dasharray="3 2"' : ''}/>`
+                + `<path d="M-41.5 46V30" stroke="${pc}" stroke-width="1.6" stroke-linecap="round"/><path d="M-41 30.5L-32 33.6L-41 37Z" fill="${pc}"/><ellipse cx="-41.5" cy="46.2" rx="4" ry="1.4" fill="none" stroke="${pc}" stroke-width="1"/></g>` : '';
             const grid = where === '2d' ? `<g style="cursor:pointer;" onclick="toggleGrid()"><title>${showGrid ? 'Masquer' : 'Afficher'} la grille de fond</title><circle cx="-38" cy="38" r="12" fill="#0f172a" stroke="${showGrid ? '#e5e7eb' : '#6b7280'}" stroke-width="1.6"/>`
                 + `<g fill="none" stroke="${showGrid ? '#e5e7eb' : '#6b7280'}" stroke-width="1.3"><circle cx="-38" cy="38" r="7.2"/><path d="M-45 34.4 H-31 M-45 41.6 H-31 M-41.6 31 V45 M-34.4 31 V45"/></g>${showGrid ? '' : '<path d="M-46 46 L-30 30" stroke="#f87171" stroke-width="1.8" stroke-linecap="round"/>'}</g>` : '';
             // chevrons verticaux : monter / descendre le point de vue (dessus ↔ iso ↔ côté)
             const vch = (y, dir) => { const w = 4.6, tip = (y0) => `<polyline points="-7,${y0 - dir * w} 0,${y0} 7,${y0 - dir * w}"/>`;
                 return `<g style="cursor:pointer;" onclick="roseTilt(${dir},'${where}')"><title>${dir < 0 ? 'Monter le point de vue (vers la vue de dessus)' : 'Descendre le point de vue (vers la vue de côté)'}</title><rect x="-12" y="${y - 9}" width="24" height="18" fill="transparent"/>`
                     + `<g fill="none" stroke="#9ca3af" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${tip(y + dir * 2.6)}${tip(y - dir * 3.4)}</g></g>`; };
-            return chev(-50, -1) + chev(50, 1) + vch(-49.5, -1) + vch(49.5, 1) + grid;
+            return chev(-50, -1) + chev(50, 1) + vch(-49.5, -1) + vch(49.5, 1) + grid + flag;
         }
         function roseTilt(dir, where) {   // dir -1 : monter (vers le dessus), +1 : descendre (vers le côté)
             if (where === '3d') { if (!V3) return; const steps = [0.05, 0.6, Math.PI / 2 - 0.002], cur = V3.el; let nx;

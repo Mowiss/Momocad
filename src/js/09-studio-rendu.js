@@ -419,11 +419,12 @@
                 else {
                     const k = V3.dist * 0.0018, right = new THREE.Vector3(), up = new THREE.Vector3();
                     camera.matrixWorld.extractBasis(right, up, new THREE.Vector3());
+                    if (V3.pin) { if (!V3.pinWarn) { V3.pinWarn = 1; updateCommandMessageText('VUE 3D : point d\'ancrage posé, la vue reste centrée sur lui (drapeau de la rosace pour le retirer).'); } } else
                     V3.target.addScaledVector(right, -dx * k).addScaledVector(up, dy * k);
                 }
                 render3DSoon(true);
             });
-            cv.addEventListener('pointerup', (e) => { const d = drag; drag = null; v3FullRes(); if (V3.fps) { if (d && d.b === 'fps' && document.pointerLockElement !== cv && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 4) fpsDoor(); return; } if (d && d.b === 'brush') { brushUp(); return; } if (d && d.b === 0 && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 4 && !lp3D.live) { if (d3Active()) d3Click(e); else pick3D(e); } });
+            cv.addEventListener('pointerup', (e) => { const d = drag; drag = null; v3FullRes(); if (V3.fps) { if (d && d.b === 'fps' && document.pointerLockElement !== cv && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 4) fpsDoor(); return; } if (d && d.b === 'brush') { brushUp(); return; } if (d && d.b === 0 && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 4 && !lp3D.live) { if (V3.pinPick) { v3PinAt(e); return; } if (d3Active()) d3Click(e); else pick3D(e); } });
             cv.addEventListener('dblclick', (e) => { if (lp3D.live || V3.fps) return; if (mode === 'pline' && d3Active()) { d3Finish(); return; } if (brushTool || d3Active()) return; const r = cv.getBoundingClientRect(), ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), V3.camera);
                 const h = ray.intersectObjects(V3.root.children, true).find(x => x.object.userData && (x.object.userData.opening || x.object.userData.shape)); if (!h) return;
                 if (h.object.userData.opening) { const o = h.object.userData.opening, host = shapes.find(x => (x.openings || []).includes(o)); if (host) openingDialog(host, o, false); } else { selectedShapes = [h.object.userData.shape]; openSelectionParamModal(); } });
