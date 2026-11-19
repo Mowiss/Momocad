@@ -339,7 +339,7 @@
         }
         /* un objet abîmé n'empêche pas le reste du plan de se dessiner : il est sauté et signalé une fois */
         const DRAW_BAD = new WeakSet();
-        function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy, lineScale) { targetCtx.save(); try { return drawSingleShape0(targetCtx, s, isPrinting, sel, dx, dy, lineScale); }
+        function drawSingleShape(targetCtx, s, isPrinting, sel, dx, dy, lineScale) { targetCtx.save(); try { if (s && s.cuts) rcpClip2D(targetCtx, s, dx, dy); const r = drawSingleShape0(targetCtx, s, isPrinting, sel, dx, dy, lineScale); if (s && s.cuts) rcpEdge2D(targetCtx, s, sel, dx || 0, dy || 0, lineScale); return r; }
             catch (e) { if (s && typeof s === 'object' && !DRAW_BAD.has(s)) { DRAW_BAD.add(s); mcIncident(e, 'dessin : ' + ((s && (s.name || s.type)) || 'objet')); } } finally { targetCtx.restore(); } }
         function drawSingleShape0(targetCtx, s, isPrinting, sel, dx, dy, lineScale) {
             if (!isPrinting && wallChain && wallChain.last && wallChain.last.has(s) && wallChainLive()) return;   // redessiné par l'aperçu de paroi
@@ -501,7 +501,7 @@
                 if (bigDraw) { targetCtx.save(); targetCtx.setTransform(1, 0, 0, 1, 0, 0); targetCtx.drawImage(off, 0, 0); targetCtx.restore();
                     drawCache = Object.assign(drawCache, { key: dcKey, rest: dcRest, cam: { x: camera.x, y: camera.y, zoom: camera.zoom }, cv: off, shapesRef: shapes, dims: dimensionTextsToDraw.slice(d0), texts: screenTextsToDraw.slice(t0) }); }
             }
-            if (!isPrinting) { drawBldBadges(targetCtx); gcalDraw(targetCtx); drawStampPreview(targetCtx); drawStairPreview(targetCtx); drawStair2Preview(targetCtx); drawBrush2DCursor(targetCtx); drawStretchPreview(targetCtx); drawWallPreview(targetCtx); drawPenPreview(targetCtx); drawMirrorPreview(targetCtx); t2DrawPreview(targetCtx); drawOpeningPreview(targetCtx); drawOpStretchPreview(targetCtx); drawTutoGhost(targetCtx); drawGrips(targetCtx); drawCLines(targetCtx); cutPreview(targetCtx); }
+            if (!isPrinting) { drawBldBadges(targetCtx); gcalDraw(targetCtx); drawStampPreview(targetCtx); drawStairPreview(targetCtx); drawStair2Preview(targetCtx); drawRecoupePreview(targetCtx); drawBrush2DCursor(targetCtx); drawStretchPreview(targetCtx); drawWallPreview(targetCtx); drawPenPreview(targetCtx); drawMirrorPreview(targetCtx); t2DrawPreview(targetCtx); drawOpeningPreview(targetCtx); drawOpStretchPreview(targetCtx); drawTutoGhost(targetCtx); drawGrips(targetCtx); drawCLines(targetCtx); cutPreview(targetCtx); }
 
             // Prévisualisations en cours de tracé
             if (isDrawing && !isPanning && isUIEnabled) {

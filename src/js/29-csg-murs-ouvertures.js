@@ -207,8 +207,8 @@
         }
         function openingFinish(b) {
             const a = openA, L = Math.hypot(b.x - a.x, b.y - a.y); if (L < mmToWorld(50)) return;
-            const pts = openingPts(openWall, a, b), k = ['porte', 'baie'].includes(openLast.kind) ? openLast.kind : 'fen';
-            const o = { pts, a, b, kind: k, sill: k === 'fen' ? 1000 : 0, h: k === 'fen' ? 1250 : 2150, hinge: 'a', side: 1, layerId: opLayerId(), top: openLast.top || 'droit' }; if (o.top !== 'droit' && openLast.Rk) o.R = openLast.Rk * L * mOf(1) * 1000;
+            const pts = openingPts(openWall, a, b), k = ['porte', 'baie', 'garage'].includes(openLast.kind) ? openLast.kind : 'fen';
+            const o = { pts, a, b, kind: k, sill: k === 'fen' ? 1000 : 0, h: k === 'fen' ? 1250 : k === 'garage' ? 2000 : 2150, hinge: 'a', side: 1, layerId: opLayerId(), top: openLast.top || 'droit' }; if (o.top !== 'droit' && openLast.Rk) o.R = openLast.Rk * L * mOf(1) * 1000;
             openLast.w = Math.round(L * mOf(1) * 1000) / 1000; try { localStorage.setItem('momocad-open', JSON.stringify(openLast)); } catch (e) {}
             openWall.openings = (openWall.openings || []).concat([o]); const host = openWall; openA = null; openWall = null; openDir = null; typedInput = ''; saveState(); setMode('select-box'); draw();
             openingDialog(host, o, true);
@@ -223,13 +223,13 @@
         function openingDialog(host, o, isNew) {
             const wM = Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1), inp = (id, v) => `<input id="${id}" type="text" inputmode="decimal" value="${String(v).replace('.', ',')}" style="width:90px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:5px 8px;text-align:right;outline:none;">`;
             const rb = (name, val, cur, lab) => `<label style="cursor:pointer;display:flex;align-items:center;gap:6px"><input type="radio" name="${name}" value="${val}" ${cur === val ? 'checked' : ''}> ${lab}</label>`;
-            const isDoor = o.kind === 'porte' || o.kind === 'baie';
+            const isDoor = o.kind === 'porte' || o.kind === 'baie' || o.kind === 'garage';
             const thk = Math.abs(opStretchTT(o)[1] - opStretchTT(o)[0]) * mOf(1) * 1000, Hw = host.wz && hasZ(host.wz.t) && hasZ(host.wz.b) ? host.wz.t - host.wz.b : 2500;
             const ti = (id, v, w, x, y, tip, hide) => `<input id="${id}" type="text" inputmode="decimal" value="${String(v).replace('.', ',')}" title="${MF.esc(tip)}" class="tal-in" oninput="opDiaDraw()" style="left:${x}%;top:${y}%;width:${w}px;${hide ? 'display:none;' : ''}">`;
             opDiaCtx = { Hw, thk };
             openTopoModal(isNew ? '🚪 Ouverture dans le mur' : '🚪 Ouverture — modifier', `<div style="display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:#e5e7eb;">
                 ${spChapter('op-dim', '▭', 'Type et dimensions', `<div style="display:flex;flex-direction:column;gap:8px">
-                <div style="display:flex;gap:16px;flex-wrap:wrap"><label style="cursor:pointer;"><input type="radio" name="op-k" value="fen" ${o.kind === 'fen' || !o.kind ? 'checked' : ''} onchange="opKind('fen')"> Fenêtre</label><label style="cursor:pointer;"><input type="radio" name="op-k" value="porte" ${isDoor ? 'checked' : ''} onchange="opKind('porte')"> Porte</label><label style="cursor:pointer;" title="Passage sans porte ni fenêtre : le mur est simplement percé"><input type="radio" name="op-k" value="baie" ${o.kind === 'baie' ? 'checked' : ''} onchange="opKind('baie')"> Baie libre (sans porte)</label></div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap"><label style="cursor:pointer;"><input type="radio" name="op-k" value="fen" ${o.kind === 'fen' || !o.kind ? 'checked' : ''} onchange="opKind('fen')"> Fenêtre</label><label style="cursor:pointer;"><input type="radio" name="op-k" value="porte" ${o.kind === 'porte' ? 'checked' : ''} onchange="opKind('porte')"> Porte</label><label style="cursor:pointer;" title="Porte sectionnelle : panneaux horizontaux qui remontent sous le plafond"><input type="radio" name="op-k" value="garage" ${o.kind === 'garage' ? 'checked' : ''} onchange="opKind('garage')"> Porte de garage</label><label style="cursor:pointer;" title="Passage sans porte ni fenêtre : le mur est simplement percé"><input type="radio" name="op-k" value="baie" ${o.kind === 'baie' ? 'checked' : ''} onchange="opKind('baie')"> Baie libre (sans porte)</label></div>
                 <div class="mf-sub" style="margin:0;">Haut de l'ouverture</div>
                 <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">${[['droit', 'Franc (droit)'], ['arche', 'Arche'], ['gendarme', 'Chapeau de gendarme']].map(([v, l]) => `<label style="cursor:pointer;"><input type="radio" name="op-top" value="${v}" ${(o.top || 'droit') === v ? 'checked' : ''} onchange="opTopUI()"> ${l}</label>`).join('')}
                     <span id="op-r-box" style="display:${(o.top || 'droit') === 'droit' ? 'none' : 'inline-flex'};align-items:center;gap:6px">rayon ${inp('op-r', lenTxt(o.R || opTop(Object.assign({}, o, { R: 0 }), wM * 1000).R))} <span id="op-f" style="color:#9ca3af;font-size:12px"></span></span></div>
@@ -259,14 +259,14 @@
                     { const vt = (document.querySelector('input[name=op-vt]:checked') || {}).value || 'none', vs = +((document.querySelector('input[name=op-vs]:checked') || {}).value || 1); if (vt === 'none') delete o.shut; else o.shut = { type: vt, side: vs === -1 ? -1 : 1 }; }
                     openLast.kind = o.kind; openLast.top = o.top; openLast.Rk = o.R ? o.R / (Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1) * 1000) : 0; openLast.w = ww > 0 ? ww : openLast.w; try { localStorage.setItem('momocad-open', JSON.stringify(openLast)); } catch (e) {}
                     closeTopoModal(); saveState(); draw(); if (is3DOpen()) { build3DScene(); render3D(); }
-                    updateCommandMessageText('OUVERTURE : ' + ({ porte: 'porte', baie: 'baie libre', fen: 'fenêtre' }[o.kind] || 'fenêtre') + ({ arche: ' en arche', gendarme: ' en chapeau de gendarme' }[o.top] || '') + ' de ' + nfr(Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1), 2) + ' × ' + nfr(o.h / 1000, 2) + ' m, allège ' + nfr(o.sill / 1000, 2) + ' m. Un clic dessus pour la modifier ou la décaler ; elle perce le mur en 3D si le mur a ses niveaux (Y sur le mur).'); }, true]]));
+                    updateCommandMessageText('OUVERTURE : ' + ({ porte: 'porte', baie: 'baie libre', fen: 'fenêtre', garage: 'porte de garage' }[o.kind] || 'fenêtre') + ({ arche: ' en arche', gendarme: ' en chapeau de gendarme' }[o.top] || '') + ' de ' + nfr(Math.hypot(o.b.x - o.a.x, o.b.y - o.a.y) * mOf(1), 2) + ' × ' + nfr(o.h / 1000, 2) + ' m, allège ' + nfr(o.sill / 1000, 2) + ' m. Un clic dessus pour la modifier ou la décaler ; elle perce le mur en 3D si le mur a ses niveaux (Y sur le mur).'); }, true]]));
             setTimeout(() => { opDiaDraw(); tmTabify(); }, 0); document.querySelectorAll('input[name=op-hg], input[name=op-sd], input[name=op-vt], input[name=op-vs]').forEach(r => r.addEventListener('change', opDiaDraw));
             const f = document.getElementById('op-w'); if (f) setTimeout(() => { f.focus(); f.select(); }, 30);
         }
         // fenêtre des ouvertures : schémas cotés (dessus et face), redessinés à chaque saisie
         let opDiaCtx = { Hw: 2500, thk: 200 };
         function opKind(k) { const sl = document.getElementById('op-sill'), h = document.getElementById('op-h'), dr = document.getElementById('op-door'), lb = document.getElementById('op-sill-lb');
-            if (k === 'porte' || k === 'baie') { sl.value = '0'; h.value = lenTxt(2150); sl.style.display = 'none'; if (lb) lb.style.display = 'none'; dr.style.display = k === 'porte' ? 'flex' : 'none'; }
+            if (k === 'porte' || k === 'baie' || k === 'garage') { sl.value = '0'; h.value = lenTxt(k === 'garage' ? 2000 : 2150); sl.style.display = 'none'; if (lb) lb.style.display = 'none'; dr.style.display = k === 'porte' || k === 'garage' ? 'flex' : 'none'; }
             else { sl.value = lenTxt(1000); h.value = lenTxt(1250); sl.style.display = ''; if (lb) lb.style.display = ''; dr.style.display = 'none'; }
             opDiaDraw(); tmTabify(); }
         function opTopUI() { const t = (document.querySelector('input[name=op-top]:checked') || {}).value || 'droit', b = document.getElementById('op-r-box'), r = document.getElementById('op-r'); if (b) b.style.display = t === 'droit' ? 'none' : 'inline-flex';
@@ -275,14 +275,15 @@
         function opDiaDraw() {
             const top = document.getElementById('op-svg-top'), side = document.getElementById('op-svg-side'); if (!top || !side) return;
             const nv = (id) => { const e = document.getElementById(id); const v = e ? parseFloat(String(e.value).replace(/\s/g, '').replace(',', '.')) : NaN; return isFinite(v) ? v * lenF() : NaN; };
-            const kd = ((document.querySelector('input[name=op-k]:checked') || {}).value) || 'fen', baie = kd === 'baie', door = kd === 'porte' || baie, hgB = ((document.querySelector('input[name=op-hg]:checked') || {}).value) === 'b', sdN = ((document.querySelector('input[name=op-sd]:checked') || {}).value) === '-1';
+            const kd = ((document.querySelector('input[name=op-k]:checked') || {}).value) || 'fen', baie = kd === 'baie', gar = kd === 'garage', door = kd === 'porte' || baie || gar, hgB = ((document.querySelector('input[name=op-hg]:checked') || {}).value) === 'b', sdN = ((document.querySelector('input[name=op-sd]:checked') || {}).value) === '-1';
             const D = '#f59e0b', A = (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${D}" stroke-width="1"/>`, tick = (x, y) => `<path d="M${x - 4} ${y + 4}l8-8" stroke="${D}" stroke-width="1"/>`;
             // dessus : mur en bande, l'ouverture au milieu, cote de largeur, symbole fenêtre ou porte
             const y0 = 88, y1 = 120, x0 = 145, x1 = 215;
             let t = `<defs><pattern id="opdh" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 7L7 0" stroke="#52525b" stroke-width="1"/></pattern></defs>
                 <rect x="14" y="${y0}" width="${x0 - 14}" height="${y1 - y0}" fill="url(#opdh)" stroke="#d4d4d8" stroke-width="1.2"/><rect x="${x1}" y="${y0}" width="${346 - x1}" height="${y1 - y0}" fill="url(#opdh)" stroke="#d4d4d8" stroke-width="1.2"/>
                 <path d="M${x0} ${y0}V${y1}M${x1} ${y0}V${y1}" stroke="#e5e7eb" stroke-width="2"/>`;
-            if (door) { const hx = hgB ? x1 : x0, ox = hgB ? x0 : x1, yy = sdN ? y0 : y1, dir = sdN ? -1 : 1, w = x1 - x0;
+            if (gar) t += `<path d="M${x0} ${(y0 + y1) / 2}H${x1}" stroke="#93c5fd" stroke-width="2.4"/><path d="M${x0 + 3} ${y1}V${y1 + 46}M${x1 - 3} ${y1}V${y1 + 46}" stroke="#93c5fd" stroke-width="1" stroke-dasharray="4 3"/>`;
+            else if (door) { const hx = hgB ? x1 : x0, ox = hgB ? x0 : x1, yy = sdN ? y0 : y1, dir = sdN ? -1 : 1, w = x1 - x0;
                 t += `<path d="M${hx} ${yy}V${yy + dir * w}" stroke="#93c5fd" stroke-width="2"/><path d="M${hx} ${yy + dir * w}A${w} ${w} 0 0 ${(hgB ? 1 : 0) ^ (sdN ? 1 : 0)} ${ox} ${yy}" stroke="#93c5fd" stroke-width="1" stroke-dasharray="4 3" fill="none"/>`; }
             else t += `<path d="M${x0} ${y0 + 13}H${x1}M${x0} ${y1 - 13}H${x1}" stroke="#93c5fd" stroke-width="1.6"/>`;
             { const vt = (document.querySelector('input[name=op-vt]:checked') || {}).value, vS = ((document.querySelector('input[name=op-vs]:checked') || {}).value) === '-1', fy = vS ? y0 : y1, oy = vS ? -3 : 3;
@@ -297,7 +298,7 @@
                 <path d="${(() => { const top = (document.querySelector('input[name=op-top]:checked') || {}).value || 'droit', wmm = Math.max(10, nv('op-w') || 1000), rr = nv('op-r'), pr = opProfile({ top, R: rr > 0 ? rr : 0, h }, wmm, 16), sx = (wx1 - wx0) / wmm;
                     const fe = document.getElementById('op-f'); if (fe) fe.textContent = top === 'droit' ? '' : 'flèche ' + lenTxt(Math.round(pr.f)) + ' · jambages ' + lenTxt(Math.round(pr.zs));
                     return pr.pts.map(([x, z], i) => (i ? 'L' : 'M') + (wx0 + x * sx).toFixed(1) + ' ' + (yb - z * k).toFixed(1)).join('') + 'Z'; })()}" fill="#111827" stroke="#e5e7eb" stroke-width="2"/>`;
-            f += baie ? '' : door ? `<path d="M${wx0 + 6} ${yt + 6}h${wx1 - wx0 - 12}v${yb - yt - 6}h-${wx1 - wx0 - 12}z" stroke="#a16207" stroke-width="1.5" fill="#78350f" fill-opacity=".45"/><circle cx="${hgB ? wx0 + 14 : wx1 - 14}" cy="${(yt + yb) / 2 + 6}" r="2.5" fill="#fbbf24"/>`
+            f += baie ? '' : gar ? Array.from({ length: 5 }, (_, i) => `<rect x="${wx0 + 4}" y="${(yt + 4 + i * (yb - yt - 4) / 5).toFixed(1)}" width="${wx1 - wx0 - 8}" height="${((yb - yt - 4) / 5 - 2).toFixed(1)}" fill="#e5e7eb" fill-opacity=".75" stroke="#64748b" stroke-width=".8"/>`).join('') : door ? `<path d="M${wx0 + 6} ${yt + 6}h${wx1 - wx0 - 12}v${yb - yt - 6}h-${wx1 - wx0 - 12}z" stroke="#a16207" stroke-width="1.5" fill="#78350f" fill-opacity=".45"/><circle cx="${hgB ? wx0 + 14 : wx1 - 14}" cy="${(yt + yb) / 2 + 6}" r="2.5" fill="#fbbf24"/>`
                 : `<path d="M${(wx0 + wx1) / 2} ${yt}V${yb}M${wx0 + 5} ${yt + 5}h${wx1 - wx0 - 10}v${yb - yt - 10}h-${wx1 - wx0 - 10}z" stroke="#93c5fd" stroke-width="1.2" fill="#93c5fd" fill-opacity=".15"/>`;
             { const vt = (document.querySelector('input[name=op-vt]:checked') || {}).value, ww = wx1 - wx0;
                 if (vt === 'battant') [[wx0 - ww / 2, wx0], [wx1, wx1 + ww / 2]].forEach(([a, b]) => { f += `<rect x="${a}" y="${yt}" width="${b - a}" height="${yb - yt}" fill="#4d7c5a" stroke="#86efac" stroke-width="1"/>`; for (let yy = yt + 8; yy < yb; yy += 8) f += `<path d="M${a + 2} ${yy}H${b - 2}" stroke="#86efac" stroke-opacity=".35"/>`; });
@@ -318,6 +319,9 @@
                     ctx.strokeStyle = col; ctx.lineWidth = 1 / ls; ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y); ctx.lineTo(p[3].x, p[3].y); ctx.moveTo(p[1].x, p[1].y); ctx.lineTo(p[2].x, p[2].y); ctx.stroke();
                     const mA = { x: (p[0].x + p[3].x) / 2, y: (p[0].y + p[3].y) / 2 }, mB = { x: (p[1].x + p[2].x) / 2, y: (p[1].y + p[2].y) / 2 };
                     if (o.kind === 'baie') { ctx.setLineDash([4 / ls, 3 / ls]); ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y); ctx.lineTo(p[1].x, p[1].y); ctx.moveTo(p[3].x, p[3].y); ctx.lineTo(p[2].x, p[2].y); ctx.stroke(); ctx.setLineDash([]); }   // baie libre : le linteau au-dessus, en tirets
+                    else if (o.kind === 'garage') { /* porte sectionnelle : le tablier au milieu du mur, ses rails en tirets vers l'intérieur (côté du sens choisi) */ const sd = o.side === -1 ? -1 : 1, nx = (p[3].x - p[0].x) * sd, ny = (p[3].y - p[0].y) * sd, nl = Math.hypot(nx, ny) || 1, d = mmToWorld(Math.min(2500, o.h || 2000));
+                        const E0 = sd > 0 ? p[3] : p[0], E1 = sd > 0 ? p[2] : p[1]; ctx.lineWidth = 2.4 / ls; ctx.beginPath(); ctx.moveTo(mA.x, mA.y); ctx.lineTo(mB.x, mB.y); ctx.stroke(); ctx.lineWidth = 1 / ls; ctx.setLineDash([5 / ls, 4 / ls]); ctx.beginPath();
+                        [E0, E1].forEach(e => { ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + nx / nl * d, e.y + ny / nl * d); }); ctx.moveTo(E0.x + nx / nl * d, E0.y + ny / nl * d); ctx.lineTo(E1.x + nx / nl * d, E1.y + ny / nl * d); ctx.stroke(); ctx.setLineDash([]); }
                     else if (o.kind === 'porte') { const w = Math.hypot(mB.x - mA.x, mB.y - mA.y), sd = o.side === -1 ? -1 : 1, hb = o.hinge === 'b';
                         const H = sd > 0 ? (hb ? p[2] : p[3]) : (hb ? p[1] : p[0]), J = sd > 0 ? (hb ? p[3] : p[2]) : (hb ? p[0] : p[1]);   // charnière et jambage opposé, sur la face qui reçoit le battant
                         const nx = (p[3].x - p[0].x) * sd, ny = (p[3].y - p[0].y) * sd, nl = Math.hypot(nx, ny) || 1, ux = nx / nl, uy = ny / nl;

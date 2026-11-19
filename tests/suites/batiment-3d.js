@@ -682,6 +682,9 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         document.querySelector('input[name=op-top][value=arche]').checked = true; opTopUI(); document.getElementById('op-r').value = '0,80'; [...document.querySelectorAll('#tm-actions button')].find(b => /Valider/.test(b.textContent)).click();
         const o = host.openings[0]; r.dialog = radios && o.kind === 'baie' && o.top === 'arche' && Math.abs(o.R - 800) < 1e-6;
         await open3D(); let jo = 0; V3.root.traverse(x => { if (x.userData && x.userData.opening === o) jo++; }); r.noJoinery = jo === 0; close3D();
+        openA = { x: 5 * m, y: -1 * m }; openWall = host; openDir = { x: 0, y: -1 }; openLast.kind = 'garage'; openLast.top = 'droit'; openingFinish({ x: 5 * m, y: -3.6 * m }); const og = host.openings[host.openings.length - 1];
+        r.garage = !!document.querySelector('input[name=op-k][value=garage]:checked') && og.kind === 'garage' && og.h === 2000 && og.sill === 0; [...document.querySelectorAll('#tm-actions button')].find(b => /Valider/.test(b.textContent)).click();
+        await open3D(); let gp = 0; V3.root.traverse(x => { if (x.userData && x.userData.opening === og) gp++; }); r.garage3d = gp >= 10; close3D(); draw();
         selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     // paroi enregistrée sans hauteur (dessinée pendant que le contour était cassé) : remise à l'étage de son bâtiment à l'ouverture et au dessin, donc visible en 3D
     const wzr = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000);
@@ -695,7 +698,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const h2 = { type: 'hatch', layerId: activeLayerId, wallMat: 'beton', groupId: 'g-out', loops: [box(14, 1, 18, 1.2)] }; shapes.push(h2); saveState(); r.outside = !!h2.wz && h2.wz.b === 69000 && h2.wz.t === 72000;
         bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('paroi sans hauteur remise à la hauteur de son étage : visible en 3D (ouverture du fichier et dessin hors contour)', wzr, { load: true, toast: true, mesh: true, outside: true });
-    t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true });
+    t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme, porte de garage', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true, garage: true, garage3d: true });
     // paroi complexe posée : Y modifie sa composition ; refaite sur le même tracé (même après déplacement et symétrie), ouvertures et hauteur gardées
     const cxy = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), P = (R) => JSON.stringify(R.P.map(q => [+(q.x / m).toFixed(3), +(-q.y / m).toFixed(3)]));
         startWallCx(WALL_CX[0]); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallAddTo(pt(6, 4).x, pt(6, 4).y); wallChainEnd(); setMode('select-box');
@@ -771,4 +774,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         bldAddRoof(); const L = lvlSorted(), Tl = L[L.length - 1]; r.roof = !!Tl.roofLv && Tl.z === 105600 && bldEgout(A) === 105600 + Tl.h; bldAdd(true); const L2 = lvlSorted(); r.roofTop = !!L2[L2.length - 1].roofLv && L2.length === 4;
         bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('trémie découpée dans la dalle du dessus, escalier cliquable dans son emprise sur ses deux étages, 3D avec tous les étages, étage de toiture (égout) toujours en haut', trem, { tremie: true, upper: true, lower: true, d3: true, roof: true, roofTop: true });
+    // Recouper : trait + côté gardé ; plan et 3D coupés ; suit un déplacement ; se retire ; porte de garage (ouverture sectionnelle)
+    const rcp1 = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const D = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'pyr', H: 3000, k: 0.3 }, zk: 1, name: 'Toit' }; shapes.push(D); saveState();
+        selectedShapes = [D]; startRecoupe(); rcpClick(pt(6, -1).x, pt(6, -1).y); rcpClick(pt(6, 9).x, pt(6, 9).y); rcpClick(pt(2, 4).x, pt(2, 4).y); r.cut = (D.cuts || []).length === 1 && mode === 'select-box';
+        const bbx = async () => { await open3D(); let mx = -1e9, mn = 1e9; V3.root.traverse(o => { if (o.isMesh && o.userData.shape === D) { o.geometry.computeBoundingBox(); mx = Math.max(mx, o.geometry.boundingBox.max.x); mn = Math.min(mn, o.geometry.boundingBox.min.x); } }); close3D(); return mx - mn; };
+        r.d3 = Math.abs(await bbx() - 6) < 0.05;
+        D.points.forEach(q => { q.x += 20 * m; }); xPtsOf(D).forEach(L => L.forEach(q => { q.x += 20 * m; })); r.moved = Math.abs(await bbx() - 6) < 0.05;
+        selectedShapes = [D]; rcpClear(null); closeSelectionParamModal(); r.clear = !D.cuts && Math.abs(await bbx() - 10) < 0.05;
+        shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('recouper : le côté non gardé disparaît (plan et 3D), la recoupe suit l\'objet et se retire', rcp1, { cut: true, d3: true, moved: true, clear: true });
 } };

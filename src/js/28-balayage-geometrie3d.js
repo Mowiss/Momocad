@@ -270,15 +270,17 @@
             const s0 = Math.min(...su), s1 = Math.max(...su), tm = (Math.min(...sn) + Math.max(...sn)) / 2, z0 = Zm(w.wz.b + (o.sill || 0)), prA = o.top && o.top !== 'droit' ? opProfile(o, (s1 - s0) * 1000) : null, z1 = z0 + (prA ? prA.zs : Math.max(10, o.h || 1000)) / 1000 * exag;
             if (prA) { const top = prA.pts.filter(([x, z]) => z >= prA.zs - 1e-6), sh = new THREE.Shape(top.map(([x, z]) => new THREE.Vector2(x / 1000, (z - prA.zs) / 1000))), g = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }), mm = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: o.kind === 'porte' ? 0x8b5a2b : 0xbfdbfe, transparent: o.kind !== 'porte', opacity: o.kind === 'porte' ? 1 : 0.45 }));   /* imposte cintrée */
                 const eu = new THREE.Vector3(u.x, u.y, 0), en = new THREE.Vector3(n.x, n.y, 0); g.applyMatrix4(new THREE.Matrix4().makeBasis(eu, new THREE.Vector3(0, 0, exag), en).setPosition(A.x + u.x * s0 + n.x * (tm - 0.02), A.y + u.y * s0 + n.y * (tm - 0.02), z1)); mm.userData.opening = o; root.add(mm); }
-            const f = Math.min(0.06, (s1 - s0) / 6), door = o.kind === 'porte', ang = Math.atan2(u.y, u.x);
+            const f = Math.min(0.06, (s1 - s0) / 6), door = o.kind === 'porte' || o.kind === 'garage', ang = Math.atan2(u.y, u.x);
             const box = (a0, a1, b0, b1, d, mat) => { if (a1 - a0 < 1e-4 || b1 - b0 < 1e-4) return; const g = new THREE.BoxGeometry(a1 - a0, d, b1 - b0), m = new THREE.Mesh(g, mat);
                 const sc = (a0 + a1) / 2; m.position.set(A.x + u.x * sc + n.x * tm, A.y + u.y * sc + n.y * tm, (b0 + b1) / 2); m.rotation.z = ang; m.userData.opening = o; root.add(m); };
-            const frame = new THREE.MeshLambertMaterial({ color: door ? 0x8b5a2b : 0xf3f4f6 });
+            const frame = new THREE.MeshLambertMaterial({ color: o.kind === 'garage' ? 0x6b7280 : door ? 0x8b5a2b : 0xf3f4f6 });
             box(s0, s0 + f, z0, z1, 0.07, frame); box(s1 - f, s1, z0, z1, 0.07, frame); box(s0, s1, z1 - f, z1, 0.07, frame);
-            if (door) { const tm2 = texMaterial('bois') || new THREE.MeshLambertMaterial({ color: 0xa0522d }), a0 = s0 + f, a1 = s1 - f;   // vantail sur ses gonds : il s'ouvre dans la vue Momo
+            if (o.kind === 'garage') { const pm = new THREE.MeshLambertMaterial({ color: 0xe5e7eb }), gm = new THREE.MeshLambertMaterial({ color: 0x9ca3af }), a0 = s0 + f, a1 = s1 - f, nP = 5, ph = (z1 - f - z0) / nP;   /* porte sectionnelle : 5 panneaux, joints marqués */
+                for (let i = 0; i < nP; i++) { box(a0, a1, z0 + i * ph + 0.006, z0 + (i + 1) * ph - 0.006, 0.045, pm); box(a0, a1, z0 + (i + 1) * ph - 0.006, z0 + (i + 1) * ph + 0.006, 0.03, gm); } }
+            else if (door) { const tm2 = texMaterial('bois') || new THREE.MeshLambertMaterial({ color: 0xa0522d }), a0 = s0 + f, a1 = s1 - f;   // vantail sur ses gonds : il s'ouvre dans la vue Momo
                 if (a1 - a0 > 1e-4 && z1 - f - z0 > 1e-4) { const pv = new THREE.Group(); pv.position.set(A.x + u.x * a0 + n.x * tm, A.y + u.y * a0 + n.y * tm, 0); pv.rotation.z = ang; pv.userData.door = { a0: ang, open: false, to: ang };
                     const m = new THREE.Mesh(new THREE.BoxGeometry(a1 - a0, 0.04, z1 - f - z0), tm2); m.position.set((a1 - a0) / 2, 0, (z0 + z1 - f) / 2); m.userData.opening = o; m.userData.leaf = o; pv.add(m); root.add(pv); } }
-            else { box(s0, s1, z0, z0 + f, 0.07, frame); box(s0 + f, s1 - f, z0 + f, z1 - f, 0.012, new THREE.MeshLambertMaterial({ color: 0x9ccbf0, transparent: true, opacity: 0.38, depthWrite: false }));
+            if (!door) { box(s0, s1, z0, z0 + f, 0.07, frame); box(s0 + f, s1 - f, z0 + f, z1 - f, 0.012, new THREE.MeshLambertMaterial({ color: 0x9ccbf0, transparent: true, opacity: 0.38, depthWrite: false }));
                 box((s0 + s1) / 2 - f / 3, (s0 + s1) / 2 + f / 3, z0 + f, z1 - f, 0.05, frame); }   // meneau : deux vantaux
             if (o.shut && o.shut.type) {   // volets sur la face extérieure : battants ouverts contre la façade, ou volet roulant à demi-relevé dans ses coulisses
                 const es = o.shut.side === -1 ? (sn[0] + sn[1]) / 2 : (sn[2] + sn[3]) / 2, dir = Math.sign(es - tm) || 1;
@@ -314,7 +316,8 @@
                 const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3)); return out;
             } catch (e) { return eg; }
         }
-        function objGeom3D(so, P, Zm, exag, ext) {
+        function objGeom3D(so, P, Zm, exag, ext) { return rcpGeom3D(objGeom3D0(so, P, Zm, exag, ext), so, P); }   /* recoupes (outil Recouper) */
+        function objGeom3D0(so, P, Zm, exag, ext) {
             ext = ext || (() => {});
             if (so.solid) {
                 const k = so.solid.kind, z0 = Zm(solidBaseZ(so)), Hm = (so.solid.H || 0) / 1000 * exag;
