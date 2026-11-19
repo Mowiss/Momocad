@@ -239,7 +239,7 @@
         function tinNodes(filter, withPlates) {
             const nodes = [], seen = new Set(), BT = batList();   // bâtiments existants : leurs cotes (toit, faîtage, égout) ne sont pas du terrain
             for (const s of shapes) {
-                if (s.gen || s.solid || s.sweep || s.trench || s.water || s.river || s.wallMat || s.wz || s.brush || s.bois || s.stair || s.stair2 || s.bassin || s.maille || s.sondage || s.mailZone) continue;   // volumes, parois, balayages et tranchées : ni terrain ni plateforme
+                if (s.gen || s.solid || s.sweep || s.trench || s.water || s.river || s.wallMat || s.wz || s.brush || s.bois || s.stair || s.stair2 || s.ctop || s.bassin || s.maille || s.sondage || s.mailZone) continue;   // volumes, parois, balayages et tranchées : ni terrain ni plateforme
                 if (!withPlates && isPlateforme(s)) continue;
                 if ((s.bid || s.lvl) && s.type !== 'point' && !isPlateforme(s)) continue;   // tracé d'un bâtiment (étage) : jamais du terrain, même s'il porte des Z
                 const l = layers.find(x => x.id === (s.layerId || 'layer-0')); if (l && l.noTin) continue;   // masquer un calque ne change pas le terrain ; seul ⛰ (gestionnaire de calques) l'en exclut

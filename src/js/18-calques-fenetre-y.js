@@ -193,6 +193,7 @@
             if (one.type === 'circle') return { k: 'circle', t: one.solid ? 'Volume (' + SOLID_NAMES[one.solid.kind] + ')' : 'Cercle' };
             if (one.type === 'arc') return { k: 'arc', t: 'Arc' };
             if (one.type === 'poly' && one.bld) return { k: 'poly', t: 'Contour de bâtiment « ' + (one.bld.nm || '') + ' »' };
+            if (one.type === 'poly' && one.ctop) return { k: 'poly', t: one.ctop.k === 'bar' ? 'Bar déroulé' : 'Plan de travail déroulé' };
             if (one.type === 'poly' && one.stair2) return { k: 'poly', t: 'Escalier d\'étage' };
             if (one.type === 'poly') return { k: 'poly', t: one.solid ? (one.solid.kind === 'pyr' ? 'Pyramide' : one.solid.kind === 'roof' ? 'Pan de toiture' : 'Volume extrudé') : one.open ? 'Polyligne ouverte' : 'Polyligne fermée' + (isPlateforme(one) ? ' — plateforme' : '') };
             return { k: one.type, t: ({ text: 'Texte', hatch: 'Hachure', dim: 'Cote', detail: 'Infobulle', mesh: 'Maillage 3D', pdfvec: 'Tracés PDF', bgimage: 'Image de fond', basemap: 'Fond de carte' })[one.type] || 'Objet' };
@@ -395,6 +396,7 @@
                                 if (one.batEx) { h += spChapter('bat', '🏠', 'Bâtiment existant', MF.row('Haut du bâtiment (Z)', MF.num('sp-battop', fmtZ(one.points[0].z + (one.solid ? one.solid.H : 0))), 'm') + zrow('sp-zall', 'Pied (terrain)', zv(one.points[0].z)) + MF.hint('Les cotes relevées dedans (toit, faîtage, égout…) ne font pas le terrain : il passe dessous à partir des points autour. En 3D, un bloc du pied jusqu\'au haut (par défaut la cote la plus haute relevée dedans).'), true, 'haut ' + fmtZ(one.points[0].z + (one.solid ? one.solid.H : 0)) + ' m');
                     h += spChapter('act', '⚙', 'Actions', MF.acts([['Recaler sur le terrain et les cotes', 'batRefresh()', 'Après un changement des points topo : pied et haut recalculés'], ['Ce n\'est pas un bâtiment', 'batUnset()', 'Ses cotes refont le terrain'], ['Vue 3D', 'closeSelectionParamModal();open3D()']]), false); }
                 else if (one.solid) { h += spChapter('solz', '↕', 'Altitudes du volume', zrow('sp-zall', 'Dessous (base)', zv(one.points[0].z)) + spTopRow(one, one.points[0].z), true, spZSum(one, one.points[0].z)); h += spChapter('solid', '◆', 'Volume 3D', solidRows(one), true); }
+                else if (one.ctop) { ctEdit = one; h += spChapter('ctop', one.ctop.k === 'bar' ? '🍸' : '🍳', one.ctop.k === 'bar' ? 'Bar' : 'Plan de travail', ctFormHTML(one.ctop) + MF.hint(ctMsg(one)), true, nfr(one.ctop.w / 10, 0) + ' × ' + nfr(one.ctop.h / 10, 0) + ' cm'); }
                 else if ((one.open || one.points.length < 3) && !one.stair2) h += spChapter('alt', '↕', 'Altitudes', flatRow, true);
                 else if (one.bld) {   // contour de bâtiment : ses étages
                     h += spChapter('bldlv', '🏢', 'Étages — ' + MF.esc(one.bld.nm || 'Bâtiment'), bldPanelHTML(one.bld.id), true, 'RDC ' + nfr((one.bld.lvls.find(x => x.id === 'rdc') || { z: 0 }).z / 1000, 2) + ' m');

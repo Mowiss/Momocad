@@ -825,4 +825,15 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         shapes.push(clMake(0, 0, 1, 0)); saveState(); await open3D(); d3ClBuild(); render3D(); r.clHidden = !!V3.cl && V3.cl.visible === false; close3D();
         selectedShapes = []; bldActivate(null); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('emprise du bâtiment en m² (et périmètre) ; traits de construction cachés en 3D', em, { area: true, clHidden: true });
+    // plan de travail et bar déroulés en polyligne : posés sur le plancher, meubles bas contre le mur, pieds du bar, cliquables dans leur emprise, réglables avec Y, en 3D
+    const ctp = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [8, 0], [8, 6], [0, 6]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState();
+        ctOpt.pt.just = 'gauche'; ctOpt.pt.base = 1; startCtop('pt'); currentPolygon = [pt(0.2, 4), pt(0.2, 5.8), pt(4, 5.8)]; isDrawing = true; finishPline(); t2PanelClose();
+        startCtop('bar'); currentPolygon = [pt(2, 2.5), pt(5, 2.5)]; isDrawing = true; finishPline(); t2PanelClose(); setMode('select-box');
+        const [T, B] = shapes.filter(x => x.ctop); r.made = !!T && !!B && T.ctop.k === 'pt' && B.ctop.k === 'bar' && ctZ0(T) === 100000 && T.bid === A.bld.id;
+        r.hit = findShapeAt(pt(1, 5.5).x, pt(1, 5.5).y) === T; const G = ctGeo(T), Bs = ctBase(G, T.ctop); r.wallSide = Bs.hi === G.ob && !Bs.frontLo === false; r.legs = ctLegs(B, ctGeo(B)).length === 3;
+        selectedShapes = [T]; openSelectionParamModal(); await new Promise(res => setTimeout(res, 300)); r.y = !!document.querySelector('#selparam-modal details[data-k=ctop]'); ctSet('h', 950); r.set = T.ctop.h === 950; closeSelectionParamModal();
+        await open3D(); let n = 0; V3.root.traverse(o => { if (o.userData && o.userData.shape === T) n++; }); r.d3 = n > 6; close3D();
+        selectedShapes = []; bldActivate(null); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('plan de travail et bar déroulés en polyligne : sur le plancher, meubles bas contre le mur, pieds, cliquables, réglables avec Y, en 3D', ctp, { made: true, hit: true, wallSide: true, legs: true, y: true, set: true, d3: true });
 } };

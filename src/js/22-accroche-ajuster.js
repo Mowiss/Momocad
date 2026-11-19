@@ -218,7 +218,7 @@
             return px >= xMin && px <= xMax && py >= yMin && py <= yMax;
         }
 
-        function findShapeAt(wx, wy) { const st = st2At(wx, wy); if (st) return st; const r = _findShapeAt(wx, wy); if (r) return r;   // les traits de construction (infinis) en dernier recours
+        function findShapeAt(wx, wy) { const st = st2At(wx, wy) || ctAt(wx, wy); if (st) return st; const r = _findShapeAt(wx, wy); if (r) return r;   // les traits de construction (infinis) en dernier recours
             for (let i = shapes.length - 1; i >= 0; i--) { const s = shapes[i]; if (isCL(s) && Math.abs((wx - s.x) * s.uy - (wy - s.y) * s.ux) * camera.zoom < 7) return s; } return null; }
         function _findShapeAt(wx, wy) {
             let tol = 10/camera.zoom, p = { x: wx, y: wy };
