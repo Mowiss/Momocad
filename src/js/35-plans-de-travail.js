@@ -38,10 +38,17 @@
                 const G = ctGeo(s); if (G && G.Q.some(q => q && pointInPolygon(wx, wy, [q.A0, q.A1, q.B1, q.B0]))) return s; } return null; }
         // ---- plan : contour du plateau, meubles bas en tirets (caissons de 58 cm), pieds du bar
         function drawCtop2D(c, s, col, dx, dy, ls) { const G = ctGeo(s); if (!G) return; const C = s.ctop, mv = (p) => c.moveTo(p.x + dx, p.y + dy), ln = (p) => c.lineTo(p.x + dx, p.y + dy);
-            c.save(); c.strokeStyle = col; c.lineWidth = 1.2 / ls; c.setLineDash([]); c.beginPath(); G.Q.forEach(q => { mv(q.A0); ln(q.A1); mv(q.B0); ln(q.B1); }); const q0 = G.Q[0], qn = G.Q[G.Q.length - 1]; mv(q0.A0); ln(q0.B0); mv(qn.A1); ln(qn.B1); c.stroke();
-            if (C.base) { const B = ctBase(G, C), f = B.frontLo ? B.lo : B.hi, Q2 = wallChainGeomRaw(s.points, false, f, f); c.setLineDash([4 / ls, 3 / ls]); c.beginPath(); Q2.forEach(q => { mv(q.A0); ln(q.A1); }); c.stroke(); }
+            /* contour unique du plateau (tronçons réunis : angles nets même très aigus), léger fond, meubles bas en tirets à l'intérieur seulement */
+            const O = ctOutline(s, G), path = () => { c.beginPath(); O.forEach(R => { R.forEach((q, i) => i ? ln(q) : mv(q)); c.closePath(); }); };
+            c.save(); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.3 / ls; c.setLineDash([]); path(); c.globalAlpha = 0.12; c.fill('evenodd'); c.globalAlpha = 1; c.stroke();
+            if (C.base) { const B = ctBase(G, C), f = B.frontLo ? B.lo : B.hi, Q2 = wallChainGeomRaw(s.points, false, f, f); c.save(); path(); c.clip('evenodd'); c.setLineDash([4 / ls, 3 / ls]); c.lineWidth = 1 / ls; c.beginPath(); mv(Q2[0].A0); Q2.forEach(q => ln(q.A1)); c.stroke(); c.restore(); }   /* façade des meubles bas : une seule ligne, angles en onglet */
             if (C.k === 'bar' && !C.base) { c.setLineDash([]); ctLegs(s, G).forEach(p => { c.beginPath(); c.arc(p.x + dx, p.y + dy, mmToWorld(40), 0, Math.PI * 2); c.stroke(); }); }
             c.restore(); }
+        /* contour réuni des tronçons (anneaux), mémorisé par forme ; sans la bibliothèque de découpe : les tronçons tels quels */
+        const CT_OUT = new WeakMap();
+        function ctOutline(s, G) { const key = JSON.stringify([s.points.map(q => [q.x, q.y]), s.ctop.w, s.ctop.just]), m = CT_OUT.get(s); if (m && m.key === key && (m.u || !window.polygonClipping)) return m.R;
+            let R = G.Q.map(q => [q.A0, q.A1, q.B1, q.B0]), u = false; if (window.polygonClipping) { try { const U = polygonClipping.union(...G.Q.map(q => [[q.A0, q.A1, q.B1, q.B0, q.A0].map(p => [p.x, p.y])])); R = U.flatMap(pg => pg.map(r => r.slice(0, -1).map(([x, y]) => ({ x, y })))); u = true; } catch (e) {} } else { try { loadPolyClip().then(() => draw(), () => {}); } catch (e) {} }
+            CT_OUT.set(s, { key, R, u }); return R; }
         // pieds du bar : aux deux bouts et tous les 1,50 m environ, sur l'axe du plateau
         function ctLegs(s, G) { const oc = (G.oa + G.ob) / 2, J = wallChainGeomRaw(s.points, false, oc, oc), out = [], inset = mmToWorld(120); let tot = 0; J.forEach(q => tot += Math.hypot(q.A1.x - q.A0.x, q.A1.y - q.A0.y));
             const n = Math.max(1, Math.round((tot - 2 * inset) / mmToWorld(1500))), at = (d) => { for (const q of J) { const L = Math.hypot(q.A1.x - q.A0.x, q.A1.y - q.A0.y); if (d <= L + 1e-9) return { x: q.A0.x + (q.A1.x - q.A0.x) * d / L, y: q.A0.y + (q.A1.y - q.A0.y) * d / L }; d -= L; } const q = J[J.length - 1]; return { x: q.A1.x, y: q.A1.y }; };

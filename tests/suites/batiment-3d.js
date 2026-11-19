@@ -848,4 +848,12 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
             out.push(dot(sw3, sw2) > 0.9 && hg3[0] * hg2[0] > 0); }
         shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return out; });
     t.eq('portes : en 3D, gonds et sens d\'ouverture comme sur le plan (4 combinaisons)', doors, [true, true, true, true]);
+    // nouveaux blocs 3D : réfrigérateurs, îlot central, poêle à bois — posés et modélisés ; plan de travail 2D : un seul contour net
+    const nb = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {}; const ids = ['frigo', 'frigous', 'ilot', 'poele'];
+        ids.forEach((id, i) => { startStamp(id); currentX = pt(i * 2.4, 2).x; currentY = pt(i * 2.4, 2).y; placeStamp(); }); setMode('select-box'); saveState();
+        await open3D(); const seen = new Set(); V3.root.traverse(o => { const s = o.userData && (o.userData.blk || o.userData.shape); if (s && s.block) seen.add(s.block); }); close3D();
+        r.blocks = ids.every(id => seen.has(allBlocks().find(b => b.id === id).name));
+        shapes = []; await loadPolyClip(); startCtop('pt'); currentPolygon = [pt(0, 0), pt(0.6, 3), pt(5, 1.2)]; isDrawing = true; finishPline(); t2PanelClose(); setMode('select-box'); const T = shapes.find(x => x.ctop); r.outline = ctOutline(T, ctGeo(T)).length === 1;
+        shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('blocs 3D : réfrigérateurs, îlot central, poêle à bois ; plan de travail en un seul contour', nb, { blocks: true, outline: true });
 } };
