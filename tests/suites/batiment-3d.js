@@ -802,4 +802,20 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         r.cut = s0 > 9.9 && Math.abs(s1 - s0 / 2) < 0.6; r.spans = [+s0.toFixed(2), +s1.toFixed(2)];
         selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.ok('recouper un toit : coupé net par le plan, la partie retirée disparaît', rcp2.cut, JSON.stringify(rcp2));
+    // tracés éditables comme une polyligne : + ajoute un sommet (dalle, emprise…) ; paroi simple et complexe : sommets et + sur le tracé, la paroi est refaite ; annuler rend l'original ; symétrie suivie
+    const pl = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const D = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'box', H: 200 }, zk: 1 }; shapes.push(D); saveState(); setMode('select-box'); selectedShapes = [D];
+        let g = allGrips().find(x => x.kind === 'p-add' && x.i === 0); startGrip(g); gripApply(pt(5, -2).x, pt(5, -2).y); endGrip(false); r.poly = D.points.length === 5 && Math.abs(D.points[1].y - pt(5, -2).y) < 1e-6 && D.points[1].z === 100000;
+        shapes = []; wallOpt.align = 'gauche'; startWall(WALL_PRESETS[0].id); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallAddTo(pt(6, 4).x, pt(6, 4).y); wallChain = null; wallStart = null; setMode('select-box');
+        const gid = shapes.find(x => x.wallMat).groupId, G = () => shapes.filter(x => x.groupId === gid), area = () => G().filter(x => x.type === 'hatch').reduce((a, h) => a + Math.abs(polyArea(h.loops[0])), 0);
+        selectedShapes = G(); const a0 = area(); g = allGrips().find(x => x.kind === 'w-add' && x.i === 0); r.wgrips = !!g && allGrips().filter(x => x.kind === 'w-vtx').length === 3;
+        startGrip(g); gripApply(pt(3, -1).x, pt(3, -1).y); endGrip(true); r.cancel = Math.abs(area() - a0) < 1e-6 && wallPathOf(gid).P.length === 3;
+        selectedShapes = G(); g = allGrips().find(x => x.kind === 'w-add' && x.i === 0); startGrip(g); gripApply(pt(3, -1).x, pt(3, -1).y); endGrip(false); r.add = wallPathOf(gid).P.length === 4 && area() > a0;
+        selectedShapes = G(); g = allGrips().find(x => x.kind === 'w-vtx' && x.i === 3); startGrip(g); gripApply(pt(6, 6).x, pt(6, 6).y); endGrip(false); const P = wallPathOf(gid).P; r.move = Math.abs(P[3].y - pt(6, 6).y) < 1e-6;
+        const c0 = shapes.filter(x => x.groupId === gid).length; selectedShapes = G(); G().forEach(x => { if (x.loops) x.loops.forEach(L => L.forEach(q => { q.x = -q.x; })); if (x.type === 'line') { x.x1 = -x.x1; x.x2 = -x.x2; } x.wp.P.forEach(q => { q.x = -q.x; }); }); invalidateCache(); saveState();
+        r.mirror = !!wallPathOf(gid);
+        shapes = []; startWallCx(WALL_CX[0]); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallChainEnd(); wallChain = null; wallStart = null; setMode('select-box'); const cg = shapes.find(x => x.wallCx).groupId; selectedShapes = shapes.filter(x => x.groupId === cg);
+        g = allGrips().find(x => x.kind === 'w-vtx' && x.i === 1); startGrip(g); gripApply(pt(8, 0).x, pt(8, 0).y); endGrip(false); r.cx = Math.abs(wallCxRecover(cg).P[1].x - pt(8, 0).x) < 1e-3 && shapes.filter(x => x.groupId === cg && x.stud).length === 15;
+        shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('tracés comme une polyligne : + ajoute un sommet (dalle, emprise), parois simples et complexes éditables par leur tracé, annulation, symétrie', pl, { poly: true, wgrips: true, cancel: true, add: true, move: true, mirror: true, cx: true });
 } };

@@ -186,8 +186,10 @@
                 seg.push(L(g.A0, g.A1), L(g.B0, g.B1), L(g.A1, g.B1)); if (g.first) seg.push(L(g.A0, g.B0));
                 out.push(...seg); out.last = seg;
             });
-            return out;
+            wallPathTag(out, P, closed, w); return out;
         }
+        /* tracé de la paroi gardé sur chacun de ses morceaux (copie propre à chacun : il suit déplacements, rotations, symétries) : la paroi s'édite comme une polyligne */
+        function wallPathTag(out, P, closed, w) { const t = JSON.parse(JSON.stringify(Object.assign({}, w, { _: 0 }))); delete t._; out.forEach(o => { o.wp = { P: P.map(q => ({ x: q.x, y: q.y })), c: closed ? 1 : 0, t: JSON.parse(JSON.stringify(t)) }; }); }
         // paroi complexe : une bande hachurée par couche (sur le calque de son matériau), les faces et les limites entre couches, les montants dans leur couche ;
         //      tout le tronçon forme un seul bloc (même groupe), sans fusion avec les autres parois
         function wallChainShapesCx(P, w, closed, gid, wz) {
@@ -205,8 +207,27 @@
             bands.forEach(sb => { const S = sb.l.oss ? { mat: sb.l.oss.s, w: sb.l.oss.w, sp: sb.l.oss.sp } : null; if (S && S.sp > 0 && S.w > 0) for (let i = 0; i < segsN; i++) { const a = P[i], c = P[(i + 1) % P.length], L = Math.hypot(c.x - a.x, c.y - a.y); if (L < 1e-9) continue; const ux = (c.x - a.x) / L, uy = (c.y - a.y) / L, nx = uy, ny = -ux, sw = S.w * k, sp = S.sp * k;
                 const T = []; for (let t = sw / 2; t <= L - sw / 2 + 1e-9; t += sp) T.push(t); if (!T.length || L - sw / 2 - T[T.length - 1] > sw) T.push(L - sw / 2);
                 T.forEach(t => { const q = (tt, oo) => ({ x: a.x + ux * tt + nx * oo, y: a.y + uy * tt + ny * oo }); seg[i].push(tag({ type: 'hatch', layerId: wallLayerId({ layers: [{ mat: S.mat }] }), loops: [[q(t - sw / 2, sb.oa), q(t + sw / 2, sb.oa), q(t + sw / 2, sb.ob), q(t - sw / 2, sb.ob)]], stud: 1 }, S.mat)); }); } });
-            seg.forEach(x => out.push(...x)); out.last = seg[seg.length - 1] || []; return out; }
+            seg.forEach(x => out.push(...x)); out.last = seg[seg.length - 1] || []; wallPathTag(out, P, closed, w); return out; }
         /* PAROI COMPLEXE POSÉE : retrouver son tracé et sa composition depuis ses hachures (elles suivent déplacements, rotations, symétries), puis la refaire avec une autre composition */
+        /* tracé d'une paroi (pour l'éditer) : celui gardé sur ses morceaux s'il refait exactement la paroi en place (pas fusionnée depuis), sinon celui retrouvé d'une paroi complexe */
+        const WALL_PATH_MEMO = new Map();
+        function wallPathOf(gid) { const mk = gid + '|' + historyStep + '|' + shapes.length; if (WALL_PATH_MEMO.has(mk)) return WALL_PATH_MEMO.get(mk); if (WALL_PATH_MEMO.size > 200) WALL_PATH_MEMO.clear(); let R = null;
+            const G = shapes.filter(x => x.groupId === gid && x.wallMat), H = G.filter(x => x.type === 'hatch' && x.loops && x.loops[0]), src = G.find(x => x.wp && x.wp.P && x.wp.P.length >= 2);
+            if (src && H.length) { /* la paroi refaite sur ce tracé doit retomber exactement sur la paroi en place (sinon : fusionnée, découpée… on ne propose pas d'éditer son tracé) ; après une symétrie, le tracé est à l'envers */
+                const cen = (h) => { const L = h.loops[0]; let x = 0, y = 0; L.forEach(q => { x += q.x; y += q.y; }); return [x / L.length, y / L.length]; }, tol = mmToWorld(5), C0 = H.map(cen);
+                const same = (Pp) => { const T = wallChainShapes(Pp, src.wp.t, !!src.wp.c, G[0].layerId, gid, null).filter(x => x.type === 'hatch' && x.loops && x.loops[0]); if (T.length !== H.length) return false; const C1 = T.map(cen), used = new Set();
+                    return C1.every(c => { const j = C0.findIndex((d, k) => !used.has(k) && Math.hypot(d[0] - c[0], d[1] - c[1]) < tol); if (j < 0) return false; used.add(j); return true; }); };
+                const P0 = src.wp.P.map(q => ({ x: q.x, y: q.y })); if (same(P0)) R = { P: P0, closed: !!src.wp.c, tool: src.wp.t, G }; else { const P1 = P0.slice().reverse(); if (same(P1)) R = { P: P1, closed: !!src.wp.c, tool: src.wp.t, G }; } }
+            if (!R && G.some(x => x.wallCx)) { const C = wallCxRecover(gid); if (C) { const t = wallCxTool(C.def); t.align = C.def.align || 'gauche'; R = { P: C.P, closed: C.closed, tool: t, G }; } }
+            WALL_PATH_MEMO.set(mk, R); return R; }
+        /* refaire une paroi sur un autre tracé (même composition, hauteur, étage ; portes et fenêtres reposées sur le morceau le plus proche) */
+        function wallRebuildPath(gid, P, closed, tool, G0) { const G = G0 || shapes.filter(x => x.groupId === gid && x.wallMat); if (!G.length || P.length < 2) return null; const s0 = G[0], at = shapes.indexOf(s0), ops = [];
+            G.forEach(x => (x.openings || []).forEach(o => ops.push(o))); const N = wallChainShapes(P, tool, closed, tool.cx ? null : wallLayerId(tool), gid, s0.wz);
+            N.forEach(x => { ['bid', 'lvl', 'zk'].forEach(f => { if (s0[f] !== undefined) x[f] = s0[f]; }); x.lvs = 1; });
+            const old = new Set(G); shapes = shapes.filter(x => !old.has(x)); shapes.splice(Math.max(0, Math.min(at, shapes.length)), 0, ...N);
+            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => { const m = { x: (o.a.x + o.b.x) / 2, y: (o.a.y + o.b.y) / 2 }; let best = null, bd = Infinity; Hn.forEach(h => { if (bd < 0) return; if (pointInPolygon(m.x, m.y, h.loops[0])) { bd = -1; best = h; return; } const d = distToPoly(m.x, m.y, h.loops[0]); if (d < bd) { bd = d; best = h; } });
+                if (best) { best.openings = (best.openings || []).concat([o]); try { o.pts = openingPts(best, o.a, o.b); } catch (e) {} } });
+            return N; }
         function wallCxRecover(gid) { const G = shapes.filter(x => x.groupId === gid && x.wallCx), Hs = G.filter(x => x.type === 'hatch' && !x.stud && x.loops && x.loops[0] && x.loops[0].length === 4); if (!Hs.length) return null;
             let def = (Hs.find(x => x.cxd) || {}).cxd; if (def) def = cxNorm(def);
             else { const d = wallCxAll().find(x => x.name === G[0].wallCx); if (!d) return null; def = Object.assign(cxNorm(d), { align: 'gauche' }); delete def.id; delete def.user;
@@ -330,7 +351,8 @@
             else if (s.type === 'poly') {
                 const n = s.points.length, st = s.curve || 0;
                 s.points.forEach((q, i) => { if (!st || i % st === 0 || i === n - 1) P(q.x, q.y, 'p-vtx', i); });
-                if (!st) { const ne = s.open ? n - 1 : n; for (let i = 0; i < ne; i++) { const a = s.points[i], b = s.points[(i + 1) % n]; P((a.x + b.x) / 2, (a.y + b.y) / 2, 'p-edge', i, Math.atan2(b.y - a.y, b.x - a.x)); } }
+                if (!st) { const ne = s.open ? n - 1 : n, off = 15 / camera.zoom; for (let i = 0; i < ne; i++) { const a = s.points[i], b = s.points[(i + 1) % n], L = Math.hypot(b.x - a.x, b.y - a.y) || 1; P((a.x + b.x) / 2, (a.y + b.y) / 2, 'p-edge', i, Math.atan2(b.y - a.y, b.x - a.x));
+                    if (L > off * 3.2) P((a.x + b.x) / 2 + (b.x - a.x) / L * off, (a.y + b.y) / 2 + (b.y - a.y) / L * off, 'p-add', i); } }   /* + : ajoute un sommet sur ce côté */
                 else { const c = shapeCenterOf(s); if (c) P(c.x, c.y, 'move'); }
             }
             else if (s.type === 'circle') { P(s.x, s.y, 'move'); [0, 1, 2, 3].forEach(k => P(s.x + s.r * Math.cos(k * Math.PI / 2), s.y + s.r * Math.sin(k * Math.PI / 2), 'c-rad')); }
@@ -354,6 +376,9 @@
                 if (s.groupId) {   // bloc : une poignée au centre du bloc
                     if (seenG.has(s.groupId)) continue; seenG.add(s.groupId);
                     const mem = selectedShapes.filter(x => x.groupId === s.groupId), b = getShapesBoundingBox(mem);
+                    /* paroi : son tracé comme une polyligne — sommets ▪ (déplacer), + au milieu des tronçons (ajouter un sommet) */
+                    if (s.wallMat) { const W = wallPathOf(s.groupId); if (W) { const n = W.P.length; W.P.forEach((q, i) => out.push({ s, x: q.x, y: q.y, kind: 'w-vtx', i, gid: s.groupId }));
+                        for (let i = 0; i < (W.closed ? n : n - 1); i++) { const a = W.P[i], c2 = W.P[(i + 1) % n]; out.push({ s, x: (a.x + c2.x) / 2, y: (a.y + c2.y) / 2, kind: 'w-add', i, gid: s.groupId }); } } }
                     if (b) out.push({ s, x: b.centerX, y: b.centerY, kind: 'g-move', group: mem }); continue;
                 }
                 if (isBg(s) || s.type === 'mesh' || s.type === 'pdfvec') continue;
@@ -367,6 +392,8 @@
             return best;
         }
         function startGrip(g) {
+            if (g.kind === 'w-vtx' || g.kind === 'w-add') { const W = wallPathOf(g.gid); if (!W) return; gripDrag = { g, x0: g.x, y0: g.y, targets: [], orig: [], wall: { W, cur: W.G, orig: W.G.slice(), at: shapes.indexOf(W.G[0]) } };
+                updateCommandMessageText(g.kind === 'w-add' ? 'PAROI : placez le nouveau sommet (accroches actives, Maj / F8 = ortho, Échap = annuler).' : 'PAROI : déplacez le sommet (accroches actives, Maj / F8 = ortho, Échap = annuler).'); return; }
             const targets = g.group || [g.s];
             gripDrag = { g, x0: g.x, y0: g.y, targets, orig: targets.map(t => JSON.stringify(t)) };
             targets.forEach(t => t._nosnap = true); invalidateCache();
@@ -374,11 +401,15 @@
         }
         function gripApply(X, Y, shift) {
             const D = gripDrag; if (!D) return; const g = D.g;
+            if (D.wall) { if ((orthoMode || shift)) { if (Math.abs(X - D.x0) > Math.abs(Y - D.y0)) Y = D.y0; else X = D.x0; } const W = D.wall.W, P = W.P.map(q => ({ x: q.x, y: q.y }));
+                if (g.kind === 'w-vtx') { P[g.i] = { x: X, y: Y }; } else P.splice(g.i + 1, 0, { x: X, y: Y });
+                const N = wallRebuildPath(g.gid, P, W.closed, W.tool, D.wall.cur); if (N) { N.forEach(x => { x._nosnap = true; }); D.wall.cur = N; selectedShapes = N; } return; }
             D.targets.forEach((t, k) => { const o = JSON.parse(D.orig[k]); Object.keys(t).forEach(key => { if (key !== '_nosnap') delete t[key]; }); Object.assign(t, o); });
             if ((orthoMode || shift) && g.kind !== 'c-rad' && g.kind !== 'a-end') { if (Math.abs(X - D.x0) > Math.abs(Y - D.y0)) Y = D.y0; else X = D.x0; }
             const dx = X - D.x0, dy = Y - D.y0, s = g.s;
             if (g.kind === 'move' || g.kind === 'g-move') D.targets.forEach(t => translateShape(t, dx, dy));
             else if (g.kind === 'l-end') { s['x' + g.i] = X; s['y' + g.i] = Y; }
+            else if (g.kind === 'p-add') { const n = s.points.length, a = s.points[g.i], b = s.points[(g.i + 1) % n], q = { x: X, y: Y }; if (hasZ(a.z) && hasZ(b.z)) q.z = Math.round((a.z + b.z) / 2); s.points.splice(g.i + 1, 0, q); }
             else if (g.kind === 'p-vtx') {
                 const st = s.curve || 0, n = s.points.length;
                 if (!st) { s.points[g.i].x = X; s.points[g.i].y = Y; }
@@ -402,6 +433,8 @@
         }
         function endGrip(cancel) {
             const D = gripDrag; if (!D) return;
+            if (D.wall) { D.wall.cur.forEach(x => delete x._nosnap); if (cancel) { const cur = new Set(D.wall.cur); shapes = shapes.filter(x => !cur.has(x)); shapes.splice(Math.max(0, Math.min(D.wall.at, shapes.length)), 0, ...D.wall.orig); selectedShapes = D.wall.orig.slice(); }
+                gripDrag = null; invalidateCache(); if (!cancel) saveState(); updateCommandMessageText(cancel ? 'POIGNÉE : annulé.' : 'PAROI : tracé modifié.'); draw(); if (typeof refresh3D === 'function') refresh3D(); return; }
             if (cancel) D.targets.forEach((t, k) => { const o = JSON.parse(D.orig[k]); Object.keys(t).forEach(key => delete t[key]); Object.assign(t, o); });
             D.targets.forEach(t => delete t._nosnap); gripDrag = null; invalidateCache();
             if (!cancel) saveState();
@@ -422,6 +455,7 @@
                 c.fillStyle = hot ? '#f97316' : '#1d74f5'; c.strokeStyle = '#dbeafe';
                 if ((g.kind === 'op-face' || g.kind === 'op-end' || g.kind === 'op-move') && !hot) { c.fillStyle = '#f59e0b'; c.strokeStyle = '#fef3c7'; }
                 if (g.kind === 'op-move') { c.beginPath(); c.arc(g.x, g.y, t * 1.1, 0, 2 * Math.PI); c.fill(); c.stroke(); continue; }
+                if (g.kind === 'p-add' || g.kind === 'w-add') { if (!hot) c.fillStyle = '#16a34a'; c.beginPath(); c.arc(g.x, g.y, t * 1.05, 0, 2 * Math.PI); c.fill(); c.stroke(); c.strokeStyle = '#fff'; c.lineWidth = 1.4 / camera.zoom; c.beginPath(); c.moveTo(g.x - t * 0.6, g.y); c.lineTo(g.x + t * 0.6, g.y); c.moveTo(g.x, g.y - t * 0.6); c.lineTo(g.x, g.y + t * 0.6); c.stroke(); c.lineWidth = 1 / camera.zoom; continue; }
                 if (g.kind === 'p-edge' || g.kind === 'op-face') { c.save(); c.translate(g.x, g.y); c.rotate(g.ang); c.fillRect(-t * 1.7, -t * 0.7, t * 3.4, t * 1.4); c.strokeRect(-t * 1.7, -t * 0.7, t * 3.4, t * 1.4); c.restore(); }
                 else { c.fillRect(g.x - t, g.y - t, 2 * t, 2 * t); c.strokeRect(g.x - t, g.y - t, 2 * t, 2 * t); }
             }
