@@ -125,8 +125,8 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         v3Panel('studio'); r.studio = stOn() && !!P.querySelector('.v3v-rail button.on') && /Studio/.test(P.querySelector('.v3v-rail button.on').textContent);
         v3Panel('aff'); r.frameOff = !stOn(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); r.closed = !v3PanelOpen();
         // balade : clic droit = pause, bulles ; une bulle coche / décoche ; reclic droit = reprise
-        await momoFPS({ w: { x: 30 * mmToWorld(1000), y: -30 * mmToWorld(1000) } }); fpsPause({ clientX: 400, clientY: 300 }); const B = document.querySelectorAll('#fps-bub .fb'); r.bubbles = V3.fps.paused && B.length === 9 && /Studio/.test(B[8].title) && !!B[0].querySelector('svg') && ![...B].some(b => /Aberration/.test(b.title));
-        const t0 = v3Chk('v3-surf'); fpsBubble(3); r.bubToggle = v3Chk('v3-surf') === !t0 && document.querySelectorAll('#fps-bub .fb').length === 9; fpsBubble(3);
+        await momoFPS({ w: { x: 30 * mmToWorld(1000), y: -30 * mmToWorld(1000) } }); fpsPause({ clientX: 400, clientY: 300 }); const B = document.querySelectorAll('#fps-bub .fb'); r.bubbles = V3.fps.paused && B.length === 10 && /Studio/.test(B[8].title) && /Pinceau/.test(B[9].title) && !!B[0].querySelector('svg') && ![...B].some(b => /Aberration/.test(b.title));
+        const t0 = v3Chk('v3-surf'); fpsBubble(3); r.bubToggle = v3Chk('v3-surf') === !t0 && document.querySelectorAll('#fps-bub .fb').length === 10; fpsBubble(3);
         const z0 = V3.fps.pos.clone(); V3.fps.keys.KeyW = true; fpsStep(0.5); V3.fps.keys.KeyW = false; r.still = V3.fps.pos.distanceTo(z0) < 1e-6;
         fpsResume(); r.resume = !V3.fps.paused && !document.getElementById('fps-bub'); r.noBadge = !document.querySelector('.v3-fk') || getComputedStyle(document.querySelector('.v3-fk')).display === 'none'; fpsStop(); return r; });
     t.eq('vue 3D : volet à onglets par Espace (affichage, ciel et paysage, outils, studio), plus de bandeau ; onglet Décor (relief réel, panorama importé) ; balade : clic droit = pause et bulles d\'affichage', vv,
@@ -238,4 +238,15 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     // moteur 3D à jour (r159) réglé comme avant : pas de gestion des couleurs, sortie linéaire, lumières à l'ancienne ; même image qu'en r128
     const t3 = await ev(async () => { if (!is3DOpen()) await open3D(); const R = V3.renderer; return { rev: THREE.REVISION, cm: !THREE.ColorManagement.enabled, out: R.outputColorSpace === THREE.LinearSRGBColorSpace, legacy: R.useLegacyLights === true, lambert: !!THREE.ShaderChunk.map_fragment }; });
     t.eq('moteur 3D r159, réglé pour garder le rendu d\'avant', t3, { rev: '159', cm: true, out: true, legacy: true, lambert: true });
+    // pinceau de la vue Momo : la vue se fige, un clic peint la surface (volume ou meuble), P / Échap / clic droit : la balade reprend ; textures textiles au catalogue
+    const fpaint = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const D = { type: 'poly', layerId: activeLayerId, points: [[-3, -3], [6, -3], [6, 6], [-3, 6]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'box', H: 200 }, zk: 1 }; shapes.push(D);
+        startStamp('canape'); currentX = pt(2, 2).x; currentY = pt(2, 2).y; placeStamp(); setMode('select-box'); saveState();
+        r.textile = TEX_LIB.filter(t => t.cat === 'textile').length >= 10 && TEX_CATS.some(c => c[0] === 'textile');
+        await open3D(); await momoFPS({ w: pt(0, 0) }); r.walk = !!V3.fps; fpsPaint(); r.frozen = !!V3.fps.paused && !!texPaint && !!document.getElementById('t2-panel');
+        texPaint.tex = 'tx-velours'; const cv = V3.renderer.domElement, rc = cv.getBoundingClientRect(), at = (o) => { V3.root.updateMatrixWorld(true); const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()), v = c.project(V3.camera); return { clientX: rc.left + (v.x + 1) / 2 * rc.width, clientY: rc.top + (1 - v.y) / 2 * rc.height }; };
+        let bm = null; V3.root.traverse(o => { if (!bm && o.isMesh && o.userData.blk) bm = o; }); V3.fps.pos.set(bm.position.x, bm.position.y, 1.6); V3.fps.yaw = 0; V3.fps.pitch = -1.2; render3D();
+        const B = bm.userData.blk; let hit = null; V3.root.traverse(o => { if (!hit && o.isMesh && o.userData.blk === B) hit = o; }); pick3D(at(hit)); r.blk = !!(B.btex && Object.values(B.btex).includes('tx-velours'));
+        fpsPaintStop(); r.resumed = !texPaint && !V3.fps.paused; fpsStop(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('vue Momo : pinceau (vue figée, meuble peint en textile, reprise de la balade) ; textures textiles', fpaint, { textile: true, walk: true, frozen: true, blk: true, resumed: true });
 } };

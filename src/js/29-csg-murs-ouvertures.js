@@ -311,7 +311,7 @@
         // en plan : l'ouverture efface le mur, jambages et symbole (vitrage ou battant de porte)
         function drawOpenings2D(ctx, isPrinting) {
             const bg = isPrinting ? '#ffffff' : '#1e1e1e', ls = camera.zoom;
-            shapes.forEach(h => { if (!h.openings || !h.openings.length) return; const l = layers.find(x => x.id === (h.layerId || 'layer-0')); if ((l && l.visible === false) || lvlHidden(h)) return;
+            shapes.forEach(h => { if (!h.openings || !h.openings.length) return; const l = layers.find(x => x.id === (h.layerId || 'layer-0')); if ((l && l.visible === false) || lvlHidden(h)) return; const dim = !isPrinting && lvlOn && lvlBelow(h); if (dim) { ctx.save(); ctx.globalAlpha *= 0.3; }   /* ouverture d'un étage du dessous : translucide comme son mur */
                 const col0 = isPrinting ? '#000' : effectiveColor(h, false);
                 h.openings.forEach(o => { const p = o.pts; ctx.save(); ctx.setLineDash([]);
                     ctx.fillStyle = bg; ctx.beginPath(); p.forEach((q, i) => i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.closePath(); ctx.fill();
@@ -338,7 +338,7 @@
                             ctx.lineWidth = 1 / ls; ctx.setLineDash([4 / ls, 3 / ls]); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = col; [a, b].forEach(q => ctx.fillRect(q.x - k / 2, q.y - k / 2, k, k)); }
                         ctx.restore(); }
                     if (o === openSel && !isPrinting) { ctx.strokeStyle = '#ec4899'; ctx.lineWidth = 2.5 / ls; ctx.setLineDash([5 / ls, 3 / ls]); ctx.beginPath(); p.forEach((q, i) => i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.closePath(); ctx.stroke(); }
-                    ctx.restore(); }); });
+                    ctx.restore(); }); if (dim) ctx.restore(); });
         }
         let openSel = null;   // ouverture en cours de modification (surlignée)
         function spOpenEdit(k, j) { const h = shapes[k], o = h && (h.openings || [])[j]; if (!o) return; closeSelectionParamModal(); openSel = o; openingDialog(h, o, false); draw(); }

@@ -257,7 +257,8 @@
                 let z = ground(cw.x, cw.y);
                 if (!G.veg) { let best = null; slabs.forEach(d => { if (!pointInPolygon(cw.x, cw.y, d.points)) return; const t = solidBaseZ(d) + (d.solid.H || 0); if ((!hasZ(z) || t < z + 3000) && (best === null || t > best)) best = t; }); if (best !== null) z = best; }
                 const Mx = new THREE.Matrix4().makeRotationZ(th).premultiply(new THREE.Matrix4().makeScale(s, s, s)).premultiply(new THREE.Matrix4().makeTranslation(tx / 1000, ty / 1000, hasZ(z) ? Zm(z) : 0));
-                G.parts.forEach(([g, col]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const me = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: col, flatShading: G.veg })); me.userData.blk = sh; root.add(me); });
+                G.parts.forEach(([g, col]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const tid = sh.btex && sh.btex[col], TX = tid && TEX_LIB.find(t => t.id === tid), tm = TX ? texMaterial(tid) : null;   /* pièce peinte au pinceau : sa texture */
+                    const me = tm ? new THREE.Mesh(texGeometry(g, TX.tile), tm) : new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: col, flatShading: G.veg })); me.userData.blk = sh; me.userData.blkCol = col; root.add(me); });
             }
         }
         function blockThumb(b) {

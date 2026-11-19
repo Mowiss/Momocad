@@ -194,7 +194,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         document.getElementById('v3-exag').value = k0.ex; document.getElementById('v3-exag').dispatchEvent(new Event('change')); fpsFKey(3); fpsResume(); return r; }, fk0);
     await H.press('Escape'); await H.wait(300);
     const fp2 = await ev(() => { const r = { plan: !is3DOpen(), off: !(V3 && V3.fps) }; shapes = window.__keepFps; invalidateCache(); saveState(); return r; });
-    t.eq('Momo glissé sur le plan (porté avec son ombre, sans sélection parasite) : vue à hauteur d\'yeux au point posé, il marche, s\'arrête au mur, Échap = retour au plan', [gh, fp1, fk, fp2], [{ one: true, noText: true, shadow: true, nosel: true }, { eye: 1.65, x: 20, y: 20, walk: 3.4, wall: true, hud: 'block' }, { bubbles: 9, paused: true, surf: true, ex: true, still: true }, { plan: true, off: true }]);
+    t.eq('Momo glissé sur le plan (porté avec son ombre, sans sélection parasite) : vue à hauteur d\'yeux au point posé, il marche, s\'arrête au mur, Échap = retour au plan', [gh, fp1, fk, fp2], [{ one: true, noText: true, shadow: true, nosel: true }, { eye: 1.65, x: 20, y: 20, walk: 3.4, wall: true, hud: 'block' }, { bubbles: 10, paused: true, surf: true, ex: true, still: true }, { plan: true, off: true }]);
     // un pan de montagne importé loin du projet ne change ni la portée des talus, ni le terrain fini (avant : talus calculés et dessinés à gros grain, en éventails)
     const mt = await ev(() => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 300, zk: 1 });
@@ -856,4 +856,13 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         shapes = []; await loadPolyClip(); startCtop('pt'); currentPolygon = [pt(0, 0), pt(0.6, 3), pt(5, 1.2)]; isDrawing = true; finishPline(); t2PanelClose(); setMode('select-box'); const T = shapes.find(x => x.ctop); r.outline = ctOutline(T, ctGeo(T)).length === 1;
         shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('blocs 3D : réfrigérateurs, îlot central, poêle à bois ; plan de travail en un seul contour', nb, { blocks: true, outline: true });
+    // ouverture d'un étage du dessous : dessinée translucide (comme son mur), pas comme si elle était à l'étage affiché
+    const opl = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState(); bldActivate(A, 'rdc'); lvlAdd(true); bldPick('rdc'); saveState();
+        startWall(WALL_PRESETS[0].id); wallStart = pt(1, 1); wallChain = null; wallAddTo(pt(8, 1).x, pt(8, 1).y); wallChain = null; wallStart = null; setMode('select-box'); const host = shapes.find(x => x.type === 'hatch' && x.wallMat);
+        const o = { a: pt(3, 1), b: pt(4, 1), kind: 'porte', sill: 0, h: 2100, side: 1, hinge: 'a', layerId: host.layerId }; o.pts = openingPts(host, o.a, o.b); host.openings = [o]; saveState();
+        const hi = lvlSorted()[1].id; bldPick(hi); r.below = lvlBelow(host); const P = CanvasRenderingContext2D.prototype, st = P.stroke; let minA = 1; P.stroke = function () { minA = Math.min(minA, this.globalAlpha); return st.apply(this, arguments); };
+        try { drawOpenings2D(ctx, false); } finally { P.stroke = st; } r.dim = minA <= 0.31;
+        bldAll(); bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('ouverture d\'un étage du dessous : translucide sur le plan de l\'étage affiché', opl, { below: true, dim: true });
 } };

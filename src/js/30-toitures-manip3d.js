@@ -448,7 +448,10 @@
             const hits = ray.intersectObjects(V3.root.children, true), hit = hits.find(h => h.object.userData && (h.object.userData.shape || h.object.userData.opening));
             const op = hit && hit.object.userData.opening ? hit.object.userData.opening : null, opHost = op ? shapes.find(x => (x.openings || []).includes(op)) : null;
             const s = op ? opHost : hit ? hit.object.userData.shape : null; V3.pickOp = op && opHost ? { host: opHost, o: op } : null;
-            if (texPaint) { const hp = hits.find(h => h.object.userData && (h.object.userData.shape || h.object.userData.paroiOf));
+            if (texPaint) { const hb = hits[0] && hits[0].object.userData && hits[0].object.userData.blk ? hits[0] : null;   /* bloc (meuble, sanitaire…) : la pièce touchée et toutes celles de la même couleur */
+                if (hb) { const B = hb.object.userData.blk, col = hb.object.userData.blkCol; if (texPaint.kind === 'texpick') { const t = B.btex && B.btex[col]; if (t) { texLast = t; try { localStorage.setItem('momocad-tex', t); } catch (er) {} startPaint('paint', true); } return; }
+                    if (texPaint.kind === 'texclear') { if (B.btex) delete B.btex[col]; } else B.btex = Object.assign({}, B.btex || {}, { [col]: texPaint.tex }); saveState(); build3DScene(); render3D(); return; }
+                const hp = hits.find(h => h.object.userData && (h.object.userData.shape || h.object.userData.paroiOf));
                 if (hp && hp.object.userData.paroiOf) { paroiPaint(hp.object.userData.paroiOf); return; }
                 if (texPaint.kind === 'paint') { const H = v3BrushHit(e), zp = H && H.n.z > 0.6 ? brushZoneAt(H.q.x, H.q.y) : null; if (zp && (!s || isPlateforme(s))) { brushZoneRepaint(zp, texPaint.tex); return; } }
                 if (s) texApply(s); return; }
