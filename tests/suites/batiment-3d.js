@@ -793,4 +793,13 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         r.set = !!V3.pin && !V3.pinPick && V3.pin.distanceTo(c) < 0.5; V3.az += 1; V3.target.set(0, 0, 0); render3D(); r.stays = V3.target.distanceTo(V3.pin) < 1e-6 && !!V3.pinMesh && V3.pinMesh.visible;
         v3PinToggle(); r.off = !V3.pin && !V3.pinMesh.visible; close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('vue 3D : drapeau d\'ancrage (rosace) planté d\'un clic, la vue reste centrée sur lui, se retire', pin, { btn: true, pick: true, set: true, stays: true, off: true });
+    // recoupe d'un toit (pan + pignons, surfaces ouvertes) : coupé par le plan vertical, la partie retirée ne réapparaît pas ailleurs
+    const rcp2 = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const base = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [10, 0], [10, 6], [0, 6]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })) }; shapes.push(base); roofDialog(base, true); document.querySelector('input[name=rf-p][value="1"]').click();
+        [...document.querySelectorAll('#tm-actions button')].find(b => /Créer le toit/.test(b.textContent)).click(); await new Promise(res => setTimeout(res, 200));
+        const R = shapes.find(x => x.solid && x.solid.kind === 'roof'), span = async () => { await open3D(); let mx = -1e9, mn = 1e9, n = 0; V3.root.traverse(o => { if (o.isMesh && o.userData.shape && (o.userData.shape === R || (R.groupId && o.userData.shape.groupId === R.groupId))) { o.updateMatrixWorld(); const p = o.geometry.attributes.position.array; n += p.length; for (let i = 0; i < p.length; i += 3) { const v = new THREE.Vector3(p[i], p[i + 1], p[i + 2]).applyMatrix4(o.matrixWorld); mx = Math.max(mx, v.x); mn = Math.min(mn, v.x); } } }); close3D(); return n ? mx - mn : 0; };
+        const s0 = await span(); selectedShapes = [R]; startRecoupe(); rcpClick(pt(5, -3).x, pt(5, -3).y); rcpClick(pt(5, 9).x, pt(5, 9).y); rcpClick(pt(2, 3).x, pt(2, 3).y); const s1 = await span();
+        r.cut = s0 > 9.9 && Math.abs(s1 - s0 / 2) < 0.6; r.spans = [+s0.toFixed(2), +s1.toFixed(2)];
+        selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.ok('recouper un toit : coupé net par le plan, la partie retirée disparaît', rcp2.cut, JSON.stringify(rcp2));
 } };

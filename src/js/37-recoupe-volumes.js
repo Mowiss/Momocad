@@ -22,12 +22,23 @@
             ctx.strokeStyle = sel ? '#ec4899' : effectiveColor(s, false); ctx.lineWidth = 1.2 / (ls || camera.zoom); ctx.setLineDash([]); const R = mmToWorld(1e6);
             s.cuts.forEach(c => { const L = Math.hypot(c.b.x - c.a.x, c.b.y - c.a.y) || 1, u = { x: (c.b.x - c.a.x) / L, y: (c.b.y - c.a.y) / L }; ctx.beginPath(); ctx.moveTo(c.a.x - u.x * R + dx, c.a.y - u.y * R + dy); ctx.lineTo(c.b.x + u.x * R + dx, c.b.y + u.y * R + dy); ctx.stroke(); }); ctx.restore(); }
         // 3D : la géométrie perd un prisme vertical posé du côté retiré (booléen)
-        function rcpGeom3D(g, so, P) { if (!g || !so.cuts || !so.cuts.length) return g; try { g.computeBoundingBox(); const bb = g.boundingBox, D = bb.min.distanceTo(bb.max) + 2, z0 = bb.min.z - 1, z1 = bb.max.z + 1; let out = g;
-                so.cuts.forEach(c => { const A = P(c.a.x, c.a.y), B = P(c.b.x, c.b.y), K = P(c.k.x, c.k.y), L = Math.hypot(B.x - A.x, B.y - A.y) || 1, u = { x: (B.x - A.x) / L, y: (B.y - A.y) / L }, sg = Math.sign((B.x - A.x) * (K.y - A.y) - (B.y - A.y) * (K.x - A.x)) || 1, n = { x: u.y * sg, y: -u.x * sg };
-                    const R = D + Math.hypot(A.x - (bb.min.x + bb.max.x) / 2, A.y - (bb.min.y + bb.max.y) / 2), a = { x: A.x - u.x * R, y: A.y - u.y * R }, b = { x: B.x + u.x * R, y: B.y + u.y * R };
-                    const sh = new THREE.Shape([a, b, { x: b.x + n.x * R, y: b.y + n.y * R }, { x: a.x + n.x * R, y: a.y + n.y * R }].map(q => new THREE.Vector2(q.x, q.y))), pr = new THREE.ExtrudeGeometry(sh, { depth: z1 - z0, bevelEnabled: false }); pr.translate(0, 0, z0);
-                    out = csgGeom(out, [pr], 'sub'); });
-                return out; } catch (e) { return g; } }
+        // 3D : chaque triangle est coupé par le plan vertical de la recoupe (on garde le côté choisi), puis la tranche est refermée par une face plane ;
+        //      marche aussi pour les surfaces ouvertes (pans de toit), sans booléen
+        function rcpGeom3D(g, so, P) { if (!g || !so.cuts || !so.cuts.length) return g; try {
+                let pos = Array.from((g.index ? g.toNonIndexed() : g).attributes.position.array);
+                so.cuts.forEach(c => { const A = P(c.a.x, c.a.y), B = P(c.b.x, c.b.y), K = P(c.k.x, c.k.y), L = Math.hypot(B.x - A.x, B.y - A.y) || 1, u = { x: (B.x - A.x) / L, y: (B.y - A.y) / L }, sg = Math.sign((B.x - A.x) * (K.y - A.y) - (B.y - A.y) * (K.x - A.x)) || 1, n = { x: -u.y * sg, y: u.x * sg };
+                    const d = (q) => (q[0] - A.x) * n.x + (q[1] - A.y) * n.y, out = [], segs = [], E = 1e-7;
+                    for (let t = 0; t < pos.length; t += 9) { const V = [[pos[t], pos[t + 1], pos[t + 2]], [pos[t + 3], pos[t + 4], pos[t + 5]], [pos[t + 6], pos[t + 7], pos[t + 8]]], D = V.map(d);
+                        if (D.every(x => x >= -E)) { out.push(...V[0], ...V[1], ...V[2]); continue; } if (D.every(x => x <= E)) continue;
+                        const Q = [], on = []; for (let i = 0; i < 3; i++) { const a = V[i], b = V[(i + 1) % 3], da = D[i], db = D[(i + 1) % 3]; if (da >= -E) Q.push(a); if ((da > E && db < -E) || (da < -E && db > E)) { const k = da / (da - db), q = [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; Q.push(q); on.push(q); } else if (Math.abs(da) <= E) on.push(a); }
+                        for (let i = 1; i + 1 < Q.length; i++) out.push(...Q[0], ...Q[i], ...Q[i + 1]); if (on.length === 2) segs.push(on); }
+                    // tranche : les segments posés sur le plan forment des boucles, triangulées dans le plan (abscisse le long du trait, altitude)
+                    const key = (q) => Math.round(((q[0] - A.x) * u.x + (q[1] - A.y) * u.y) * 1e4) + ',' + Math.round(q[2] * 1e4), adj = new Map(); segs.forEach(([a, b]) => { const ka = key(a), kb = key(b); if (ka === kb) return; (adj.get(ka) || adj.set(ka, []).get(ka)).push([kb, b, a]); (adj.get(kb) || adj.set(kb, []).get(kb)).push([ka, a, b]); });
+                    const used = new Set(); adj.forEach((_, k0) => { if (used.has(k0)) return; const loop = []; let k = k0, prev = null, guard = 0; while (guard++ < 10000) { used.add(k); const nx = (adj.get(k) || []).find(x => x[0] !== prev && (!used.has(x[0]) || (x[0] === k0 && loop.length > 2))); if (!nx) break; loop.push(nx[2]); if (nx[0] === k0) { loop.closed = true; break; } prev = k; k = nx[0]; }
+                        if (!loop.closed || loop.length < 3) return; const v2 = loop.map(q => new THREE.Vector2((q[0] - A.x) * u.x + (q[1] - A.y) * u.y, q[2])), T = THREE.ShapeUtils.triangulateShape(v2, []);
+                        T.forEach(([i0, i1, i2]) => { let a = loop[i0], b = loop[i1], cc = loop[i2]; const nn = [(b[1] - a[1]) * (cc[2] - a[2]) - (b[2] - a[2]) * (cc[1] - a[1]), (b[2] - a[2]) * (cc[0] - a[0]) - (b[0] - a[0]) * (cc[2] - a[2])]; if (nn[0] * n.x + nn[1] * n.y > 0) { const tmp = b; b = cc; cc = tmp; } out.push(...a, ...b, ...cc); }); });
+                    pos = out; });
+                const o = new THREE.BufferGeometry(); o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.computeVertexNormals(); return o; } catch (e) { return g; } }
         // aperçu : le trait, et la partie retirée en rouge
         function drawRecoupePreview(c) { if (mode !== 'recoupe' || !rcp || !rcp.a) return; const zf = camera.zoom, b = rcp.b || { x: currentX, y: currentY }; c.save(); c.strokeStyle = '#f43f5e'; c.lineWidth = 2 / zf; c.setLineDash([8 / zf, 5 / zf]);
             c.beginPath(); c.moveTo(rcp.a.x, rcp.a.y); c.lineTo(b.x, b.y); c.stroke(); c.setLineDash([]);
