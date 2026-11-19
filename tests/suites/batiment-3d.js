@@ -750,4 +750,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const L = { type: 'line', layerId: activeLayerId, x1: 2 * m, y1: -2 * m, x2: 3 * m, y2: -2 * m, z2: 0, lvl: 'rdc', bid: A2.bld.id, zk: 1, lvs: 1 }; shapes.push(L); invalidateCache(); r.noTin = !tinNodes().some(n => n.z === 0);
         selectedShapes = []; bldActivate(null); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('contour de bâtiment + Dalle : une dalle à part sous le plancher, ancien fichier réparé ; un trait d\'étage ne fait jamais le terrain', bd, { split: true, load: true, noTin: true });
+    // panneau des étages : coupe du bâtiment cliquable (étages, sous-sol, toit) ; vue de dessus d'un contour fermée
+    const bs = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m });
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState();
+        bldOpen(A.bld.id); await new Promise(res => setTimeout(res, 300)); bldAdd(true); bldAdd(false); await new Promise(res => setTimeout(res, 200));
+        const svg = document.querySelector('#bld-lv svg'), gs = svg ? [...svg.querySelectorAll('g[onclick]')] : [], r = { svg: !!svg && gs.length === 4 };
+        const up = lvlSorted().find(l => l.z > 100000); gs.find(g => g.getAttribute('onclick').includes(up.id)).dispatchEvent(new MouseEvent('click', { bubbles: true })); r.pick = lvlOn && lvlAct === up.id;
+        gs.find(g => g.getAttribute('onclick').includes('toit')).dispatchEvent(new MouseEvent('click', { bubbles: true })); r.roof = lvlAct === 'toit';
+        const th = document.querySelector('#sp-thumb path'); r.closed = !!th && /Z$/.test(th.getAttribute('d'));
+        closeSelectionParamModal(); selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('étages : coupe du bâtiment cliquable (étage, sous-sol, toit), vue de dessus fermée', bs, { svg: true, pick: true, roof: true, closed: true });
 } };
