@@ -684,7 +684,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         await open3D(); let jo = 0; V3.root.traverse(x => { if (x.userData && x.userData.opening === o) jo++; }); r.noJoinery = jo === 0; close3D();
         openA = { x: 5 * m, y: -1 * m }; openWall = host; openDir = { x: 0, y: -1 }; openLast.kind = 'garage'; openLast.top = 'droit'; openingFinish({ x: 5 * m, y: -3.6 * m }); const og = host.openings[host.openings.length - 1];
         r.garage = !!document.querySelector('input[name=op-k][value=garage]:checked') && og.kind === 'garage' && og.h === 2000 && og.sill === 0; [...document.querySelectorAll('#tm-actions button')].find(b => /Valider/.test(b.textContent)).click();
-        await open3D(); let gp = 0; V3.root.traverse(x => { if (x.userData && x.userData.opening === og) gp++; }); r.garage3d = gp >= 10; close3D(); draw();
+        await open3D(); let gp = 0; V3.root.traverse(x => { if (x.userData && x.userData.opening === og) gp++; }); r.garage3d = gp >= 10;
+        /* vue Momo : la porte de garage bascule sur son bord haut et se range sous le plafond, du côté opposé à Momo, puis se referme */
+        let tl = null; V3.root.traverse(x => { if (x.userData.door && x.userData.door.garage && !tl) tl = x; }); if (tl) { const pv = tl.parent, a = pv.rotation.z, nx = -Math.sin(a), ny = Math.cos(a); V3.root.updateMatrixWorld(true); const b0 = new THREE.Box3().setFromObject(tl), c = b0.getCenter(new THREE.Vector3()), rp = V3.root.position;
+            await momoFPS({ w: { x: mmToWorld((c.x + nx * 2 - rp.x) * 1000), y: -mmToWorld((c.y + ny * 2 - rp.y) * 1000) } }); const F = V3.fps; F.pos.z = c.z; F.yaw = Math.atan2(c.x - F.pos.x, c.y - F.pos.y); F.pitch = 0;
+            const ok = fpsDoor(); for (let i = 0; i < 20; i++) fpsStep(0.1); V3.root.updateMatrixWorld(true); const b1 = new THREE.Box3().setFromObject(tl), c1 = b1.getCenter(new THREE.Vector3()), sd = (F.pos.x - pv.position.x) * nx + (F.pos.y - pv.position.y) * ny, pw = pv.getWorldPosition(new THREE.Vector3()), sd1 = (c1.x - pw.x) * nx + (c1.y - pw.y) * ny;
+            r.gOpen = ok && Math.abs(Math.abs(tl.rotation.x) - Math.PI / 2) < 1e-3 && b1.min.z > b0.max.z - 0.2 && Math.sign(sd1) === -Math.sign(sd);
+            F.yaw = Math.atan2(pw.x - F.pos.x, pw.y - F.pos.y); fpsDoor(); for (let i = 0; i < 20; i++) fpsStep(0.1); r.gClose = Math.abs(tl.rotation.x) < 1e-3; V3.fps.back = { az: V3.az, el: V3.el, dist: V3.dist, t: V3.target.clone() }; fpsStop(); }
+        close3D(); draw();
         selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     // paroi enregistrée sans hauteur (dessinée pendant que le contour était cassé) : remise à l'étage de son bâtiment à l'ouverture et au dessin, donc visible en 3D
     const wzr = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000);
@@ -698,7 +705,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const h2 = { type: 'hatch', layerId: activeLayerId, wallMat: 'beton', groupId: 'g-out', loops: [box(14, 1, 18, 1.2)] }; shapes.push(h2); saveState(); r.outside = !!h2.wz && h2.wz.b === 69000 && h2.wz.t === 72000;
         bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('paroi sans hauteur remise à la hauteur de son étage : visible en 3D (ouverture du fichier et dessin hors contour)', wzr, { load: true, toast: true, mesh: true, outside: true });
-    t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme, porte de garage', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true, garage: true, garage3d: true });
+    t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme, porte de garage (qui s\'ouvre en vue Momo)', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true, garage: true, garage3d: true, gOpen: true, gClose: true });
     // paroi complexe posée : Y modifie sa composition ; refaite sur le même tracé (même après déplacement et symétrie), ouvertures et hauteur gardées
     const cxy = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), P = (R) => JSON.stringify(R.P.map(q => [+(q.x / m).toFixed(3), +(-q.y / m).toFixed(3)]));
         startWallCx(WALL_CX[0]); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallAddTo(pt(6, 4).x, pt(6, 4).y); wallChainEnd(); setMode('select-box');
