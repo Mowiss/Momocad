@@ -111,6 +111,10 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     // 7. remblai périphérique AU TERRAIN NATUREL : la fouille est rebouchée jusqu'au terrain = volume du talus de déblai (1 m, 1/1) = 60 × 0,5 + 4/3 = 31,33 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, mode: 'tn' } });
     t.ok('remblai périphérique jusqu\'au terrain naturel = 31,33 m³ (à 2 % près)', pct(r.RP, 31.333) < 0.02, JSON.stringify(r));
+    // 7b. réglage par arête : chaque côté peut aller jusqu'au terrain naturel ; tous les côtés au TN = le réglage d'ensemble ; deux côtés seulement = une part
+    r = await cub({ z: 99000, talus: { on: true, cx: true, kD: '1/1', kR: '3/2', edges: [{ rptn: true }, { rptn: true }, { rptn: true }, { rptn: true }] } });
+    const rAll = r; r = await cub({ z: 99000, talus: { on: true, cx: true, kD: '1/1', kR: '3/2', edges: [{ rptn: true }, { zf: 99000 }, { rptn: true }, { zf: 99000 }] } });
+    t.ok('remblai périphérique par arête « jusqu\'au TN » : 4 côtés = 31,33 m³ ; les 2 grands côtés seuls = entre 20 et 26 m³', pct(rAll.RP, 31.333) < 0.02 && r.RP > 20 && r.RP < 26, JSON.stringify([rAll.RP, r.RP]));
     // 8. cote finie AU-DESSUS du terrain (100,50 pour un terrain à 100) : fouille remplie jusqu'à 100,50 puis talus 1/1 jusqu'au terrain
     //    fouille : 31,33 + 0,5 × (60 + π) = 62,90 ; talus : 0,125 × (60 + 2π) + 2π × 0,5³ / 6 = 8,42 ; total 71,3 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 100500 } });

@@ -433,6 +433,9 @@
         }
         // remblai périphérique : 'fini' = jusqu'à une cote finie (et talus 1/1 jusqu'au terrain si cette cote dépasse le terrain), 'tn' = fouille rebouchée jusqu'au terrain naturel, 'none' = aucun
         function rpMode(s) { const m = s && s.cubRP && s.cubRP.mode; return m === 'tn' || m === 'none' ? m : 'fini'; }
+        // réglage par arête : un côté peut être rebouché jusqu'au terrain naturel (e.rptn) quand les autres vont à une cote finie
+        function rpModeAt(EX, ring, x, y, mode) { if (mode !== 'fini' || !EX) return mode; const ed = EX[nearOnRing(x, y, ring).i]; return ed && ed.rptn ? 'tn' : mode; }
+        function rpZfAt(EX, ring, zf0) { return (x, y) => { let z = zf0; if (EX) { const ed = EX[nearOnRing(x, y, ring).i]; if (ed && ed.rptn) return NaN; if (ed && hasZ(ed.zf)) z = ed.zf; } return z; }; }
         // grille de distance (monde) à la zone de déblai de la plateforme i, pour le talus 1/1 du remblai périphérique au-delà : -1 bloqué (plateforme, autres ouvrages), Infinity hors d'atteinte
         // dessus du remblai périphérique en (x, y), cellule r = FM.at(x, y) de la plateforme i hors de son contour : cote (mm) ou null
         //  bande de recul et fond de fouille : niveau fini ; talus de déblai : talus fini parallèle, parti du niveau fini, jusqu'au terrain naturel ;
@@ -470,9 +473,9 @@
         function cubPeriph(FM, i, zf, maxCells) {   // m³ de remblai entre le fond de la fouille (hors plateforme) et le niveau fini ; m² concernés
             const p = FM.P[i], b = p.bb, cell = Math.max(Math.sqrt((b.x1 - b.x0) * (b.y1 - b.y0) / (maxCells || 60000)), mmToWorld(20)), cA = Math.pow(mOf(cell), 2); let v = 0, a = 0;
             const mode = rpMode(p.s), byE = {}, t = platTalus(p.s), EX = t.cx && t.edges && p.s.type === 'poly' ? t.edges : null;   // niveau fini par arête (réglage par arête), sinon celui de la plateforme
-            const zfAt = (x, y) => { let z = zf; if (EX) { const e = nearOnRing(x, y, p.ring), ed = EX[e.i]; if (ed && hasZ(ed.zf)) z = ed.zf; } return z; };
+            const zfAt = rpZfAt(EX, p.ring, zf);
             gridEach(b.x0, b.y0, b.x1, b.y1, cell, [p.ring], (x, y, f) => {
-                if (pointInPolygon(x, y, p.ring)) return; const r = FM.at(x, y), z = rpTop(FM, i, x, y, r, zfAt, mode);
+                if (pointInPolygon(x, y, p.ring)) return; const r = FM.at(x, y), z = rpTop(FM, i, x, y, r, zfAt, rpModeAt(EX, p.ring, x, y, mode));
                 if (!hasZ(z) || !(z > r.z)) return; const dA = cA * f, dv = (z - r.z) / 1000 * dA; v += dv; a += dA; const k = p.s.type === 'poly' ? nearOnRing(x, y, p.ring).i : 0; const B = byE[k] || (byE[k] = { v: 0, a: 0, z }); B.v += dv; B.a += dA; });
             let ext = null; if (mode === 'fini') { ext = rpTalusExt(FM, i, zfAt); if (ext.v > 1e-6) { v += ext.v; a += ext.a; } else ext = null; }
             return { v, a, byE, ext, mode };
@@ -486,7 +489,7 @@
                 v += Math.max(0, r.tn - r.z) / 1000 * cA * f; a += cA * f; });
             return { v, a, R: worldToMm(p.R) };
         }
-        function cubRPon(s) { const m = rpMode(s); if (m === 'none') return false; if (m === 'tn') return !(s.cubRP && s.cubRP.on === false); const t = platTalus(s); return !!((s.cubRP && hasZ(s.cubRP.z)) || (t.cx && (t.edges || []).some(e => e && hasZ(e.zf)))); }   // remblai périphérique : dès qu'un niveau fini est donné (Y › Talus)
+        function cubRPon(s) { const m = rpMode(s); if (m === 'none') return false; if (m === 'tn') return !(s.cubRP && s.cubRP.on === false); const t = platTalus(s); return !!((s.cubRP && hasZ(s.cubRP.z)) || (t.cx && (t.edges || []).some(e => e && (hasZ(e.zf) || e.rptn)))); }   // remblai périphérique : dès qu'un niveau fini est donné (Y › Talus)
         function cubToggle(i, on) { const s = cubPlatforms()[i]; if (s) { s.cubOff = !on; saveState(); } const e = document.getElementById('cb-err'); if (e) e.textContent = ''; }
         function cubAll(on) { cubPlatforms().forEach(s => { s.cubOff = !on; }); saveState(); renderCubStep(); }
         function cubRename(i, v) { const s = cubPlatforms()[i]; if (!s) return; v = String(v).trim(); if (v) s.pfName = v; else delete s.pfName; saveState(); }
@@ -559,7 +562,7 @@
                 if (it.tal) it.tal = Object.assign({}, it.tal, { deb: Math.max(0, it.tal.deb - rc.v), sD: Math.max(0, it.tal.sD - rc.a) });
                 const xs = 0;   // la structure s'étend aussi sur le recul : le modèle est déjà au fond de forme, rien à ajouter
                 it.extra.push({ lbl: 'recul R = ' + nfr(rc.R / 1000, 2) + ' m : fond de fouille agrandi (' + nfr(rc.a, 1) + ' m²)' + (it.Emm > 0 ? ', structure comprise' : ''), deb: rc.v + xs, rem: 0 }); });
-            items.forEach(it => { const rp = it.s.cubRP, tt = platTalus(it.s), perE = tt.cx && (tt.edges || []).some(e => e && hasZ(e.zf)); if (!cubRPon(it.s) || !((rp && hasZ(rp.z)) || perE || rpMode(it.s) === 'tn')) return; const R = cubPeriph(FM, it.idx, rp ? rp.z : undefined); if (R.v <= 1e-6) return; it.rp = R;
+            items.forEach(it => { const rp = it.s.cubRP, tt = platTalus(it.s), perE = tt.cx && (tt.edges || []).some(e => e && (hasZ(e.zf) || e.rptn)); if (!cubRPon(it.s) || !((rp && hasZ(rp.z)) || perE || rpMode(it.s) === 'tn')) return; const R = cubPeriph(FM, it.idx, rp ? rp.z : undefined); if (R.v <= 1e-6) return; it.rp = R;
                 const E = (tt.edges || []), keys = Object.keys(R.byE).map(Number).sort((a, b) => a - b);
                 keys.forEach(k => { const B = R.byE[k], e = E[k] || {}, nm = it.s.type === 'poly' ? (e.name || 'Talus ' + (k + 1)) : 'pourtour';
                     it.extra.push({ lbl: 'remblai périphérique — ' + nm + (R.mode === 'tn' ? ' jusqu\'au terrain naturel' : ' jusqu\'à ' + fmtZ(B.z) + ' m') + ' (' + nfr(B.a, 1) + ' m²)', deb: 0, rem: B.v }); });

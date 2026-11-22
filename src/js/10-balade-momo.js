@@ -436,7 +436,7 @@
             if (FM && (document.getElementById('v3-rp') || {}).checked) zones.forEach(Zo => { try {
                 const i = FM.P.indexOf(Zo), s0 = Zo.s; if (i < 0 || !cubRPon(s0)) return;
                 const t = platTalus(s0), EX = t.cx && t.edges && s0.type === 'poly' ? t.edges : null, zf0 = s0.cubRP && hasZ(s0.cubRP.z) ? s0.cubRP.z : undefined, b = Zo.bb, ring = Zo.ring;
-                const zfAt = (x, y) => { let z = zf0; if (EX) { const e = nearOnRing(x, y, ring), ed = EX[e.i]; if (ed && hasZ(ed.zf)) z = ed.zf; } return z; };
+                const zfAt = rpZfAt(EX, ring, zf0);
                 const mode = rpMode(s0); let bE = b;
                 if (mode === 'fini') { let zM = -Infinity, tM = Infinity; ring.forEach(q => { const z = zfAt(q.x, q.y); if (hasZ(z)) zM = Math.max(zM, z); }); FM.tin.nodes.forEach(nd => { tM = Math.min(tM, nd.z); }); if (zM > tM) { const mg = mmToWorld(zM - tM) + mmToWorld(200); bE = { x0: b.x0 - mg, y0: b.y0 - mg, x1: b.x1 + mg, y1: b.y1 + mg }; } }
                 const cell = Math.max(Math.sqrt((bE.x1 - bE.x0) * (bE.y1 - bE.y0) / 60000), mmToWorld(40)), nx = Math.ceil((bE.x1 - bE.x0) / cell), ny = Math.ceil((bE.y1 - bE.y0) / cell);
@@ -445,7 +445,7 @@
                 const NV = []; for (let a = 0; a <= nx; a++) { const col = []; for (let c = 0; c <= ny; c++) { const x = bE.x0 + a * cell, y = bE.y0 + c * cell; let zf = zfAt(x, y);
                     const inside = pointInPolygon(x, y, ring), d = (inside ? -1 : 1) * mOf(distToPoly(x, y, ring)); let g = d;
                     if (!inside) { const r = FM.at(x, y), k = a * (ny + 1) + c;
-                        const zt = rpTop(FM, i, x, y, r, zfAt, mode);
+                        const zt = rpTop(FM, i, x, y, r, zfAt, rpModeAt(EX, ring, x, y, mode));
                         if (r && r.gov === i && (r.kind === 3 || hasZ(zt))) { zf = zt; g = Math.min(hasZ(zf) ? (zf - r.z) / 1000 : -0.3, d); }
                         else if (DG && DG.st[k] === 0 && isFinite(DG.Z[k]) && r && hasZ(r.tn)) { zf = DG.Z[k]; g = (zf - r.tn) / 1000; }
                         else g = -0.3; }
@@ -460,7 +460,7 @@
                 // côté contre la plateforme : paroi du remblai, du haut du talus au niveau fini
                 const n = ring.length, e = mmToWorld(30); let sg = 1; { const A = ring[0], B = ring[1], L = Math.hypot(B.x - A.x, B.y - A.y) || 1; if (pointInPolygon((A.x + B.x) / 2 + (B.y - A.y) / L * e, (A.y + B.y) / 2 - (B.x - A.x) / L * e, ring)) sg = -1; }
                 for (let k = 0; k < n; k++) { const A = ring[k], B = ring[(k + 1) % n], L = Math.hypot(B.x - A.x, B.y - A.y); if (L < 1e-9) continue; const ox = (B.y - A.y) / L * e * sg, oy = -(B.x - A.x) / L * e * sg, m = Math.max(1, Math.ceil(L / cell)); let prev = null;
-                    for (let j = 0; j <= m; j++) { const x = A.x + (B.x - A.x) * j / m, y = A.y + (B.y - A.y) * j / m, r = FM.at(x + ox, y + oy), zf = rpTop(FM, i, x + ox, y + oy, r, zfAt, mode);
+                    for (let j = 0; j <= m; j++) { const x = A.x + (B.x - A.x) * j / m, y = A.y + (B.y - A.y) * j / m, r = FM.at(x + ox, y + oy), zf = rpTop(FM, i, x + ox, y + oy, r, zfAt, rpModeAt(EX, ring, x + ox, y + oy, mode));
                         const cur = hasZ(zf) && zf > r.z ? { x, y, zb: r.z, zt: zf } : null;
                         if (cur && prev) { const p1 = P(prev.x, prev.y), p2 = P(x, y); pp.push(p1.x, p1.y, Zm(prev.zb), p2.x, p2.y, Zm(cur.zb), p2.x, p2.y, Zm(cur.zt), p1.x, p1.y, Zm(prev.zb), p2.x, p2.y, Zm(cur.zt), p1.x, p1.y, Zm(prev.zt)); }
                         prev = cur; } }
