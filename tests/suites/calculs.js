@@ -299,6 +299,21 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const nat = document.getElementById('v3-nat'); if (nat && !nat.checked) nat.click(); await open3D(); await new Promise(res => setTimeout(res, 500)); build3DScene(); r.asphalt = V3.terrStats.road > 0; close3D();
         shapes = keep; invalidateCache(); saveState(); return r; });
     t.eq('routes : chaussée entre les deux bords, en enrobé en 3D', rd, { polys: 1, inside: true, outside: false, asphalt: true });
+    // ROUTE TRACÉE : l'axe dessiné fait la route comme la génération automatique ; elle suit son axe, sa largeur ; points de chaussée mis de côté puis rendus
+    const rdt = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'), r = {};
+        rdOpt.w = 6; const a0 = rdMake([{ x: -20 * m, y: 0 }, { x: 20 * m, y: 0 }]).s; saveState(); r.wait = !shapes.some(x => x.rdOf); for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000, zk: 1, code: 'TN' }); saveState(); r.late = shapes.filter(x => x.rdOf === a0.rdAx.id).length === 2; shapes = [];
+        for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000 + i * 400 + (i * j % 3) * 150, zk: 1, code: 'TN' });
+        shapes.push({ type: 'point', layerId: TN, x: 5 * m, y: 0.5 * m, z: 104000, zk: 1, code: 'TN' }); invalidateCache(); saveState(); const n0 = shapes.filter(x => x.type === 'point').length;
+        startRoad(); r.panel = !!document.getElementById('rd-w'); rdOpt.w = 6; rdOpt.prof = 'lisse'; currentPolygon = [{ x: -45 * m, y: 0 }, { x: 0, y: 0 }, { x: 45 * m, y: -20 * m }]; isDrawing = true; finishPline();
+        const ax = shapes.find(x => x.rdAx), E = () => shapes.filter(x => x.rdOf === ax.rdAx.id); r.edges = E().length === 2 && E().every(x => x.road && x.road.w === 6 && x.points.every(q => hasZ(q.z)));
+        const [e1, e2] = E(), k = Math.floor(e1.points.length / 2), w = Math.hypot(e1.points[k].x - e2.points[k].x, e1.points[k].y - e2.points[k].y) / m; r.flat = Math.abs(e1.points[k].z - e2.points[k].z) <= 1 && Math.abs(w - 6) < 0.2;
+        r.smooth = e1.points.every((q, i) => !i || Math.abs(q.z - e1.points[i - 1].z) < 1200); r.pt = !shapes.some(x => x.type === 'point' && Math.abs(x.y - 0.5 * m) < 1 && Math.abs(x.x - 5 * m) < 1) && ax.rdAx.rm.length >= 1;
+        r.asphalt = roadAt(-20 * m, 0) && !roadAt(-20 * m, -10 * m);
+        ax.points[0] = { x: -45 * m, y: -30 * m }; ax.points[1] = { x: 0, y: -30 * m }; ax.points[2] = { x: 45 * m, y: -30 * m }; saveState(); r.follow = roadAt(0, -30 * m) && !roadAt(-20 * m, 0) && shapes.some(x => x.type === 'point' && Math.abs(x.y - 0.5 * m) < 1);
+        selectedShapes = [ax]; openSelectionParamModal(); const we = document.getElementById('rd-w'); r.y = !!we; if (we) { we.value = '8'; we.dispatchEvent(new Event('input', { bubbles: true })); we.dispatchEvent(new Event('change', { bubbles: true })); spLiveApply(); spLiveCommit(); closeSelectionParamModal(); } r.wide = ax.rdAx.w === 8 && shapes.filter(x => x.rdOf === ax.rdAx.id).every(x => x.road.w === 8);
+        shapes = shapes.filter(x => x !== ax); saveState(); r.gone = !shapes.some(x => x.rdOf) && shapes.filter(x => x.type === 'point').length === n0;
+        t2PanelClose(); setMode('select-box'); selectedShapes = []; shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('route tracée : axe → chaussée plate au profil lissé, bords en lignes de rupture, enrobé ; suit son axe, largeur en Y ; supprimée, le terrain est rendu ; tracée sans terrain, faite dès qu\'il arrive', rdt, { wait: true, late: true, panel: true, edges: true, flat: true, smooth: true, pt: true, asphalt: true, follow: true, y: true, wide: true, gone: true });
 
     // bassin à deux fonds (fosse dans une fosse) : la dalle de la grande plateforme n'est percée qu'une fois, pas de pan d'herbe par-dessus l'eau
     const ff = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
