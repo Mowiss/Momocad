@@ -119,13 +119,13 @@ module.exports = { name: 'calculs', run: async (H, t) => {
     const tn3 = await ev(async () => { const keep = shapes, m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'), out = {};
         const probe = async (rp, talus) => { shapes = []; for (let i = 0; i <= 12; i++) for (let j = 0; j <= 10; j++) shapes.push({ type: 'point', layerId: TN, x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
             shapes.push({ type: 'poly', layerId: 'layer-0', zk: 1, points: [[20, 15], [40, 15], [40, 25], [20, 25]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 98000 })), talus, cubRP: rp }); invalidateCache(); saveState();
-            const rpc = document.getElementById('v3-rp'); if (rpc && !rpc.checked) rpc.click(); if (!is3DOpen()) await open3D(); build3DScene(); V3.root.updateMatrixWorld(true); const R = V3.root.position;
+            const rpc = document.getElementById('v3-rp'); if (rpc && rpc.checked) rpc.click(); if (!is3DOpen()) await open3D(); build3DScene(); V3.root.updateMatrixWorld(true); const R = V3.root.position;
             const zAt = (x, y) => { const h = new THREE.Raycaster(new THREE.Vector3(x + R.x, y + R.y, 9999), new THREE.Vector3(0, 0, -1)).intersectObjects(V3.root.children, true).find(o => o.object.isMesh && !o.object.userData.rp && !o.object.userData.cap); return h ? h.point.z : null; };
             const zTN = zAt(30, 5), zIn = zAt(30, 20), zN = zAt(30, 14.6), zS = zAt(30, 25.4); let nrp = 0; V3.root.traverse(o => { if (o.userData.rp) nrp++; }); return { tnN: Math.abs(zN - zTN) < 0.05, tnS: Math.abs(zS - zTN) < 0.05, pit: zIn < zTN - 1.5, nrp }; };
         out.all = await probe({ on: true, mode: 'tn' }, { on: true, kD: '1/1', kR: '3/2' });
         out.edge = await probe({ on: true }, { on: true, kD: '1/1', kR: '3/2', cx: true, edges: [{ rptn: true }, null, null, null] });
         close3D(); shapes = keep; invalidateCache(); saveState(); return { all: out.all.tnN && out.all.tnS && out.all.pit && out.all.nrp === 0, edgeN: out.edge.tnN, edgeS: !out.edge.tnS, dbg: out }; });
-    t.ok('3D : remblai périphérique jusqu\'au TN = le terrain naturel revient contre la plateforme (tous les côtés, ou le seul côté coché)', tn3.all && tn3.edgeN && tn3.edgeS, JSON.stringify(tn3));
+    t.ok('3D : remblai périphérique jusqu\'au TN = le terrain naturel revient contre la plateforme (tous les côtés, ou le seul côté coché), même sans afficher le remblai périphérique', tn3.all && tn3.edgeN && tn3.edgeS, JSON.stringify(tn3));
     // 8. cote finie AU-DESSUS du terrain (100,50 pour un terrain à 100) : fouille remplie jusqu'à 100,50 puis talus 1/1 jusqu'au terrain
     //    fouille : 31,33 + 0,5 × (60 + π) = 62,90 ; talus : 0,125 × (60 + 2π) + 2π × 0,5³ / 6 = 8,42 ; total 71,3 m³
     r = await cub({ z: 99000, talus: { on: true, kD: '1/1', kR: '3/2' }, rp: { on: true, z: 100500 } });

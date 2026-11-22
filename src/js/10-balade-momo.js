@@ -223,8 +223,8 @@
             const showTal = document.getElementById('v3-tal').checked, tin = getTIN();
             // terrain fini commun à toutes les plateformes (talus raccordés) ; [z fini en mm, nature] : 0 terrain, 1 plateforme, 2 remblai, 3 déblai
             const FM = showTal ? finishedModel() : null, zones = FM ? FM.P.filter(p => vis.includes(p.s)) : [];
-            /* remblai périphérique « jusqu'au terrain naturel » (réglage d'ensemble ou côté par côté), montré : la fouille est rebouchée, le terrain naturel y revient tel quel */
-            const RPTN = FM && (document.getElementById('v3-rp') || {}).checked ? FM.P.map(p => { const s0 = p.s; if (!cubRPon(s0)) return null; const m = rpMode(s0), t = platTalus(s0), EX = t.cx && t.edges && s0.type === 'poly' ? t.edges : null;
+            /* remblai périphérique « jusqu'au terrain naturel » (réglage d'ensemble ou côté par côté) : la fouille est rebouchée, le terrain naturel y revient tel quel (toujours : c'est l'état fini) */
+            const RPTN = FM ? FM.P.map(p => { const s0 = p.s; if (!cubRPon(s0)) return null; const m = rpMode(s0), t = platTalus(s0), EX = t.cx && t.edges && s0.type === 'poly' ? t.edges : null;
                 if (m === 'tn') return () => true; if (m === 'fini' && EX && EX.some(e => e && e.rptn)) return (x, y) => rpModeAt(EX, p.ring, x, y, 'fini') === 'tn'; return null; }) : null;
             const zFini = (x, y, tn) => { const r = FM.at(x, y, tn); if (r && RPTN && hasZ(tn) && (r.kind === 3 || (r.kind === 4 && r.z < tn)) && RPTN[r.gov] && RPTN[r.gov](x, y) && !pointInPolygon(x, y, FM.P[r.gov].ring)) return [tn, 0, r.gov]; return r ? [r.z, r.kind === 4 ? (r.z > tn ? 2 : 3) : r.kind] : [tn, 0]; };
             // fonds de carte : drapés sur le terrain quand il est affiché (texture avec un liseré transparent : rien au-delà de l'image, cercle pour un fond de carte)
