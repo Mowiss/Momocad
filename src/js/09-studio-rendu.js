@@ -194,7 +194,11 @@
             if (V3.rdSize) { W = V3.rdSize[0]; H = V3.rdSize[1]; }   // (tests) petite image
             const N = V3.rdSpp || Q.spp; RD = { stop: false, t0: performance.now(), n: 0, N, W, H }; RD.prev = document.createElement('canvas'); RD.prev.width = Math.min(W, 960); RD.prev.height = Math.round(RD.prev.width * H / W);
             rdUI('run'); rdStep('Affinage de la scène…', 0); await rdWait(); await rdWait();
-            if (studio.realHD && realOn() && REAL) { rdStep('Relief réel en haute définition…', 0); await realLoadHD(); }
+            if (studio.realHD && realOn() && REAL) {   /* relief réel HD : téléchargé une fois (puis gardé), avancement affiché, 2 min au plus ; « Arrêter » pendant ce temps : rendu avec le relief normal */
+                let last = 'Relief réel en haute définition (téléchargé une seule fois)…', lf = 0; rdStep(last, 0); const tick = setInterval(() => rdStep(last, lf), 1000);
+                try { const r = await Promise.race([realLoadHD((f, t) => { last = 'Relief réel HD : ' + t; lf = f; rdStep(last, f); }, () => !!(RD && RD.stop)), new Promise(res => setTimeout(() => res('lent'), 120000)), new Promise(res => { const k = setInterval(() => { if (!RD || RD.stop) { clearInterval(k); res('stop'); } }, 200); })]);
+                    if (r !== 'stop' && (r === 'lent' || !r)) updateCommandMessageText('RENDU : relief réel HD ' + (r === 'lent' ? 'trop long à venir (il continue en arrière-plan pour la prochaine fois)' : 'indisponible') + ' : rendu avec le relief réel normal.'); } catch (e) {} finally { clearInterval(tick); }
+                if (RD && RD.stop) RD.stop = false; }
             const cam = V3.camera, rc = cam.clone(); rc.clearViewOffset(); rc.fov = stVFov(studio.f, aw / ah) * 180 / Math.PI; rc.aspect = W / H; rc.near = cam.near; rc.far = cam.far; rc.updateProjectionMatrix(); rc.updateMatrixWorld(true);
             let R = null, out = null;
             try {
