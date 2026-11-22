@@ -95,6 +95,17 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         shapes.push(st, br); const f = v3NoSow(), r = { stair: f(12 * m, -10 * m) && !f(12 * m, -13 * m), brush: f(32 * m, -32 * m) && !f(36 * m, -32 * m) }; shapes = shapes.filter(x => x !== st && x !== br);
         await studioOpen(); r.gauge = !!document.getElementById('st-gn') && stGrassTxt(800) === 'moquette'; studioClose(); return r; });
     t.eq('herbe : jauge de densité (jusqu\'à la moquette) ; ni herbe ni grains sur les marches et les zones repeintes', ns, { stair: true, brush: true, gauge: true });
+    // rendu : pas un brin d'herbe sur une zone peinte, même loin de l'origine (la scène 3D est recentrée)
+    const nsr = await ev(async () => { const keep = shapes, m = mmToWorld(1000), X0 = 984 * m, Y0 = -885 * m, TN = ensureLayer('Terrain naturel', '#bef264'); shapes = [];
+        for (let i = 0; i <= 12; i++) for (let j = 0; j <= 12; j++) shapes.push({ type: 'point', layerId: TN, x: X0 + i * 5 * m, y: Y0 - j * 5 * m, z: 813000 + i * 30, zk: 1 });
+        const Z = [[25, 20], [35, 20], [35, 40], [25, 40]].map(([x, y]) => ({ x: X0 + x * m, y: Y0 - y * m })), br = { type: 'poly', open: false, layerId: 'layer-0', points: Z, name: 'Zone peinte', brush: { tex: 'enrobe', d: 800, h: 0.6, top: true, poly: true, zs: Z.map(() => 813150) } };
+        shapes.push(br); invalidateCache(); saveState(); const nat = document.getElementById('v3-nat'); if (nat && !nat.checked) nat.click(); await open3D(); await new Promise(res => setTimeout(res, 300));
+        const rp = V3.root.position; V3.target.set(1014 + rp.x, 915 + rp.y, 0.5); V3.dist = 20; V3.el = 0.15; V3.az = 3.14; render3D(); const g0 = studio.grass; studio.grass = true;
+        V3.hq = { tree: 1, terr: 1, grass: 300000, earth: true, rc: (() => { const c = V3.camera.clone(); c.clearViewOffset(); c.updateProjectionMatrix(); c.updateMatrixWorld(true); return c; })() }; try { build3DScene(); } finally { V3.hq = null; studio.grass = g0; }
+        let inn = 0, out = 0; const M4 = new THREE.Matrix4(), ps = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+        V3.root.traverse(o => { if (!o.isInstancedMesh || !o.userData.grass) return; for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, M4); M4.decompose(ps, q, sc); if (pointInPolygon(mmToWorld(ps.x * 1000), mmToWorld(-ps.y * 1000), Z)) inn++; else out++; } });
+        close3D(); shapes = keep; invalidateCache(); saveState(); return { none: inn === 0, around: out > 100 }; });
+    t.eq('rendu : aucun brin d\'herbe sur une zone peinte, même sur un plan loin de l\'origine', nsr, { none: true, around: true });
 
     // rendu : terrain naturel affiné (bien plus de triangles) et sans fente entre triangles voisins
     const tf = await ev(async () => { await open3D(); build3DScene(); const t0 = V3.terrStats.tris; const rc = V3.camera.clone(); rc.clearViewOffset(); rc.updateProjectionMatrix(); rc.updateMatrixWorld(true);
