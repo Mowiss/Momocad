@@ -223,7 +223,10 @@
             const showTal = document.getElementById('v3-tal').checked, tin = getTIN();
             // terrain fini commun à toutes les plateformes (talus raccordés) ; [z fini en mm, nature] : 0 terrain, 1 plateforme, 2 remblai, 3 déblai
             const FM = showTal ? finishedModel() : null, zones = FM ? FM.P.filter(p => vis.includes(p.s)) : [];
-            const zFini = (x, y, tn) => { const r = FM.at(x, y, tn); return r ? [r.z, r.kind === 4 ? (r.z > tn ? 2 : 3) : r.kind] : [tn, 0]; };
+            /* remblai périphérique « jusqu'au terrain naturel » (réglage d'ensemble ou côté par côté), montré : la fouille est rebouchée, le terrain naturel y revient tel quel */
+            const RPTN = FM && (document.getElementById('v3-rp') || {}).checked ? FM.P.map(p => { const s0 = p.s; if (!cubRPon(s0)) return null; const m = rpMode(s0), t = platTalus(s0), EX = t.cx && t.edges && s0.type === 'poly' ? t.edges : null;
+                if (m === 'tn') return () => true; if (m === 'fini' && EX && EX.some(e => e && e.rptn)) return (x, y) => rpModeAt(EX, p.ring, x, y, 'fini') === 'tn'; return null; }) : null;
+            const zFini = (x, y, tn) => { const r = FM.at(x, y, tn); if (r && RPTN && hasZ(tn) && (r.kind === 3 || (r.kind === 4 && r.z < tn)) && RPTN[r.gov] && RPTN[r.gov](x, y) && !pointInPolygon(x, y, FM.P[r.gov].ring)) return [tn, 0, r.gov]; return r ? [r.z, r.kind === 4 ? (r.z > tn ? 2 : 3) : r.kind] : [tn, 0]; };
             // fonds de carte : drapés sur le terrain quand il est affiché (texture avec un liseré transparent : rien au-delà de l'image, cercle pour un fond de carte)
             const bgDrape = showBg && !v3Flat && showSurf && tin && tin.tris.length ? vis.filter(isBg).map(b => { const img = bmImg(b.mapId); if (!img) return null;
                 const N = Math.min(2048, Math.max(256, img.naturalWidth || 1024)), pad = 2, c = document.createElement('canvas'); c.width = c.height = N + 2 * pad; const x = c.getContext('2d');
@@ -274,11 +277,15 @@
                         if (pr && !pr[3] && !cur[3]) { const a = P(pr[0], pr[1]), b = P(x, y); wp.push(a.x, a.y, Zm(pr[2]), b.x, b.y, Zm(cur[2])); } pr = cur; } });
                     // petit triangle à cheval sur une marche verticale (paroi, bord de plateforme contre une autre) : on ne le dessine pas, sinon une fausse pente en dents de scie ; la paroi ou la dalle ferme la marche
                     // seules les marches tenues par une paroi gardent un vide (le voile la ferme) ; ailleurs le triangle est dessiné, sans trou
+                    /* bord d'une fouille rebouchée au terrain naturel : le triangle à cheval sur le bord de la plateforme est refait côté terrain, ses sommets
+                       de plateforme ramenés sur le bord, à l'altitude du terrain : la pelouse vient au pied du mur, sans dents de scie */
+                    const rpSeam = (p, q, r) => { const T = [p, q, r], g = T.find(v => v.rg !== undefined); if (!g || !T.some(v => v[3] === 1)) return false; const ring = FM.P[g.rg].ring;
+                        const W = T.map(v => { if (v[3] !== 1) return v; const n = nearOnRing(v[0], v[1], ring), z = tinZ(n.px, n.py, tin); return [n.px, n.py, hasZ(z) ? z : v[4], 0, v[4]]; }); if (nat) pushN(W); else W.forEach(push); return true; };
                     const steep = (p, q, r) => { const zs = [p[2], q[2], r[2]], dz = (Math.max(...zs) - Math.min(...zs)) / 1000; if (dz < 0.05) return false; const L = mOf(Math.min(Math.hypot(q[0] - p[0], q[1] - p[1]), Math.hypot(r[0] - q[0], r[1] - q[1]), Math.hypot(p[0] - r[0], p[1] - r[1]))) || 1e-6; return dz / L > 3; };
-                    const tri = (p, q, r) => { if ((p[3] === 1 || q[3] === 1 || r[3] === 1) && steep(p, q, r) && nearParoi((p[0] + q[0] + r[0]) / 3, (p[1] + q[1] + r[1]) / 3)) return; if (showSurf || p[3] || q[3] || r[3]) { if (tp && !p[3] && !q[3] && !r[3]) tp.push(p, q, r); if (nat) pushN([p, q, r]); else { push(p); push(q); push(r); } } };
+                    const tri = (p, q, r) => { if (RPTN && rpSeam(p, q, r)) return; if ((p[3] === 1 || q[3] === 1 || r[3] === 1) && steep(p, q, r) && nearParoi((p[0] + q[0] + r[0]) / 3, (p[1] + q[1] + r[1]) / 3)) return; if (showSurf || p[3] || q[3] || r[3]) { if (tp && !p[3] && !q[3] && !r[3]) tp.push(p, q, r); if (nat) pushN([p, q, r]); else { push(p); push(q); push(r); } } };
                     // découpe adaptative : fine (pas « step ») seulement là où passent les plateformes et leurs talus, telle quelle ailleurs.
                     // Un grand triangle de terrain (relief lointain, semis de points étendu) n'impose plus un découpage grossier aux talus.
-                    const V = (x, y, tn) => { const r = zFini(x, y, tn); return [x, y, r[0], r[1], tn]; }, M = (p, q) => { const c = p.mc || (p.mc = new Map()); let m = c.get(q); if (m) return m; m = V((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, (p[4] + q[4]) / 2); c.set(q, m); (q.mc || (q.mc = new Map())).set(p, m); return m; };   /* milieu d'arête partagé entre les deux triangles voisins : calculé une fois */
+                    const V = (x, y, tn) => { const r = zFini(x, y, tn); const v = [x, y, r[0], r[1], tn]; if (r[2] !== undefined) v.rg = r[2]; return v; }, M = (p, q) => { const c = p.mc || (p.mc = new Map()); let m = c.get(q); if (m) return m; m = V((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, (p[4] + q[4]) / 2); c.set(q, m); (q.mc || (q.mc = new Map())).set(p, m); return m; };   /* milieu d'arête partagé entre les deux triangles voisins : calculé une fois */
                     const inZone = (p, q, r) => { const x0 = Math.min(p[0], q[0], r[0]) - mg, x1 = Math.max(p[0], q[0], r[0]) + mg, y0 = Math.min(p[1], q[1], r[1]) - mg, y1 = Math.max(p[1], q[1], r[1]) + mg; return zones.some(Zo => x1 >= Zo.bb.x0 && x0 <= Zo.bb.x1 && y1 >= Zo.bb.y0 && y0 <= Zo.bb.y1); };
                     const split = (p, q, r, d) => { const l1 = Math.hypot(q[0] - p[0], q[1] - p[1]), l2 = Math.hypot(r[0] - q[0], r[1] - q[1]), l3 = Math.hypot(p[0] - r[0], p[1] - r[1]), lm = Math.max(l1, l2, l3);
                         // même nature partout (terrain naturel, ou dessus de plateforme) : inutile de découper aussi fin ; le budget de triangles va aux talus.
@@ -434,7 +441,7 @@
             // remblai périphérique : la fouille refermée jusqu'au niveau fini. Dessus plan au niveau fini, contour lissé :
             // bord intérieur = bord de la plateforme, bord extérieur = ligne où le talus de déblai atteint le niveau fini (interpolée entre les nœuds de la grille)
             if (FM && (document.getElementById('v3-rp') || {}).checked) zones.forEach(Zo => { try {
-                const i = FM.P.indexOf(Zo), s0 = Zo.s; if (i < 0 || !cubRPon(s0)) return;
+                const i = FM.P.indexOf(Zo), s0 = Zo.s; if (i < 0 || !cubRPon(s0) || rpMode(s0) === 'tn') return;   /* au terrain naturel : c'est le terrain lui-même qui revient (zFini) */
                 const t = platTalus(s0), EX = t.cx && t.edges && s0.type === 'poly' ? t.edges : null, zf0 = s0.cubRP && hasZ(s0.cubRP.z) ? s0.cubRP.z : undefined, b = Zo.bb, ring = Zo.ring;
                 const zfAt = rpZfAt(EX, ring, zf0);
                 const mode = rpMode(s0); let bE = b;
@@ -445,8 +452,8 @@
                 const NV = []; for (let a = 0; a <= nx; a++) { const col = []; for (let c = 0; c <= ny; c++) { const x = bE.x0 + a * cell, y = bE.y0 + c * cell; let zf = zfAt(x, y);
                     const inside = pointInPolygon(x, y, ring), d = (inside ? -1 : 1) * mOf(distToPoly(x, y, ring)); let g = d;
                     if (!inside) { const r = FM.at(x, y), k = a * (ny + 1) + c;
-                        const zt = rpTop(FM, i, x, y, r, zfAt, rpModeAt(EX, ring, x, y, mode));
-                        if (r && r.gov === i && (r.kind === 3 || hasZ(zt))) { zf = zt; g = Math.min(hasZ(zf) ? (zf - r.z) / 1000 : -0.3, d); }
+                        const mA = rpModeAt(EX, ring, x, y, mode), zt = mA === 'tn' ? null : rpTop(FM, i, x, y, r, zfAt, mA);
+                        if (mA !== 'tn' && r && r.gov === i && (r.kind === 3 || hasZ(zt))) { zf = zt; g = Math.min(hasZ(zf) ? (zf - r.z) / 1000 : -0.3, d); }
                         else if (DG && DG.st[k] === 0 && isFinite(DG.Z[k]) && r && hasZ(r.tn)) { zf = DG.Z[k]; g = (zf - r.tn) / 1000; }
                         else g = -0.3; }
                     col.push({ x, y, g, zf }); } NV.push(col); }
@@ -460,7 +467,7 @@
                 // côté contre la plateforme : paroi du remblai, du haut du talus au niveau fini
                 const n = ring.length, e = mmToWorld(30); let sg = 1; { const A = ring[0], B = ring[1], L = Math.hypot(B.x - A.x, B.y - A.y) || 1; if (pointInPolygon((A.x + B.x) / 2 + (B.y - A.y) / L * e, (A.y + B.y) / 2 - (B.x - A.x) / L * e, ring)) sg = -1; }
                 for (let k = 0; k < n; k++) { const A = ring[k], B = ring[(k + 1) % n], L = Math.hypot(B.x - A.x, B.y - A.y); if (L < 1e-9) continue; const ox = (B.y - A.y) / L * e * sg, oy = -(B.x - A.x) / L * e * sg, m = Math.max(1, Math.ceil(L / cell)); let prev = null;
-                    for (let j = 0; j <= m; j++) { const x = A.x + (B.x - A.x) * j / m, y = A.y + (B.y - A.y) * j / m, r = FM.at(x + ox, y + oy), zf = rpTop(FM, i, x + ox, y + oy, r, zfAt, rpModeAt(EX, ring, x + ox, y + oy, mode));
+                    for (let j = 0; j <= m; j++) { const x = A.x + (B.x - A.x) * j / m, y = A.y + (B.y - A.y) * j / m, r = FM.at(x + ox, y + oy), mB = rpModeAt(EX, ring, x + ox, y + oy, mode), zf = mB === 'tn' ? null : rpTop(FM, i, x + ox, y + oy, r, zfAt, mB);
                         const cur = hasZ(zf) && zf > r.z ? { x, y, zb: r.z, zt: zf } : null;
                         if (cur && prev) { const p1 = P(prev.x, prev.y), p2 = P(x, y); pp.push(p1.x, p1.y, Zm(prev.zb), p2.x, p2.y, Zm(cur.zb), p2.x, p2.y, Zm(cur.zt), p1.x, p1.y, Zm(prev.zb), p2.x, p2.y, Zm(cur.zt), p1.x, p1.y, Zm(prev.zt)); }
                         prev = cur; } }
