@@ -348,6 +348,7 @@
             let dash = effectiveDash(s);
             let w = effectiveWidth(s) * 2;
             if (s.type === 'cline') { if (!isPrinting) drawCLine2D(targetCtx, s, sel, dx, dy, lineScale); return; }
+            if (s.rdAx && s.type === 'poly' && !isPrinting) drawRoadProf2D(targetCtx, s, col, dx || 0, dy || 0, lineScale);   /* route : ses profils en travers (l'échelle) */
             if (s.ctop && s.type === 'poly') { drawCtop2D(targetCtx, s, sel ? '#ec4899' : col, dx || 0, dy || 0, lineScale); return; }   /* plan de travail / bar : son symbole seul, pas le tracé brut */
             if (s.type === 'dim-angle') { drawAngleDim(targetCtx, { ...s, vertex: {x:s.vertex.x+dx, y:s.vertex.y+dy}, p1: {x:s.p1.x+dx, y:s.p1.y+dy}, p2: {x:s.p2.x+dx, y:s.p2.y+dy} }, sel, isPrinting, lineScale); return; }
             if (s.brush && s.type === 'poly') { drawBrush2D(targetCtx, s, dx, dy, lineScale, sel, col); return; }

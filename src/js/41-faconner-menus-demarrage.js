@@ -717,6 +717,9 @@
                     if (e.key === 'Escape') { e.preventDefault(); cmdBuffer = ''; draw(); return; }
                 }
             }
+            // Route : écartement des profils tapé avant le premier clic, validé par Espace ou Entrée
+            if (mode === 'pline' && rdDraw && !isDrawing && !e.ctrlKey) { if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); typedInput += e.key.replace(',', '.'); updateCommandMessageText('ROUTE : écartement des profils ' + typedInput + ' m — Espace pour valider.'); draw(); return; }
+                if (e.key === 'Backspace' && typedInput) { e.preventDefault(); typedInput = typedInput.slice(0, -1); draw(); return; } if ((e.key === ' ' || e.key === 'Enter') && typedInput) { e.preventDefault(); rdStepTyped(typedInput); return; } }
             // Polyligne / Plume : Entrée, Espace (sans saisie) ou Échap = terminer ; Miroir : Entrée / Suppr / Échap
             if (mode === 'pline' && isDrawing && !typedInput && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) { e.preventDefault(); const trq = trenchDraw && e.key === 'Enter'; finishPline(); if (trq) setMode('select-box'); return; }
             if (mode === 'pline' && trenchDraw && !isDrawing && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); setMode('select-box'); return; }

@@ -103,8 +103,8 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         const rp = V3.root.position; V3.target.set(1014 + rp.x, 915 + rp.y, 0.5); V3.dist = 20; V3.el = 0.15; V3.az = 3.14; render3D(); const g0 = studio.grass; studio.grass = true;
         V3.hq = { tree: 1, terr: 1, grass: 300000, earth: true, rc: (() => { const c = V3.camera.clone(); c.clearViewOffset(); c.updateProjectionMatrix(); c.updateMatrixWorld(true); return c; })() }; try { build3DScene(); } finally { V3.hq = null; studio.grass = g0; }
         let inn = 0, out = 0; const M4 = new THREE.Matrix4(), ps = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
-        V3.root.traverse(o => { if (!o.isInstancedMesh || !o.userData.grass) return; for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, M4); M4.decompose(ps, q, sc); if (pointInPolygon(mmToWorld(ps.x * 1000), mmToWorld(-ps.y * 1000), Z)) inn++; else out++; } });
-        close3D(); shapes = keep; invalidateCache(); saveState(); return { none: inn === 0, around: out > 100 }; });
+        V3.root.traverse(o => { if (!o.isInstancedMesh || !o.userData.grass) return; for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, M4); M4.decompose(ps, q, sc); const wx = mmToWorld(ps.x * 1000), wy = mmToWorld(-ps.y * 1000); if (pointInPolygon(wx, wy, Z) && distToPoly(wx, wy, Z) > mmToWorld(5)) inn++; else out++;   /* 5 mm : la précision des matrices (flottants) au bord */ } });
+        close3D(); shapes = keep; invalidateCache(); saveState(); const r = { none: inn === 0, around: out > 100 }; if (inn) r.dbg = [inn, out]; return r; });
     t.eq('rendu : aucun brin d\'herbe sur une zone peinte, même sur un plan loin de l\'origine', nsr, { none: true, around: true });
 
     // rendu : terrain naturel affiné (bien plus de triangles) et sans fente entre triangles voisins

@@ -318,6 +318,19 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         shapes = shapes.filter(x => x !== ax); saveState(); r.gone = !shapes.some(x => x.rdOf) && shapes.filter(x => x.type === 'point').length === n0;
         t2PanelClose(); setMode('select-box'); selectedShapes = []; shapes = keep; invalidateCache(); saveState(); return r; });
     t.eq('route tracée : axe → chaussée plate au profil lissé, bords en lignes de rupture, enrobé ; suit son axe, largeur en Y ; supprimée, le terrain est rendu ; tracée sans terrain, faite dès qu\'il arrive', rdt, { wait: true, late: true, panel: true, edges: true, flat: true, smooth: true, pt: true, asphalt: true, follow: true, y: true, wide: true, gone: true });
+    // route en profils en travers : écartement tapé puis Espace avant le 1er clic ; chaque profil : Z de l'axe, largeurs gauche / droite, dévers ; clic sur un profil
+    const rdp = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264'), r = {}, key = (k) => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, code: k === ' ' ? 'Space' : 'Digit' + k, bubbles: true }));
+        for (let i = -2; i <= 8; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: TN, x: i * 10 * m, y: -j * 10 * m, z: 100000, zk: 1, code: 'TN' }); invalidateCache(); saveState();
+        startRoad(); rdOpt.w = 6; key('1'); key('2'); key(' '); r.step = rdOpt.step === 12;
+        currentPolygon = [{ x: 0, y: 0 }, { x: 60 * m, y: 0 }]; isDrawing = true; finishPline(); t2PanelClose(); setMode('select-box'); const ax = shapes.find(x => x.rdAx); const A = rdGeo(ax); r.prof = A.pr.map(p => p.s).join(',') === '0,12,24,36,48,60';
+        selectedShapes = [ax]; rdPick = null; openSelectionParamModal(); const set = (id, v) => { const e = document.getElementById(id); e.value = v; }; set('rd-pz-2', '101'); set('rd-pwl-2', '5'); set('rd-pdr-2', '-2,5'); spLiveApply(); spLiveCommit(); closeSelectionParamModal();
+        const E = shapes.filter(x => x.rdOf === ax.rdAx.id), L = E.find(x => x.points.some(q => q.y < -4 * m)), Rr = E.find(x => x !== L), pl = L.points.find(q => Math.abs(q.x - 24 * m) < 1), prr = Rr.points.find(q => Math.abs(q.x - 24 * m) < 1);
+        r.left = !!pl && Math.abs(pl.y + 5 * m) < 1 && Math.abs(pl.z - 101000) <= 1; r.right = !!prr && Math.abs(prr.y - 3 * m) < 1 && Math.abs(prr.z - (101000 - 75)) <= 1;
+        const pm = L.points.find(q => Math.abs(q.x - 16 * m) < 1); r.lerp = !!pm && Math.abs(pm.y + (3 + 2 / 3) * m) < 2 && pm.z > 100000 && pm.z < 101000;
+        r.pick = findShapeAt(36 * m, 2 * m) === ax && rdPick && rdPick.key === 'k3';
+        selectedShapes = [ax]; const g = allGrips().find(x => x.s === ax && x.kind !== 'g-move' && Math.abs(x.x - 60 * m) < 1 && Math.abs(x.y) < 1); r.grip = !!g; if (g) { startGrip(g); gripApply(60 * m, -20 * m); endGrip(false); } r.follow = shapes.filter(x => x.rdOf === ax.rdAx.id).some(x => x.points.some(q => q.y < -18 * m)) && !!(ax.rdAx.pr.k2 && ax.rdAx.pr.k2.wl === 5);
+        selectedShapes = []; shapes = keep; invalidateCache(); saveState(); return r; });
+    t.eq('route : écartement des profils tapé + Espace ; chaque profil réglable (Z axe, largeur gauche / droite, dévers), interpolé entre profils ; clic sur un profil ; l\'axe se modifie aux poignées', rdp, { step: true, prof: true, left: true, right: true, lerp: true, pick: true, grip: true, follow: true });
 
     // bassin à deux fonds (fosse dans une fosse) : la dalle de la grande plateforme n'est percée qu'une fois, pas de pan d'herbe par-dessus l'eau
     const ff = await ev(async () => { const keep = shapes; shapes = []; const m = mmToWorld(1000), TN = ensureLayer('Terrain naturel', '#bef264');
