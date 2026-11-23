@@ -62,7 +62,8 @@
             best.openings = (best.openings || []).concat([o]); try { o.pts = openingPts(best, o.a, o.b); } catch (e) {} }
         /* au chargement : une ouverture restée hors de sa paroi (paroi déplacée sous elle) est ramenée dedans */
         function wallOpRepair() { let n = 0; shapes.forEach(h => { if (h.type !== 'hatch' || !h.wallMat || !h.openings || !h.loops) return; h.openings.slice().forEach(o => { if (!o.a || !o.b) return; const m = { x: (o.a.x + o.b.x) / 2, y: (o.a.y + o.b.y) / 2 }, G = shapes.filter(x => x.type === 'hatch' && x.groupId === h.groupId && x.loops && x.loops[0]);
-            if (G.some(x => pointInPolygon(m.x, m.y, x.loops[0])) || distToPoly(m.x, m.y, h.loops[0]) < mmToWorld(5)) return; h.openings = h.openings.filter(x => x !== o); if (!h.openings.length) delete h.openings; wallOpHome(o, G); n++; }); }); return n; }
+            if (pointInPolygon(m.x, m.y, h.loops[0]) || distToPoly(m.x, m.y, h.loops[0]) < mmToWorld(5)) return;
+            { const G2 = G.find(x => x !== h && pointInPolygon(m.x, m.y, x.loops[0])); if (G2) { h.openings = h.openings.filter(x => x !== o); if (!h.openings.length) delete h.openings; G2.openings = (G2.openings || []).concat([o]); n++; return; } }   /* posée sur un autre tronçon de la même paroi : elle y est rattachée, sans bouger */ h.openings = h.openings.filter(x => x !== o); if (!h.openings.length) delete h.openings; wallOpHome(o, G); n++; }); }); return n; }
         /* poignée de paroi : début (état gardé pour tout refaire depuis lui), application, fin */
         function wallDragStart(g) { const info = wallPathsOf(g.gid); if (!info || !info.paths[g.pi || 0]) return null; try { loadPolyClip().catch(() => {}); } catch (e) {}
             const s0 = info.G[0], infos = new Map([[g.gid, info]]), pts = new Map();

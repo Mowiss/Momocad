@@ -289,4 +289,17 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         texPaint.kind = 'paint'; texPaint.tex = t1; texApply(W2()); r.whole = W2().tex === t1 && !W2().ftex && !W2().fte;
         texStop(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('paroi peinte face par face (deux parements, deux textures), gomme d\'une face, Maj + clic = toute la paroi', fface, { two: true, mats: true, clear: true, whole: true });
+    /* volume (dalle) peint face par face : le dessus, une tranche, chacun sa texture ; la face suit le volume déplacé ; Maj + clic = tout le volume */
+    const vface = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m });
+        const D = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [4, 0], [4, 3], [0, 3]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'box', H: 250 }, zk: 1, name: 'Dalle' }; shapes.push(D); saveState();
+        await open3D(); startPaint('paint'); const r = {}, Pm = (x, y) => ({ x: worldToMm(x) / 1000, y: -worldToMm(y) / 1000 }), mesh = () => { let me = null; V3.root.traverse(o => { if (!me && o.isMesh && o.userData.shape === D) me = o; }); return me; };
+        const shoot = (o, d) => { const me = mesh(); me.updateMatrixWorld(true); me.geometry.computeBoundingBox(); const bb = me.geometry.boundingBox, c = bb.getCenter(new THREE.Vector3()); const O = me.localToWorld(new THREE.Vector3(c.x + o[0], c.y + o[1], c.z + o[2])), T = me.localToWorld(new THREE.Vector3(c.x + o[0] + d[0], c.y + o[1] + d[1], c.z + o[2] + d[2])).sub(O).normalize(); return new THREE.Raycaster(O, T).intersectObject(me)[0]; };
+        const t1 = TEX_LIB[0].id, t2 = TEX_LIB[1].id; r.faceable = faceable(D);
+        texPaint.tex = t1; wallFacePaint(D, shoot([0, 0, 2], [0, 0, -1]), Pm); texPaint.tex = t2; wallFacePaint(D, shoot([5, 0, 0], [-1, 0, 0]), Pm);
+        r.top = (D.ftex || {}).top === t1; r.side = (D.fte || []).length === 1 && D.fte[0].t === t2 && wallEdgeTex(D).filter(t => t === t2).length === 1;
+        const me = mesh(); r.mats = Array.isArray(me.material) && me.material.length === 3;
+        translateShape(D, 10 * m, 0); r.moved = wallEdgeTex(D).filter(t => t === t2).length === 1;
+        texPaint.tex = t1; texApply(D); r.whole = D.tex === t1 && !D.ftex && !D.fte;
+        texStop(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('volume (dalle) peint face par face : dessus et tranche, chacun sa texture, suit un déplacement ; Maj + clic = tout le volume', vface, { faceable: true, top: true, side: true, mats: true, moved: true, whole: true });
 } };
