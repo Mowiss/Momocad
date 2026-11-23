@@ -202,7 +202,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         sectionPlace(D, { x: 25 * m, y: -70 * m }); await new Promise(r => setTimeout(r, 300));
         const mk = () => shapes.find(x => x.secOf && x.type === 'text' && x.lvKey && /Faîtage/.test(x.content)), m0 = mk(), key = m0.lvKey, x0 = m0.x, grpOwn = shapes.filter(x => x.groupId === m0.groupId).length >= 2 && m0.groupId !== shapes.find(x => x.secTitle).groupId;
         shapes.filter(x => x.groupId === m0.groupId).forEach(x => translateShape(x, 3 * m, 2 * m)); saveState(); await new Promise(r => setTimeout(r, 700));
-        const m1 = mk(), kept = !!m1 && Math.abs(m1.x - x0 - 3 * m) < 0.01 * m;
+        const m1 = mk(), kept = !!m1 && Math.abs(m1.x - x0 - 3 * m) < 0.01 * m && Math.abs(m1.y - m1.lvRef.y) < 0.01 * m;   /* glissée sur sa ligne de niveau : elle reste à son niveau */
         const T = shapes.find(x => x.secTitle); shapes.filter(x => x.groupId === T.groupId).forEach(x => translateShape(x, 10 * m, 0)); saveState(); await new Promise(r => setTimeout(r, 700));
         const m2 = mk(), follow = !!m2 && Math.abs(m2.x - x0 - 13 * m) < 0.01 * m;
         shapes = keepS; invalidateCache(); saveState(); return { wire: !!SC && SC.edges.length > 0, ridge, below, grpOwn, kept, follow }; });
