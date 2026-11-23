@@ -138,7 +138,7 @@
             return (ST_THUMB[k] = c.toDataURL('image/png')); }
         // ---- VOLET DE LA VUE 3D (Espace dans la vue 3D) : onglets Affichage, Ciel et paysage, Outils, Studio photo — remplace le bandeau
         let v3Tab = 'aff'; try { v3Tab = localStorage.getItem('momocad-v3tab') || 'aff'; } catch (e) {} if (!['aff', 'ciel', 'studio'].includes(v3Tab)) v3Tab = 'aff';
-        const V3_TABS = [['aff', '👁', 'Affichage'], ['ciel', '⛰', 'Décor'], ['studio', '📷', 'Studio']];
+        const V3_TABS = [['aff', '👁', 'Affichage'], ['outils', '🛠', 'Outils'], ['ciel', '⛰', 'Décor'], ['studio', '📷', 'Studio']];
         const v3PanelOpen = () => { const p = document.getElementById('t2-panel'); return !!(p && p.style.display !== 'none' && (p.dataset.kind === 'v3' || p.dataset.kind === 'studio')); };
         function v3Panel(tab) { if (!V3 || !is3DOpen()) return; if (tab) { v3Tab = V3_TABS.some(t => t[0] === tab) ? tab : 'aff'; try { localStorage.setItem('momocad-v3tab', tab); } catch (e) {} }
             if (v3Tab === 'studio') { studioPanel(); return; } v3PanelShow(v3Tab, v3TabHTML(v3Tab)); }
@@ -155,6 +155,8 @@
                     <div class="st-sec"><h4>Rendu</h4><div class="st-cks">${sw('v3-nat', 'Rendu naturel', 'Herbe, terre, grave ; sinon nivellement en couleurs (remblai bleu, déblai rouge)')}</div>
                     <div class="st-lab">Aberration (exagération du relief)</div>${vSeg(['1', '2', '5', '10', '20', '50'].map(v => [v, '×' + v]), ex, "v3Exag('$')")}</div>
                     <div class="st-sec"><h4>Coupe en perspective</h4><div class="mf-hint">La 3D tronquée au trait de coupe sélectionné (sinon le dernier), vue dans son sens.</div><div class="st-cks"><button type="button" class="vbtn${V3.cut ? ' pri' : ''}" onclick="v3CutToggle();v3PanelRefresh()">${V3.cut ? 'Retirer la coupe' : 'Couper'}</button>${V3.cut ? '<button type="button" class="vbtn" onclick="v3CutStyle();v3PanelRefresh()">Style plan / rendu</button>' : ''}</div></div>`; }
+            if (tab === 'outils') { const tb = (ic, l, js, t, on) => `<button type="button" class="v3v-card${on ? ' on' : ''}" onclick="${js}" title="${t}"><span style="font-size:20px">${ic}</span><b>${l}</b></button>`;
+                return `<div class="st-sec"><h4>Outils de la vue 3D</h4><div class="v3v-cards">${tb('📏', 'Mesurer', "v3PanelClose();setMode(mode === 'measure' ? 'select-box' : 'measure')", 'Mesurer en 3D : deux points accrochés sur les objets', mode === 'measure')}${tb('⚠', 'Collisions', 'v3PanelClose();d3Collisions()', 'Contrôle des collisions : les volumes qui se traversent, volume commun en rouge')}${tb('🖌', 'Peindre', "v3PanelClose();paintMode('trait')", 'Pinceau et textures dans la vue 3D')}</div></div>`; }
             if (tab === 'ciel') { const card = (k, n, ic, sub) => `<button type="button" class="v3v-card${v3HzKind === k ? ' on' : ''}" onclick="v3HzType('${k}');v3PanelRefresh()">${ic}<b>${n}</b>${sub ? '<small>' + sub + '</small>' : ''}</button>`;
                 const S0 = realSite(); return `<div class="st-sec"><h4>Relief réel alentour</h4><div class="st-cks"><label class="st-ck"><input type="checkbox" class="bm-switch" ${realOn() ? 'checked' : ''} ${S0 ? '' : 'disabled'} onchange="realSet(this.checked)"> Le vrai relief jusqu'à 25 km, en photo aérienne</label></div><div class="mf-hint" style="margin-top:6px">${!S0 ? 'Il faut un fond de carte : le projet doit être situé.' : REAL_LOAD ? 'Téléchargement…' : REAL ? 'Chargé (gardé sur ce poste) ; se fond dans la brume au loin.' : 'Téléchargé une fois (altitudes de l\'IGN, photo aérienne), puis gardé sur ce poste.'}</div></div>
                     <div class="st-sec"><h4>Ciel et lumière</h4><div class="st-cks">${sw('v3-hz', 'Ciel')}</div><div class="st-row"><span>Heure</span><div class="st-sl"><input type="range" min="0" max="24" step="0.25" value="${v3Hour}" oninput="v3SetHour(this.value);this.nextElementSibling.textContent=stHourTxt(this.value)"><b>${stHourTxt(v3Hour)}</b></div></div></div>
@@ -389,7 +391,7 @@
             mcLoad.say(mcLoad.funT ? mcLoad.txt : 'Construction de la scène 3D…'); await mcLoad.ready();
             V3.keepCenter = false; place3D(); build3DScene(); v3Sky(); fit3D(); render3D(); V3.keepCenter = true;
             if (realOn() && !REAL && realSite()) realLoad();
-            updateCommandMessageText('VUE 3D : Espace = volet de la vue 3D (affichage, ciel et paysage, studio photo) · glisser = tourner · clic droit = déplacer · molette = zoom · Échap = retour au plan.');
+            updateCommandMessageText('VUE 3D : Espace ou ☰ en haut à gauche = volet de la vue 3D (affichage, outils : mesurer, collisions, peindre ; décor, studio photo) · glisser = tourner · clic droit = déplacer · molette = zoom · Échap = retour au plan.');
             if (brushTool && brushTool.view !== '3d') { brushTool.view = '3d'; brushPanel(); brushMsg(); }
         }
         // Y dans la vue 3D : réglages de l'objet cliqué (altitudes, épaisseurs…) ; une menuiserie cliquée ouvre la fenêtre Ouverture

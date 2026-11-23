@@ -129,8 +129,11 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
 
     // volet de la vue 3D (Espace) : onglets, plus de bandeau ; onglet Décor (relief réel, panorama importé) ; balade : clic droit = pause et bulles d'affichage
     const vv = await ev(async () => { const r = {}; await open3D(); v3PanelClose(); document.activeElement && document.activeElement.blur && document.activeElement.blur();
-        window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); const P = document.getElementById('t2-panel'); r.open = v3PanelOpen() && P.querySelectorAll('.v3v-rail button').length === 3;
+        window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', cancelable: true })); const P = document.getElementById('t2-panel'); r.open = v3PanelOpen() && P.querySelectorAll('.v3v-rail button').length === 4;
         r.band = getComputedStyle(document.getElementById('v3-band')).display === 'none';
+        /* bouton visible du volet (le bandeau n'est plus là) ; onglet Outils : mesurer, collisions, peindre — le contrôle des collisions se lance d'ici */
+        { const mb = document.getElementById('v3-menu-btn'); r.menuBtn = !!mb && mb.getBoundingClientRect().width > 0; v3Panel('outils'); const cards = [...P.querySelectorAll('.v3v-card')].map(b => b.textContent.trim()); r.tools = ['Mesurer', 'Collisions', 'Peindre'].every(k => cards.some(c => c.includes(k)));
+            const cb = [...P.querySelectorAll('.v3v-card')].find(b => /Collisions/.test(b.textContent)); cb.click(); await new Promise(res => setTimeout(res, 300)); r.colPanel = /Collisions/.test(P.textContent); d3ColClear(); }
         v3Panel('aff'); const s0 = v3Chk('v3-surf'); v3SetChk('v3-surf', !s0); r.toggle = v3Chk('v3-surf') === !s0; v3SetChk('v3-surf', s0);
         v3Panel('ciel'); r.photos = /Relief réel/.test(P.textContent) && /Panorama importé/.test(P.textContent) && !/Paysages dessinés|Ciels photo/.test(P.textContent) && /Décor/.test(P.querySelector('.v3v-rail button.on').textContent);
         v3Panel('studio'); r.studio = stOn() && !!P.querySelector('.v3v-rail button.on') && /Studio/.test(P.querySelector('.v3v-rail button.on').textContent);
@@ -141,7 +144,7 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         const z0 = V3.fps.pos.clone(); V3.fps.keys.KeyW = true; fpsStep(0.5); V3.fps.keys.KeyW = false; r.still = V3.fps.pos.distanceTo(z0) < 1e-6;
         fpsResume(); r.resume = !V3.fps.paused && !document.getElementById('fps-bub'); r.noBadge = !document.querySelector('.v3-fk') || getComputedStyle(document.querySelector('.v3-fk')).display === 'none'; fpsStop(); return r; });
     t.eq('vue 3D : volet à onglets par Espace (affichage, ciel et paysage, outils, studio), plus de bandeau ; onglet Décor (relief réel, panorama importé) ; balade : clic droit = pause et bulles d\'affichage', vv,
-        { open: true, band: true, toggle: true, photos: true, studio: true, frameOff: true, closed: true, bubbles: true, bubToggle: true, still: true, resume: true, noBadge: true });
+        { open: true, band: true, menuBtn: true, tools: true, colPanel: true, toggle: true, photos: true, studio: true, frameOff: true, closed: true, bubbles: true, bubToggle: true, still: true, resume: true, noBadge: true });
 
     // ta photo de paysage : posée sur l'horizon, répétée en miroir, haut fondu dans le ciel, sol à sa couleur
     const hi = await ev(async () => { await open3D(); const c = document.createElement('canvas'); c.width = 800; c.height = 300; const x = c.getContext('2d'); x.fillStyle = '#3b82f6'; x.fillRect(0, 0, 800, 200); x.fillStyle = '#166534'; x.fillRect(0, 200, 800, 50); x.fillStyle = '#4ade80'; x.fillRect(0, 250, 800, 50);
