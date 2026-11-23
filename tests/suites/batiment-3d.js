@@ -414,7 +414,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         selectedShapes = [host]; V3.pickOp = { host, o }; v3ParamSel(); const op = document.getElementById('topo-modal').style.display !== 'none' && /Ouverture/.test(document.getElementById('topo-modal').textContent); closeTopoModal(); return r.concat([tagged > 0, op]); });
     t.eq('vue 3D : Y ouvre les réglages par-dessus la 3D ; menuiserie cliquée → fenêtre Ouverture', y3, [true, true, true, true]);
     // vue Momo : une porte s'ouvre (E ou clic) sur ses gonds, de 90°, du côté opposé à Momo, et se referme
-    const dr = await ev(async () => { let pv = null; V3.root.traverse(x => { if (x.userData.door && !pv) pv = x; }); if (!pv) return { leaf: false };
+    const dr = await ev(async () => { let pv = null; V3.root.traverse(x => { if (x.userData.door && !x.userData.door.slide && !pv) pv = x; }); if (!pv) return { leaf: false };
         const a0 = pv.userData.door.a0, leaf = pv.children[0], c = new THREE.Box3().setFromObject(leaf).getCenter(new THREE.Vector3()), nx = -Math.sin(a0), ny = Math.cos(a0);
         const rp = V3.root.position, wx = mmToWorld((c.x + nx * 1.5 - rp.x) * 1000), wy = -mmToWorld((c.y + ny * 1.5 - rp.y) * 1000); await momoFPS({ w: { x: wx, y: wy } });
         const F = V3.fps; F.pos.z = c.z; F.yaw = Math.atan2(c.x - F.pos.x, c.y - F.pos.y); F.pitch = 0; const ok = fpsDoor(); for (let i = 0; i < 12; i++) fpsStep(0.1); const turned = Math.abs(Math.abs(pv.rotation.z - a0) - Math.PI / 2) < 1e-3;
@@ -505,7 +505,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const bb = new THREE.Box3().setFromObject(big), c = bb.getCenter(new THREE.Vector3()), cx = -V3.root.position.x, cy = -V3.root.position.y;
         const q = { x: mmToWorld((c.x + cx) * 1000), y: -mmToWorld((c.y + cy) * 1000) }, z = Math.round(((bb.max.z) / (V3.exag || 1) + (V3.zmin || 0)) * 1000);
         const s = { type: 'poly', open: true, layerId: brushLayer(), points: [q, { x: q.x + mmToWorld(300), y: q.y }], width: 1, hatch: false, brush: { tex: 'galets', d: 300, h: 0.5, top: true, zs: [z, z] } }; shapes.push(s); v3BrushBuild(); let ovN = 0, n = 0; V3.root.traverse(x => { if (x.userData.brushOv === s) { n++; ovN += x.geometry.attributes.position.count; } });
-        shapes = shapes.filter(x => x !== s); v3BrushBuild(); close3D(); return { n: n > 0, smaller: ovN < big.geometry.attributes.position.count }; });
+        shapes = shapes.filter(x => x !== s); v3BrushBuild(); close3D(); return { n: n > 0, smaller: big.geometry.attributes.position.count > 600 ? ovN < big.geometry.attributes.position.count : ovN <= big.geometry.attributes.position.count }; });   /* une surface de quelques triangles est reprise entière */
     t.eq('pinceau : couche découpée autour du coup (moins de travail graphique)', bo, { n: true, smaller: true });
     // pinceau en polygone : on clique les sommets, la zone entière est peinte (surfaces du dessus) ; une polyligne fermée choisie se peint d'un coup ; la gomme l'efface
     const bpo = await ev(async () => { await open3D(); await new Promise(r => setTimeout(r, 500)); await startBrush(); brushSet('poly', true); const m = mmToWorld(1000);
@@ -761,6 +761,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
                 F.yaw = Math.atan2(pw.x - F.pos.x, pw.y - F.pos.y); fpsDoor(); for (let i = 0; i < 20; i++) fpsStep(0.1); const shut = Math.abs(tl.rotation.x) < 1e-3; V3.fps.back = { az: V3.az, el: V3.el, dist: V3.dist, t: V3.target.clone() }; fpsStop(); return up && rails && shut; };
             r.gOpen = await gTry(1) && await gTry(-1); r.gClose = Math.abs(tl.rotation.x) < 1e-3; }
         close3D(); draw();
+        /* fenêtre coulissante : deux vantaux décalés dans l'épaisseur ; vue Momo, E sur la fenêtre : le vantail visé glisse devant l'autre, E le ramène */
+        const host2 = wallAt({ x: 5.5 * m, y: -3 * m }) || host; openA = { x: 5 * m, y: -3 * m }; openWall = host2; openDir = { x: 1, y: 0 }; openLast.kind = 'fen'; openLast.top = 'droit'; openingFinish({ x: 6.2 * m, y: -3 * m });  const ow = host2.openings[host2.openings.length - 1]; [...document.querySelectorAll('#tm-actions button')].find(b => /Valider/.test(b.textContent)).click();
+        await open3D(); const sash = []; V3.root.traverse(x => { if (x.userData.door && x.userData.door.slide && x.children.some(c => c.userData.opening === ow)) sash.push(x); }); r.sashes = sash.length;
+        if (sash.length === 2) { V3.root.updateMatrixWorld(true); const bb = sash.map(x => new THREE.Box3().setFromObject(x)), c = bb[0].getCenter(new THREE.Vector3()), rp = V3.root.position, a = sash[0].rotation.z, nx = -Math.sin(a), ny = Math.cos(a);
+            await momoFPS({ w: { x: mmToWorld((c.x + nx * 1.5 - rp.x) * 1000), y: -mmToWorld((c.y + ny * 1.5 - rp.y) * 1000) } }); const F = V3.fps; F.pos.z = c.z; F.yaw = Math.atan2(c.x - F.pos.x, c.y - F.pos.y); F.pitch = 0;
+            const p0 = sash.map(x => x.position.clone()); const ok = fpsDoor(); for (let i = 0; i < 20; i++) fpsStep(0.1); const mv = sash.map((x, k) => x.position.distanceTo(p0[k]));
+            V3.root.updateMatrixWorld(true); const b1 = sash.map(x => new THREE.Box3().setFromObject(x)), ovl = Math.min(b1[0].max.x, b1[1].max.x) - Math.max(b1[0].min.x, b1[1].min.x) + Math.min(b1[0].max.y, b1[1].max.y) - Math.max(b1[0].min.y, b1[1].min.y);
+            r.wOpen = ok && mv.filter(d => d > 0.4).length === 1 && mv.filter(d => d < 1e-6).length === 1 && ovl > 0.4; fpsDoor(); for (let i = 0; i < 20; i++) fpsStep(0.1); r.wClose = sash.every((x, k) => x.position.distanceTo(p0[k]) < 1e-6);
+            V3.fps.back = { az: V3.az, el: V3.el, dist: V3.dist, t: V3.target.clone() }; fpsStop(); }
+        close3D(); draw();
         selectedShapes = []; bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     // paroi enregistrée sans hauteur (dessinée pendant que le contour était cassé) : remise à l'étage de son bâtiment à l'ouverture et au dessin, donc visible en 3D
     const wzr = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000);
@@ -774,7 +784,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const h2 = { type: 'hatch', layerId: activeLayerId, wallMat: 'beton', groupId: 'g-out', loops: [box(14, 1, 18, 1.2)] }; shapes.push(h2); saveState(); r.outside = !!h2.wz && h2.wz.b === 69000 && h2.wz.t === 72000;
         bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('paroi sans hauteur remise à la hauteur de son étage : visible en 3D (ouverture du fichier et dessin hors contour)', wzr, { load: true, toast: true, mesh: true, outside: true });
-    t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme, porte de garage (qui s\'ouvre en vue Momo)', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true, garage: true, garage3d: true, gOpen: true, gClose: true });
+    t.eq('parois complexes d\'un bloc avec montants ; types en double retirés ; baie libre, arche et chapeau de gendarme, porte de garage (qui s\'ouvre en vue Momo), fenêtre coulissante', cxo, { presets: true, alias: true, cx: true, studs: true, arche: true, gendarme: true, dialog: true, noJoinery: true, garage: true, garage3d: true, gOpen: true, gClose: true, sashes: 2, wOpen: true, wClose: true });
     // paroi complexe posée : Y modifie sa composition ; refaite sur le même tracé (même après déplacement et symétrie), ouvertures et hauteur gardées
     const cxy = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), P = (R) => JSON.stringify(R.P.map(q => [+(q.x / m).toFixed(3), +(-q.y / m).toFixed(3)]));
         startWallCx(WALL_CX[0]); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallAddTo(pt(6, 4).x, pt(6, 4).y); wallChainEnd(); setMode('select-box');
@@ -850,6 +860,22 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         bldAddRoof(); const L = lvlSorted(), Tl = L[L.length - 1]; r.roof = !!Tl.roofLv && Tl.z === 105600 && bldEgout(A) === 105600 + Tl.h; bldAdd(true); const L2 = lvlSorted(); r.roofTop = !!L2[L2.length - 1].roofLv && L2.length === 4;
         bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('trémie découpée dans la dalle du dessus, escalier cliquable dans son emprise sur ses deux étages, 3D avec tous les étages, étage de toiture (égout) toujours en haut', trem, { tremie: true, upper: true, lower: true, d3: true, roof: true, roofTop: true });
+    /* trémie nette loin de l'origine (coordonnées Lambert) et sur un axe en biais : un seul contour, sans trou ni lanière de dalle, sans sommets parasites */
+    const tremF = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; await loadPolyClip(); const m = mmToWorld(1000), an = 0.3, OX = 1946000, OY = 4155000;
+        const pt = (x, y) => ({ x: (OX + x * Math.cos(an) - y * Math.sin(an)) * m, y: -(OY + x * Math.sin(an) + y * Math.cos(an)) * m });
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState(); bldActivate(A, 'rdc'); lvlAdd(true); saveState();
+        const hi = lvlSorted()[1].id; bldPick(hi); selectedShapes = [A]; startSolidTool('dalle'); closeSelectionParamModal(); const D = shapes.find(x => x.solid && !x.bld);
+        bldPick('rdc'); startStair2(); currentPolygon = [pt(1, 1), pt(5, 1), pt(5, 5)]; isDrawing = true; finishPline(); t2PanelClose(); setMode('select-box');
+        const T = slabTremies(D), r = { n: T.length, rings: T.map(p => p.length), pts: T[0] ? T[0][0].length <= 7 : false };
+        bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('trémie nette loin de l\'origine et en biais : un contour, sans trou, sans sommets parasites', tremF, { n: 1, rings: [1], pts: true });
+    /* collisions : le volume commun en rouge se masque et se réaffiche sans perdre la liste */
+    const colT = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 100000 }));
+        shapes.push({ type: 'poly', layerId: 'layer-0', points: R(0, 0, 4, 4), solid: { kind: 'box', H: 2000 }, zk: 1 }, { type: 'poly', layerId: 'layer-0', points: R(2, 2, 6, 6), solid: { kind: 'box', H: 2000 }, zk: 1 }); saveState();
+        await open3D(); await d3Collisions(); const r = { n: d3Col.length }, btn = () => [...document.querySelectorAll('#t2-panel button')].find(b => /les zones/.test(b.textContent));
+        const b = btn(); r.btn = !!b && b.textContent === 'Masquer les zones'; if (b) b.click(); r.hidden = V3.col.visible === false && btn().textContent === 'Afficher les zones' && d3Col.length === 1; if (btn()) btn().click(); r.shown = V3.col.visible === true;
+        d3ColClear(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('collisions : bouton pour masquer / réafficher les zones en conflit', colT, { n: 1, btn: true, hidden: true, shown: true });
     // Recouper : trait + côté gardé ; plan et 3D coupés ; suit un déplacement ; se retire ; porte de garage (ouverture sectionnelle)
     const rcp1 = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
         const D = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'pyr', H: 3000, k: 0.3 }, zk: 1, name: 'Toit' }; shapes.push(D); saveState();

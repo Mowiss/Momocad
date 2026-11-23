@@ -50,13 +50,24 @@
                 const G = st2Geo(s); if (!G) continue; if (G.Q.some(q => q && pointInPolygon(wx, wy, [q.A0, q.A1, q.B1, q.B0])) || G.treads.some(t => pointInPolygon(wx, wy, t.poly))) return s; } return null; }
         /* TRÉMIE : là où l'échappée sous la dalle du dessus ferait moins de 2 m, la dalle est ouverte ; anneaux [x, y] en coordonnées du plan, déjà réunis */
         const ST2_ECH = 2000;
-        function st2Tremie(s, soffit) { const G = st2Geo(s); if (!G || !window.polygonClipping) return []; const lim = soffit - ST2_ECH, R = (P) => [P.map(q => [q.x, q.y])];
-            const parts = G.treads.filter(t => t.z > lim).map(t => R(t.poly)).concat(G.lands.filter(L => !L.top && L.z > lim).flatMap(L => L.polys.map(R))); if (!parts.length) return [];
-            try { return polygonClipping.union(...parts); } catch (e) { return parts; } }
+        /* contour net : calcul près de l'origine (coordonnées Lambert : la précision du découpage se perd loin de 0), marches et paliers élargis d'1 mm pour qu'ils se
+           soudent sans fente, ni trou ni lanière de dalle à l'intérieur (le jour d'un escalier tournant est ouvert aussi), sommets alignés à 2 mm près retirés */
+        function st2Tremie(s, soffit) { const G = st2Geo(s); if (!G || !window.polygonClipping) return []; const lim = soffit - ST2_ECH;
+            const polys = G.treads.filter(t => t.z > lim).map(t => t.poly).concat(G.lands.filter(L => !L.top && L.z > lim).flatMap(L => L.polys)); if (!polys.length) return [];
+            const O = polys[0][0], e1 = mmToWorld(1), tol = mmToWorld(2), area = (P) => P.reduce((a, q, i) => { const r = P[(i + 1) % P.length]; return a + q.x * r.y - r.x * q.y; }, 0) / 2;
+            const parts = polys.map(P => { const Q = P.map(q => ({ x: q.x - O.x, y: q.y - O.y })).filter((q, i, A) => Math.hypot(q.x - A[(i + 1) % A.length].x, q.y - A[(i + 1) % A.length].y) > e1 / 10);
+                return Q.length >= 3 && Math.abs(area(Q)) > e1 * e1 ? [ringOffset(Q, e1).map(q => [q.x, q.y])] : null; }).filter(Boolean); if (!parts.length) return [];
+            let U; try { U = polygonClipping.union(...parts); } catch (e) { U = parts; }
+            const clean = (R) => { let P = R.slice(0, R.length > 3 && R[0][0] === R[R.length - 1][0] && R[0][1] === R[R.length - 1][1] ? -1 : R.length).map(([x, y]) => ({ x, y }));
+                for (let it = 0, nIt = 4 * P.length; it < nIt && P.length > 3; it++) { const n = P.length; let k = -1;
+                    for (let i = 0; i < n; i++) { const a = P[(i - 1 + n) % n], q = P[i], b = P[(i + 1) % n]; if (Math.hypot(q.x - a.x, q.y - a.y) < tol || t2SegDist(q, a, b) < tol) { k = i; break; } }
+                    if (k < 0) break; P.splice(k, 1); } return P.map(q => [q.x + O.x, q.y + O.y]); };
+            return U.map(pl => [clean(pl[0])]).filter(pl => pl[0].length >= 3); }
         /* trémies qui percent une dalle : escaliers dont l'arrivée est au dessus de cette dalle (à 40 cm près), découpées sur son contour */
         function slabTremies(so) { if (!so || !so.solid || so.solid.kind !== 'box' || so.type !== 'poly' || so.stair2 || !window.polygonClipping) return []; const zb = so.points[0].z; if (!hasZ(zb)) return []; const zt = zb + (so.solid.H || 0);
-            const ring = [so.points.map(q => [q.x, q.y])], out = []; shapes.forEach(s => { if (!s.stair2 || (so.bid && s.bid && so.bid !== s.bid)) return; const Z = st2Z(s); if (!(Math.abs(zt - Z.z1) < 400 && zb < Z.z1)) return;
-                const T = st2Tremie(s, zb); if (!T.length) return; try { out.push(...polygonClipping.intersection(ring, T)); } catch (e) {} }); return out; }
+            const O = so.points[0], L = (R) => R.map(([x, y]) => [x - O.x, y - O.y]), W = (R) => R.map(([x, y]) => [x + O.x, y + O.y]), ring = [L(so.points.map(q => [q.x, q.y]))], out = [];
+            shapes.forEach(s => { if (!s.stair2 || (so.bid && s.bid && so.bid !== s.bid)) return; const Z = st2Z(s); if (!(Math.abs(zt - Z.z1) < 400 && zb < Z.z1)) return;
+                const T = st2Tremie(s, zb); if (!T.length) return; try { polygonClipping.intersection(ring, T.map(pl => pl.map(L))).forEach(pl => out.push([W(pl[0])])); } catch (e) {} }); return out; }
         function st2Make(P) { const L = st2LevelsAt(P[0]); if (L.err) { updateCommandMessageText('ESCALIER D\'ÉTAGE : ' + L.err + '.'); return null; }
             const s = { type: 'poly', open: true, layerId: ensureLayer('Escaliers', '#d6c7a1'), points: P.map(q => ({ x: q.x, y: q.y })), hatch: false, zk: 1, name: 'Escalier', lvs: 1, lvl: L.lo.id,
                 stair2: Object.assign(JSON.parse(JSON.stringify(st2Opt)), { lo: L.lo.id, hi: L.hi.id, z0: L.lo.z, z1: L.hi.z }) };

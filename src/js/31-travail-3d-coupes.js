@@ -518,12 +518,12 @@
                 <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">${out.map((c, k) => `<button type="button" onclick="d3ColPick(${k})" style="text-align:left;background:#3f1d1d;border:1px solid #7f1d1d;border-radius:6px;padding:6px 8px;color:#fee2e2;cursor:pointer"><b>${k + 1}.</b> ${iaEsc(d3ObjName(c.a))} × ${iaEsc(d3ObjName(c.b))}<br><span style="color:#fca5a5">${nfr(c.v, c.v < 0.01 ? 4 : 3)} m³ en commun</span></button>`).join('')}</div>`
                 : `<div style="color:#86efac">✓ Aucune collision entre les ${vis.length} volumes visibles.</div>`;
             t2Panel('⚠ Collisions', html + (skipped ? `<div class="ps-sub" style="margin-top:6px">${skipped} paire(s) trop lourde(s) pour le contrôle (maillages très fins) : non vérifiée(s).</div>` : '') + `<div class="ps-sub" style="margin-top:6px">Les volumes qui se touchent juste ne comptent pas. Un ouvrage et ses propres pièces (mur et ouvertures) ne sont pas comparés entre eux.</div>`,
-                [['Recontrôler', 'd3Collisions()', false], ['Fermer', 'd3ColClear()', true]], 'd3ColClear()');
+                [['Recontrôler', 'd3Collisions()', false]].concat(out.length ? [['Masquer les zones', 'd3ColToggle(this)', false]] : [], [['Fermer', 'd3ColClear()', true]]), 'd3ColClear()');
             updateCommandMessageText(out.length ? 'COLLISIONS : ' + out.length + ' conflit(s) trouvé(s) (' + tested + ' paire(s) contrôlée(s)).' : 'COLLISIONS : aucun conflit (' + tested + ' paire(s) proches contrôlée(s)).');
         }
         function d3ColDraw() {
             if (!V3 || !window.THREE) return;
-            if (!V3.col) { V3.col = new THREE.Group(); V3.scene.add(V3.col); } V3.col.clear(); V3.col.position.copy(V3.root ? V3.root.position : new THREE.Vector3());
+            if (!V3.col) { V3.col = new THREE.Group(); V3.scene.add(V3.col); } V3.col.clear(); V3.col.visible = true; V3.col.position.copy(V3.root ? V3.root.position : new THREE.Vector3());
             const ex = V3.exag || 1, zm = V3.zmin || 0;
             d3Col.forEach(c => { const t = c.t, pos = new Float32Array(t.length); for (let i = 0; i < t.length; i += 3) { pos[i] = t[i] / 1000; pos[i + 1] = t[i + 1] / 1000; pos[i + 2] = (t[i + 2] / 1000 - zm) * ex; }
                 const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.computeVertexNormals();
@@ -532,6 +532,9 @@
             render3D();
         }
         function d3ColPick(k) { const c = d3Col[k]; if (!c) return; selectedShapes = [c.a, c.b]; if (is3DOpen()) { build3DScene(); render3D(); } else draw(); updatePropertiesPopup(); updateCommandMessageText('COLLISION ' + (k + 1) + ' : ' + d3ObjName(c.a) + ' × ' + d3ObjName(c.b) + ' — ' + nfr(c.v, 4) + ' m³ en commun. Déplace l\'un des deux, ou Y pour le régler.'); }
+        /* masquer / réafficher les volumes rouges des collisions, sans perdre la liste (pour voir l'ouvrage dessous) */
+        function d3ColToggle(b) { if (!V3 || !V3.col) return; V3.col.visible = !V3.col.visible; if (b) b.textContent = V3.col.visible ? 'Masquer les zones' : 'Afficher les zones'; render3D();
+            updateCommandMessageText(V3.col.visible ? 'COLLISIONS : zones en conflit affichées en rouge.' : 'COLLISIONS : zones en conflit masquées (la liste reste là ; « Afficher les zones » pour les revoir).'); }
         function d3ColClear() { d3Col = []; if (V3 && V3.col) { V3.col.clear(); render3D(); } t2PanelClose(); }
         function d3Finish(close) {
             if (mode !== 'pline') return; const L = D3.pts; if (L.length >= 2) { const sh = { type: 'poly', layerId: activeLayerId, points: L.map(q => { const w = d3ToPlan(q); return { x: w.x, y: w.y, z: w.z }; }) }; if (!close) sh.open = true; shapes.push(sh); saveState(); build3DScene(); updateCommandMessageText('POLYLIGNE 3D ' + (close ? 'fermée' : '') + ' : ' + L.length + ' points. Cliquez pour en commencer une autre, ou Échap.'); }
