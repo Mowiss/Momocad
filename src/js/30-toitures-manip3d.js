@@ -33,7 +33,7 @@
                         <path d="M160 110l-5-8h10z" fill="#f59e0b"/><path d="M160 110V140" stroke="#f59e0b" stroke-dasharray="2 2"/></svg>
                         ${ri('rf-ah', f2(T0.ah), 48, 2, 30, 'Hauteur de l\'acrotère au-dessus de la dalle (m) ; 0 = pas d\'acrotère')}${rl('acrotère', 24, 4)}
                         ${ri('rf-at', f2(T0.at), 44, 26, 13, 'Épaisseur de l\'acrotère (m)')}
-                        ${ri('rf-tc', f2(T0.tc), 48, 3, 72, 'Casquette : la dalle dépasse des murs (et de l\'acrotère) de cette distance (m) ; 0 = pas de casquette')}${rl('casquette', 4, 84)}
+                        ${ri('rf-tc', f2(T0.tc), 48, 3, 72, 'Casquette : la dalle dépasse des murs (et de l\'acrotère) de cette distance (m) ; 0 = pas de casquette ; côté par côté dans l\'onglet Débords')}${rl('casquette', 4, 84)}
                         ${ri('rf-te', f2(T0.te), 48, 83, 66, 'Épaisseur de la dalle (m)')}${rl('dalle', 86, 77)}
                         ${ri('rf-ht', f2(T0.ht), 56, 38, 70, 'Altitude du dessus de la dalle (m), posée sur le haut des murs')}${rl('altitude dessus de dalle', 30, 81)}
                         ${ri('rf-fp', f2(T0.fp), 44, 52, 26, 'Pente de la forme de pente (%) : seule cette couche est inclinée, la dalle reste plane ; 0 = pas de forme')}${rl('pente %', 48, 17)}
@@ -47,7 +47,7 @@
                         ${ri('rf-he', f2(he), 56, 1, 54, 'Altitude de l\'égout : le bas du toit, posé sur le haut des murs (m)')}${rl('égout', 2, 45)}
                         ${ri('rf-hf', f2(hf), 56, 80, 6, 'Altitude du faîtage : le point le plus haut du toit (m)')}${rl('faîtage', 82, 0)}
                         <input id="rf-e" type="text" readonly value="${f2(R0.e)}" title="Épaisseur du toit : somme des couches. Cliquez pour ouvrir l'onglet Épaisseur et régler chaque couche." onclick="window.tmTab='rf-pcx';tmTabify()" class="tal-in" style="left:18%;top:20%;width:46px;cursor:pointer;border-color:#f59e0b">${rl('épaisseur', 17, 11)}
-                        ${ri('rf-db', f2(R0.db || 0), 46, 4, 78, 'Débord : le toit dépasse du contour des murs de cette distance, tout autour (m)')}${rl('débord', 5, 89)}</div>`, true)}
+                        ${ri('rf-db', f2(R0.db || 0), 46, 4, 78, 'Débord : le toit dépasse du contour des murs de cette distance, tout autour (m) ; côté par côté dans l\'onglet Débords')}${rl('débord', 5, 89)}</div>`, true)}
                     ${spChapter('rf-pcx', '≣', 'Épaisseur — complexe de toiture', rfCxHtml('p', R0.cxP || RF_CX_DEF.p), false)}
                     ${spChapter('rf-popt', '⚙', 'Faîtage et pignons', `
                 <div id="rf-o2" style="display:${pans === 2 ? 'flex' : 'none'};flex-direction:column;gap:6px">${row('Faîtage parallèle', `<select id="rf-dir" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:5px 6px"><option value="long" ${R0.dir !== 'short' ? 'selected' : ''}>au grand côté</option><option value="short" ${R0.dir === 'short' ? 'selected' : ''}>au petit côté</option></select>`, 'les égouts sont sur les deux côtés parallèles au faîtage')}</div>
@@ -56,8 +56,10 @@
                 <div id="rf-o1" style="display:${pans === 1 ? 'flex' : 'none'};flex-direction:column;gap:6px">${row('Égout (côté bas)', `<select id="rf-eg" style="background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:5px 6px">${P.map((q, i) => `<option value="${i}" ${i === (edit && edit.o && edit.o.eg >= 0 && edit.o.eg < n ? edit.o.eg : longest) ? 'selected' : ''}>côté ${i + 1}-${(i + 1) % n + 1} (${f2(L(i))} m)</option>`).join('')}</select>`, 'le pan monte depuis ce côté')}</div>
                 <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;border-top:1px solid #374151;padding-top:8px"><input type="checkbox" id="rf-fill" ${R0.fill ? 'checked' : ''} style="margin-top:3px"><span>Combler les pignons<br><span style="color:#9ca3af;font-size:12px">les vides en V (ou en biseau) entre le haut des murs et le dessous du toit sont remplis par des murs pignons</span></span></label>
                 ${row('Épaisseur des pignons', inp('rf-ge', f2(R0.ge)) + ' m', 'comptée vers l\'intérieur du contour')}`, false)}
-            </div></div>`, [['Annuler', () => { closeTopoModal(); setMode('select-box'); draw(); }, false], [edit ? 'Mettre à jour le toit' : 'Créer le toit', () => roofBuildFromDialog(base, fresh, edit), true]]);
-            setTimeout(() => { rfDia(pans); rfCxDraw('p'); rfCxDraw('t'); tmTabify(); const ht = document.getElementById('rf-ht'), hr = document.getElementById('rf-thr'); if (ht && hr) ht.addEventListener('input', () => { const v = parseFloat(ht.value.replace(',', '.')); if (isFinite(v)) hr.value = nfr(v - z0 / 1000, 2).replace(/\s/g, ''); }); }, 0);
+            </div>
+                ${spChapter('rf-deb', '⬚', 'Débords', '<div id="rf-deb"></div>', false)}</div>`, [['Annuler', () => { closeTopoModal(); setMode('select-box'); draw(); }, false], [edit ? 'Mettre à jour le toit' : 'Créer le toit', () => roofBuildFromDialog(base, fresh, edit), true]]);
+            rfDebInit(P, R0, T0);
+            setTimeout(() => { rfDia(pans); rfCxDraw('p'); rfCxDraw('t'); rfDebDraw(); [['rf-db', 'p'], ['rf-tc', 't']].forEach(([id, k]) => { const e = document.getElementById(id); if (e) e.addEventListener('change', () => rfDebAll(e.value, k)); }); { const tb = document.getElementById('tm-body'); if (tb) tb.addEventListener('change', (ev) => { if (/^rf-(dir|eg|gb-)/.test(ev.target.id || '')) rfDebDraw(); }); } tmTabify(); const ht = document.getElementById('rf-ht'), hr = document.getElementById('rf-thr'); if (ht && hr) ht.addEventListener('input', () => { const v = parseFloat(ht.value.replace(',', '.')); if (isFinite(v)) hr.value = nfr(v - z0 / 1000, 2).replace(/\s/g, ''); }); }, 0);
         }
         // ---- complexe de toiture : couches du haut vers le bas ; l'épaisseur du toit en découle ----
         const RF_CX_TYPES = { couverture: ['Couverture', '#b5553a'], liteaux: ['Liteaux', '#c08a52', 1], contrelatte: ['Contre-liteaux', '#c9955e', 1], ecran: ['Écran sous-toiture', '#60a5fa'], chevrons: ['Chevrons', '#a16207', 1], solivage: ['Solivage', '#92400e', 1], chevetre: ['Chevêtre', '#7c2d12', 1], isolation: ['Isolation', '#facc15'], parevapeur: ['Pare-vapeur', '#38bdf8'], plaque: ['Plaque de plâtre', '#e5e7eb'], protection: ['Protection (gravillons…)', '#a8a29e'], etancheite: ['Étanchéité', '#1f2937'], isolant: ['Isolant de toiture terrasse', '#fde047'], dalle: ['Dalle béton', '#9ca3af'], autre: ['Autre', '#6b7280'] };
@@ -96,7 +98,7 @@
             D.forEach(d => { d.open = true; d.classList.toggle('sp-off', key(d) !== cur); });
         }
         function rfSw(v) { const d = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? 'flex' : 'none'; }; d('rf-o0', v === 0); d('rf-pitch', v !== 0); d('rf-o1', v === 1); d('rf-o2', v === 2); d('rf-o4', v === 4);
-            document.querySelectorAll('.rf-card').forEach(c => c.classList.toggle('on', !!(c.querySelector('input') || {}).checked)); rfDia(v); tmTabify(); }
+            document.querySelectorAll('.rf-card').forEach(c => c.classList.toggle('on', !!(c.querySelector('input') || {}).checked)); rfDia(v); rfDebDraw(); tmTabify(); }
         // coupe schématique du toit à pans : murs, pente, égout, faîtage, épaisseur et débord cotés
         function rfDia(v) { const sv = document.getElementById('rf-svg'); if (!sv || !v) return; const D = '#f59e0b', g = 196, wT = 118, wl = 78, wr = 282, ex = 26;
             let t = `<defs><pattern id="rfph" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 7L7 0" stroke="#52525b" stroke-width="1"/></pattern></defs><path d="M10 ${g}H350" stroke="#a1a1aa" stroke-width="1.4"/>
@@ -110,6 +112,30 @@
             t += A(346, 40, 346, g) + tk(346, 40) + tk(346, g) + A(v === 2 || v === 4 ? 180 : 300, 40, 346, 40);
             t += A(ex, 176, wl, 176) + tk(ex, 176) + tk(wl, 176) + A(ex, wT + 20, ex, 180);
             sv.innerHTML = t; }
+        // ---- onglet Débords : le toit vu de dessus sur le tracé des murs, un débord par côté (toit à pans : avancée de la couverture ; toit terrasse : casquette) ----
+        let rfDeb = { P: [], p: [], t: [] };
+        function rfDebInit(P, R0, T0) { const n = P.length; rfDeb = { P: P.map(q => ({ x: q.x, y: q.y })), p: rfEdges(R0, 'db', n), t: rfEdges(Object.assign({}, R0, { tc: T0.tc }), 'tc', n) }; }
+        function rfDebMode() { return (+((document.querySelector('input[name=rf-p]:checked') || {}).value || 1)) === 0 ? 't' : 'p'; }
+        function rfDebSet(i, v) { const k = rfDebMode(), x = t2Num(v); if (isFinite(x)) rfDeb[k][i] = Math.max(0, x); rfDebDraw(); }
+        function rfDebAll(v, k) { k = k || rfDebMode(); const x = t2Num(v); if (!isFinite(x)) return; rfDeb[k] = rfDeb[k].map(() => Math.max(0, x)); rfDebDraw(); }
+        function rfDebDraw() { const box = document.getElementById('rf-deb'); if (!box) return; const k = rfDebMode(), P = rfDeb.P, n = P.length, D = rfDeb[k]; if (n < 3) return;
+            const P2 = ringOffset(P, D.map(v => mmToWorld(v * 1000))), all = P.concat(P2), x0 = Math.min(...all.map(q => q.x)), x1 = Math.max(...all.map(q => q.x)), y0 = Math.min(...all.map(q => q.y)), y1 = Math.max(...all.map(q => q.y));
+            const W = 360, H = 250, M = 46, sc = Math.min((W - 2 * M) / ((x1 - x0) || 1), (H - 2 * M) / ((y1 - y0) || 1)), ox = (W - (x1 - x0) * sc) / 2, oy = (H - (y1 - y0) * sc) / 2, T = (q) => [ox + (q.x - x0) * sc, oy + (q.y - y0) * sc], pts = (Q) => Q.map(q => T(q).map(v => v.toFixed(1)).join(',')).join(' ');
+            const ar = P.reduce((a, q, i) => { const r = P[(i + 1) % n]; return a + q.x * r.y - r.x * q.y; }, 0), sgn = ar > 0 ? -1 : 1, uni = D.every(v => Math.abs(v - D[0]) < 1e-9), f2 = (v) => nfr(v, 2).replace(/\s/g, '');
+            let svg = `<defs><pattern id="rfdbh" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6L6 0" stroke="#6b7280" stroke-width="1"/></pattern></defs><polygon points="${pts(P2)}" fill="${k === 't' ? '#9ca3af' : '#b5553a'}" fill-opacity=".35" stroke="#f97316" stroke-width="1.6" stroke-dasharray="5 3"/><polygon points="${pts(P)}" fill="url(#rfdbh)" stroke="#e5e7eb" stroke-width="3" stroke-linejoin="round"/>`, ins = '';
+            if (k === 'p') { const pv = +((document.querySelector('input[name=rf-p]:checked') || {}).value || 1), sv = (id) => (document.getElementById(id) || {}).value;   /* les pans tels qu'ils seront construits : faîtage, arêtiers, noues */
+                try { const R = buildRoof({ type: 'poly', layerId: 'layer-0', points: P.map(q => ({ x: q.x, y: q.y, z: 0 })) }, { pans: pv, he: 0, hf: 1, e: 0.2, ge: 0.2, fill: false, quiet: true, dir: sv('rf-dir') || 'long', eg: +(sv('rf-eg') || 0), gab: pv === 4 ? P.map((q, i) => sv('rf-gb-' + i) === '1') : undefined, db: 0, dbE: D.slice() });
+                    (R || []).forEach(pn => { if (pn.solid && pn.solid.kind === 'roof') { const e = pn.solid.eg, Q = pn.points, a = Q[e], b = Q[(e + 1) % Q.length]; svg += `<polygon points="${pts(Q)}" fill="none" stroke="#fdba74" stroke-width="1" stroke-linejoin="round"/><line x1="${T(a)[0].toFixed(1)}" y1="${T(a)[1].toFixed(1)}" x2="${T(b)[0].toFixed(1)}" y2="${T(b)[1].toFixed(1)}" stroke="#f97316" stroke-width="2.4"/>`; } }); } catch (e) {} }
+            P.forEach((a, i) => { const b = P[(i + 1) % n], L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L * sgn, ny = (b.x - a.x) / L * sgn, A = T(a), B = T(b), mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, dpx = mmToWorld(D[i] * 1000) * sc;
+                svg += `<text x="${(mx - nx * 12).toFixed(1)}" y="${(my - ny * 12 + 3).toFixed(1)}" fill="#9ca3af" font-size="10" font-family="Arial" text-anchor="middle">${i + 1}</text>`;
+                const lx = mx + nx * (dpx + 22), ly = my + ny * (dpx + 16); ins += `<input id="rf-de-${i}" type="text" inputmode="decimal" value="${f2(D[i])}" title="Débord du côté ${i + 1}-${(i + 1) % n + 1} (${nfr(L * mOf(1), 2)} m de mur), en m" onchange="rfDebSet(${i},this.value)" class="tal-in" style="left:${(lx / W * 100).toFixed(2)}%;top:${(ly / H * 100).toFixed(2)}%;width:46px;transform:translate(-50%,-50%);">`; });
+            box.innerHTML = `<div class="tal-dia"><svg viewBox="0 0 ${W} ${H}" width="100%">${svg}</svg>${ins}</div>
+                <div class="mf-hint" style="margin:6px 0">${k === 't' ? 'La casquette de la dalle, côté par côté.' : 'Chaque pan garde sa pente : l\'égout descend d\'autant.'} Hachures : les murs ; tirets : le bord du toit.</div>
+                <label style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>Tous les côtés</span><span style="white-space:nowrap"><input id="rf-de-all" type="text" inputmode="decimal" value="${uni ? f2(D[0]) : ''}" placeholder="variable" onchange="rfDebAll(this.value)" class="mf-in" style="width:4.5rem"> m</span></label>`;
+            const g = document.getElementById(k === 't' ? 'rf-tc' : 'rf-db'); if (g && document.activeElement !== g) { g.value = uni ? f2(D[0]) : ''; g.placeholder = uni ? '' : 'variable'; } }
+        // débords à la validation : ceux de l'onglet ; une valeur tapée dans le champ général (Dimensions) vaut pour tous les côtés
+        function rfDebRead(k, id, n) { let D = rfDeb[k].length === n ? rfDeb[k].slice() : Array(n).fill(0); const f = document.getElementById(id), g = f ? t2Num(f.value) : NaN;
+            if (f && String(f.value).trim() !== '' && isFinite(g) && D.some(v => Math.abs(v - Math.max(0, g)) > 1e-9)) D = D.map(() => Math.max(0, g)); return D; }
         function roofEdit(gid) {
             const rp = shapes.find(x => x.groupId === gid && x.roofDef); if (!rp) return;
             const d = rp.roofDef, base = { type: 'poly', layerId: rp.layerId, color: rp.color, dash: rp.dash, width: rp.width, points: d.base.map(q => ({ x: q.x, y: q.y, z: q.z })) };
@@ -127,15 +153,17 @@
             const nv = (id) => t2Num((document.getElementById(id) || {}).value), sv = (id) => (document.getElementById(id) || {}).value || '';
             const pansV = +((document.querySelector('input[name=rf-p]:checked') || {}).value || 1);
             if (pansV === 0) { const z0t = hasZ(base.points[0].z) ? base.points[0].z : 0;
-                const o = { pans: 0, he: nv('rf-ht'), te: nv('rf-te'), tc: Math.max(0, nv('rf-tc') || 0), ah: Math.max(0, nv('rf-ah') || 0), at: nv('rf-at'), fp: Math.max(0, nv('rf-fp') || 0), fe: nv('rf-fe'), tg: +sv('rf-tg') || 0, ttex: edit ? edit.o.ttex || '' : '', texu: edit ? edit.o.texu || '' : '', cxT: JSON.parse(JSON.stringify(rfCx.t || [])), ct: rfCxSum('t') };   // textures : seulement à la main (outil Peindre), gardées à la modification
+                const tE = rfDebRead('t', 'rf-tc', base.points.length), tU = tE.every(v => Math.abs(v - tE[0]) < 1e-9);
+                const o = { pans: 0, he: nv('rf-ht'), te: nv('rf-te'), tc: tU ? tE[0] : Math.max(...tE), tcE: tU ? undefined : tE, ah: Math.max(0, nv('rf-ah') || 0), at: nv('rf-at'), fp: Math.max(0, nv('rf-fp') || 0), fe: nv('rf-fe'), tg: +sv('rf-tg') || 0, ttex: edit ? edit.o.ttex || '' : '', texu: edit ? edit.o.texu || '' : '', cxT: JSON.parse(JSON.stringify(rfCx.t || [])), ct: rfCxSum('t') };   // textures : seulement à la main (outil Peindre), gardées à la modification
                 if (!isFinite(o.he)) { alert('Donnez l\'altitude du dessus de la dalle.'); return; } if (!(o.te > 0)) o.te = 0.25; if (!(o.at > 0)) o.at = 0.2; if (!(o.fe >= 0)) o.fe = 0.05;
                 roofLast = Object.assign(roofLast, { pans: 0, trel: o.he - z0t / 1000, te: o.te, tc: o.tc, ah: o.ah, at: o.at, fp: o.fp, fe: o.fe, tg: o.tg, cxT: o.cxT }); try { localStorage.setItem('momocad-roof', JSON.stringify(roofLast)); } catch (e) {}
                 closeTopoModal(); const out = buildTerrace(base, o); if (!out) return;
                 if (edit) shapes = shapes.filter(x => x.groupId !== edit.gid);
                 shapes = shapes.filter(x => x !== base).concat(out); saveState(); setMode('select-box'); selectedShapes = out; draw(); if (is3DOpen()) { build3DScene(); render3D(); }
-                updateCommandMessageText('TOIT TERRASSE : dalle de ' + nfr(o.te, 2) + ' m, dessus à ' + nfr(o.he, 2) + ' m' + (o.tc ? ', casquette ' + nfr(o.tc, 2) + ' m' : '') + (o.ah ? ', acrotère ' + nfr(o.ah, 2) + ' m' : '') + (o.fp ? ', forme de pente ' + nfr(o.fp, 1) + ' %' : '') + '. Il forme un bloc : Y dessus pour le modifier.');
+                updateCommandMessageText('TOIT TERRASSE : dalle de ' + nfr(o.te, 2) + ' m, dessus à ' + nfr(o.he, 2) + ' m' + (o.tc ? ', casquette ' + rfDebTxt(o, 'tc') : '') + (o.ah ? ', acrotère ' + nfr(o.ah, 2) + ' m' : '') + (o.fp ? ', forme de pente ' + nfr(o.fp, 1) + ' %' : '') + '. Il forme un bloc : Y dessus pour le modifier.');
                 return; }
-            const o = { pans: pansV, he: nv('rf-he'), hf: nv('rf-hf'), e: nv('rf-e'), ge: nv('rf-ge'), fill: document.getElementById('rf-fill').checked, dir: (document.getElementById('rf-dir') || {}).value || 'long', gab: pansV === 4 ? base.points.map((q, i) => sv('rf-gb-' + i) === '1') : undefined, eg: +((document.getElementById('rf-eg') || {}).value || 0), db: Math.max(0, nv('rf-db') || 0), cxP: JSON.parse(JSON.stringify(rfCx.p || [])), tex: edit ? edit.o.tex || '' : '', texu: edit ? edit.o.texu || '' : '' };
+            const o = { pans: pansV, he: nv('rf-he'), hf: nv('rf-hf'), e: nv('rf-e'), ge: nv('rf-ge'), fill: document.getElementById('rf-fill').checked, dir: (document.getElementById('rf-dir') || {}).value || 'long', gab: pansV === 4 ? base.points.map((q, i) => sv('rf-gb-' + i) === '1') : undefined, eg: +((document.getElementById('rf-eg') || {}).value || 0), db: 0, cxP: JSON.parse(JSON.stringify(rfCx.p || [])), tex: edit ? edit.o.tex || '' : '', texu: edit ? edit.o.texu || '' : '' };
+            { const dE = rfDebRead('p', 'rf-db', base.points.length), dU = dE.every(v => Math.abs(v - dE[0]) < 1e-9); o.db = dU ? dE[0] : Math.max(...dE); if (!dU) o.dbE = dE; }
             if (!isFinite(o.he) || !isFinite(o.hf) || o.hf <= o.he + 0.001) { alert('Le faîtage doit être plus haut que l\'égout.'); return; }
             if (o.gab && o.gab.every(Boolean)) { alert('Pans multiples : gardez au moins un côté en pan.'); return; }
             if (rfCxSum('p') > 0) o.e = rfCxSum('p'); if (!(o.e > 0)) o.e = 0.2; if (!(o.ge > 0)) o.ge = 0.2;   // épaisseur = somme des couches du complexe
@@ -145,18 +173,22 @@
             if (edit) shapes = shapes.filter(x => x.groupId !== edit.gid);
             shapes = shapes.filter(x => x !== base).concat(out); saveState(); setMode('select-box'); selectedShapes = out; draw(); if (is3DOpen()) { build3DScene(); render3D(); }
             const nP = out.filter(x => x.solid && x.solid.kind === 'roof').length;
-            updateCommandMessageText('TOITURE : ' + nP + ' pan(s)' + (o.pans === 4 ? ' (pente ' + nfr(out.find(x => x.solid && x.solid.kind === 'roof').solid.p, 0) + ' %)' : '') + ', égout ' + nfr(o.he, 2) + ' m, faîtage ' + nfr(o.hf, 2) + ' m, débord ' + nfr(o.db, 2) + ' m' + (o.fill ? ', pignons comblés' : '') + '. Elle forme un bloc : Y dessus pour la modifier (débord, hauteurs, textures). Vue 3D : bouton œil.');
+            updateCommandMessageText('TOITURE : ' + nP + ' pan(s)' + (o.pans === 4 ? ' (pente ' + nfr(out.find(x => x.solid && x.solid.kind === 'roof').solid.p, 0) + ' %)' : '') + ', égout ' + nfr(o.he, 2) + ' m, faîtage ' + nfr(o.hf, 2) + ' m, débord ' + rfDebTxt(o, 'db') + (o.fill ? ', pignons comblés' : '') + '. Elle forme un bloc : Y dessus pour la modifier (débord, hauteurs, textures). Vue 3D : bouton œil.');
         }
         // décalage d'un contour : d > 0 vers l'extérieur, d < 0 vers l'intérieur (monde) ; sommets en onglet
-        function ringOffset(P, d) { const n = P.length, len = (a, b) => Math.hypot(b.x - a.x, b.y - a.y), ar = P.reduce((a, q, i) => { const r = P[(i + 1) % n]; return a + q.x * r.y - r.x * q.y; }, 0), sgn = ar > 0 ? -1 : 1;
-            const lines = P.map((a, i) => { const b = P[(i + 1) % n], L = len(a, b) || 1, nx = -(b.y - a.y) / L * sgn, ny = (b.x - a.x) / L * sgn; return { a: { x: a.x + nx * d, y: a.y + ny * d }, d: { x: (b.x - a.x) / L, y: (b.y - a.y) / L } }; });
+        // d : une distance pour tous les côtés, ou une par côté (débords réglés côté par côté)
+        function ringOffset(P, d) { const n = P.length, len = (a, b) => Math.hypot(b.x - a.x, b.y - a.y), ar = P.reduce((a, q, i) => { const r = P[(i + 1) % n]; return a + q.x * r.y - r.x * q.y; }, 0), sgn = ar > 0 ? -1 : 1, dd = (i) => Array.isArray(d) ? d[i] || 0 : d;
+            const lines = P.map((a, i) => { const b = P[(i + 1) % n], L = len(a, b) || 1, nx = -(b.y - a.y) / L * sgn, ny = (b.x - a.x) / L * sgn; return { a: { x: a.x + nx * dd(i), y: a.y + ny * dd(i) }, d: { x: (b.x - a.x) / L, y: (b.y - a.y) / L } }; });
             return P.map((q, i) => { const l1 = lines[(i - 1 + n) % n], l2 = lines[i], den = l1.d.x * l2.d.y - l1.d.y * l2.d.x; if (Math.abs(den) < 1e-12) return l2.a; const t = ((l2.a.x - l1.a.x) * l2.d.y - (l2.a.y - l1.a.y) * l2.d.x) / den; return { x: l1.a.x + l1.d.x * t, y: l1.a.y + l1.d.y * t }; }); }
+        // débord de chaque côté du contour (m) : réglé côté par côté (o.dbE, o.tcE), sinon la même valeur partout (o.db, o.tc)
+        function rfEdges(o, k, n) { const A = o[k + 'E']; return Array.isArray(A) && A.length === n ? A.map(v => Math.max(0, +v || 0)) : Array(n).fill(Math.max(0, +o[k] || 0)); }
+        function rfDebTxt(o, k, n) { const A = rfEdges(o, k, n || (Array.isArray(o[k + 'E']) ? o[k + 'E'].length : 1)), a = Math.min(...A), b = Math.max(...A); return Math.abs(b - a) < 1e-9 ? nfr(a, 2) + ' m' : 'de ' + nfr(a, 2) + ' à ' + nfr(b, 2) + ' m selon les côtés'; }
         // TOIT TERRASSE : dalle plane (avec casquette), acrotère tout autour, forme de pente vers le côté d'évacuation, flèche de pente cotée en plan
         function roofLayerId() { return ensureLayer('Toiture', '#c2410c'); }
         function buildTerrace(base, o) { base = Object.assign({}, base, { layerId: roofLayerId() });   // la toiture sur son calque
             const P = base.points.map(q => ({ x: q.x, y: q.y })), n = P.length, gid = 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 1e6), Zt = o.he * 1000, out = [];
             const sty = { layerId: base.layerId, color: base.color, dash: base.dash, width: base.width, hatch: false, zk: 1, groupId: gid };
-            const Pd = o.tc > 0 ? ringOffset(P, mmToWorld(o.tc * 1000)) : P;
+            const tE = rfEdges(o, 'tc', n), Pd = tE.some(v => v > 0) ? ringOffset(P, tE.map(v => mmToWorld(v * 1000))) : P;
             const def = { base: base.points.map(q => ({ x: q.x, y: q.y, z: q.z })), o: JSON.parse(JSON.stringify(o)) };
             const slab = Object.assign({ type: 'poly', points: Pd.map(q => ({ x: q.x, y: q.y, z: Zt - o.te * 1000 })), solid: { kind: 'box', H: o.te * 1000 }, name: 'Dalle de toit', roofDef: def }, sty); slab.roofP0 = slab.points.map(q => ({ x: q.x, y: q.y })); if (o.texu) slab.tex = o.texu; out.push(slab);
             // acrotère dans l'alignement des murs (sur leur contour, épaisseur vers l'intérieur) ; la casquette dépasse au-delà
@@ -234,7 +266,7 @@
                 faces[orig(k)] = ccw ? poly : [poly[1], poly[0]].concat(poly.slice(2).reverse()); }
             return { faces, T: Tm };
         }
-        function buildRoof(base, o) { base = Object.assign({}, base, { layerId: roofLayerId() });   // la toiture sur son calque
+        function buildRoof(base, o) { base = Object.assign({}, base, { layerId: o.quiet ? base.layerId : roofLayerId() });   // o.quiet : aperçu (onglet Débords), sans calque ni message   // la toiture sur son calque
             const P = base.points.map(q => ({ x: q.x, y: q.y })), n = P.length, Hf = o.hf * 1000, gid = 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);
             let He = o.he * 1000;
             const len = (a, b) => Math.hypot(b.x - a.x, b.y - a.y), mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
@@ -254,24 +286,30 @@
             const panP = (poly, p) => ({ type: 'poly', layerId: base.layerId, points: poly.map(q => ({ x: q.x, y: q.y, z: He })), color: base.color, dash: base.dash, width: base.width, hatch: false, zk: 1, groupId: gid, solid: { kind: 'roof', H: 0, p, e: o.e * 1000, eg: 0 } });
             const multi = (Q) => { const S = roofSkeleton(Q, Q.map((q, i) => !(o.gab || [])[i])); if (!S || S.faces.some((F, i) => !F && !(o.gab || [])[i])) return null; return S; };
             let pans, pM = 0;
-            if (o.pans === 4) { const S = multi(P); if (!S || !(S.T > 0)) { alert('Ce contour ne donne pas de toit à pans : vérifiez qu\'il ne se recoupe pas et qu\'il reste au moins un côté en pan.'); return null; }
+            if (o.pans === 4) { const S = multi(P); if (!S || !(S.T > 0)) { if (!o.quiet) alert('Ce contour ne donne pas de toit à pans : vérifiez qu\'il ne se recoupe pas et qu\'il reste au moins un côté en pan.'); return null; }
                 pM = (Hf - He) / worldToMm(S.T) * 100; pans = S.faces.map(F => F && panP(F, pM)).filter(Boolean); }
             else if (o.pans === 2 && n === 4) {
                 const l0 = len(P[0], P[1]) + len(P[2], P[3]), l1 = len(P[1], P[2]) + len(P[3], P[0]), along0 = o.dir === 'short' ? l0 < l1 : l0 >= l1;
                 pans = twoPans(P, along0);
             } else pans = [pan(P, Math.max(0, Math.min(n - 1, o.eg || 0)))];
-            // débord : le toit est reconstruit sur le contour agrandi, même pente, égout plus bas ; les pignons restent sur le contour des murs
-            let outPans = pans;
-            if (o.db > 0) {
-                const dW = mmToWorld(o.db * 1000), ar = P.reduce((a, q, i) => { const r = P[(i + 1) % n]; return a + q.x * r.y - r.x * q.y; }, 0), sgn = ar > 0 ? -1 : 1;
-                const lines = P.map((a, i) => { const b = P[(i + 1) % n], L = len(a, b) || 1, nx = -(b.y - a.y) / L * sgn, ny = (b.x - a.x) / L * sgn; return { a: { x: a.x + nx * dW, y: a.y + ny * dW }, d: { x: (b.x - a.x) / L, y: (b.y - a.y) / L } }; });
-                const P2 = P.map((q, i) => { const l1 = lines[(i - 1 + n) % n], l2 = lines[i], den = l1.d.x * l2.d.y - l1.d.y * l2.d.x; if (Math.abs(den) < 1e-12) return l2.a; const t = ((l2.a.x - l1.a.x) * l2.d.y - (l2.a.y - l1.a.y) * l2.d.x) / den; return { x: l1.a.x + l1.d.x * t, y: l1.a.y + l1.d.y * t }; });
-                const slope = (pans[0].solid.p || 0) / 100, He0 = He; He = He0 - o.db * 1000 * slope;
-                if (o.pans === 4) { const S2 = multi(P2); outPans = S2 ? S2.faces.map(F => F && panP(F, pM)).filter(Boolean) : pans; }
-                else if (o.pans === 2 && n === 4) { const l0 = len(P[0], P[1]) + len(P[2], P[3]), l1 = len(P[1], P[2]) + len(P[3], P[0]), along0 = o.dir === 'short' ? l0 < l1 : l0 >= l1;
-                    outPans = twoPans(P2, along0); }
-                else outPans = [pan(P2, Math.max(0, Math.min(n - 1, o.eg || 0)))];
-                He = He0;
+            // débord, réglé côté par côté : chaque pan garde son plan (égout posé sur le mur, même pente) et s'avance au-delà des murs jusqu'au contour décalé
+            // de chaque côté ; l'égout descend d'autant. Faîtages et arêtiers restent sur leur ligne ; deux débords différents à un angle : chaque pan est
+            // recoupé au contour du toit, l'arêtier se prolonge jusqu'au bord. Les pignons comblés restent sur le contour des murs.
+            let outPans = pans; const dE = rfEdges(o, 'db', n);
+            if (dE.some(v => v > 0)) {
+                const ar = P.reduce((a, q, i) => { const r = P[(i + 1) % n]; return a + q.x * r.y - r.x * q.y; }, 0), sgn = ar > 0 ? -1 : 1, dW = dE.map(v => mmToWorld(v * 1000)), P2 = ringOffset(P, dW), tol = mmToWorld(1);
+                const nrm = (k) => { const a = P[k], b = P[(k + 1) % n], L = len(a, b) || 1; return { x: -(b.y - a.y) / L * sgn, y: (b.x - a.x) / L * sgn }; };
+                const onK = (a, b) => P.findIndex((q, k) => { const q2 = P[(k + 1) % n], l = len(q, q2) || 1; return t2SegDist(a, q, q2) < l * 1e-6 + 1e-6 && t2SegDist(b, q, q2) < l * 1e-6 + 1e-6; });
+                const cross = (l1, l2) => { const den = l1.d.x * l2.d.y - l1.d.y * l2.d.x; if (Math.abs(den) < 1e-12) return null; const t = ((l2.a.x - l1.a.x) * l2.d.y - (l2.a.y - l1.a.y) * l2.d.x) / den; return { x: l1.a.x + l1.d.x * t, y: l1.a.y + l1.d.y * t }; };
+                const ring = (Q) => { const r = Q.map(q => [q.x, q.y]); r.push(r[0].slice()); return r; }, area = (R) => Math.abs(R.reduce((a, q, i) => { const r = R[(i + 1) % R.length]; return a + q[0] * r[1] - r[0] * q[1]; }, 0)) / 2;
+                outPans = pans.map(pn => { const Q = pn.points, m = Q.length, eg = pn.solid.eg >= 0 && pn.solid.eg < m ? pn.solid.eg : 0;
+                    const Ls = Q.map((a, i) => { const b = Q[(i + 1) % m], L = len(a, b) || 1, k = onK(a, b), v = k >= 0 ? nrm(k) : { x: 0, y: 0 }, w = k >= 0 ? dW[k] : 0; return { a: { x: a.x + v.x * w, y: a.y + v.y * w }, d: { x: (b.x - a.x) / L, y: (b.y - a.y) / L }, k }; });
+                    let Q2 = Q.map((q, i) => cross(Ls[(i - 1 + m) % m], Ls[i]) || Ls[i].a);
+                    if (window.polygonClipping) { try { const R = polygonClipping.intersection([ring(Q2)], [ring(P2)]); let best = null; R.forEach(pl => { if (!best || area(pl[0]) > area(best)) best = pl[0]; }); if (best) Q2 = best.slice(0, -1).map(([x, y]) => ({ x, y })); } catch (e) {} }
+                    Q2 = Q2.filter((q, i) => len(q, Q2[(i + 1) % Q2.length]) > tol / 10); if (Q2.length < 3) return pn;
+                    const E = Ls[eg], off = (q) => Math.abs((q.x - E.a.x) * E.d.y - (q.y - E.a.y) * E.d.x); let eg2 = Q2.findIndex((q, i) => off(q) < tol && off(Q2[(i + 1) % Q2.length]) < tol); if (eg2 < 0) eg2 = 0;
+                    const z = Q[0].z - (E.k >= 0 ? dE[E.k] : 0) * 1000 * (pn.solid.p || 0) / 100;
+                    return Object.assign({}, pn, { points: Q2.map(q => ({ x: q.x, y: q.y, z })), solid: Object.assign({}, pn.solid, { eg: eg2 }) }); });
             }
             const def = { base: base.points.map(q => ({ x: q.x, y: q.y, z: q.z })), o: JSON.parse(JSON.stringify(o)) };
             outPans.forEach(pn => { pn.roofDef = def; pn.roofP0 = pn.points.map(q => ({ x: q.x, y: q.y })); if (o.tex) pn.tex = o.tex; if (o.texu) pn.texU = o.texu; });

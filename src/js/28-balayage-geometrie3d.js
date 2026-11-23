@@ -276,8 +276,8 @@
             const frame = new THREE.MeshLambertMaterial({ color: o.kind === 'garage' ? 0x6b7280 : door ? 0x8b5a2b : 0xf3f4f6 });
             box(s0, s0 + f, z0, z1, 0.07, frame); box(s1 - f, s1, z0, z1, 0.07, frame); box(s0, s1, z1 - f, z1, 0.07, frame);
             if (o.kind === 'garage') { const pm = new THREE.MeshLambertMaterial({ color: 0xe5e7eb }), gm = new THREE.MeshLambertMaterial({ color: 0x9ca3af }), a0 = s0 + f, a1 = s1 - f, nP = 5, ph = (z1 - f - z0) / nP;   /* porte sectionnelle : 5 panneaux, joints marqués */
-                /* elle bascule d'un bloc sur son bord haut et se range à plat sous le plafond, du côté opposé à Momo (vue Momo : E ou clic) */
-                const zt = z1 - f, sc = (a0 + a1) / 2, pv = new THREE.Group(), tl = new THREE.Group(); pv.position.set(A.x + u.x * sc + n.x * tm, A.y + u.y * sc + n.y * tm, zt); pv.rotation.z = ang; pv.add(tl); tl.userData.door = { axis: 'x', a0: 0, open: false, to: 0, garage: true };
+                /* elle bascule d'un bloc sur son bord haut et se range à plat sous le plafond, du côté de ses rails sur le plan (sens choisi, o.side), d'où que Momo l'ouvre */
+                const zt = z1 - f, sc = (a0 + a1) / 2, pv = new THREE.Group(), tl = new THREE.Group(); pv.position.set(A.x + u.x * sc + n.x * tm, A.y + u.y * sc + n.y * tm, zt); pv.rotation.z = ang; pv.add(tl); tl.userData.door = { axis: 'x', a0: 0, open: false, to: 0, garage: true, dir: (Math.sign(sn[3] - sn[0]) || 1) * (o.side === -1 ? -1 : 1) };
                 const pan = (b0, b1, d, mat) => { if (b1 - b0 < 1e-4) return; const m = new THREE.Mesh(new THREE.BoxGeometry(a1 - a0, d, b1 - b0), mat); m.position.set(0, 0, (b0 + b1) / 2 - zt); m.userData.opening = o; m.userData.leaf = o; tl.add(m); };
                 for (let i = 0; i < nP; i++) { pan(z0 + i * ph + 0.006, Math.min(zt, z0 + (i + 1) * ph - 0.006), 0.045, pm); if (i < nP - 1) pan(z0 + (i + 1) * ph - 0.006, z0 + (i + 1) * ph + 0.006, 0.03, gm); } root.add(pv); }
             else if (door) { const tm2 = texMaterial('bois') || new THREE.MeshLambertMaterial({ color: 0xa0522d }), a0 = s0 + f, a1 = s1 - f;   // vantail sur ses gonds : il s'ouvre dans la vue Momo
