@@ -363,34 +363,40 @@
         // ---- COUPE DYNAMIQUE : la ligne de coupe du plan porte sa définition (cutDef) ; la coupe est recalculée après chaque modification du plan.
         //      Volumes hachurés selon leur matériau, terrain en place (terre), remblai, déblai (contour tireté), lignes TN et projet, cotes de niveau
         //      (égouts, faîtages, dessus de dalles). La coupe garde sa place ; on peut la déplacer d'un bloc, elle suit.
+        /* calques d'une coupe : un groupe « Coupe A-A » avec son dessin, ses cotes et sa ligne sur le plan (coupes d'avant : le calque « Coupes ») */
+        function secLayers(def, make) { if (!def.lay && !make) { const c = cutLayerId(); return { d: c, c, p: c }; } if (def.lay && def.lay.d && layers.some(l => l.id === def.lay.d)) return def.lay;
+            const g = 'Coupe ' + def.name + '-' + def.name, mk = (n, col) => { let l = layers.find(x => x.name === g + ' — ' + n); if (!l) { l = { id: generateId(), name: g + ' — ' + n, visible: true, color: col, dash: 'solid', width: 1, textH: '', hatch: 'lines', hatchScale: 1, group: g }; layers.push(l); } return l.id; };
+            def.lay = { d: mk('dessin', '#f472b6'), c: mk('cotes', '#fbbf24'), p: mk('ligne sur le plan', '#f472b6') }; updateLayerUI(); return def.lay; }
+        /* le dessin d'une coupe dynamique ne se sélectionne pas (il serait refait) : seuls son titre (qui emmène toute la coupe) et ses cotes se prennent ; il reste accrochable */
+        function secLock(s) { return !!(s && s.secOf && !s.secTitle && !s.lvKey); }
         function sectionPlace(D, at) {
             if (D.wait) D = sectionData(D.A, D.B, D.side); if (!D) return;
             const { name, A, B, side } = D, id = 'sec' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), lid = cutLayerId(), zRef = Math.round(D.z0 / 1000) * 1000;
-            const def = { id, name, side, zRef, gid: 'grp-coupe-' + id, o: { x: at.x - mmToWorld((D.u0 + D.u1) / 2), y: at.y + mmToWorld((D.z0 + D.z1) / 2 - zRef) } };
-            const line = { type: 'line', layerId: lid, x1: A.x, y1: A.y, x2: B.x, y2: B.y, groupId: def.gid + '-plan', cutDef: def, zk: 1, lvs: 1 };
+            const def = { id, name, side, zRef, gid: 'grp-coupe-' + id, o: { x: at.x - mmToWorld((D.u0 + D.u1) / 2), y: at.y + mmToWorld((D.z0 + D.z1) / 2 - zRef) } }; def.lay = secLayers(def, true);
+            const line = { type: 'line', layerId: def.lay.p, x1: A.x, y1: A.y, x2: B.x, y2: B.y, groupId: def.gid + '-plan', cutDef: def, zk: 1, lvs: 1 };
             shapes.push(line); const out = secBuild(D, def); shapes.push(...out, ...secMarks(line)); saveState(); draw();
-            updateCommandMessageText('COUPE ' + name + '-' + name + ' dessinée (calque « Coupes ») : ' + D.loops.length + ' élément(s) coupé(s)' + (D.tn.length > 1 ? ', terrain et terrassement' : '') + '. Elle se met à jour toute seule quand le plan change ; elle se déplace d\'un bloc (groupe).');
+            updateCommandMessageText('COUPE ' + name + '-' + name + ' dessinée (groupe de calques « Coupe ' + name + '-' + name + ' ») : ' + D.loops.length + ' élément(s) coupé(s)' + (D.tn.length > 1 ? ', terrain et terrassement' : '') + '. Elle se met à jour toute seule quand le plan change. Son dessin ne se modifie pas (il s\'accroche) ; ses cotes se déplacent une à une ; son titre déplace toute la coupe.');
             return out;
         }
         // repère dans le plan : flèches du sens de vue et lettres, recalés sur la ligne
-        function secMarks(L) { const d = L.cutDef, A = { x: L.x1, y: L.y1 }, B = { x: L.x2, y: L.y2 }, Lw = Math.hypot(B.x - A.x, B.y - A.y) || 1, ux = -(B.y - A.y) / Lw * d.side, uy = (B.x - A.x) / Lw * d.side, k = mmToWorld(Math.max(600, worldToMm(Lw) * 0.04)), out = [], g = d.gid + '-plan';
-            [A, B].forEach(P => { out.push({ type: 'line', layerId: L.layerId, x1: P.x, y1: P.y, x2: P.x + ux * k, y2: P.y + uy * k, groupId: g, secMark: d.id, zk: 1, lvs: 1 }); out.push({ type: 'text', layerId: L.layerId, x: P.x + ux * k * 1.4, y: P.y + uy * k * 1.4, content: d.name, size: TEXT_WORLD_SIZE * 1.2, groupId: g, cutName: d.name, secMark: d.id, zk: 1, lvs: 1 }); });
+        function secMarks(L) { const d = L.cutDef, pl = d.lay ? d.lay.p : L.layerId, A = { x: L.x1, y: L.y1 }, B = { x: L.x2, y: L.y2 }, Lw = Math.hypot(B.x - A.x, B.y - A.y) || 1, ux = -(B.y - A.y) / Lw * d.side, uy = (B.x - A.x) / Lw * d.side, k = mmToWorld(Math.max(600, worldToMm(Lw) * 0.04)), out = [], g = d.gid + '-plan';
+            [A, B].forEach(P => { out.push({ type: 'line', layerId: pl, x1: P.x, y1: P.y, x2: P.x + ux * k, y2: P.y + uy * k, groupId: g, secMark: d.id, zk: 1, lvs: 1 }); out.push({ type: 'text', layerId: pl, x: P.x + ux * k * 1.4, y: P.y + uy * k * 1.4, content: d.name, size: TEXT_WORLD_SIZE * 1.2, groupId: g, cutName: d.name, secMark: d.id, zk: 1, lvs: 1 }); });
             return out; }
         // le dessin de la coupe, dans le repère fixe de sa définition (o = point du plan où tombe u = 0, z = zRef)
         function secBuild(D, def) {
-            const o = def.o, Wp = (q) => ({ x: o.x + mmToWorld(q[0]), y: o.y - mmToWorld(q[1] - def.zRef) }), lid = cutLayerId(), gid = def.gid, out = [], tag = (x) => Object.assign(x, { groupId: gid, secOf: def.id, zk: 1, lvs: 1 });
+            const o = def.o, Wp = (q) => ({ x: o.x + mmToWorld(q[0]), y: o.y - mmToWorld(q[1] - def.zRef) }), lid = secLayers(def).d, lidC = secLayers(def).c, gid = def.gid, out = [], tag = (x) => Object.assign(x, { groupId: gid, secOf: def.id, zk: 1, lvs: 1 });
             const poly = (P, extra) => tag(Object.assign({ type: 'poly', layerId: lid, points: P.map(Wp).map(q => ({ x: q.x, y: q.y })) }, extra || {}));
             const hatch = (P, mat, col) => tag(Object.assign({ type: 'hatch', layerId: lid, loops: [P.map(Wp).map(q => ({ x: q.x, y: q.y }))], hatchMat: mat, gen2: 1 }, col ? { colOf: col } : {}));
             // couleurs : celles des calques des objets représentés (terrain, plateforme, mur, toiture…)
             const tnPt = shapes.find(x => x.type === 'point' && hasZ(x.z) && !x.secOf), tnCol = tnPt ? tnPt.layerId : ((layers.find(l => /terrain/i.test(l.name)) || {}).id);
-            let u0 = D.u0, u1 = D.u1, z0 = D.z0, z1 = D.z1, zbot = null;
+            let u0 = D.u0, u1 = D.u1, z0 = D.z0, z1 = D.z1, zbot = null, TNs = null, PFs = null, FMp = null;
             // terrain : TN et projet (plateformes, talus) échantillonnés le long de la ligne
-            const tin = getTIN(); let FM = null; try { FM = tin ? finishedModel(null, tin, null, false) : null; } catch (e) { FM = null; }
+            const tin = getTIN(); let FM = null; try { FM = tin ? finishedModel(null, tin, null, false) : null; } catch (e) { FM = null; } FMp = FM;
             if (tin) { const N = 240, T = [], Pj = [], U = []; const A = D.A, B = D.B;
-                const govN = {}; for (let i = 0; i <= N; i++) { const f = i / N, wx = A.x + (B.x - A.x) * f, wy = A.y + (B.y - A.y) * f, zt = tinZ(wx, wy, tin); if (!hasZ(zt)) continue; let zp = zt; if (FM) { const r = FM.at(wx, wy); if (r && r.gov >= 0 && hasZ(r.z)) { zp = r.z; govN[r.gov] = (govN[r.gov] || 0) + 1; } }
-                    U.push((worldToMm(wx) - D.ax) * D.rx + (-worldToMm(wy) - D.ay) * D.ry); T.push(zt); Pj.push(zp); }
+                const govN = {}, G = []; for (let i = 0; i <= N; i++) { const f = i / N, wx = A.x + (B.x - A.x) * f, wy = A.y + (B.y - A.y) * f, zt = tinZ(wx, wy, tin); if (!hasZ(zt)) continue; let zp = zt, gk = -1; if (FM) { const r = FM.at(wx, wy); if (r && r.gov >= 0 && hasZ(r.z)) { zp = r.z; govN[r.gov] = (govN[r.gov] || 0) + 1; if (r.kind === 1) gk = r.gov; } }
+                    U.push((worldToMm(wx) - D.ax) * D.rx + (-worldToMm(wy) - D.ay) * D.ry); T.push(zt); Pj.push(zp); G.push(gk); }
                 const gTop = Object.keys(govN).sort((a, b) => govN[b] - govN[a])[0], pjCol = gTop !== undefined && FM && FM.P[gTop] && FM.P[gTop].s ? FM.P[gTop].s.layerId : tnCol;
-                if (U.length > 1) { const ord = U.map((u, k) => k).sort((a, b) => U[a] - U[b]), u = ord.map(k => U[k]), t = ord.map(k => T[k]), pj = ord.map(k => Pj[k]);
+                if (U.length > 1) { const ord = U.map((u, k) => k).sort((a, b) => U[a] - U[b]), u = ord.map(k => U[k]), t = ord.map(k => T[k]), pj = ord.map(k => Pj[k]), gv = ord.map(k => G[k]); TNs = { u, t }; PFs = { u, pj, gv };
                     z0 = Math.min(z0, ...t, ...pj); z1 = Math.max(z1, ...t, ...pj); u0 = Math.min(u0, u[0]); u1 = Math.max(u1, u[u.length - 1]);
                     const zb = z0 - Math.max(1500, (z1 - z0) * 0.15); zbot = zb; const low = u.map((x, k) => [x, Math.min(t[k], pj[k])]);
                     out.push(hatch(low.concat([[u[u.length - 1], zb], [u[0], zb]]), 'terre', tnCol));
@@ -400,23 +406,30 @@
                     runs(k => t[k] - pj[k] > 5).forEach(r => out.push(poly(r.map(k => [u[k], t[k]]).concat(r.slice().reverse().map(k => [u[k], pj[k]])), { dash: 'dashed', width: 1, name: 'Déblai', colOf: pjCol })));
                     out.push(poly(u.map((x, k) => [x, t[k]]), { open: true, dash: 'dashed', width: 1, name: 'TN', colOf: tnCol }));
                     if (pj.some((z, k) => Math.abs(z - t[k]) > 5)) out.push(poly(u.map((x, k) => [x, pj[k]]), { open: true, width: 2, name: 'Projet', colOf: pjCol }));
-                    const tl = Wp([u[0], t[0]]); out.push(tag({ type: 'text', layerId: lid, x: tl.x, y: tl.y - TEXT_WORLD_SIZE * 0.4, content: 'TN', size: TEXT_WORLD_SIZE, colOf: tnCol })); } }
+                     } }   /* le TN est coté tous les 5 m (cotes de la coupe) */
             // vue au-delà : traits fins à la couleur du calque de l'objet
             (D.beyond || []).forEach(([a1, b1, a2, b2, lay]) => { const P = Wp([a1, b1]), Q = Wp([a2, b2]); out.push(tag({ type: 'line', layerId: lid, x1: P.x, y1: P.y, x2: Q.x, y2: Q.y, width: 0.5, colOf: lay })); });
             // volumes coupés : hachure de leur matériau et contour épais
             const matOf = (x) => x.wallMat || (x.solid && x.solid.kind === 'roof' ? 'bois' : x.roofPart ? 'parpaing' : 'beton');
             D.loops.forEach(({ o: ob, loop }) => { out.push(hatch(loop, matOf(ob), ob.layerId)); out.push(poly(loop, { width: 2, colOf: ob.layerId })); });
-            // cotes de niveau : faîtages, égouts, dessus de dalles (altitudes NGF), à droite de la coupe
+            // COTATION DYNAMIQUE : niveaux des faîtages, égouts, dessus de dalles (colonne à droite du bâtiment), des plateformes terrassées et du terrain naturel tous les 5 m (posés sur le trait).
+            //   Chaque cote est son propre groupe (calque « cotes » de la coupe) : on la déplace où elle se lit le mieux, son rappel suit ; elle garde sa place quand la coupe se recalcule.
             const lv = []; D.loops.forEach(({ o: ob, loop }) => { const zs = loop.map(q => q[1]), zmax = Math.max(...zs);
                 if (ob.solid && ob.solid.kind === 'roof') { const top = loop[zs.indexOf(zmax)]; lv.push({ k: 'Faîtage', z: zmax, u: top[0], c: ob.layerId }); const he = ob.roofDef && ob.roofDef.o && isFinite(ob.roofDef.o.he) && ob.roofDef.o.pans ? ob.roofDef.o.he * 1000 : Math.min(...zs); const lo = loop[zs.indexOf(Math.min(...zs))]; lv.push({ k: 'Égout', z: he, u: lo[0], c: ob.layerId }); }
                 else if (ob.solid && (ob.solid.kind === 'box') && (/dalle/i.test(ob.name || '') || (ob.solid.H || 0) <= 400)) lv.push({ k: /toit/i.test(ob.name || '') ? 'Dessus de dalle (toit)' : 'Dessus de dalle', z: zmax, u: loop[zs.indexOf(zmax)][0], c: ob.layerId }); });
+            const pt = [];   // cotes posées sur leur point (plateformes, terrain)
+            if (PFs) { let k = 0; const { u, pj, gv } = PFs; while (k < u.length) { const g = gv[k]; let e = k; while (e + 1 < u.length && gv[e + 1] === g) e++; if (g >= 0 && e > k && u[e] - u[k] > 400) { const m = Math.round(k + (e - k) / 4), P = FMp && FMp.P[g] && FMp.P[g].s;   /* au premier quart : loin des cotes du bâtiment */
+                        pt.push({ k: 'Plateforme' + (P && P.name ? ' ' + P.name : ''), z: pj[m], u: u[m], c: P ? P.layerId : null, key: 'P' + g + '_' + Math.round(u[m] / 1000) }); } k = e + 1; } }
+            if (TNs) { const { u, t } = TNs, at = (x) => { let j = 0; while (j < u.length - 2 && u[j + 1] < x) j++; const f = (x - u[j]) / ((u[j + 1] - u[j]) || 1); return t[j] + (t[j + 1] - t[j]) * Math.max(0, Math.min(1, f)); };
+                for (let x = Math.ceil(u[0] / 5000) * 5000; x <= u[u.length - 1] + 1; x += 5000) pt.push({ k: 'TN', z: at(x), u: x, c: tnCol, key: 'T' + Math.round(x / 1000), small: 1 }); }
             let uB = -Infinity; D.loops.forEach(({ loop }) => loop.forEach(q => { if (q[0] > uB) uB = q[0]; })); const seen = new Set(), xm = (isFinite(uB) ? uB : u1) + 1500, tsz = TEXT_WORLD_SIZE; let zPrev = Infinity;   // colonne des niveaux juste à droite du bâtiment (pas au bout du terrain)
-            lv.sort((a, b) => b.z - a.z).forEach(l => { const key = l.k[0] + Math.round(l.z / 10); if (seen.has(key)) return; seen.add(key); const zt = Math.min(l.z, zPrev - 450); zPrev = zt;
-                const P = Wp([l.u, l.z]), M = Wp([xm, zt]), t = mmToWorld(250), O = (def.lvOff && def.lvOff[key]) || { dx: 0, dy: 0 }, g = gid + '-lv-' + key, mv = (q) => ({ x: q.x + O.dx, y: q.y + O.dy });   // chaque cote est son propre groupe : on la place où l'on veut, elle y reste
-                const M0 = mv(Wp([xm, l.z])), lvT = (x) => Object.assign(tag(x), { groupId: g, lvKey: key });
-                out.push(lvT({ type: 'line', layerId: lid, x1: P.x, y1: P.y, x2: M0.x + mmToWorld(1800), y2: M0.y, dash: 'dotted', width: 0.5, colOf: l.c }));
-                out.push(lvT(Object.assign(poly([[xm - 180, l.z + 300], [xm + 180, l.z + 300], [xm, l.z]], { hatch: true, width: 1, colOf: l.c }), {}))); out[out.length - 1].points = out[out.length - 1].points.map(mv);
-                const T0 = { x: M.x + t, y: M.y - mmToWorld(120) }; out.push(lvT({ type: 'text', layerId: lid, x: T0.x + O.dx, y: T0.y + O.dy, content: l.k + ' ' + fmtZ(l.z), size: tsz, colOf: l.c, lvRef: T0 })); });
+            const mark = (l, key, Mx, Mz) => { const P = Wp([l.u, l.z]), O = (def.lvOff && def.lvOff[key]) || { dx: 0, dy: 0 }, g = gid + '-lv-' + key, mv = (q) => ({ x: q.x + O.dx, y: q.y + O.dy }), sz = l.small ? tsz * 0.8 : tsz, hh = l.small ? 220 : 300;
+                const lvT = (x) => Object.assign(tag(x), { groupId: g, lvKey: key, layerId: lidC }), M0 = mv(Wp([Mx, l.z])), moved = Math.abs(O.dx) + Math.abs(O.dy) > 1e-9 || Mx !== l.u;
+                if (moved) out.push(lvT({ type: 'line', layerId: lidC, x1: P.x, y1: P.y, x2: M0.x + (Mx !== l.u ? mmToWorld(1800) : 0), y2: M0.y, dash: 'dotted', width: 0.5, colOf: l.c }));   /* rappel : du point coté au repère */
+                out.push(lvT(Object.assign(poly([[Mx - hh * 0.6, l.z + hh], [Mx + hh * 0.6, l.z + hh], [Mx, l.z]], { hatch: true, width: 1, colOf: l.c }), {}))); out[out.length - 1].points = out[out.length - 1].points.map(mv);
+                const T0 = Wp([Mx + hh * 0.8, Mz + (l.small ? -hh * 3.6 : 0)]),   /* TN : chiffre sous le trait */ T1 = { x: T0.x, y: T0.y - mmToWorld(120) }; out.push(lvT({ type: 'text', layerId: lidC, x: T1.x + O.dx, y: T1.y + O.dy, content: l.k + ' ' + fmtZ(l.z), size: sz, colOf: l.c, lvRef: T1 })); };
+            lv.sort((a, b) => b.z - a.z).forEach(l => { const key = l.k[0] + Math.round(l.z / 10); if (seen.has(key)) return; seen.add(key); const zt = Math.min(l.z, zPrev - 450); zPrev = zt; mark(l, key, xm, zt); });
+            pt.forEach(l => { if (seen.has(l.key)) return; seen.add(l.key); mark(l, l.key, l.u, l.z); });
             // titre au-dessus de la coupe (pas de cadre)
             const m = Math.max(500, Math.min(2000, (z1 - z0) * 0.15)), F0 = Wp([u0, z1 + m]);
             const ts = TEXT_WORLD_SIZE * 1.4; out.push(tag({ type: 'text', layerId: lid, x: F0.x, y: F0.y - ts * 0.6, content: 'COUPE ' + D.name + '-' + D.name, size: ts, cutName: D.name, secTitle: 1 }));

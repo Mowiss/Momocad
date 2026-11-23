@@ -562,7 +562,7 @@
                 } else if (currentX < startX) {   // capture (de droite à gauche) : tout ce que la fenêtre touche
                     const R = { x0: Math.min(startX, currentX), x1: Math.max(startX, currentX), y0: Math.min(startY, currentY), y1: Math.max(startY, currentY) };
                     shapes.forEach(s => { const layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (!layer?.visible) return; if (shapeTouchesRect(s, R) && !selectedShapes.includes(s)) selectedShapes.push(s); });
-                    selectedShapes = expandGroups(selectedShapes);
+                    selectedShapes = expandGroups(selectedShapes.filter(s => !secLock(s)));
                 } else {
                     shapes.forEach(s => {
                         let layer = layers.find(l => l.id === (s.layerId || 'layer-0')); if (!layer?.visible) return;
@@ -581,7 +581,7 @@
                         else { const K = t2KeyPts(s); b = K.length > 0 && K.every(p => isPointInRect(p.x, p.y, startX, startY, currentX-startX, currentY-startY)); }   // infobulles, étiquettes… : tous leurs points dans la fenêtre
                         if (b && !selectedShapes.includes(s)) selectedShapes.push(s);
                     });
-                    selectedShapes = expandGroups(selectedShapes);
+                    selectedShapes = expandGroups(selectedShapes.filter(s => !secLock(s)));
                 }
                 isDrawing = false; draw(); try { updateCommandMessage(); } catch (e) {}
             }

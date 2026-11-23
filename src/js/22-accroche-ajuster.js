@@ -223,7 +223,7 @@
         function _findShapeAt(wx, wy) {
             let tol = 10/camera.zoom, p = { x: wx, y: wy };
             for (let i = shapes.length-1; i >= 0; i--) {
-                let s = shapes[i], l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue; if (s.type === 'cline' || lvlOff2D(s)) continue;
+                let s = shapes[i], l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue; if (s.type === 'cline' || lvlOff2D(s) || secLock(s)) continue;
                 if (s.type === 'point') { if (Math.hypot(p.x - s.x, p.y - s.y) < tol) return s; continue; }
                 if (s.type === 'pdfvec') { if (vecHit(s, p.x, p.y, tol)) return s; continue; }
                 if (s.type === 'mesh') { const q = meshLocal(s, p.x, p.y); if (q.x >= s.bb.x0 && q.x <= s.bb.x1 && q.y >= s.bb.y0 && q.y <= s.bb.y1) return s; continue; }
@@ -267,7 +267,7 @@
                 }
             }
             for (let i = shapes.length - 1; i >= 0; i--) {
-                const s = shapes[i]; if (s.type !== 'hatch') continue;
+                const s = shapes[i]; if (s.type !== 'hatch' || secLock(s) || lvlOff2D(s)) continue;
                 const l = layers.find(lx => lx.id === (s.layerId || 'layer-0')); if (l && !l.visible) continue;
                 if (pointInHatch(s, wx, wy)) return s;
             }
