@@ -137,6 +137,12 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
     const r0 = await sz('pB'); await drag(await vpPt('pB', 1, 0.5, 4, 0), 30, 0); const r1 = await sz('pB');
     t.ok('fenêtre ronde : son pourtour se tire, elle grandit autour de son centre', r1[2] > r0[2] + 20 / kk && Math.abs((r1[0] + r1[2] / 2) - (r0[0] + r0[2] / 2)) <= 1, JSON.stringify([r0, r1]));
     // enregistrement et réouverture
+    // fond de carte : dans son propre calque « Fond de carte » (à l'import, et ramené là à l'ouverture d'un ancien fichier)
+    const bml = await ev(() => { const keepS = shapes, keepL = layers.slice(), keepA = activeLayerId, r = {}; shapes = [{ type: 'basemap', layerId: 'layer-0', x: 0, y: 0, r: 1000, rot: 0, lat: 44.5, lon: 6.1, radiusM: 100, mapId: 'tbm' }, { type: 'line', layerId: 'layer-0', x1: 0, y1: 0, x2: 10, y2: 0 }];
+        r.n = bmLayerRepair() === 1; const L = layers.find(l => l.name === 'Fond de carte'), b = shapes[0], ln = shapes[1]; r.moved = !!L && b.layerId === L.id && ln.layerId === 'layer-0' && activeLayerId === keepA;
+        r.load = /bmLayerRepair\(\)/.test(loadProjectText.toString() + (typeof mmcApply === 'function' ? mmcApply.toString() : '')) || /MMC_LOAD_FIX\.bm = bmLayerRepair/.test(document.documentElement.innerHTML); r.imp = /layerId: bmLayerId\(\)/.test(placeBasemapAt.toString()) && !!L && bmLayerId() === L.id;
+        shapes = keepS; layers = keepL; activeLayerId = keepA; updateLayerUI(); invalidateCache(); saveState(); draw(); return r; });
+    t.eq('fond de carte dans son propre calque « Fond de carte » : à l\'import, et ramené là à l\'ouverture d\'un ancien fichier', bml, { n: true, moved: true, load: true, imp: true });
     const rt = await ev(() => { const txt = JSON.stringify(projectData()); toggleLayout(false); lpResetAll(); loadProjectText(txt, 'essai.mmc');
         return [layouts.length, layoutIdx, layouts.map(L => L.name), layouts[1].paper, layouts[1].cartType, layouts[1].cart.planName, layouts[0].vps.length, cartoucheData.site]; });
     t.eq('présentations enregistrées puis rouvertes (.mmc)', rt, [2, 0, ['', 'Réseau EP'], 'A1', 'a4', 'Plan des eaux pluviales', 2, 'Chantier de Gap']);

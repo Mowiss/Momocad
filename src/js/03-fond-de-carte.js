@@ -235,7 +235,7 @@
                 const ovl = bmStoreCapture(id, cap);
                 // nord géographique dans la grille Lambert (convergence des méridiens)
                 const nn = worldOfLL(B.P, ll.lat + 0.001, ll.lon), cc = worldOfLL(B.P, ll.lat, ll.lon), rot = Math.atan2(nn.x - cc.x, -(nn.y - cc.y));
-                const shp = { type: 'basemap', hd: bmSettings.hd, layerId: activeLayerId, x: cc.x, y: cc.y, r: mmToWorld(R * 1000), rot, mapId: id, lat: ll.lat, lon: ll.lon, radiusM: R, label: B.P.code, base: baseKey, ovl, cadastre: !!ovl.cad, geo: B.P.code };
+                const shp = { type: 'basemap', hd: bmSettings.hd, layerId: bmLayerId(), x: cc.x, y: cc.y, r: mmToWorld(R * 1000), rot, mapId: id, lat: ll.lat, lon: ll.lon, radiusM: R, label: B.P.code, base: baseKey, ovl, cadastre: !!ovl.cad, geo: B.P.code };
                 shapes.unshift(shp); saveState();
                 setMode('select-box'); selectedShapes = [shp]; draw();
                 mcLoad.set(0, 1); setTimeout(() => bmImportData(shp, ovl), 50);   // terrain, cadastre en traits, bois, routes : selon l'invité d'import

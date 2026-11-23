@@ -102,6 +102,9 @@
         const BM_HD = { std: 1280, hd: 2560, uhd: 4096 };
         const bmHdPx = () => BM_HD[bmSettings.hd] || BM_HD.hd;
         // tuiles chargées 12 à la fois (le délai ne compte pas l'attente dans la file)
+        /* le fond de carte a son propre calque « Fond de carte » (à masquer, verrouiller… sans toucher aux tracés) */
+        function bmLayerId() { return ensureLayer('Fond de carte', '#64748b'); }
+        function bmLayerRepair() { let n = 0; const bs = shapes.filter(s => s.type === 'basemap'); if (!bs.length) return 0; const id = bmLayerId(); bs.forEach(s => { if (s.layerId !== id) { s.layerId = id; n++; } }); return n; }
         function bmLoadTiles(urls) { let i = 0; const out = new Array(urls.length);
             const one = () => { if (i >= urls.length) return Promise.resolve(); const k = i++, u = urls[k]; return new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; const t = setTimeout(() => { out[k] = null; res(); }, 25000);
                 im.onload = () => { clearTimeout(t); out[k] = im; res(); }; im.onerror = () => { clearTimeout(t); out[k] = null; res(); }; im.src = u; }).then(one); };
@@ -166,7 +169,7 @@
                     c = worldOfLL(Pg, ll.lat, ll.lng);
                     const nn = worldOfLL(Pg, ll.lat + 0.001, ll.lng); rot = Math.atan2(nn.x - c.x, -(nn.y - c.y)); geoCode = Pg.code;
                 }
-                const shp = { type: 'basemap', hd: bmSettings.hd, layerId: activeLayerId, x: c.x, y: c.y, r, rot, mapId: id, lat: ll.lat, lon: ll.lng, radiusM: R, label: bmLabel || geoCode, base: baseKey, ovl, cadastre: !!ovl.cad };
+                const shp = { type: 'basemap', hd: bmSettings.hd, layerId: bmLayerId(), x: c.x, y: c.y, r, rot, mapId: id, lat: ll.lat, lon: ll.lng, radiusM: R, label: bmLabel || geoCode, base: baseKey, ovl, cadastre: !!ovl.cad };
                 if (geoCode) shp.geo = geoCode;
                 shapes.unshift(shp);   // tout en dessous : le dessin existant reste au-dessus, rien n'est effacé
                 mcLoad.set(0, 1); setTimeout(() => bmImportData(shp, ovl), 400);   // terrain, cadastre en traits, bois, routes : selon l'invité d'import
