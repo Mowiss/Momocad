@@ -722,6 +722,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         shapes = [hA]; const txt = JSON.stringify(projectData()); loadProjectText(txt, 'abime.mmc'); r.repaired = shapes.filter(x => x.type === 'line' && x.wallMat === 'isolant').length === 4 && /bordure/.test((document.getElementById('mc-toast') || {}).textContent || ''); { const t2 = document.getElementById('mc-toast'); if (t2) t2.remove(); }
         loadProjectText(txt, 'abime.mmc'); r.idem = wallBordersRepair() === 0; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('parois : la fusion garde les bordures des tronçons restés à part ; plan abîmé réparé à l\'ouverture', wb, { onA: true, hatches: true, repaired: true, idem: true });
+    /* fusion d'une paroi qui en traverse une autre (copier-coller, retouche) : chaque fenêtre reste sur le morceau qui la porte, au même endroit */
+    const wfo = await ev(async () => { const keepS = shapes; shapes = []; await loadPolyClip(); const m = mmToWorld(1000), lid = ensureLayer('Paroi isolant (laine)', '#facc15');
+        const rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        const wall = (P, g) => { const h = { type: 'hatch', layerId: lid, loops: [P], wallMat: 'isolant', groupId: g, wz: { b: 0, t: 2500 } }; return [h, P.map((a, i) => { const b = P[(i + 1) % P.length]; return { type: 'line', layerId: lid, x1: a.x, y1: a.y, x2: b.x, y2: b.y, wallMat: 'isolant', groupId: g, wz: { b: 0, t: 2500 } }; })]; };
+        const [hA, LA] = wall(rect(4, 0, 8, 0.1), 'grp-o1'), [hN, LN] = wall(rect(2, 0, 14, 0.1), 'grp-o2'); shapes.push(hA, hN, ...LA, ...LN);
+        const o = { a: { x: 10 * m, y: -0.05 * m }, b: { x: 11 * m, y: -0.05 * m }, kind: 'fen', sill: 1000, h: 1250, hinge: 'a', side: 1, top: 'droit' }; o.pts = openingPts(hN, o.a, o.b); const o2 = Object.assign({}, o, { a: { x: 2.5 * m, y: -0.05 * m }, b: { x: 3.5 * m, y: -0.05 * m } }); o2.pts = openingPts(hN, o2.a, o2.b); hN.openings = [o2, o];
+        await wallFuse([hN]); const host = shapes.find(x => (x.openings || []).includes(o)), mid = { x: 10.5 * m, y: -0.05 * m };
+        const host2 = shapes.find(x => (x.openings || []).includes(o2)), r = { one: shapes.filter(x => (x.openings || []).includes(o)).length === 1, inside: !!host && pointInPolygon(mid.x, mid.y, host.loops[0]) && !!host2 && pointInPolygon(3 * m, -0.05 * m, host2.loops[0]), still: Math.abs(o.a.x - 10 * m) < 1e-6 && Math.abs(o.b.x - 11 * m) < 1e-6 && Math.abs(o2.a.x - 2.5 * m) < 1e-6 };
+        shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('parois : fusion d\'une paroi traversante, la fenêtre reste sur son morceau, à sa place', wfo, { one: true, inside: true, still: true });
     // contour de bâtiment coupé en morceaux (ouvert) : recollé et refermé à la modification suivante comme à l'ouverture ; la pastille ouvre bien ses étages
     const bc = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000);
         const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => ({ x: x * m, y: -y * m })) }; shapes.push(A); saveState(); bldMake(A, 'A', 69000, 3000); saveState();
@@ -930,6 +940,21 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         selectedShapes = WG(); g = allGrips().find(x => x.kind === 'w-edge' && x.i === 0); r.lgrip = !!g; if (g) { startGrip(g); gripApply(g.x, g.y + pt(0, -1).y); endGrip(false); const Q = wallPathOf(wg).P; r.lpull = Math.abs(Q[0].y - pt(0, -1).y) < 1e-3 && Math.abs(Q[1].y - pt(0, -1).y) < 1e-3 && Math.abs(Q[0].x) < 1e-3; }
         shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
     t.eq('paroi : poignée de tronçon tirée perpendiculairement, voisins alignés, annulation, paroi ancienne retrouvée', wedge, { grip: true, pull: true, cancel: true, legacy: true, lgrip: true, lpull: true });
+    /* face peinte d'une paroi gardée par son segment : elle reste sur sa face quand le contour est renuméroté, quand on tire le tronçon (elle suit), à l'enregistrement,
+       et les fichiers d'avant (numéro de côté) sont convertis à l'ouverture */
+    const fte = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; await loadPolyClip(); const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {}, T1 = TEX_LIB[0].id, T2 = TEX_LIB[1].id;
+        wallOpt.align = 'gauche'; startWall(WALL_PRESETS[0].id); wallStart = pt(0, 0); wallChain = null; wallAddTo(pt(6, 0).x, pt(6, 0).y); wallAddTo(pt(6, 4).x, pt(6, 4).y); wallAddTo(pt(0, 4).x, pt(0, 4).y); wallChain = null; wallStart = null; setMode('select-box');
+        const wg = shapes.find(x => x.wallMat).groupId, HS = () => shapes.filter(x => x.groupId === wg && isWallHatch(x));
+        const outer = () => { let best = null; HS().forEach(h => { const L = h.loops[0]; L.forEach((c, i) => { const d = L[(i + 1) % L.length]; if (Math.abs(c.x - d.x) < 1e-6 && (!best || c.x > best.x)) best = { h, i, x: c.x }; }); }); return best; };
+        let O = outer(); { const L = O.h.loops[0], a = L[O.i], b = L[(O.i + 1) % L.length]; O.h.fte = [{ a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y }, t: T1 }]; }
+        const painted = () => { const o = outer(); return !!o && wallEdgeTex(o.h)[o.i] === T1 && HS().reduce((n, h) => n + wallEdgeTex(h).filter(t => t === T1).length, 0) === 1; };
+        r.paint = painted(); O.h.loops[0].push(O.h.loops[0].shift()); r.renum = painted();
+        selectedShapes = shapes.filter(x => x.groupId === wg); const g = allGrips().find(x => x.kind === 'w-edge' && x.i === 1); startGrip(g); gripApply(g.x + pt(2, 0).x, g.y); endGrip(false); r.pulled = painted() && Math.abs(outer().x - pt(8, 0).x) < mmToWorld(400);
+        const txt = JSON.stringify(projectData()); loadProjectText(txt, 'f.mmc'); r.saved = painted();
+        const h2 = { type: 'hatch', layerId: 'layer-0', wallMat: 'beton', loops: [[pt(20, 0), pt(25, 0), pt(25, -0.2), pt(20, -0.2)]], ftex: { f1: T2, top: T1 } }; shapes.push(h2);
+        loadProjectText(JSON.stringify(projectData()), 'old.mmc'); const h3 = shapes.find(x => x.type === 'hatch' && x.ftex && x.ftex.top === T1 && !x.groupId); r.migr = !!h3 && wallEdgeTex(h3)[1] === T2 && !('f1' in h3.ftex) && h3.fte.length === 1;
+        shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('paroi : face peinte gardée par son segment (renumérotation, tronçon tiré, enregistrement), anciens fichiers convertis', fte, { paint: true, renum: true, pulled: true, saved: true, migr: true });
     // pièces modulables : paroi fusionnée (contour + refend) retouchée tracé par tracé ; tirer un mur fait suivre la cloison accrochée, porte comprise
     const modu = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; await loadPolyClip(); const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {}, wait = () => new Promise(res => setTimeout(res, 300));
         const chain = (id, P, close) => { wallOpt.align = 'gauche'; startWall(id); wallStart = pt(...P[0]); wallChain = null; P.slice(1).forEach(q => wallAddTo(pt(...q).x, pt(...q).y)); if (close) wallAddTo(pt(...P[0]).x, pt(...P[0]).y); else wallChainEnd(); wallChain = null; wallStart = null; };

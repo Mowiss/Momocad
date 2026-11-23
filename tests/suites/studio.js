@@ -280,10 +280,10 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         const shoot = (y, dir) => { const me = mesh(); me.updateMatrixWorld(true); const o = me.localToWorld(new THREE.Vector3(3, y, Zm0())), d = me.localToWorld(new THREE.Vector3(3, y + dir, Zm0())).sub(o).normalize(); return new THREE.Raycaster(o, d).intersectObject(me)[0]; }, Zm0 = () => { const me = mesh(); me.geometry.computeBoundingBox(); return (me.geometry.boundingBox.min.z + me.geometry.boundingBox.max.z) / 2; };
         const t1 = 'tx-velours', t2 = TEX_LIB.find(t => t.id !== t1 && t.cat !== 'textile').id;
         texPaint.tex = t1; wallFacePaint(W2(), shoot(-1, 1), Pm); function W2() { return shapes.find(x => x.type === 'hatch' && x.wallMat); }
-        texPaint.tex = t2; wallFacePaint(W2(), shoot(1, -1), Pm); const F = W2().ftex || {}; r.two = Object.keys(F).length === 2 && Object.values(F).includes(t1) && Object.values(F).includes(t2);
+        texPaint.tex = t2; wallFacePaint(W2(), shoot(1, -1), Pm); const F = (W2().fte || []).map(e => e.t); r.two = F.length === 2 && F.includes(t1) && F.includes(t2) && !W2().ftex;
         const me = mesh(); r.mats = Array.isArray(me.material) && me.material.length === 3 && me.geometry.groups.length === 3;
-        texPaint.kind = 'texclear'; wallFacePaint(W2(), shoot(-1, 1), Pm); r.clear = Object.keys(W2().ftex || {}).length === 1;
-        texPaint.kind = 'paint'; texPaint.tex = t1; texApply(W2()); r.whole = W2().tex === t1 && !W2().ftex;
+        texPaint.kind = 'texclear'; wallFacePaint(W2(), shoot(-1, 1), Pm); r.clear = (W2().fte || []).length === 1;
+        texPaint.kind = 'paint'; texPaint.tex = t1; texApply(W2()); r.whole = W2().tex === t1 && !W2().ftex && !W2().fte;
         texStop(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('paroi peinte face par face (deux parements, deux textures), gomme d\'une face, Maj + clic = toute la paroi', fface, { two: true, mats: true, clear: true, whole: true });
 } };

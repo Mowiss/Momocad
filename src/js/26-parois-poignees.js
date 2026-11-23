@@ -228,11 +228,11 @@
                     const TT = wallChainShapes(P, tool, closed, G[0].layerId, gid, null).filter(x => x.type === 'hatch'); if (TT.length === H.length && TT.map(cen).every(c => { const j = C0.findIndex((d, kk) => !used.has(kk) && Math.hypot(d[0] - c[0], d[1] - c[1]) < mmToWorld(5)); if (j < 0) return false; used.add(j); return true; })) R = { P, closed, tool, G }; } }
             WALL_PATH_MEMO.set(mk, R); return R; }
         /* refaire une paroi sur un autre tracé (même composition, hauteur, étage ; portes et fenêtres reposées sur le morceau le plus proche) */
-        function wallRebuildPath(gid, P, closed, tool, G0) { const G = G0 || shapes.filter(x => x.groupId === gid && x.wallMat); if (!G.length || P.length < 2) return null; const s0 = G[0], at = shapes.indexOf(s0), ops = [];
+        function wallRebuildPath(gid, P, closed, tool, G0, P0) { const G = G0 || shapes.filter(x => x.groupId === gid && x.wallMat); if (!G.length || P.length < 2) return null; const s0 = G[0], at = shapes.indexOf(s0), ops = [];
             G.forEach(x => (x.openings || []).forEach(o => ops.push(o))); const N = wallChainShapes(P, tool, closed, tool.cx ? null : wallLayerId(tool), gid, s0.wz);
             N.forEach(x => { ['bid', 'lvl', 'zk'].forEach(f => { if (s0[f] !== undefined) x[f] = s0[f]; }); x.lvs = 1; });
             const old = new Set(G); shapes = shapes.filter(x => !old.has(x)); shapes.splice(Math.max(0, Math.min(at, shapes.length)), 0, ...N);
-            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => wallOpHome(o, Hn));
+            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => wallOpHome(o, Hn)); wallPaintCarry(G, Hn, P0 ? [P0] : null, P0 ? [P] : null);
             return N; }
         function wallCxRecover(gid) { const G = shapes.filter(x => x.groupId === gid && x.wallCx), Hs = G.filter(x => x.type === 'hatch' && !x.stud && x.loops && x.loops[0] && x.loops[0].length === 4); if (!Hs.length) return null;
             let def = (Hs.find(x => x.cxd) || {}).cxd; if (def) def = cxNorm(def);
@@ -251,7 +251,7 @@
             const ops = []; R.G.forEach(x => (x.openings || []).forEach(o => ops.push(o))); const at = shapes.indexOf(s0);
             const N = wallChainShapesCx(R.P, w, R.closed, gid, s0.wz); N.forEach(x => { ['bid', 'lvl', 'zk'].forEach(f => { if (s0[f] !== undefined) x[f] = s0[f]; }); x.lvs = 1; });
             const old = new Set(R.G); shapes = shapes.filter(x => !old.has(x)); shapes.splice(Math.max(0, Math.min(at, shapes.length)), 0, ...N);
-            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => wallOpHome(o, Hn));
+            const Hn = N.filter(x => x.type === 'hatch' && !x.stud); ops.forEach(o => wallOpHome(o, Hn)); wallPaintCarry(R.G, Hn, null, null);
             return N; }
         // géométrie d'une chaîne pour une bande [oa, ob] (monde, depuis le tracé, vers la gauche) : onglets aux angles
         const wallChainGeomOff = (P, closed, oa, ob) => wallChainGeomRaw(P, closed, oa, ob);
@@ -269,7 +269,8 @@
                     let D; try { D = PC0.difference(poly0(h), PC0.union(...O.map(poly0))); } catch (err) { return; }
                     const parts = D.map(pg => pg.map(r => r.slice(0, -1).map(([x, y]) => ({ x, y })))).filter(L => Math.abs(polyArea(L[0])) > minA);
                     if (!parts.length) { shapes = shapes.filter(x => x !== h); H0 = H0.filter(x => x !== h); if (h.groupId) redo.add(h.groupId); return; }
-                    h.loops = parts[0]; parts.slice(1).forEach(L => { const c = Object.assign({}, h, { loops: L }); delete c.openings; shapes.push(c); H0.push(c); }); if (h.groupId) redo.add(h.groupId); });
+                    h.loops = parts[0]; const pc = [h]; parts.slice(1).forEach(L => { const c = Object.assign({}, h, { loops: L }); delete c.openings; shapes.push(c); H0.push(c); pc.push(c); }); if (h.groupId) redo.add(h.groupId);
+                    if (pc.length > 1 && h.openings && h.openings.length) { const ops = h.openings; delete h.openings; ops.forEach(o => wallOpHome(o, pc)); } });   /* chaque ouverture sur le morceau qui la porte */
                 redo.forEach(g => { const hs = shapes.filter(x => x.groupId === g && isWallHatch(x)), mat = (hs[0] || {}).wallMat, ln = shapes.filter(x => x.groupId === g && x.type === 'line' && x.wallMat), proto = ln[0];
                     if (!hs.length || !proto) return; let U; try { U = PC0.union(...hs.map(poly0)); } catch (err) { return; }
                     shapes = shapes.filter(x => !ln.includes(x));
@@ -289,11 +290,13 @@
                 const members = [...inC], groups = new Set(members.map(h => h.groupId).filter(Boolean)), lid = members[0].layerId, mat = members[0].wallMat, wz = members[0].wz, gid = 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);
                 const tag = (o) => { o.groupId = gid; o.wallMat = mat; if (wz) o.wz = Object.assign({}, wz); return o; }, out = [];
                 // hachures : chaque tronçon garde son sens de motif ; les nouveaux sont recoupés par les anciens (plus de chevauchement)
-                const olds = members.filter(h => !H0.includes(h)), oldU = olds.length ? PC.union(...olds.map(poly)) : null, keep = [];
+                const olds = members.filter(h => !H0.includes(h)), oldU = olds.length ? PC.union(...olds.map(poly)) : null, keep = [], opsN = [];
                 members.forEach(h => { if (!H0.includes(h) || !oldU) { keep.push(h); return; }
                     let D; try { D = PC.difference(poly(h), oldU); } catch (err) { D = null; } if (!D) { keep.push(h); return; }
                     D.forEach(pg => { const nh = Object.assign({}, h, { loops: pg.map(r => r.slice(0, -1).map(([x, y]) => ({ x, y }))) }); delete nh.openings; if (Math.abs(polyArea(nh.loops[0])) > Math.pow(mmToWorld(20), 2)) out.push(nh); });
-                    if (h.openings && h.openings.length) (out[0] || keep[0] || h).openings = ((out[0] || keep[0] || h).openings || []).concat(h.openings); });
+                    if (h.openings && h.openings.length) opsN.push(...h.openings); });
+                /* ouvertures des nouvelles parois recoupées : reposées sur la hachure qui les porte (pas sur la première venue) */
+                { const Hk = keep.concat(out).filter(x => x.type === 'hatch'); opsN.forEach(o => { Hk.forEach(x => { if (x.openings && x.openings.includes(o)) { x.openings = x.openings.filter(y => y !== o); if (!x.openings.length) delete x.openings; } }); wallOpHome(o, Hk); }); }
                 keep.forEach(h => { tag(h); }); out.forEach(tag);
                 // contour : celui de l'ensemble fusionné, sans trait aux jonctions
                 U.forEach(pg => pg.forEach(r => { const L = r.slice(0, -1); L.forEach(([ax, ay], k) => { const [bx, by] = L[(k + 1) % L.length]; if (Math.hypot(bx - ax, by - ay) > 1e-9) out.push(tag({ type: 'line', layerId: lid, x1: ax, y1: ay, x2: bx, y2: by })); }); }));

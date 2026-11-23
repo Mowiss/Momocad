@@ -353,7 +353,7 @@
                 if (o.solid && o.solid.kind === 'roof' && o.texU && g.groups && g.groups.length === 2) {   // sous-face de l'avancée : sa propre texture
                     const TU = TEX_LIB.find(t => t.id === o.texU), mu = TU ? texMaterial(o.texU) : null;
                     if (mu) { const gg = texGeometry(g, TX ? TX.tile : TU.tile); m = new THREE.Mesh(gg, [tm || m.material, mu]); } }
-                if (o.ftex && o.wallMat && Object.keys(o.ftex).length) { try { m = wallFaceMesh(o, g, m.material, P); } catch (e) {} }   /* chaque face sa texture */
+                if ((o.ftex && Object.keys(o.ftex).length || (o.fte && o.fte.length)) && o.wallMat) { try { m = wallFaceMesh(o, g, m.material, P); } catch (e) {} }   /* chaque face sa texture */
                 if (tm && selectedShapes.includes(o)) tm.emissive = new THREE.Color(0x5b1840);
                 m.userData.shape = o; root.add(m);
                 let eg = o.wallMat ? wallEdges3D(o, P, Zm, exag) : null; if (!eg) { eg = new THREE.EdgesGeometry(g, 30); if (o.wallMat || o.csg || o.type === 'mesh') eg = flatEdgesClean(g, eg); }

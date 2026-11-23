@@ -24,7 +24,19 @@
                 if (paths.length) R = { gid, G, single: false, paths: paths.sort((a, b) => a.o - b.o), fixed }; } }
             WALL_PATHS_MEMO.set(mk, R); return R; }
         /* refaire un bloc de parois avec de nouveaux tracés : les plus anciens d'abord, les suivants recoupés contre eux (comme à la fusion), un seul contour */
-        function wallPathsApply(info, Ps) { if (info.single) { const p = info.paths[0]; return wallRebuildPath(info.gid, Ps[0], p.closed, p.tool, info.G); }
+        /* paroi refaite (poignée, fusion…) : les nouvelles hachures reprennent l'habillage des anciennes de même matière (texture, dessus/dessous/bouts, faces peintes) ;
+           une face peinte posée sur un tronçon qui a bougé suit son tronçon (même décalage) ; chaque nouvelle hachure ne garde que les faces qui tombent sur ses côtés */
+        function wallPaintCarry(G, Hn, oldP, newP) { const olds = G.filter(x => x.type === 'hatch' && (x.tex || x.ftex || (x.fte && x.fte.length))); if (!olds.length) return;
+            const shift = (e) => { if (!oldP || !newP) return e; let best = null; oldP.forEach((P, k) => { const Q = newP[k]; if (!Q || Q.length !== P.length) return; for (let j = 0; j + 1 < P.length; j++) { const a = P[j], b = P[j + 1], L = Math.hypot(b.x - a.x, b.y - a.y); if (L < 1e-9) continue;
+                    const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L, le = Math.hypot(e.b.x - e.a.x, e.b.y - e.a.y) || 1; if (Math.abs(ux * (e.b.y - e.a.y) / le - uy * (e.b.x - e.a.x) / le) > 0.02) continue;
+                    const off = ((e.a.x + e.b.x) / 2 - a.x) * -uy + ((e.a.y + e.b.y) / 2 - a.y) * ux, tm = ((e.a.x + e.b.x) / 2 - a.x) * ux + ((e.a.y + e.b.y) / 2 - a.y) * uy; if (tm < -mmToWorld(50) || tm > L + mmToWorld(50)) continue;
+                    if (!best || Math.abs(off) < Math.abs(best.off)) { const d = ((Q[j].x - a.x) * -uy + (Q[j].y - a.y) * ux + (Q[j + 1].x - b.x) * -uy + (Q[j + 1].y - b.y) * ux) / 2; best = { off, dx: -uy * d, dy: ux * d }; } } });
+                return best && (best.dx || best.dy) ? { a: { x: e.a.x + best.dx, y: e.a.y + best.dy }, b: { x: e.b.x + best.dx, y: e.b.y + best.dy }, t: e.t } : e; };
+            Hn.forEach(h => { if (h.type !== 'hatch' || h.stud || !h.loops || !h.loops[0]) return; const same = olds.filter(x => x.wallMat === h.wallMat && (x.cxB === undefined || x.cxB === h.cxB)), src = same.length ? same : [];
+                if (!src.length) return; const t = src.find(x => x.tex); if (t && !h.tex) h.tex = t.tex; const fx = Object.assign({}, ...src.map(x => x.ftex || {})); if (Object.keys(fx).length) h.ftex = fx;
+                const L = h.loops[0], E = []; src.forEach(x => (x.fte || []).forEach(e => { const e2 = shift(e); if (L.some((c, i) => wallFteMatch(e2, c, L[(i + 1) % L.length])) && !E.some(f => f.t === e2.t && wallFteMatch(f, e2.a, e2.b))) E.push(JSON.parse(JSON.stringify(e2))); }));
+                if (E.length) h.fte = E; else delete h.fte; }); }
+        function wallPathsApply(info, Ps) { if (info.single) { const p = info.paths[0]; return wallRebuildPath(info.gid, Ps[0], p.closed, p.tool, info.G, p.P); }
             const G = info.G, s0 = G[0], at = shapes.indexOf(s0), lid = s0.layerId, ops = [], PC = window.polygonClipping, ring = (l) => { const r = l.map(q => [q.x, q.y]); r.push(r[0]); return r; }, poly = (h) => h.loops.map(ring);
             const fx0 = new Set(info.fixed); G.forEach(h => { if (!fx0.has(h)) (h.openings || []).forEach(o => ops.push(o)); });
             const cp = (s) => { ['bid', 'lvl', 'zk'].forEach(f => { if (s0[f] !== undefined) s[f] = s0[f]; }); s.lvs = 1; delete s.wp; delete s.openings; return s; }, Hn = [];
@@ -38,7 +50,7 @@
                 addAcc(raw); });
             const lines = []; if (PC && acc) acc.forEach(pg => pg.forEach(r => { const L = r.slice(0, -1); L.forEach(([ax, ay], k) => { const [bx, by] = L[(k + 1) % L.length]; if (Math.hypot(bx - ax, by - ay) > 1e-9) { const l = cp({ type: 'line', layerId: lid, x1: ax, y1: ay, x2: bx, y2: by, groupId: info.gid, wallMat: s0.wallMat }); if (s0.wz) l.wz = Object.assign({}, s0.wz); lines.push(l); } }); }));
             const fx = new Set(info.fixed), old = new Set(G.filter(x => !fx.has(x))); shapes = shapes.filter(x => !old.has(x)); const N = Hn.concat(lines); shapes.splice(Math.max(0, Math.min(at, shapes.length)), 0, ...N);
-            ops.forEach(o => wallOpHome(o, Hn));
+            ops.forEach(o => wallOpHome(o, Hn)); wallPaintCarry([...old], Hn, info.paths.map(p => p.P), Ps);
             if (!PC) wallBordersRepair(); return N.concat(info.fixed); }
         /* une porte ou fenêtre reposée dans la paroi refaite : sur le tronçon qui la porte ; si la paroi a bougé sous elle, elle est ramenée dedans (perpendiculairement), jamais étirée hors du mur */
         function wallOpHome(o, Hn) { if (!o.a || !o.b) return; const m = { x: (o.a.x + o.b.x) / 2, y: (o.a.y + o.b.y) / 2 }; let best = null, bd = Infinity; Hn.forEach(h => { const Q = h.loops && h.loops[0]; if (!Q || bd < 0) return; if (pointInPolygon(m.x, m.y, Q)) { bd = -1; best = h; return; } const d = distToPoly(m.x, m.y, Q); if (d < bd) { bd = d; best = h; } }); if (!best) return;
