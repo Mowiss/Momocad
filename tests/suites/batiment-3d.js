@@ -125,7 +125,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         shapes.filter(x => x.groupId === 'cw1').forEach(x => { x.wz.t = 106700; }); saveState(); await new Promise(r => setTimeout(r, 700)); const h1 = W();
         const T0 = shapes.find(x => x.secTitle), g = T0.groupId, x0t = T0.x; shapes.filter(x => x.groupId === g).forEach(x => translateShape(x, 10 * m, 0)); saveState(); await new Promise(r => setTimeout(r, 700));
         const T1 = shapes.find(x => x.secTitle), moved = Math.round((T1.x - x0t) / m), kept = shapes.filter(x => x.secOf).length > 10;
-        const beyond = shapes.some(x => x.secOf && x.type === 'line' && x.width === 0.5);
+        const beyond = shapes.some(x => x.secOf && (x.type === 'line' || x.type === 'poly') && x.width === 0.5);
         // cotes de talus sur leur calque : masquées sans toucher au talus
         invalidateCache(); draw(); await new Promise(r => setTimeout(r, 50)); invalidateCache(); draw(); const LT = layers.find(l => l.name === 'Cotes de talus'), nT = () => screenTextsToDraw.filter(x => LT && x.layerId === LT.id).length, withT = nT(); if (LT) LT.visible = false; invalidateCache(); draw(); const hidT = nT(); if (LT) LT.visible = true;
         const r = { up: Math.round((h1 - h0) / m * 10) / 10, txt, mats, moved, kept, tn: shapes.some(x => x.secOf && x.name === 'TN'), beyond, talusCot: !!LT && withT > 0 && hidT === 0 }; shapes = keepS; invalidateCache(); saveState(); return r; });
@@ -164,13 +164,26 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const rb = [...document.getElementById('selparam-modal').querySelectorAll('[onclick]')].find(x => /'reset'/.test(x.getAttribute('onclick'))); if (rb) rb.click(); r.reset = !!rb && !Object.keys(d.lvOff || {}).length; r.sel = selectedShapes.some(x => x.secTitle);
         closeSelectionParamModal(); shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
     t.eq('coupe, fenêtre Y : pas des cotes du TN, écart de la colonne des niveaux, cotes affichées ou non, cotes remises à leur place', cy, { ui: true, tn: true, col: true, noPlat: true, plat: true, moved: true, reset: true, sel: true });
+    // coupes légères : un trait, une cote, un texte ajoutés ne relancent pas le calcul de la coupe ; un volume ajouté, si ; la vue au-delà en polylignes (peu d'objets)
+    const cp = await ev(async () => { await loadThree(); const keepS = shapes, keepL = layers.slice(); shapes = []; const m = mmToWorld(1000), r = {}, R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 300, zk: 1 });
+        const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); [[18, 10, 18.2, 20], [29.8, 10, 30, 20], [18, 10, 30, 10.2], [18, 19.8, 30, 20]].forEach(([a, b2, c, d], k) => shapes.push({ type: 'hatch', layerId: wl, loops: [R(a, b2, c, d)], wallMat: 'parpaing', groupId: 'cp' + k, wz: { b: 101500, t: 104200 } }));
+        shapes.push(...buildRoof({ type: 'poly', layerId: 'layer-0', points: R(18, 10, 30, 20).map(q => Object.assign(q, { z: 104200 })) }, { pans: 2, he: 104.2, hf: 107, e: 0.25, ge: 0.2, fill: false, db: 0, dir: 'long' }));
+        saveState(); sectionPlace(sectionData({ x: 2 * m, y: -12 * m }, { x: 48 * m, y: -12 * m }, 1), { x: 25 * m, y: -60 * m }); await new Promise(res => setTimeout(res, 500));
+        const d = shapes.find(x => x.cutDef).cutDef, S = shapes.filter(x => x.secOf === d.id), bey = S.filter(x => x.width === 0.5); r.chained = bey.some(x => x.type === 'poly' && x.points.length > 2);
+        const f0 = window.sectionData; let n = 0; window.sectionData = function () { n++; return f0.apply(this, arguments); };
+        try { shapes.push({ type: 'line', layerId: 'layer-0', x1: 0, y1: 0, x2: 3 * m, y2: 0 }); saveState(); await new Promise(res => setTimeout(res, 600)); r.skip = n === 0;
+            shapes.push({ type: 'poly', layerId: 'layer-0', points: R(36, 8, 40, 16).map(q => Object.assign(q, { z: 103000 })), solid: { kind: 'box', H: 2500 }, name: 'Abri', zk: 1 }); saveState(); await new Promise(res => setTimeout(res, 600)); r.redo = n === 1; }
+        finally { window.sectionData = f0; }
+        shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
+    t.eq('coupes légères : un trait ajouté ne relance pas le calcul, un volume ajouté si ; vue au-delà en polylignes', cp, { chained: true, skip: true, redo: true });
     // coupe : hiérarchie des traits (coupé épais, au-delà fin, TN tireté, rappels de niveau pointillés), niveaux à droite du bâtiment (pas au bout du terrain), titre effacé = coupe toujours dynamique
     const cs = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         for (let i = 0; i <= 16; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 200, zk: 1 });
         const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); [[18, 10, 18.2, 20], [29.8, 10, 30, 20]].forEach(([a, b2, c, d], k) => shapes.push({ type: 'hatch', layerId: wl, loops: [R(a, b2, c, d)], wallMat: 'parpaing', groupId: 'cs' + k, wz: { b: 103000, t: 105700 } }));
         shapes.push(...buildRoof({ type: 'poly', layerId: 'layer-0', points: R(18, 10, 30, 20).map(q => Object.assign(q, { z: 105700 })) }, { pans: 2, he: 105.7, hf: 108.5, e: 0.25, ge: 0.2, fill: false, db: 0, dir: 'long' }));
         saveState(); sectionPlace(sectionData({ x: 2 * m, y: -15 * m }, { x: 78 * m, y: -15 * m }, 1), { x: 40 * m, y: -70 * m }); await new Promise(r => setTimeout(r, 300));
-        const S = shapes.filter(x => x.secOf), tn = S.find(x => x.name === 'TN'), cut = S.find(x => x.type === 'poly' && x.width === 2 && !x.name), bey = S.find(x => x.type === 'line' && x.width === 0.5 && !x.dash), lead = S.find(x => x.dash === 'dotted');
+        const S = shapes.filter(x => x.secOf), tn = S.find(x => x.name === 'TN'), cut = S.find(x => x.type === 'poly' && x.width === 2 && !x.name), bey = S.find(x => (x.type === 'line' || x.type === 'poly') && x.width === 0.5 && !x.dash), lead = S.find(x => x.dash === 'dotted');
         const wallX = Math.max(...S.filter(x => x.hatchMat === 'parpaing').flatMap(x => x.loops[0].map(q => q.x))), roofX = Math.max(...S.filter(x => x.hatchMat === 'bois').flatMap(x => x.loops[0].map(q => q.x))), mk = S.filter(x => x.type === 'text' && /Faîtage|Égout/.test(x.content)).map(x => (x.x - Math.max(wallX, roofX)) / m);
         const styles = [effectiveDash(tn), effectiveWidth(cut), effectiveWidth(bey), effectiveDash(lead)];
         shapes = shapes.filter(x => !x.secTitle); saveState(); await new Promise(r => setTimeout(r, 700)); const alive = !!shapes.find(x => x.cutDef) && !!shapes.find(x => x.secTitle);
@@ -935,6 +948,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('blocs 3D : réfrigérateurs, îlot central, poêle à bois ; plan de travail en un seul contour', nb, { blocks: true, outline: true });
     // ouverture d'un étage du dessous : dessinée translucide (comme son mur), pas comme si elle était à l'étage affiché
+    // ouverture posée au R+1 : sur le mur du R+1, pas sur celui du RDC qui est dessous (même tracé)
+    const opr = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState(); bldActivate(A, 'rdc'); lvlAdd(true); bldPick('rdc'); saveState();
+        const wall = () => { startWall(WALL_PRESETS[0].id); wallStart = pt(1, 1); wallChain = null; wallAddTo(pt(8, 1).x, pt(8, 1).y); wallChain = null; wallStart = null; setMode('select-box'); };
+        wall(); const lo = shapes.find(x => x.type === 'hatch' && x.wallMat); startWall(WALL_PRESETS[0].id); wallStart = pt(1, 5); wallChain = null; wallAddTo(pt(8, 5).x, pt(8, 5).y); wallChain = null; wallStart = null; setMode('select-box'); const hi = lvlSorted()[1].id; bldPick(hi); saveState(); wall(); const up = shapes.find(x => x.type === 'hatch' && x.wallMat && x !== lo && !lvlBelow(x));
+        r.two = !!up && lvlBelow(lo); const h = wallAt(pt(3, 1.1)); r.host = h === up || (!!h && h.groupId === up.groupId && !lvlBelow(h));
+        r.none = !wallAt(pt(3, 5.1));   /* au R+1, le mur du RDC seul (en transparence) ne reçoit pas l'ouverture */
+        bldPick('rdc'); const h2 = wallAt(pt(3, 1.1)); r.rdc = !!h2 && h2.groupId === lo.groupId;
+        bldAll(); bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('ouverture au R+1 : posée sur le mur du R+1, pas sur celui du RDC dessous ; au RDC, sur celui du RDC', opr, { two: true, host: true, none: true, rdc: true });
     const opl = await ev(async () => { const keepS = shapes; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
         const A = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [10, 0], [10, 8], [0, 8]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 100000, 2800); saveState(); bldActivate(A, 'rdc'); lvlAdd(true); bldPick('rdc'); saveState();
         startWall(WALL_PRESETS[0].id); wallStart = pt(1, 1); wallChain = null; wallAddTo(pt(8, 1).x, pt(8, 1).y); wallChain = null; wallStart = null; setMode('select-box'); const host = shapes.find(x => x.type === 'hatch' && x.wallMat);

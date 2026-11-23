@@ -418,7 +418,14 @@
                     if (pj.some((z, k) => Math.abs(z - t[k]) > 5)) out.push(poly(u.map((x, k) => [x, pj[k]]), { open: true, width: 2, name: 'Projet', colOf: pjCol }));
                      } }   /* le TN est coté tous les 5 m (cotes de la coupe) */
             // vue au-delà : traits fins à la couleur du calque de l'objet
-            (D.beyond || []).forEach(([a1, b1, a2, b2, lay]) => { const P = Wp([a1, b1]), Q = Wp([a2, b2]); out.push(tag({ type: 'line', layerId: lid, x1: P.x, y1: P.y, x2: Q.x, y2: Q.y, width: 0.5, colOf: lay })); });
+            /* traits bout à bout réunis en polylignes (par calque) : des milliers de petits traits en moins à enregistrer, annuler, accrocher */
+            { const byL = new Map(); (D.beyond || []).forEach(sg => { const k = sg[4] || ''; if (!byL.has(k)) byL.set(k, []); byL.get(k).push(sg); });
+                byL.forEach((S, lay) => { const K = (u, z) => Math.round(u) + ',' + Math.round(z), ends = new Map(), used = new Uint8Array(S.length); S.forEach((sg, i) => { [K(sg[0], sg[1]), K(sg[2], sg[3])].forEach(k => { if (!ends.has(k)) ends.set(k, []); ends.get(k).push(i); }); });
+                    const next = (k) => (ends.get(k) || []).find(i => !used[i]);
+                    S.forEach((sg, i) => { if (used[i]) return; used[i] = 1; let pts = [[sg[0], sg[1]], [sg[2], sg[3]]];
+                        for (let dir = 0; dir < 2; dir++) { let guard = 0; while (guard++ < 5000) { const e = pts[pts.length - 1], j = next(K(e[0], e[1])); if (j === undefined) break; used[j] = 1; const q = S[j], a = K(q[0], q[1]) === K(e[0], e[1]); pts.push(a ? [q[2], q[3]] : [q[0], q[1]]); } pts.reverse(); }
+                        if (pts.length === 2) { const P = Wp(pts[0]), Q = Wp(pts[1]); out.push(tag({ type: 'line', layerId: lid, x1: P.x, y1: P.y, x2: Q.x, y2: Q.y, width: 0.5, colOf: lay || undefined })); }
+                        else out.push(poly(pts, { open: true, width: 0.5, colOf: lay || undefined })); }); }); }
             // volumes coupés : hachure de leur matériau et contour épais
             const matOf = (x) => x.wallMat || (x.solid && x.solid.kind === 'roof' ? 'bois' : x.roofPart ? 'parpaing' : 'beton');
             D.loops.forEach(({ o: ob, loop }) => { out.push(hatch(loop, matOf(ob), ob.layerId)); out.push(poly(loop, { width: 2, colOf: ob.layerId })); });
@@ -448,16 +455,22 @@
         // mise à jour : après chaque modification (un instant après), toutes les coupes dynamiques sont recalculées ; une coupe déplacée garde sa nouvelle place
         let secTimer = 0;
         function secSchedule() { if (!shapes.some(x => x.cutDef)) return; clearTimeout(secTimer); secTimer = setTimeout(secRefreshAll, 300); }
-        function secRefreshAll() { if (!window.THREE) { loadThree().then(secRefreshAll); return; } let ch = false;
-            shapes.filter(x => x.cutDef && x.type === 'line').forEach(L => { try { if (secRefresh(L)) ch = true; } catch (e) { console.error(e); } });
+        /* empreinte de ce qu'une coupe montre (volumes, murs, plateformes, terrain, calques visibles) : si rien de cela n'a changé, la coupe calculée est reprise telle quelle
+           (le calcul — maquette 3D, vue au-delà — coûte des centaines de ms ; un trait, une cote, un texte ajoutés ne le relancent plus) */
+        const SEC_D = new Map();
+        function secModelSig() { const rel = shapes.filter(x => !x.secOf && !x.secMark && !x.cutDef && (is3DObj(x) || (x.type === 'point' && hasZ(x.z)) || x.wz || x.openings || (x.points && x.points.some(q => hasZ(q.z)))));
+            const j = JSON.stringify(rel) + '|' + layers.map(l => l.visible === false ? 0 : 1).join(''); let h = 0; for (let i = 0; i < j.length; i++) h = (h * 31 + j.charCodeAt(i)) | 0; return h + ':' + j.length; }
+        function secRefreshAll() { if (!window.THREE) { loadThree().then(secRefreshAll); return; } let ch = false; const sig = secModelSig();
+            shapes.filter(x => x.cutDef && x.type === 'line').forEach(L => { try { if (secRefresh(L, sig)) ch = true; } catch (e) { console.error(e); } });
             if (ch) { invalidateCache(); if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = JSON.parse(JSON.stringify(shapes)); draw(); } }
-        function secRefresh(L) { const d = L.cutDef, old = shapes.filter(x => x.secOf === d.id), title = old.find(x => x.secTitle);
+        function secRefresh(L, sig) { const d = L.cutDef, old = shapes.filter(x => x.secOf === d.id), title = old.find(x => x.secTitle);
             if (!old.length) { delete L.cutDef; return false; }   // tout le dessin de la coupe a été supprimé : la ligne redevient un simple repère (un titre effacé seul ne casse plus la coupe : il revient)
             const tdx = title && isFinite(d.tx) ? title.x - d.tx : 0, tdy = title && isFinite(d.ty) ? title.y - d.ty : 0;
             if (Math.abs(tdx) > 1e-9 || Math.abs(tdy) > 1e-9) { d.o.x += tdx; d.o.y += tdy; }
             old.forEach(x => { if (x.type === 'text' && x.lvKey && x.lvRef) { const pv = (d.lvOff || {})[x.lvKey] || { dx: 0, dy: 0 }; let dx = x.x - x.lvRef.x, dy = x.y - x.lvRef.y;
                 if ((Math.abs(tdx) > 1e-9 || Math.abs(tdy) > 1e-9) && Math.abs(dx - pv.dx - tdx) < 1e-6 && Math.abs(dy - pv.dy - tdy) < 1e-6) { dx -= tdx; dy -= tdy; }   /* déplacée avec toute la coupe : elle garde sa place relative */ d.lvOff = d.lvOff || {}; if (Math.abs(dx) + Math.abs(dy) > 1e-9) d.lvOff[x.lvKey] = { dx, dy }; else delete d.lvOff[x.lvKey]; } });   // cotes de niveau déplacées à la main : leur place est gardée
-            const D = sectionData({ x: L.x1, y: L.y1 }, { x: L.x2, y: L.y2 }, d.side); if (!D || D.wait) return false; D.name = d.name;
+            const sk = (sig || secModelSig()) + '|' + [L.x1, L.y1, L.x2, L.y2, d.side].join(','), C = SEC_D.get(d.id); let D;
+            if (C && C.sk === sk) D = C.D; else { D = sectionData({ x: L.x1, y: L.y1 }, { x: L.x2, y: L.y2 }, d.side); if (!D || D.wait) return false; SEC_D.set(d.id, { sk, D }); } D.name = d.name;
             const out = secBuild(D, d), key = JSON.stringify(out.map(x => [x.type, x.points || x.loops || [x.x, x.y, x.x1, x.y1, x.x2, x.y2, x.content]])).replace(/(\d+\.\d{4})\d+/g, '$1');
             const mk = shapes.filter(x => x.secMark === d.id), mkKey = JSON.stringify([L.x1, L.y1, L.x2, L.y2]);
             if (key === d.key && mkKey === d.mkKey && title) return false; d.key = key; d.mkKey = mkKey;

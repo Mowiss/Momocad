@@ -140,9 +140,9 @@
         let openA = null, openWall = null;
         function startOpening() { setMode('opening'); openA = null; openWall = null; updateCommandMessage(); draw(); }
         const isWallHatch = (x) => x && x.type === 'hatch' && x.wallMat;
-        function wallAt(w) { const t = findShapeAt(w.x, w.y); if (t && t.groupId) { const h = shapes.find(x => x.groupId === t.groupId && isWallHatch(x)); if (h) return h; } if (isWallHatch(t)) return t;
+        function wallAt(w) { const t = findShapeAt(w.x, w.y); if (t && lvlOff2D(t)) return null; if (t && t.groupId) { const h = shapes.find(x => x.groupId === t.groupId && isWallHatch(x)); if (h) return h; } if (isWallHatch(t)) return t;
             const tol = 8 / camera.zoom, near = (L) => L.some((c, i) => { const d = L[(i + 1) % L.length], vx = d.x - c.x, vy = d.y - c.y, l2 = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((w.x - c.x) * vx + (w.y - c.y) * vy) / l2)); return Math.hypot(c.x + vx * t - w.x, c.y + vy * t - w.y) <= tol; });
-            return shapes.find(x => isWallHatch(x) && x.loops && (pointInPolygon(w.x, w.y, x.loops[0]) || near(x.loops[0]))) || null; }
+            return shapes.find(x => isWallHatch(x) && x.loops && !lvlOff2D(x) && (pointInPolygon(w.x, w.y, x.loops[0]) || near(x.loops[0]))) || null; }   /* pas un mur d'un autre étage */
         // direction du mur au point cliqué : bord le plus proche du contour du mur
         let openDir = null, openLast = { w: 0.9, kind: 'fen' };
         try { const v = JSON.parse(localStorage.getItem('momocad-open') || 'null'); if (v && v.w > 0) openLast = Object.assign(openLast, v); } catch (e) {}
@@ -154,7 +154,7 @@
         // couches de paroi traversées par la normale au mur, au milieu de l'ouverture : intervalles [t0, t1] (monde, le long de la normale)
         function openingLayerSpans(a, b) {
             const L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L, m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, R = mmToWorld(3000), out = [];
-            shapes.filter(isWallHatch).forEach(h => { const l = layers.find(x => x.id === (h.layerId || 'layer-0')); if (l && l.visible === false) return; const ts = [];
+            shapes.filter(isWallHatch).forEach(h => { const l = layers.find(x => x.id === (h.layerId || 'layer-0')); if ((l && l.visible === false) || lvlOff2D(h)) return; const ts = [];
                 (h.loops || []).forEach(Lp => { for (let i = 0; i < Lp.length; i++) { const c = Lp[i], d = Lp[(i + 1) % Lp.length], den = (d.x - c.x) * ny - (d.y - c.y) * nx; if (Math.abs(den) < 1e-12) continue;
                     const u = ((m.x - c.x) * ny - (m.y - c.y) * nx) / den; if (u < 0 || u > 1) continue; const t = (c.x + (d.x - c.x) * u - m.x) * nx + (c.y + (d.y - c.y) * u - m.y) * ny; if (Math.abs(t) <= R) ts.push(t); } });
                 if (ts.length >= 2) out.push({ h, t0: Math.min(...ts), t1: Math.max(...ts) }); });
