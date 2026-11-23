@@ -353,5 +353,6 @@
         function opLayerId() { return ensureLayer('Ouvertures', '#38bdf8'); }
         function opLayer(o) { return o && o.layerId ? layers.find(l => l.id === o.layerId) || null : null; }
         function opHidden(o) { const l = opLayer(o); return !!(l && l.visible === false); }
-        function openingAt(w) { for (const h of shapes) for (const o of (h.openings || [])) if (pointInPolygon(w.x, w.y, o.pts)) return { h, o }; return null; }
+        function openingAt(w) { for (let i = shapes.length - 1; i >= 0; i--) { const h = shapes[i]; if (!h.openings || !h.openings.length || lvlOff2D(h)) continue; const l = layers.find(x => x.id === (h.layerId || 'layer-0')); if (l && l.visible === false) continue;   /* pas une ouverture d'un autre étage (en transparence dessous) ni d'un calque masqué */
+                for (const o of h.openings) if (o.pts && !opHidden(o) && pointInPolygon(w.x, w.y, o.pts)) return { h, o }; } return null; }
 
