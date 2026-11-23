@@ -182,6 +182,7 @@
             const S = selectedShapes, one = S.length === 1 ? S[0] : null;
             const wallG = S.length && S.every(x => x.wallMat);
             if (wallG) { const g = new Set(S.map(x => x.groupId)).size, m = WALL_MATS[S[0].wallMat]; if (g === 1 && S.every(x => x.wallCx)) return { k: 'wall', t: 'Paroi complexe — ' + S[0].wallCx }; return { k: 'wall', t: (g > 1 ? g + ' murs' : 'Mur') + ' — ' + (m ? m.name : 'paroi') }; }
+            { const CL = S.length > 1 && S.some(x => x.secTitle) ? cutLineOf(S) : null; if (CL) return { k: 'section', t: 'Coupe ' + CL.cutDef.name + '-' + CL.cutDef.name }; }   /* une coupe dynamique : pas un bloc à éclater */
             if (S.length && S.every(x => x.groupId) && new Set(S.map(x => x.groupId)).size === 1) return { k: 'block', t: 'Bloc' + (S[0].block ? ' « ' + S[0].block + ' »' : '') + ' (' + S.length + ' objets)' };
             if (!one) return { k: S.every(x => x.type === 'point') ? 'points' : 'multi', t: S.length + ' objets' + (S.every(x => x.type === 'point') ? ' (points topo)' : '') };
             if (one.type === 'cline') return { k: 'cline', t: 'Trait de construction (sans calque)' };
@@ -329,9 +330,9 @@
             layers.forEach(l => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.name; sel.appendChild(o); });
             sel.value = lids.length > 1 ? '' : lids[0]; sel.dataset.orig = sel.value;
             const lay = layers.find(l => l.id === sel.value);
-            const K = selKind(); document.getElementById('selparam-kind').textContent = K.t;
+            const K = selKind(); document.getElementById('selparam-kind').textContent = K.k === 'section' ? 'dessin dynamique, cotes réglables' : K.t; if (K.k === 'section') window.spTab = 'cut3d';
             { const o1 = selectedShapes.length === 1 ? selectedShapes[0] : null, tt = document.getElementById('selparam-title');   // titre : le nom de l'objet (et son niveau pour une plateforme)
-                if (tt) tt.textContent = o1 && (o1.name || isPlateforme(o1)) ? (isPlateforme(o1) ? platName(o1) : o1.name) + (isPlateforme(o1) ? ' — ' + (platSurf(o1).flat ? 'à ' + nfr(platZ(o1) / 1000, 2) + ' m' : 'inclinée') : '') : selectedShapes.length > 1 ? selectedShapes.length + ' objets' : K.t; }
+                if (tt) tt.textContent = o1 && (o1.name || isPlateforme(o1)) ? (isPlateforme(o1) ? platName(o1) : o1.name) + (isPlateforme(o1) ? ' — ' + (platSurf(o1).flat ? 'à ' + nfr(platZ(o1) / 1000, 2) + ' m' : 'inclinée') : '') : K.k === 'section' ? K.t : selectedShapes.length > 1 ? selectedShapes.length + ' objets' : K.t; }
             document.getElementById('selparam-laysum').textContent = lay ? lay.name : (lids.length > 1 ? 'calques différents' : '');
             const zb = document.getElementById('selparam-z'), one = selectedShapes.length === 1 ? selectedShapes[0] : null; structEdit = null; sweepEdit = null; trEdit = null;
             if (one && one.type === 'poly' && !one.open && !one.curve && one.points.length > 3) {   // sommet en double (ancien double-clic de fin) : retiré
@@ -443,7 +444,7 @@
             if (K.k !== 'oldwall') wallEdit = (one && one.type === 'line' && one.wall) ? wallEdit : null;
             if (one && !one.wall && effectiveDash(one) === 'text' && ['line', 'poly', 'circle', 'arc'].includes(one.type))
                 h += spChapter('ltt', '≈', 'Texte de la ligne', MF.row('Texte', MF.txt('sp-ltt', one.ltText || '', ltTextOf({ layerId: one.layerId }) + ' (calque)'), ''), false);
-            { const CL = cutLineOf(selectedShapes); if (CL) h += spChapter('cut3d', '✂', 'Coupe ' + (CL.cutDef.name || ''), MF.hint('La 3D tronquée à ce trait de coupe, regardée dans son sens : ce qui est coupé montre sa tranche, derrière la maison reste en vraie perspective (fenêtres en biais, toitures continues).') + MF.acts([['Voir la coupe en perspective (3D)', 'closeSelectionParamModal();sec3D(cutLineOf(selectedShapes))', 'Ouvre la vue 3D tronquée au trait de coupe']]), true); }
+            { const CL = cutLineOf(selectedShapes); if (CL) h += spChapter('cut3d', '✂', 'Coupe ' + (CL.cutDef.name || '') + '-' + (CL.cutDef.name || ''), MF.hint('La 3D tronquée à ce trait de coupe, regardée dans son sens : ce qui est coupé montre sa tranche, derrière la maison reste en vraie perspective (fenêtres en biais, toitures continues).') + MF.acts([['Voir la coupe en perspective (3D)', 'closeSelectionParamModal();sec3D(cutLineOf(selectedShapes))', 'Ouvre la vue 3D tronquée au trait de coupe']]) + secOptHTML(CL), true); }
             zb.innerHTML = h; zb.classList.toggle('hidden', !h); if (document.getElementById('sp-planinfo')) setTimeout(spPlanInfo, 0); if (document.getElementById('bld-lv')) bldPanelDraw();
             zb.dataset.orig = JSON.stringify(['sp-mat', 'sp-z', 'sp-z1', 'sp-z2', 'sp-zall', 'sp-wzb', 'sp-wzt'].map(id => { const el = document.getElementById(id); return el ? el.value : null; }));
             document.getElementById('selparam-modal').classList.remove('hidden'); spTabify(); try { spFigMount(); } catch (e) { console.warn('schéma', e); } spSelSig = selectedShapes.map(x => shapes.indexOf(x)).join(',');

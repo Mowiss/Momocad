@@ -149,6 +149,21 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         r.dyn = shapes.filter(x => x.secOf === d.id && x.hatchMat === 'beton').length >= 2;
         shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
     t.eq('coupe dynamique : groupe de calques « Coupe A-A » (dessin, cotes, ligne nommée sur le plan) ; dessin verrouillé mais accrochable ; cotes de plateforme et du TN tous les 5 m, déplaçables, gardées au recalcul', cg, { group: true, layers: true, tn5: true, plat: true, locked: true, snap: true, title: true, kept: true, dyn: true });
+    // fenêtre Y de la coupe : pas du TN, écart de la colonne des niveaux, écart entre niveaux, chiffre du TN, cotes affichées, cotes remises en place
+    const cy = await ev(async () => { await loadThree(); const keepS = shapes, keepL = layers.slice(); shapes = []; const m = mmToWorld(1000), r = {}, R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 300, zk: 1 });
+        shapes.push({ type: 'poly', layerId: 'layer-0', zk: 1, name: 'Cour', talus: { on: true, kD: '3/2', kR: '3/2' }, points: R(15, 8, 33, 22).map(q => Object.assign(q, { z: 103000 })) });
+        shapes.push({ type: 'poly', layerId: 'layer-0', points: R(18, 10, 30, 20).map(q => Object.assign(q, { z: 102800 })), solid: { kind: 'box', H: 200 }, name: 'Dalle', zk: 1 });
+        saveState(); sectionPlace(sectionData({ x: 2 * m, y: -15 * m }, { x: 48 * m, y: -15 * m }, 1), { x: 25 * m, y: -60 * m }); await new Promise(res => setTimeout(res, 400));
+        const d = shapes.find(x => x.cutDef).cutDef, txt = (re) => shapes.filter(x => x.secOf === d.id && x.type === 'text' && re.test(x.content)), dalleX = () => (txt(/^Dessus/)[0] || {}).x;
+        selectedShapes = expandGroups([shapes.find(x => x.secTitle)]); openSelectionParamModal(); const box = document.getElementById('selparam-modal'), inp = [...box.querySelectorAll('input[onchange*="secOptSet"]')]; r.ui = inp.length === 9;
+        const set = (k, v) => { const e = [...document.getElementById('selparam-modal').querySelectorAll('input')].find(x => (x.getAttribute('onchange') || '').includes("'" + k + "'")); if (e.type === 'checkbox') e.checked = v; else e.value = v; e.dispatchEvent(new Event('change')); };
+        const n5 = txt(/^TN /).length, x0 = dalleX(); set('tn', '10'); r.tn = txt(/^TN /).length < n5 && txt(/^TN /).length >= 4; set('col', '4'); r.col = Math.abs(dalleX() - x0 - 2.5 * m) < 0.05 * m;
+        set('on.P', false); r.noPlat = txt(/^Plateforme/).length === 0; set('on.P', true); r.plat = txt(/^Plateforme/).length === 1;
+        const t0 = txt(/^TN /)[1]; shapes.filter(x => x.groupId === t0.groupId).forEach(x => translateShape(x, 0, -2 * m)); saveState(); await new Promise(res => setTimeout(res, 700)); r.moved = !!(d.lvOff && Object.keys(d.lvOff).length);
+        const rb = [...document.getElementById('selparam-modal').querySelectorAll('[onclick]')].find(x => /'reset'/.test(x.getAttribute('onclick'))); if (rb) rb.click(); r.reset = !!rb && !Object.keys(d.lvOff || {}).length; r.sel = selectedShapes.some(x => x.secTitle);
+        closeSelectionParamModal(); shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
+    t.eq('coupe, fenêtre Y : pas des cotes du TN, écart de la colonne des niveaux, cotes affichées ou non, cotes remises à leur place', cy, { ui: true, tn: true, col: true, noPlat: true, plat: true, moved: true, reset: true, sel: true });
     // coupe : hiérarchie des traits (coupé épais, au-delà fin, TN tireté, rappels de niveau pointillés), niveaux à droite du bâtiment (pas au bout du terrain), titre effacé = coupe toujours dynamique
     const cs = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         for (let i = 0; i <= 16; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 200, zk: 1 });
