@@ -20,7 +20,9 @@
             else if (sym === 'square') { const u = t * 0.55; c.strokeRect(X - u, Y - u, 2 * u, 2 * u); }
             else if (sym === 'triangle') { const u = t * 0.7; c.beginPath(); c.moveTo(X, Y - u); c.lineTo(X + u * 0.87, Y + u * 0.5); c.lineTo(X - u * 0.87, Y + u * 0.5); c.closePath(); c.stroke(); }
         }
-        function ptSymIcon(sym, col, px) { px = px || 22; const cv = document.createElement('canvas'); cv.width = px * 2; cv.height = px * 2; const c = cv.getContext('2d'); c.scale(2, 2); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.6; drawPtSymbol(c, sym, px / 2, px / 2, px * 0.34); return cv.toDataURL(); }
+        const PT_ICON_C = new Map();   /* icônes de symbole gardées : la liste des calques se redessine sans recréer d'images */
+        function ptSymIcon(sym, col, px) { const ck = sym + '|' + col + '|' + (px || 22); if (PT_ICON_C.has(ck)) return PT_ICON_C.get(ck); const r = ptSymIcon0(sym, col, px); PT_ICON_C.set(ck, r); return r; }
+        function ptSymIcon0(sym, col, px) { px = px || 22; const cv = document.createElement('canvas'); cv.width = px * 2; cv.height = px * 2; const c = cv.getContext('2d'); c.scale(2, 2); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.6; drawPtSymbol(c, sym, px / 2, px / 2, px * 0.34); return cv.toDataURL(); }
         // aperçu : symbole + étiquettes d'exemple, comme sur le plan
         function ptStylePreview(id) {
             const cv = document.getElementById('pt-prev'); if (!cv) return; const c = cv.getContext('2d'), ps = ptStyleOf(id), l = layers.find(x => x.id === id) || {}, col = l.color || '#ffffff';
@@ -227,7 +229,7 @@
         let spLive = null, _spLive = false, spLiveT = 0;
         function spLiveCommit() { if (spLive && historyStep > spLive.h0 + 1 && shapesHistory.length > spLive.h0 + 1) { shapesHistory.splice(spLive.h0 + 1, historyStep - spLive.h0 - 1); historyStep = spLive.h0 + 1; } if (spLive) spLive.h0 = historyStep; }
         function spCancel() { const L = spLive; closeSelectionParamModal(); spLive = null; if (!L || historyStep <= L.h0 || !shapesHistory[L.h0]) return;
-            const st = shapesHistory[L.h0]; shapes = JSON.parse(JSON.stringify(st.shapes)); layers = JSON.parse(JSON.stringify(st.layers)); activeLayerId = st.activeLayerId; shapesHistory.length = L.h0 + 1; historyStep = L.h0; selectedShapes = [];
+            const st = shapesHistory[L.h0]; shapes = st.shapes; layers = st.layers; activeLayerId = st.activeLayerId; shapesHistory.length = L.h0 + 1; historyStep = L.h0; selectedShapes = [];
             tinCache = null; invalidateCache(); updateLayerUI(); draw(); refresh3D(); updateCommandMessageText('Réglages annulés : retour à l\'état d\'avant.'); }
         function spLiveApply() { const m = document.getElementById('selparam-modal'); if (!m || m.classList.contains('hidden') || !spLive || !selectedShapes.length) return;
             _spLive = true; try { _applySelectionLayer(); } catch (e) { console.warn('aperçu', e); } finally { _spLive = false; }

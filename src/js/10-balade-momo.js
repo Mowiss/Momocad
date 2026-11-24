@@ -2,6 +2,7 @@
         //      la vue 3D passe à hauteur d'yeux, au point posé. Z Q S D (ou flèches) = marcher, souris = regarder, Maj = courir, Échap = sortir.
         //      Momo marche sur ce qui est sous ses pieds (terrain, plateformes, dalles), monte les petites marches, s'arrête contre les murs.
         const FPS_EYE = 1.65, FPS_STEP = 0.45;
+        let TERR_C = [];   /* terrain fini 3D calculé, gardé (voir build3DScene) */
         // collisions de Momo : les triangles de la scène rangés une fois dans une grille de 1 m (le sol et les murs se testent sur quelques triangles, pas sur toute la scène) ;
         //      les vantaux de portes, qui bougent, sont testés à part
         function fpsGrid() { const F = V3.fps; if (F.grid && F.grid.root === V3.root) return F.grid; V3.root.updateMatrixWorld(true);
@@ -251,6 +252,12 @@
 
                 // rendu : terrain naturel affiné, chaque triangle découpé pareil (pas de fente entre voisins) et bombé en douceur (normales lissées des sommets) ;
                 //      les sommets des lignes de rupture restent des arêtes vives
+                /* terrain fini en 3D gardé tant que ni le terrain, ni les plateformes, ni les routes, ni les réglages de vue ne changent : rouvrir la 3D, une coupe
+                   ou retoucher un mur ne le recalcule plus (c'était la plus grosse part du temps sur un plan chargé) */
+                let TK = null; try { TK = [tinSig(tin.nodes), FM ? FM.sig : '', JSON.stringify(zones.map(Zo => [FM.P.indexOf(Zo), Zo.s])), showSurf, nat, JSON.stringify(V3.hq || 0), zmin, exag, step, hasRoad ? JSON.stringify(roadPolys()) : '', !!tp].join('§'); } catch (e) { TK = null; }
+                const TC = TK ? TERR_C.find(e => e.k === TK) || null : null;
+                if (TC) { const app = (d, s) => { for (let k = 0; k < s.length; k++) d.push(s[k]); }; app(pp, TC.pp); app(cc, TC.cc); app(wp, TC.wp); app(gp, TC.gp); app(gk, TC.gk); app(ep, TC.ep); app(ap, TC.ap); if (tp && TC.tp) app(tp, TC.tp); refBudget = TC.rb; }
+                else {
                 let HS = null; if (V3.hq && nat) { const k = worldToMm(1), NN = new Float32Array(tin.nodes.length * 3);
                     tin.tris.forEach(([a, b, c]) => { const A = tin.nodes[a], B = tin.nodes[b], C = tin.nodes[c], ux = (B.x - A.x) * k, uy = (B.y - A.y) * k, uz = B.z - A.z, vx = (C.x - A.x) * k, vy = (C.y - A.y) * k, vz = C.z - A.z; let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; } [a, b, c].forEach(i => { NN[i * 3] += nx; NN[i * 3 + 1] += ny; NN[i * 3 + 2] += nz; }); });
                     const n = Math.max(1, Math.min(6, Math.floor(Math.sqrt(1600000 * Math.min(1, V3.hq.terr / 2) / Math.max(1, tin.tris.length))))), pl = (i, x, y, zl) => { const N = tin.nodes[i]; if (N.br || !(NN[i * 3 + 2] > 0)) return zl; return N.z - (NN[i * 3] * (x - N.x) * k + NN[i * 3 + 1] * (y - N.y) * k) / NN[i * 3 + 2]; };
@@ -322,6 +329,8 @@
                         const m = Math.max(2, Math.ceil(Math.abs(da) / 0.2)), pt = (an, r) => { const x = V0.x + Math.cos(an) * r, y = V0.y + Math.sin(an) * r, q = FM.at(x, y); return q && q.kind !== 1 ? [x, y, q.z, q.kind === 4 ? (q.z > ri.z ? 2 : 3) : q.kind] : null; };
                         const K = Math.min(16, Math.max(1, Math.ceil((w - o0) / mmToWorld(400)))), rad = (an) => { const out = []; for (let j = 0; j <= K; j++) { const q = pt(an, o0 + (w - o0) * j / K); if (!q) break; out.push(q); } return out; };
                         let pr = null; for (let j = 0; j <= m; j++) { const cr = rad(a1 + da * j / m); if (pr) { const L = Math.min(pr.length, cr.length) - 1; for (let r = 0; r < L; r++) { T3(pr[r], cr[r], cr[r + 1]); T3(pr[r], cr[r + 1], pr[r + 1]); } } pr = cr; } } } catch (e) { console.error(e); } });
+                }
+                if (!TC && TK) TERR_C = [{ k: TK, pp: pp.slice(), cc: cc.slice(), wp: wp.slice(), gp: gp.slice(), gk: gk.slice(), ep: ep.slice(), ap: ap.slice(), tp: tp ? tp.slice() : null, rb: refBudget }].concat(TERR_C).slice(0, 2);   /* deux terrains gardés : vue 3D et maquette des coupes */
                 if (pp.length) {
                     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); g.computeVertexNormals();
                     root.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })));

@@ -258,7 +258,7 @@
             sectionPlace(D, at); }
         // coupe calculée (repère de la coupe, mm) : boucles des volumes coupés, terrain naturel, étendue, nom
         // la maquette 3D filaire des vues de façade (même scène que les vues ortho : faces opaques qui cachent, arêtes en traits), ramenée en mm réels
-        let SEC_SCENE = false, SEC_SCENE_C = null;
+        let SEC_SCENE = false, SEC_SCENE_C = null, SEC_LAST_MS = 0;
         function secSceneMM() {
             try {
                 if (!window.THREE || !shapes.some(is3DObj)) return null;
@@ -377,11 +377,13 @@
         function secOptHTML(L) { const d = L.cutDef, O = secOpt(d), id = d.id, num = (k, v, lab, unit, mn, mx) => `<span>${lab}</span><span><input class="mf-in" style="width:4.5rem" value="${nfr(v, 2)}" onchange="secOptSet('${id}','${k}',this.value)"> ${unit}</span>`;
             const chk = (k, lab) => `<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox"${O.on[k] ? ' checked' : ''} onchange="secOptSet('${id}','on.${k}',this.checked)"> ${lab}</label>`;
             return `<div style="font-weight:600;margin:6px 0 4px">Cotation de la coupe</div><div style="display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center">${num('tn', O.tn, 'Terrain naturel : une cote tous les', 'm')}${num('col', O.col, 'Colonne des niveaux : écart au bâtiment', 'm')}${num('gap', O.gap, 'Écart mini entre deux niveaux', 'm')}${num('tnOff', O.tnOff, 'Chiffre du TN sous le trait', 'm')}</div>
+                <label style="display:flex;gap:6px;align-items:center;cursor:pointer;margin:2px 0 8px"><input type="checkbox"${d.auto ? ' checked' : ''} onchange="secOptSet('${id}','auto',this.checked)"> Mise à jour automatique (sinon : pastille ⟳ sur la coupe)</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:8px">${chk('F', 'Faîtages')}${chk('E', 'Égouts')}${chk('D', 'Dessus de dalle')}${chk('P', 'Plateformes')}${chk('T', 'Terrain naturel')}</div>`
                 + MF.acts([['Remettre les cotes à leur place', `secOptSet('${id}','reset',1)`, 'Les cotes déplacées à la main reviennent à leur place automatique']]); }
         function secOptSet(id, k, v) { const L = shapes.find(x => x.cutDef && x.cutDef.id === id); if (!L) return; const d = L.cutDef; d.opt = d.opt || {};
-            if (k === 'reset') { delete d.lvOff; shapes.forEach(x => { if (x.secOf === id && x.type === 'text' && x.lvKey && x.lvRef) { x.x = x.lvRef.x; x.y = x.lvRef.y; } }); }   /* sinon le recalcul relirait leur place déplacée */ else if (k.startsWith('on.')) { d.opt.on = Object.assign({}, d.opt.on || {}); d.opt.on[k.slice(3)] = v ? 1 : 0; } else { const n = t2Num(v); if (!isFinite(n) || n < 0 || n > 100 || (k === 'tn' && n < 0.5)) { updateCommandMessageText('COUPE : valeur non valable.'); return; } d.opt[k] = Math.round(n * 100) / 100; }
-            d.key = null; secRefresh(L); const T = shapes.find(x => x.secTitle && x.secOf === id); if (T) selectedShapes = expandGroups([T]); invalidateCache(); saveState(); draw(); updateCommandMessageText('COUPE ' + d.name + '-' + d.name + ' : cotation mise à jour.'); }
+            if (k === 'reset') { delete d.lvOff; shapes.forEach(x => { if (x.secOf === id && x.type === 'text' && x.lvKey && x.lvRef) { x.x = x.lvRef.x; x.y = x.lvRef.y; } }); }   /* sinon le recalcul relirait leur place déplacée */ else if (k === 'auto') {} else if (k.startsWith('on.')) { d.opt.on = Object.assign({}, d.opt.on || {}); d.opt.on[k.slice(3)] = v ? 1 : 0; } else { const n = t2Num(v); if (!isFinite(n) || n < 0 || n > 100 || (k === 'tn' && n < 0.5)) { updateCommandMessageText('COUPE : valeur non valable.'); return; } d.opt[k] = Math.round(n * 100) / 100; }
+            if (k === 'auto') { d.auto = v ? 1 : 0; if (!d.auto) delete d.auto; }
+            d.key = null; secRefresh(L, null, true); const T = shapes.find(x => x.secTitle && x.secOf === id); if (T) selectedShapes = expandGroups([T]); invalidateCache(); saveState(); draw(); updateCommandMessageText('COUPE ' + d.name + '-' + d.name + ' : cotation mise à jour.'); }
         /* le dessin d'une coupe dynamique ne se sélectionne pas (il serait refait) : seuls son titre (qui emmène toute la coupe) et ses cotes se prennent ; il reste accrochable */
         function secLock(s) { return !!(s && s.secOf && !s.secTitle && !s.lvKey); }
         function sectionPlace(D, at) {
@@ -389,8 +391,8 @@
             const { name, A, B, side } = D, id = 'sec' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), lid = cutLayerId(), zRef = Math.round(D.z0 / 1000) * 1000;
             const def = { id, name, side, zRef, gid: 'grp-coupe-' + id, o: { x: at.x - mmToWorld((D.u0 + D.u1) / 2), y: at.y + mmToWorld((D.z0 + D.z1) / 2 - zRef) } }; def.lay = secLayers(def, true);
             const line = { type: 'line', layerId: def.lay.p, x1: A.x, y1: A.y, x2: B.x, y2: B.y, groupId: def.gid + '-plan', cutDef: def, zk: 1, lvs: 1 };
-            shapes.push(line); const out = secBuild(D, def); shapes.push(...out, ...secMarks(line)); SEC_D.set(id, { sk: secModelSig() + '|' + [line.x1, line.y1, line.x2, line.y2, side].join(','), D }); saveState(); draw();
-            updateCommandMessageText('COUPE ' + name + '-' + name + ' dessinée (groupe de calques « Coupe ' + name + '-' + name + ' ») : ' + D.loops.length + ' élément(s) coupé(s)' + (D.tn.length > 1 ? ', terrain et terrassement' : '') + '. Elle se met à jour toute seule quand le plan change. Son dessin ne se modifie pas (il s\'accroche) ; ses cotes se déplacent une à une ; son titre déplace toute la coupe.');
+            shapes.push(line); const out = secBuild(D, def); shapes.push(...out, ...secMarks(line)); { const sk = secSkOf(line, secModelSig()); SEC_D.set(id, { sk, D }); def.sk = sk; } saveState(); draw();
+            updateCommandMessageText('COUPE ' + name + '-' + name + ' dessinée (groupe de calques « Coupe ' + name + '-' + name + ' ») : ' + D.loops.length + ' élément(s) coupé(s)' + (D.tn.length > 1 ? ', terrain et terrassement' : '') + '. Quand le plan change, sa pastille passe à « à rafraîchir » : un clic la recalcule (ou « Mise à jour automatique » dans sa fenêtre Y). Son dessin ne se modifie pas (il s\'accroche) ; ses cotes se déplacent une à une ; son titre déplace toute la coupe.');
             return out;
         }
         // repère dans le plan : flèches du sens de vue et lettres, recalés sur la ligne
@@ -465,17 +467,42 @@
         const SEC_D = new Map();
         function secModelSig() { const rel = shapes.filter(x => !x.secOf && !x.secMark && !x.cutDef && (is3DObj(x) || (x.type === 'point' && hasZ(x.z)) || x.wz || x.openings || (x.points && x.points.some(q => hasZ(q.z)))));
             const used = new Set(rel.map(x => x.layerId || 'layer-0')), j = JSON.stringify(rel) + '|' + layers.filter(l => used.has(l.id)).map(l => l.id + (l.visible === false ? 0 : 1)).join('');   /* seuls les calques qui portent le modèle : créer les calques d'une coupe ne relance rien */ let h = 0; for (let i = 0; i < j.length; i++) h = (h * 31 + j.charCodeAt(i)) | 0; return h + ':' + j.length; }
-        function secRefreshAll() { if (!window.THREE) { loadThree().then(secRefreshAll); return; } let ch = false; const sig = secModelSig();
-            shapes.filter(x => x.cutDef && x.type === 'line').forEach(L => { try { if (secRefresh(L, sig)) ch = true; } catch (e) { console.error(e); } });
-            if (ch) { invalidateCache(); if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = JSON.parse(JSON.stringify(shapes)); draw(); } }
-        function secRefresh(L, sig) { const d = L.cutDef, old = shapes.filter(x => x.secOf === d.id), title = old.find(x => x.secTitle);
+        /* mise à jour : ce qui ne demande pas de recalcul (titre déplacé, cotes, réglages) se fait tout de suite ; quand le modèle a changé, la coupe est marquée
+           « à rafraîchir » (pastille ⟳ orange) et se recalcule d'un clic sur la pastille — sauf si « Mise à jour automatique » est cochée dans sa fenêtre Y */
+        let SEC_SIG_NOW = null;
+        function secSkOf(L, sig) { return sig + '|' + [L.x1, L.y1, L.x2, L.y2, L.cutDef.side].join(','); }
+        function secStale(L) { if (SEC_SIG_NOW === null) SEC_SIG_NOW = secModelSig(); return L.cutDef.sk !== secSkOf(L, SEC_SIG_NOW); }
+        function secRefreshAll(force) { if (!window.THREE) { loadThree().then(() => secRefreshAll(force)); return; } let ch = false; const sig = secModelSig(); SEC_SIG_NOW = sig;
+            shapes.filter(x => x.cutDef && x.type === 'line').forEach(L => { try { if (secRefresh(L, sig, force)) ch = true; } catch (e) { console.error(e); } });
+            if (ch) { invalidateCache(); if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = shapes; draw(); } }
+        /* pastille de chaque coupe (au-dessus de son titre et au milieu de sa ligne sur le plan) : ⟳ verte « à jour », orange « à rafraîchir » ; un clic la recalcule */
+        let secBadgeHits = [];
+        function drawSecBadges(c) { secBadgeHits = []; const Ls = shapes.filter(x => x.cutDef && x.type === 'line'); if (!Ls.length) return; c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+            Ls.forEach(L => { const d = L.cutDef, st = secStale(L), T = shapes.find(x => x.secTitle && x.secOf === d.id), vis = (id) => { const l = layers.find(x => x.id === (id || 'layer-0')); return !(l && l.visible === false); };
+                const pill = (wx, wy, dy) => { const X = wx * camera.zoom + camera.x, Y = wy * camera.zoom + camera.y + dy, nm = 'Coupe ' + d.name + '-' + d.name, sub = st ? '⟳ à rafraîchir' : '✓ à jour';
+                    c.font = 'bold 12px Arial'; const w = Math.max(c.measureText(nm).width, c.measureText(sub).width) + 18, h = 30, x0 = X - w / 2, y0 = Y - h; if (x0 > c.canvas.width || y0 > c.canvas.height || x0 + w < 0 || y0 + h < 0) return;
+                    c.fillStyle = st ? '#9a3412' : '#14532d'; c.strokeStyle = st ? '#fb923c' : '#4ade80'; c.lineWidth = 1.5; c.beginPath(); if (c.roundRect) c.roundRect(x0, y0, w, h, 9); else c.rect(x0, y0, w, h); c.fill(); c.stroke();
+                    c.fillStyle = '#fff'; c.textBaseline = 'top'; c.fillText(nm, x0 + 9, y0 + 3); c.fillStyle = st ? '#fed7aa' : '#bbf7d0'; c.font = '10px Arial'; c.fillText(sub, x0 + 9, y0 + 17); secBadgeHits.push({ x0, y0, x1: x0 + w, y1: y0 + h, id: d.id }); };
+                if (T && vis(T.layerId)) pill(T.x, T.y, -Math.max(16, (T.height || 0) * camera.zoom * 1.4));
+                if (vis(L.layerId)) pill((L.x1 + L.x2) / 2, (L.y1 + L.y2) / 2, -8); });
+            c.restore(); }
+        function secBadgeAt(sx, sy) { return secBadgeHits.find(b => sx >= b.x0 && sx <= b.x1 && sy >= b.y0 && sy <= b.y1) || null; }
+        function secForce(id) { const L = shapes.find(x => x.cutDef && x.cutDef.id === id && x.type === 'line'); if (!L) return; if (!window.THREE) { loadThree().then(() => secForce(id)); return; }
+            updateCommandMessageText('COUPE ' + L.cutDef.name + '-' + L.cutDef.name + ' : calcul…'); setTimeout(() => { const t0 = performance.now(); SEC_SIG_NOW = secModelSig(); L.cutDef.key = null; secRefresh(L, SEC_SIG_NOW, true); invalidateCache();
+                if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = shapes; draw();
+                updateCommandMessageText('COUPE ' + L.cutDef.name + '-' + L.cutDef.name + ' rafraîchie (' + nfr((performance.now() - t0) / 1000, 1) + ' s).'); }, 30); }
+        function secRefresh(L, sig, force) { const d = L.cutDef, old = shapes.filter(x => x.secOf === d.id), title = old.find(x => x.secTitle);
             if (!old.length) { delete L.cutDef; return false; }   // tout le dessin de la coupe a été supprimé : la ligne redevient un simple repère (un titre effacé seul ne casse plus la coupe : il revient)
             const tdx = title && isFinite(d.tx) ? title.x - d.tx : 0, tdy = title && isFinite(d.ty) ? title.y - d.ty : 0;
             if (Math.abs(tdx) > 1e-9 || Math.abs(tdy) > 1e-9) { d.o.x += tdx; d.o.y += tdy; }
             old.forEach(x => { if (x.type === 'text' && x.lvKey && x.lvRef) { const pv = (d.lvOff || {})[x.lvKey] || { dx: 0, dy: 0 }; let dx = x.x - x.lvRef.x, dy = x.y - x.lvRef.y;
                 if ((Math.abs(tdx) > 1e-9 || Math.abs(tdy) > 1e-9) && Math.abs(dx - pv.dx - tdx) < 1e-6 && Math.abs(dy - pv.dy - tdy) < 1e-6) { dx -= tdx; dy -= tdy; }   /* déplacée avec toute la coupe : elle garde sa place relative */ if (x.lvKey[0] !== 'T') dy = 0;   /* niveau : seulement le long de sa ligne */ d.lvOff = d.lvOff || {}; if (Math.abs(dx) + Math.abs(dy) > 1e-9) d.lvOff[x.lvKey] = { dx, dy }; else delete d.lvOff[x.lvKey]; } });   // cotes de niveau déplacées à la main : leur place est gardée
-            const sk = (sig || secModelSig()) + '|' + [L.x1, L.y1, L.x2, L.y2, d.side].join(','), C = SEC_D.get(d.id); let D;
-            if (C && C.sk === sk) D = C.D; else { D = sectionData({ x: L.x1, y: L.y1 }, { x: L.x2, y: L.y2 }, d.side); if (!D || D.wait) return false; SEC_D.set(d.id, { sk, D }); } D.name = d.name;
+            const sk = secSkOf(L, sig || secModelSig()), C = SEC_D.get(d.id), moved = Math.abs(tdx) > 1e-9 || Math.abs(tdy) > 1e-9 || d.key === null || old.some(x => x.type === 'text' && x.lvKey && x.lvRef && (Math.abs(x.x - x.lvRef.x) > 1e-9 || Math.abs(x.y - x.lvRef.y) > 1e-9)); let D;
+            if (C && C.sk === sk) D = C.D;
+            else { const up = d.sk === sk;   /* à jour mais pas encore calculée dans cette session (fichier rouvert) : calculée seulement si on la touche */
+                if (!force && !d.auto && (!up || (!moved && title))) { if (Math.abs(tdx) > 1e-9 || Math.abs(tdy) > 1e-9) { /* coupe déplacée par son titre sans recalcul : tout son dessin suit */ shapes.forEach(x => { if (x.secOf === d.id && !x.secTitle) { translateShape(x, tdx, tdy); if (x.lvRef) x.lvRef = { x: x.lvRef.x + tdx, y: x.lvRef.y + tdy }; } }); d.tx = title.x; d.ty = title.y; return true; } return false; }
+                const t0 = performance.now(); D = sectionData({ x: L.x1, y: L.y1 }, { x: L.x2, y: L.y2 }, d.side); if (!D || D.wait) return false; SEC_D.set(d.id, { sk, D }); d.sk = sk; SEC_LAST_MS = Math.round(performance.now() - t0); }
+            D.name = d.name;
             const out = secBuild(D, d), key = JSON.stringify(out.map(x => [x.type, x.points || x.loops || [x.x, x.y, x.x1, x.y1, x.x2, x.y2, x.content]])).replace(/(\d+\.\d{4})\d+/g, '$1');
             const mk = shapes.filter(x => x.secMark === d.id), mkKey = JSON.stringify([L.x1, L.y1, L.x2, L.y2]);
             if (key === d.key && mkKey === d.mkKey && title) return false; d.key = key; d.mkKey = mkKey;

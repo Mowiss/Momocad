@@ -238,7 +238,7 @@
             if (!Array.isArray(layoutData.paperShapes)) layoutData.paperShapes = [];
             lpModelStore = { shapes, hist: shapesHistory, step: historyStep, unit: printSettings.unit };
             shapes = layoutData.paperShapes; shapesHistory = lpPaperHist.hist; historyStep = lpPaperHist.step;
-            if (historyStep < 0) { shapesHistory = [{ shapes: JSON.parse(JSON.stringify(shapes)), layers: JSON.parse(JSON.stringify(layers)), activeLayerId }]; historyStep = 0; }
+            if (historyStep < 0) { shapesHistory = [histEntry(JSON.stringify(shapes), JSON.stringify(layers), activeLayerId)]; historyStep = 0; }
             printSettings.unit = 'mm'; applyUnitSettings(); selectedShapes = []; lpSpace = 'paper'; lpVpTin = null; invalidateCache();
             lpModelStore.layer = activeLayerId; activeLayerId = ensureLayer('Mise en page', '#ffffff'); updateLayerUI();   // tracés de la feuille : calque « Mise en page »
         }

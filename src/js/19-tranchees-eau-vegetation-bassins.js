@@ -176,7 +176,7 @@
         // NIVEAU D'EAU NATUREL : contour fermé + altitude de l'eau. En plan, la zone inondée (terrain sous le niveau) en bleu translucide ;
         // en 3D, un plan d'eau à cette cote, que le terrain plus haut cache naturellement. s.water = { z (mm), name }
         // =====================================================================
-        let waterDraw = false, WATER_CACHE = new WeakMap(), boisDraw = false;
+        let waterDraw = false, WATER_CACHE = new WeakMap(), WATER_KC = new Map(), boisDraw = false;
         // outil Zone boisée (palette Topo) : un contour cliqué, fermé → zone boisée sur le calque « Zones boisées »
         // ---- VÉGÉTATION : arbres, buissons ou broussailles dans un contour ; le volet choisit la sorte, la hauteur et la couleur en 3D
         const VEG_K = { arbre: ['🌳 Arbres', 4, 30, 12, 'Arbres'], buisson: ['🌿 Buissons', 0.5, 4, 1.8, 'Buissons'], brous: ['🍂 Broussailles', 0.3, 1.5, 0.9, 'Broussailles'] };

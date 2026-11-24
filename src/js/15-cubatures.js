@@ -103,7 +103,7 @@
         // talus propres à chaque plateforme (sinon réglage courant de l'assistant)
         function platTalus(pl) { const t = pl && pl.talus; return { on: t ? t.on !== false : cubState.talus, kR: (t && t.kR) || cubState.kR, kD: (t && t.kD) || cubState.kD, pts: !(t && t.pts === false), esp: t && isFinite(parseFloat(t.esp)) ? Math.max(0, parseFloat(t.esp)) : 10, R: t && +t.R > 0 ? +t.R : 0, edges: t && Array.isArray(t.edges) ? t.edges : null, cx: !!(t && t.cx), corn: t && t.corn ? t.corn : null }; }
         // Talus d'une plateforme en plan : crête, pied de talus et peigne (traits longs / courts depuis le haut du talus)
-        const TALUS_CACHE = new WeakMap(); let MOUSE_HELD = false, TALUS_STALE = false;
+        const TALUS_CACHE = new WeakMap(), TALUS_KC = new Map();   /* TALUS_KC : même talus retrouvé par son contenu (après une annulation, les objets sont neufs mais identiques) */ let MOUSE_HELD = false, TALUS_STALE = false;
         window.addEventListener('mousedown', () => { MOUSE_HELD = true; }, true);
         window.addEventListener('mouseup', () => { MOUSE_HELD = false; if (TALUS_STALE) { TALUS_STALE = false; requestAnimationFrame(() => draw()); } }, true);
         function talusGeom(pl) {
@@ -112,6 +112,7 @@
             const B0 = FM.P[idx].bb, gm = Math.max(B0.x1 - B0.x0, B0.y1 - B0.y0) * 0.1 + mmToWorld(1000), B = { x0: B0.x0 - gm, y0: B0.y0 - gm, x1: B0.x1 + gm, y1: B0.y1 + gm };   /* seules les plateformes voisines (emprises qui se touchent) changent ce talus : en modifier une ailleurs ne le recalcule pas */
             const loc = FM.P.map((p, j) => p.bb && p.bb.x1 >= B.x0 && p.bb.x0 <= B.x1 && p.bb.y1 >= B.y0 && p.bb.y0 <= B.y1 ? [j, p.ring, p.zp, p.on, p.kR, p.kD, p.R, p.kRe, p.kDe, p.offE, p.corn, p.ext] : 0);
             const key = idx + '|' + JSON.stringify(loc) + JSON.stringify([t.pts, t.esp, t.cx ? (t.edges || []).map(e => e && !e.off ? e.st || 0 : 0) : 0]), c = TALUS_CACHE.get(pl); if (c && c.key === key && c.tin === tin) return c.g;
+            { const k2 = TALUS_KC.get(key); if (k2 && k2.tin === tin) { TALUS_CACHE.set(pl, { key, tin, g: k2.g, t: performance.now() }); return k2.g; } }
             if (c && MOUSE_HELD && performance.now() - (c.t || 0) < 250) { TALUS_STALE = true; return c.g; }   /* pendant un glissé : talus recalculés 4 fois par seconde au plus, le dessin reste fluide ; à jour au lâcher */
             const zp = platZ(pl), P = platRing(pl), n = P.length, zE = (a, b, f) => (hasZ(a.z) && hasZ(b.z)) ? a.z + (b.z - a.z) * f : zp;
             const maxD = Math.max(FM.P[idx].ext, mmToWorld(10)) * 1.05, stepD = Math.max(maxD / 100, mmToWorld(5));
@@ -202,7 +203,7 @@
                     pieces.push({ f0: q / m, f1: (q + 1) / m, s0: Math.hypot(M.C.x - c.x, M.C.y - c.y), Ns: Math.floor(M.D / gW + 1e-6), rem: M.rem, zc: M.C.z }); }
                 if (pieces.some(pc => pc.Ns > 0)) stairs.push({ i, a, b, u, gW, st, pieces }); });
             const g = { toe, toeParts: parts, ticks, marks, stairs };
-            TALUS_CACHE.set(pl, { key, tin, g, t: performance.now() }); return g;
+            TALUS_CACHE.set(pl, { key, tin, g, t: performance.now() }); TALUS_KC.set(key, { tin, g }); if (TALUS_KC.size > 300) TALUS_KC.delete(TALUS_KC.keys().next().value); return g;
         }
         // maillage 3D des solides ajoutés : tube, tronc de cône, pyramide, tore, révolution
         function solidMesh3D(so, P, z0, Hm, exag, mat, ext) {

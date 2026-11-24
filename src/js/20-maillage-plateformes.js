@@ -192,14 +192,14 @@
         }
         // masque de la zone inondée : cellules du contour où le terrain est sous le niveau (tout le contour s'il n'y a pas de terrain)
         function waterMask(s) {
-            const t = getTIN(); let FM = null; try { FM = t ? finishedModel() : null; } catch (e) {} const key = JSON.stringify([s.points, s.water.z, t ? t.nodes.length : 0, !!t]) + (FM ? FM.sig : ''), c = WATER_CACHE.get(s); if (c && c.key === key && c.t === t) return c.m;   /* sol fini : une fouille, un bassin creusé se remplissent */
+            const t = getTIN(); let FM = null; try { FM = t ? finishedModel() : null; } catch (e) {} const key = JSON.stringify([s.points, s.water.z, t ? t.nodes.length : 0, !!t]) + (FM ? FM.sig : ''), c = WATER_CACHE.get(s); if (c && c.key === key && c.t === t) return c.m; { const k2 = WATER_KC.get(key); if (k2 && k2.t === t) { WATER_CACHE.set(s, k2); return k2.m; } }   /* même eau retrouvée par son contenu (après annulation) */   /* sol fini : une fouille, un bassin creusé se remplissent */
             const xs = s.points.map(q => q.x), ys = s.points.map(q => q.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
             const N = 140, cw = Math.max((x1 - x0), (y1 - y0)) / N || 1, nx = Math.max(1, Math.ceil((x1 - x0) / cw)), ny = Math.max(1, Math.ceil((y1 - y0) / cw)), runs = []; let A = 0, wet = 0;
             for (let j = 0; j < ny; j++) { const y = y0 + (j + 0.5) * cw; let r0 = -1;
                 for (let i = 0; i <= nx; i++) { const x = x0 + (i + 0.5) * cw; let w = false;
                     if (i < nx && pointInPolygon(x, y, s.points)) { A++; let z = t ? tinZ(x, y, t) : undefined; if (FM && hasZ(z)) { const r = FM.at(x, y, z); if (r && hasZ(r.z)) z = r.z; } w = !t || !hasZ(z) || z < s.water.z; if (w) wet++; }
                     if (w && r0 < 0) r0 = i; else if (!w && r0 >= 0) { runs.push([x0 + r0 * cw, y0 + j * cw, (i - r0) * cw, cw]); r0 = -1; } } }
-            const m = { runs, cw, wetA: wet * Math.pow(mOf(cw), 2), A: A * Math.pow(mOf(cw), 2) }; WATER_CACHE.set(s, { key, m, t }); return m;
+            const m = { runs, cw, wetA: wet * Math.pow(mOf(cw), 2), A: A * Math.pow(mOf(cw), 2) }; WATER_CACHE.set(s, { key, m, t }); WATER_KC.set(key, { key, m, t }); if (WATER_KC.size > 200) WATER_KC.delete(WATER_KC.keys().next().value); return m;
         }
         function drawWater2D(c, s, col, sel, dx, dy, ls, isPrinting) {
             const m = waterMask(s); c.save(); c.fillStyle = 'rgba(56,189,248,0.32)';
