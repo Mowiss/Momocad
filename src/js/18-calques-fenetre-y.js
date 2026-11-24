@@ -322,6 +322,7 @@
             /* l'eau d'un bassin paysagé suit son bassin : Y ouvre le bassin (profondeur, niveau d'eau) */
             if (selectedShapes.length === 1 && selectedShapes[0].payOf) { const B = shapes.find(x => x.pay && x.pay.id === selectedShapes[0].payOf); if (B) { selectedShapes = [B]; draw(); } }
             { const m0 = document.getElementById('selparam-modal'), sig0 = selectedShapes.map(x => shapes.indexOf(x)).join(','); if (m0.classList.contains('hidden') || !spLive || spLive.sig !== sig0) { if (spLive && !m0.classList.contains('hidden')) spLiveCommit(); spLive = { h0: historyStep, sig: sig0 }; } }
+            if (selectedShapes.length === 1 && selectedShapes[0].sonde) { sondeEdit(selectedShapes[0]); return; }   // sonde d'ensoleillement : nom, hauteur, sa courbe
             // une toiture sélectionnée (tout son bloc) : directement sa fenêtre complète, avec la coupe cotée
             { const g = selectedShapes[0].groupId; if (g && selectedShapes.every(x => x.groupId === g) && shapes.some(x => x.groupId === g && x.roofDef)) { roofEdit(g); return; } }
             document.getElementById('selparam-count').textContent = selectedShapes.length;

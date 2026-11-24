@@ -235,8 +235,8 @@ module.exports = { name: 'calculs', run: async (H, t) => {
         const keep = window.jspdf, J = keep.jsPDF; let got = null; window.jspdf = Object.assign({}, keep, { jsPDF: function (o) { const d = new J(o); d.save = (fn) => { got = { fn, pages: d.getNumberOfPages() }; }; return d; } });
         try { await calcDossierPDF(); } catch (e) { got = { err: e.message }; } finally { window.jspdf = keep; } r.pdf = got && /_notes_de_calcul\.pdf$/.test(got.fn) && got.pages >= 4; r.cubAuto = !!window.__cubPdf;
         r.save = !!(_projectData().pluvio && _projectData().pluvio.test); closeTopoModal(); return r; });
-    t.eq('Σ Calculs : ouverture immédiate (calculs lourds après, mis en cache) ; onglets Financier, Cubature, Pluviométrique, Impressions ; note pluvio (Q = C·i·A), bilan du test, dossier PDF', cn,
-        { fin: 'fin*,cub,pluvio,print', title: 'Σ Calculs', h1: true, later: true, quant: true, cache: true, cub: 'fin,cub*,pluvio,print|true', h2: true, pend: true, pl: 'fin,cub,pluvio*,print', h3: true, area: cn.area, q: true, i2: true, noTest: true, test: 1, pr: 'fin,cub,pluvio,print*|4', pdf: true, cubAuto: true, save: true });
+    t.eq('Σ Calculs : ouverture immédiate (calculs lourds après, mis en cache) ; onglets Financier, Cubature, Pluviométrique, Soleil, Impressions ; note pluvio (Q = C·i·A), bilan du test, dossier PDF', cn,
+        { fin: 'fin*,cub,pluvio,sol,print', title: 'Σ Calculs', h1: true, later: true, quant: true, cache: true, cub: 'fin,cub*,pluvio,sol,print|true', h2: true, pend: true, pl: 'fin,cub,pluvio*,sol,print', h3: true, area: cn.area, q: true, i2: true, noTest: true, test: 1, pr: 'fin,cub,pluvio,sol,print*|5', pdf: true, cubAuto: true, save: true });
     t.ok('note pluvio : surface du terrain mesurée (≈ 60 × 50 m)', Math.abs(cn.area - 3000) < 200, String(cn.area));
 
     // gros plan : tracer un trait ne refait plus le terrain (ni le sol fini, ni les talus) ; déplacer un point coté, si

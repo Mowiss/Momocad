@@ -1047,4 +1047,24 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         try { drawOpenings2D(ctx, false); } finally { P.stroke = st; } r.dim = minA <= 0.31;
         bldAll(); bldActivate(null); lvlOn = false; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('ouverture d\'un étage du dessous : translucide sur le plan de l\'étage affiché', opl, { below: true, dim: true });
+    /* ensoleillement : position du soleil (équinoxe, lat 45° : ~45° à midi, lever/coucher symétriques) ; sonde dans une pièce à baie plein sud = soleil autour de midi seulement,
+       pièce fermée = jamais, dehors = du lever au coucher ; note, courbe, Y, enregistrement */
+    const sol = await ev(async () => { const keepS = shapes, keepN = solNote; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        const box = (x0, y0, x1, y1, z0, H) => ({ type: 'poly', layerId: activeLayerId, points: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => Object.assign(pt(x, y), { z: z0 })), solid: { kind: 'box', H }, zk: 1 });
+        const room = (ox, win) => [...(win ? [box(ox, 0, ox + 2, 0.2, 0, 3000), box(ox + 4, 0, ox + 6, 0.2, 0, 3000)] : [box(ox, 0, ox + 6, 0.2, 0, 3000)]), box(ox, 3.8, ox + 6, 4, 0, 3000), box(ox, 0, ox + 0.2, 4, 0, 3000), box(ox + 5.8, 0, ox + 6, 4, 0, 3000), box(ox, 0, ox + 6, 4, 3000, 200)];
+        const A = { type: 'poly', layerId: activeLayerId, points: [[-1, -1], [30, -1], [30, 5], [-1, 5]].map(([x, y]) => pt(x, y)) }; shapes.push(A); saveState(); bldMake(A, 'Maison', 0, 2800); saveState();
+        shapes.push(...room(0, true), ...room(10, false)); saveState();
+        solNote = { date: '2026-03-21', step: 5, manual: 1, lat: 45, lon: 6 };
+        startSonde(); sondePlace(pt(3, 1)); sondePlace(pt(13, 2)); sondePlace(pt(3, -30)); setMode('select-box'); const S = solProbes(); r.placed = S.length === 3 && S[0].sonde.n === 'S1' && !!S[0].bid && S[0].lvl === 'rdc' && sondeWhere(S[0]).inside && !sondeWhere(S[2]).inside;
+        const R = await solRun(), P = R.probes, noon = R.t[R.el.indexOf(Math.max(...R.el))];
+        r.sun = Math.abs(Math.max(...R.el) - 45.4) < 0.8 && Math.abs((R.rise + R.set) / 2 - noon) < 8 && R.rise > 5 * 60 && R.set < 20 * 60;
+        r.win = P[0].iv.length === 1 && P[0].iv[0][0] < noon && P[0].iv[0][1] > noon && P[0].iv[0][0] > R.rise + 90 && P[0].iv[0][1] < R.set - 90;
+        r.closed = P[1].mins === 0; r.out = P[2].mins > (R.set - R.rise) - 3 * R.step; r.cls = solClass(P[1], R.date).k === 'ins' && solClass(P[2], R.date) === null;
+        openSolNote(); const box0 = document.getElementById('sol-res'); r.note = !!box0 && box0.querySelectorAll('svg').length === 3 && /S1/.test(box0.textContent) && !/ont changé/.test(box0.textContent); closeTopoModal();
+        selectedShapes = [S[0]]; openSelectionParamModal(); r.y = !!document.getElementById('sd-h'); document.getElementById('sd-h').value = '1,5'; [...document.querySelectorAll('#tm-actions button')].find(b => /Valider/.test(b.textContent)).click(); r.h = S[0].sonde.h === 1.5;
+        openSolNote(); r.stale = /ont changé/.test(document.getElementById('sol-res').textContent); closeTopoModal();
+        const j = JSON.stringify(projectData()); loadProjectText(j, 'sol.mmc'); r.saved = solProbes().length === 3 && !!(solNote && solNote.res && solNote.res.probes.length === 3);
+        solStop(true); solNote = keepN; bldActivate(null); lvlOn = false; shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('ensoleillement : soleil d\'équinoxe, pièce à baie sud au soleil autour de midi, pièce fermée jamais, dehors toute la journée ; note, Y, enregistrement', sol,
+        { placed: true, sun: true, win: true, closed: true, out: true, cls: true, note: true, y: true, h: true, stale: true, saved: true });
 } };

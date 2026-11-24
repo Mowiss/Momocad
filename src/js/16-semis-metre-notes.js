@@ -95,10 +95,10 @@
                 nfr(r.qp, 2) + ' ' + PU_UNIT[r.pu], r.prix > 0 ? nfr(r.prix, 2) + ' €/' + PU_UNIT[r.pu].replace(' fois.', '') : '—', r.prix > 0 ? nfr(r.cout, 2) + ' €' : '—'];
         }
         // ---- Σ CALCULS : un tiroir, un onglet par note de calcul (financière = métré chiffré, cubature, pluviométrique), et un onglet Impressions
-        const CALC_TABS = [['fin', '💶', 'Financier'], ['cub', '⛏️', 'Cubature'], ['pluvio', '🌧', 'Pluvio'], ['print', '🖨', 'Imprimer']];
+        const CALC_TABS = [['fin', '💶', 'Financier'], ['cub', '⛏️', 'Cubature'], ['pluvio', '🌧', 'Pluvio'], ['sol', '☀️', 'Soleil'], ['print', '🖨', 'Imprimer']];
         let calcCur = 'fin';
         function calcTabs(cur) { calcCur = cur; return '<div class="calc-tabs" role="tablist">' + CALC_TABS.map(([k, ic, l]) => `<button type="button" role="tab" data-ct="${k}" class="${k === cur ? 'on' : ''}" onclick="calcTab('${k}')" title="${l}"><span class="ci">${ic}</span><small>${l}</small></button>`).join('') + '</div>'; }
-        function calcTab(k) { if (k === 'fin') openMetre(); else if (k === 'cub') openCubatureDialog(); else if (k === 'pluvio') openPluvio(); else openCalcPrint(); }
+        function calcTab(k) { if (k === 'fin') openMetre(); else if (k === 'cub') openCubatureDialog(); else if (k === 'pluvio') openPluvio(); else if (k === 'sol') openSolNote(); else openCalcPrint(); }
         // NOTE PLUVIOMÉTRIQUE : pluie de projet, surfaces par revêtement (mêmes mailles que le test d'écoulement), coefficients de ruissellement,
         // débit de pointe (méthode rationnelle), volume ruisselé, volume à stocker pour un débit de fuite ; et le bilan du dernier test d'écoulement.
         let pluvioNote = null;
@@ -191,21 +191,22 @@
             doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(110); doc.text(doc.splitTextToSize('Surfaces mesurées sur le terrain fini (plateformes, revêtements, toitures). Coefficients de ruissellement modifiables dans Σ Calculs › Pluviométrique. Le volume à stocker est une estimation sur la pluie de projet (pluie constante).', W - 2 * M), M, Math.min(y + 2, 280));
             if (D) return; doc.save(base + '_note_pluvio.pdf'); updateCommandMessageText('NOTE PLUVIOMÉTRIQUE : PDF « ' + base + '_note_pluvio.pdf » produit.'); }
         // IMPRESSIONS : choisir les notes, une par une ou toutes dans un seul PDF (page de garde et sommaire)
-        let calcPrint = { fin: true, cub: true, cubDet: false, pluvio: true };
+        let calcPrint = { fin: true, cub: true, cubDet: false, pluvio: true, sol: true };
         function openCalcPrint() { const P = calcPrint, ck = (k, l, sub) => `<label style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #374151;border-radius:8px;background:#0b1220;cursor:pointer;"><input type="checkbox" data-pk="${k}" ${P[k] ? 'checked' : ''} style="width:17px;height:17px;margin-top:2px;"><span><b>${l}</b><br><small style="color:#9ca3af">${sub}</small></span></label>`;
             const one = (k, l) => `<button type="button" onclick="calcPrintOne('${k}')" style="background:#374151;color:#e5e7eb;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12.5px;">🖨 ${l}</button>`;
             const body = calcTabs('print') + cubCard(`<div style="font-size:15px;font-weight:600;margin-bottom:10px;">Dossier de notes de calcul</div><div style="display:grid;gap:8px;">
                 ${ck('fin', '💶 Note financière', 'Métré par calque, terrassement et matériaux chiffrés, total HT')}
                 ${ck('cub', '⛏️ Note de cubature', 'Déblai, remblai, talus, plateforme par plateforme')}
                 <label style="display:flex;gap:8px;align-items:center;margin:-2px 0 2px 38px;color:#cbd5e1;font-size:13px;cursor:pointer;"><input type="checkbox" data-pk="cubDet" ${P.cubDet ? 'checked' : ''}> avec le détail par triangle</label>
-                ${ck('pluvio', '🌧 Note pluviométrique', 'Pluie de projet, surfaces actives, débit de pointe, stockage, test d\'écoulement')}</div>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><span style="color:#9ca3af;font-size:12.5px;align-self:center;">Une note seule :</span>${one('fin', 'Financière')}${one('cub', 'Cubature')}${one('pluvio', 'Pluviométrique')}</div>`)
+                ${ck('pluvio', '🌧 Note pluviométrique', 'Pluie de projet, surfaces actives, débit de pointe, stockage, test d\'écoulement')}
+                ${ck('sol', '☀️ Note d\'ensoleillement', 'Horaires et courbe de soleil direct de chaque sonde, journée choisie')}</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><span style="color:#9ca3af;font-size:12.5px;align-self:center;">Une note seule :</span>${one('fin', 'Financière')}${one('cub', 'Cubature')}${one('pluvio', 'Pluviométrique')}${one('sol', 'Ensoleillement')}</div>`)
                 + `<div style="margin-top:12px">${cubCard('<div style="font-size:15px;font-weight:600;margin-bottom:10px;">Aperçu de la première page</div><div id="cp-prev"></div>')}</div>`;
             openTopoModal('Σ Calculs', body, [['Fermer', closeTopoModal, false], ['🖨 Imprimer le dossier', () => calcDossierPDF(), true]]);
             document.getElementById('tm-body').onchange = (e) => { const k = e.target.dataset && e.target.dataset.pk; if (k) { calcPrint[k] = e.target.checked; calcPrintPreview(); } }; calcPrintPreview(); }
         // aperçu de la page de garde du dossier : en-tête (logo, plan, client, dessinateur, date) et sommaire des notes cochées
         function calcPrintPreview() { const el = document.getElementById('cp-prev'); if (!el) return; const P = calcPrint, C = cartoucheData || {}, E = (t) => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;'), base = fileName ? baseName(fileName) : 'plan';
-            const parts = [['fin', 'Note financière'], ['cub', 'Note de cubature'], ['pluvio', 'Note pluviométrique']].filter(([k]) => P[k]);
+            const parts = [['fin', 'Note financière'], ['cub', 'Note de cubature'], ['pluvio', 'Note pluviométrique'], ['sol', 'Note d\'ensoleillement']].filter(([k]) => P[k] && (k !== 'sol' || solProbes().length));
             const info = [C.planName ? 'Plan : ' + C.planName + (cartoucheIndice(C.indice) ? '  (' + cartoucheIndice(C.indice) + ')' : '') : 'Fichier : ' + base, C.clientName ? 'Client : ' + C.clientName : '', C.draftsmanName ? 'Dessinateur : ' + C.draftsmanName : ''].filter(Boolean);
             el.innerHTML = `<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap"><div style="width:260px;aspect-ratio:210/297;max-width:100%;background:#fff;color:#141414;border-radius:3px;box-shadow:0 6px 20px rgba(0,0,0,.45);padding:14px 14px;font-family:Helvetica,Arial,sans-serif;display:flex;flex-direction:column;gap:6px;overflow:hidden">
                 <div style="display:flex;gap:8px;align-items:flex-start">${C.logo ? `<img src="${C.logo}" style="width:28px;height:28px;object-fit:contain">` : ''}<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">Notes de calcul</div>${info.map(t => `<div style="font-size:7px;color:#3c3c3c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${E(t)}</div>`).join('')}</div><div style="font-size:7px;color:#3c3c3c">${new Date().toLocaleDateString('fr-FR')}</div></div>
@@ -215,13 +216,13 @@
         // cubatures pas encore calculées : on les calcule sans afficher la fenêtre
         function calcCubReady() { if (window.__cubPdf) return true; let tmp = null; if (!document.getElementById('cb-res')) { tmp = document.createElement('div'); tmp.id = 'cb-res'; tmp.style.display = 'none'; document.body.appendChild(tmp); }
             try { runCubature(); } catch (e) { console.error(e); } if (tmp) tmp.remove(); return !!window.__cubPdf; }
-        async function calcPrintOne(k) { if (k === 'fin') { metreQ = metreQuant(); metrePDF(); } else if (k === 'cub') { if (!calcCubReady()) { updateCommandMessageText('NOTE DE CUBATURE : rien à calculer (il faut des points cotés et au moins une plateforme cochée).'); return; } await cubPDF(calcPrint.cubDet); } else pluvioPDF(); }
+        async function calcPrintOne(k) { if (k === 'fin') { metreQ = metreQuant(); metrePDF(); } else if (k === 'cub') { if (!calcCubReady()) { updateCommandMessageText('NOTE DE CUBATURE : rien à calculer (il faut des points cotés et au moins une plateforme cochée).'); return; } await cubPDF(calcPrint.cubDet); } else if (k === 'sol') { if (!solProbes().length) { updateCommandMessageText('NOTE D\'ENSOLEILLEMENT : aucune sonde posée.'); return; } await solPDF(); } else pluvioPDF(); }
         async function calcDossierPDF() { if (!window.jspdf) { alert('jsPDF indisponible (connexion ?).'); return; } const P = calcPrint, parts = [];
-            if (P.fin) parts.push(['fin', 'Note financière']); if (P.cub) { if (calcCubReady()) parts.push(['cub', 'Note de cubature']); else updateCommandMessageText('DOSSIER : note de cubature sautée (pas de plateforme ou pas de terrain).'); } if (P.pluvio) parts.push(['pluvio', 'Note pluviométrique']);
+            if (P.fin) parts.push(['fin', 'Note financière']); if (P.cub) { if (calcCubReady()) parts.push(['cub', 'Note de cubature']); else updateCommandMessageText('DOSSIER : note de cubature sautée (pas de plateforme ou pas de terrain).'); } if (P.pluvio) parts.push(['pluvio', 'Note pluviométrique']); if (P.sol && solProbes().length) parts.push(['sol', 'Note d\'ensoleillement']);
             if (!parts.length) { updateCommandMessageText('DOSSIER : coche au moins une note.'); return; }
             const { jsPDF } = window.jspdf, doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }), D = { doc, used: true }, base = (fileName ? baseName(fileName) : 'plan'), start = [];
             let y = calcPdfHeader(doc, 'Notes de calcul') + 10;
-            for (const [k] of parts) { start.push(doc.getNumberOfPages() + 1); if (k === 'fin') { metreQ = metreQuant(); metrePDF(D); } else if (k === 'cub') await cubPDF(P.cubDet, D); else pluvioPDF(D); }
+            for (const [k] of parts) { start.push(doc.getNumberOfPages() + 1); if (k === 'fin') { metreQ = metreQuant(); metrePDF(D); } else if (k === 'cub') await cubPDF(P.cubDet, D); else if (k === 'sol') await solPDF(D); else pluvioPDF(D); }
             doc.setPage(1); doc.setTextColor(20); doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.text('Sommaire', 15, y); y += 9; doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
             parts.forEach(([, l], i) => { doc.text((i + 1) + '.  ' + l, 20, y); doc.text('page ' + start[i], 195, y, { align: 'right' }); doc.setDrawColor(209, 213, 219); doc.setLineWidth(0.2); doc.line(20, y + 2, 195, y + 2); y += 9; });
             const fn = base + '_notes_de_calcul.pdf'; doc.save(fn); updateCommandMessageText('DOSSIER : « ' + fn + ' » produit (' + doc.getNumberOfPages() + ' pages, ' + parts.length + ' note(s)).'); }

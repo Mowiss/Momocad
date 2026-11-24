@@ -59,7 +59,7 @@
                     if (typing(/^[0-9.,]$/)) return true;
                     if (ok) { e.preventDefault(); if (!typedInput) typedInput = String(T2U(mmToWorld(openLast.w * 1000))); openingFinish(openingB({ x: currentX, y: currentY })); return true; }
                     if (bs) { e.preventDefault(); return true; } return false;
-                case 'array': case 'divide': case 'break': case 'addpt': case 'point': case 'dim-rad': case 'dim-dia':
+                case 'array': case 'divide': case 'break': case 'addpt': case 'point': case 'sonde': case 'dim-rad': case 'dim-dia':
                     if (bs || ok) { e.preventDefault(); return true; } return false;
             }
             return false;
@@ -123,6 +123,7 @@
                     texApply(t); return true; }
                 case 'paintzone': brushPickClick(w); return true;
                 case 'blkbase': blkBaseClick(w); return true;
+                case 'sonde': sondePlace(w); return true;
                 case 'point': { const p = t2Pt(w.x, w.y); shapes.push({ type: 'point', layerId: activeLayerId, x: p.x, y: p.y }); saveState(); draw(); updateCommandMessageText('POINT posé. Cliquez le suivant, ou Échap.'); return true; }
                 case 'divide': if (!t2.div) t2DivClick(w); return true;
                 case 'dim-rad': case 'dim-dia': t2DimRClick(w); return true;
@@ -150,6 +151,7 @@
                 case 'paint': case 'texpick': case 'texclear': return texPaint && texPaint.kind === 'paint' ? 'PEINDRE (' + ((TEX_LIB.find(t => t.id === texPaint.tex) || {}).name || '') + ') : cliquez les volumes à habiller, en plan ou dans la vue 3D. Échap pour finir.' : mode === 'texpick' ? 'PIPETTE : cliquez un volume pour reprendre sa texture.' : 'GOMME À TEXTURE : cliquez un volume pour lui rendre la couleur de son calque.';
                 case 'blkbase': return 'IMPORTER UN BLOC : cliquez le point d\'insertion du bloc (les accroches aident). Échap pour annuler.';
                 case 'point': return 'POINT : cliquez pour poser un point de repère (les accroches aident). Échap pour finir.';
+                case 'sonde': return 'SONDE D\'ENSOLEILLEMENT : cliquez dans une pièce (posée sur le plancher de l\'étage affiché) ou dehors (sur le sol fini). Y sur une sonde : nom, hauteur. Σ Calculs › Soleil pour la journée. Échap pour finir.';
                 case 'divide': return t2.div ? 'DIVISER : réglez les repères dans la fenêtre (aperçu en direct), puis Poser.' : 'DIVISER : cliquez le tracé à jalonner (droite, polyligne, arc ou cercle).';
                 case 'dim-rad': case 'dim-dia': { const nm = mode === 'dim-dia' ? 'COTE DE DIAMÈTRE' : 'COTE DE RAYON'; return t2.dr ? nm + ' : placez le texte (dedans ou dehors) et cliquez.' : nm + ' : cliquez un cercle ou un arc.'; }
                 case 'measure': { const I = t2MsInfo({ x: currentX, y: currentY }); return 'MESURER : ' + (!t2.ms.length ? 'cliquez le 1er point (rien n\'est dessiné).' : t2MsText(I) + '  —  clic = point suivant, Espace = nouvelle mesure, ⌫ = retirer le dernier.'); }

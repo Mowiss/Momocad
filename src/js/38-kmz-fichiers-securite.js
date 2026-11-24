@@ -96,7 +96,7 @@
                      // réglages d'affichage et d'impression du plan
                      settings: { unit: printSettings.unit, decimals: printSettings.decimals, dimText: dimTextAligned ? 'aligned' : 'horizontal', dimStyle: Object.assign({}, dimStyle),
                                  paper: printSettings.paper, output: printSettings.output, cartouche: !!printSettings.cartouche, orientation: printOrientation },
-                     talus: { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, pluvio: pluvioNote ? Object.assign({}, pluvioNote, { S: undefined }) : undefined, maill: mailNote || undefined, levels: bldActId ? lvlsGlobal : lvls, layout: Object.assign({}, layoutData, { paperShapes: paperList || lpPaperShapes() }),
+                     talus: { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, pluvio: pluvioNote ? Object.assign({}, pluvioNote, { S: undefined }) : undefined, sol: solNote || undefined, maill: mailNote || undefined, levels: bldActId ? lvlsGlobal : lvls, layout: Object.assign({}, layoutData, { paperShapes: paperList || lpPaperShapes() }),
                      layouts: lpSync().map(L => L === layoutData ? { $cur: 1 } : L), layoutIdx, studio: studio.views.length || studio.fmt !== '16:9' || studio.f !== 35 ? studio : undefined };
         }
         function fileBytes(name) {
@@ -372,7 +372,7 @@
             geoOrigin = (data.geoOrigin && isFinite(data.geoOrigin.x)) ? data.geoOrigin : { x: 0, y: 0 };
             lvls = Array.isArray(data.levels) && data.levels.length ? data.levels : null; lvlsGlobal = null; bldActId = null; lvlAct = 'rdc'; if (lvlOn) lvlToggle(false);
             if (data.talus) { cubState.talus = data.talus.on !== false; cubState.kR = data.talus.kR || '3/2'; cubState.kD = data.talus.kD || '1/1'; }
-            pluvioNote = data.pluvio || null; mailNote = data.maill || null;
+            pluvioNote = data.pluvio || null; solNote = data.sol || null; solStop(true); mailNote = data.maill || null;
             shapes = data.shapes; wallFteMigrate(shapes); lvlMarkAll(); if (lvls) lvlChain(); markZKnown(); lightenTalusLimits(shapes); MMC_LOAD_FIX.walls = wallBordersRepair(); MMC_LOAD_FIX.bm = bmLayerRepair(); MMC_LOAD_FIX.ops = wallOpRepair(); MMC_LOAD_FIX.bld = bldRepair(); if (shapes.some(x => x.stair2)) try { loadPolyClip().then(() => { invalidateCache(); draw(); }, () => {}); } catch (e) {} MMC_LOAD_FIX.bsol = bldSolidRepair(); MMC_LOAD_FIX.wz = wallWzRepair(); wallBidRepair(); selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI();
             if (data.view && data.view.zoom > 0) {
