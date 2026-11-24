@@ -258,13 +258,18 @@
             sectionPlace(D, at); }
         // coupe calculée (repère de la coupe, mm) : boucles des volumes coupés, terrain naturel, étendue, nom
         // la maquette 3D filaire des vues de façade (même scène que les vues ortho : faces opaques qui cachent, arêtes en traits), ramenée en mm réels
+        let SEC_SCENE = false, SEC_SCENE_C = null;
         function secSceneMM() {
             try {
                 if (!window.THREE || !shapes.some(is3DObj)) return null;
                 if (!V3) init3D();
-                if (!is3DOpen()) { const key = historyStep + '|' + shapes.length + '|' + layers.map(l => l.visible === false ? 0 : 1).join('');
+                /* maquette des coupes : refaite seulement quand ce que la coupe montre change (empreinte du modèle, pas chaque pas d'annulation : un texte, une cote, la coupe elle-même
+                   ne la relancent pas), en version allégée (ni plan drapé, ni arbres) ; les triangles et arêtes extraits sont gardés avec elle */
+                const sig = secModelSig();
+                if (!is3DOpen()) { const key = 'sec|' + sig;
+                    if (key === orthoKey && SEC_SCENE_C && SEC_SCENE_C.key === key) return SEC_SCENE_C.R;
                     const ex = document.getElementById('v3-exag'), ex0 = ex.value;
-                    if (key !== orthoKey || V3.exag !== 1 || !V3.flat) { ex.value = '1'; v3Flat = true; try { build3DScene(); } finally { ex.value = ex0; v3Flat = false; } orthoKey = key; } }
+                    if (key !== orthoKey || V3.exag !== 1 || !V3.flat) { ex.value = '1'; v3Flat = true; SEC_SCENE = true; try { build3DScene(); } finally { ex.value = ex0; v3Flat = false; SEC_SCENE = false; } orthoKey = key; } }
                 const root = V3.root; if (!root) return null; root.updateMatrixWorld(true);
                 const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), M = new THREE.Matrix4(), v = new THREE.Vector3(), ex = V3.exag || 1, zm = V3.zmin || 0, flat = !!V3.flat;
                 const mm = (x, y, z) => [x * 1000, y * 1000, (z / ex + zm) * 1000];
@@ -281,7 +286,7 @@
                         if (!flat) { const eg = new THREE.EdgesGeometry(g, 30); segsOf(o, eg, layOf(o)); eg.dispose(); } }
                     else if (o.isLineSegments || o.isLine) segsOf(o, o.geometry, layOf(o));
                 });
-                return tris.length || edges.length ? { tris, edges } : null;
+                const R = tris.length || edges.length ? { tris, edges } : null; SEC_SCENE_C = is3DOpen() ? null : { key: orthoKey, R }; return R;
             } catch (e) { console.error(e); return null; }
         }
         function sectionData(A, B, side) {
@@ -384,7 +389,7 @@
             const { name, A, B, side } = D, id = 'sec' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), lid = cutLayerId(), zRef = Math.round(D.z0 / 1000) * 1000;
             const def = { id, name, side, zRef, gid: 'grp-coupe-' + id, o: { x: at.x - mmToWorld((D.u0 + D.u1) / 2), y: at.y + mmToWorld((D.z0 + D.z1) / 2 - zRef) } }; def.lay = secLayers(def, true);
             const line = { type: 'line', layerId: def.lay.p, x1: A.x, y1: A.y, x2: B.x, y2: B.y, groupId: def.gid + '-plan', cutDef: def, zk: 1, lvs: 1 };
-            shapes.push(line); const out = secBuild(D, def); shapes.push(...out, ...secMarks(line)); saveState(); draw();
+            shapes.push(line); const out = secBuild(D, def); shapes.push(...out, ...secMarks(line)); SEC_D.set(id, { sk: secModelSig() + '|' + [line.x1, line.y1, line.x2, line.y2, side].join(','), D }); saveState(); draw();
             updateCommandMessageText('COUPE ' + name + '-' + name + ' dessinée (groupe de calques « Coupe ' + name + '-' + name + ' ») : ' + D.loops.length + ' élément(s) coupé(s)' + (D.tn.length > 1 ? ', terrain et terrassement' : '') + '. Elle se met à jour toute seule quand le plan change. Son dessin ne se modifie pas (il s\'accroche) ; ses cotes se déplacent une à une ; son titre déplace toute la coupe.');
             return out;
         }
@@ -454,12 +459,12 @@
         }
         // mise à jour : après chaque modification (un instant après), toutes les coupes dynamiques sont recalculées ; une coupe déplacée garde sa nouvelle place
         let secTimer = 0;
-        function secSchedule() { if (!shapes.some(x => x.cutDef)) return; clearTimeout(secTimer); secTimer = setTimeout(secRefreshAll, 300); }
+        function secSchedule() { if (!shapes.some(x => x.cutDef)) return; clearTimeout(secTimer); secTimer = setTimeout(secRefreshAll, 400); }
         /* empreinte de ce qu'une coupe montre (volumes, murs, plateformes, terrain, calques visibles) : si rien de cela n'a changé, la coupe calculée est reprise telle quelle
            (le calcul — maquette 3D, vue au-delà — coûte des centaines de ms ; un trait, une cote, un texte ajoutés ne le relancent plus) */
         const SEC_D = new Map();
         function secModelSig() { const rel = shapes.filter(x => !x.secOf && !x.secMark && !x.cutDef && (is3DObj(x) || (x.type === 'point' && hasZ(x.z)) || x.wz || x.openings || (x.points && x.points.some(q => hasZ(q.z)))));
-            const j = JSON.stringify(rel) + '|' + layers.map(l => l.visible === false ? 0 : 1).join(''); let h = 0; for (let i = 0; i < j.length; i++) h = (h * 31 + j.charCodeAt(i)) | 0; return h + ':' + j.length; }
+            const used = new Set(rel.map(x => x.layerId || 'layer-0')), j = JSON.stringify(rel) + '|' + layers.filter(l => used.has(l.id)).map(l => l.id + (l.visible === false ? 0 : 1)).join('');   /* seuls les calques qui portent le modèle : créer les calques d'une coupe ne relance rien */ let h = 0; for (let i = 0; i < j.length; i++) h = (h * 31 + j.charCodeAt(i)) | 0; return h + ':' + j.length; }
         function secRefreshAll() { if (!window.THREE) { loadThree().then(secRefreshAll); return; } let ch = false; const sig = secModelSig();
             shapes.filter(x => x.cutDef && x.type === 'line').forEach(L => { try { if (secRefresh(L, sig)) ch = true; } catch (e) { console.error(e); } });
             if (ch) { invalidateCache(); if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = JSON.parse(JSON.stringify(shapes)); draw(); } }

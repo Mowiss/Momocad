@@ -160,7 +160,7 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const set = (k, v) => { const e = [...document.getElementById('selparam-modal').querySelectorAll('input')].find(x => (x.getAttribute('onchange') || '').includes("'" + k + "'")); if (e.type === 'checkbox') e.checked = v; else e.value = v; e.dispatchEvent(new Event('change')); };
         const n5 = txt(/^TN /).length, x0 = dalleX(); set('tn', '10'); r.tn = txt(/^TN /).length < n5 && txt(/^TN /).length >= 4; set('col', '4'); r.col = Math.abs(dalleX() - x0 - 2.5 * m) < 0.05 * m;
         set('on.P', false); r.noPlat = txt(/^Plateforme/).length === 0; set('on.P', true); r.plat = txt(/^Plateforme/).length === 1;
-        const t0 = txt(/^TN /)[1]; shapes.filter(x => x.groupId === t0.groupId).forEach(x => translateShape(x, 0, -2 * m)); saveState(); await new Promise(res => setTimeout(res, 700)); r.moved = !!(d.lvOff && Object.keys(d.lvOff).length);
+        const t0 = txt(/^TN /)[1]; shapes.filter(x => x.groupId === t0.groupId).forEach(x => translateShape(x, 0, -2 * m)); saveState(); secRefreshAll(); r.moved = !!(d.lvOff && Object.keys(d.lvOff).length);
         const rb = [...document.getElementById('selparam-modal').querySelectorAll('[onclick]')].find(x => /'reset'/.test(x.getAttribute('onclick'))); if (rb) rb.click(); r.reset = !!rb && !Object.keys(d.lvOff || {}).length; r.sel = selectedShapes.some(x => x.secTitle);
         closeSelectionParamModal(); shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
     t.eq('coupe, fenêtre Y : pas des cotes du TN, écart de la colonne des niveaux, cotes affichées ou non, cotes remises à leur place', cy, { ui: true, tn: true, col: true, noPlat: true, plat: true, moved: true, reset: true, sel: true });
@@ -187,8 +187,13 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const wallX = Math.max(...S.filter(x => x.hatchMat === 'parpaing').flatMap(x => x.loops[0].map(q => q.x))), roofX = Math.max(...S.filter(x => x.hatchMat === 'bois').flatMap(x => x.loops[0].map(q => q.x))), mk = S.filter(x => x.type === 'text' && /Faîtage|Égout/.test(x.content)).map(x => (x.x - Math.max(wallX, roofX)) / m);
         const styles = [effectiveDash(tn), effectiveWidth(cut), effectiveWidth(bey), effectiveDash(lead)];
         shapes = shapes.filter(x => !x.secTitle); saveState(); await new Promise(r => setTimeout(r, 700)); const alive = !!shapes.find(x => x.cutDef) && !!shapes.find(x => x.secTitle);
-        shapes = keepS; invalidateCache(); saveState(); return { styles, near: mk.length > 0 && mk.every(d => d > 0 && d < 5), alive }; });
-    t.eq('coupe : traits coupés épais, au-delà fins, TN tireté, rappels pointillés ; niveaux contre le bâtiment ; titre effacé, coupe toujours dynamique', cs, { styles: ['dashed', 2, 0.5, 'dotted'], near: true, alive: true });
+        /* rapidité : la maquette des coupes n'est pas refaite pour un texte ajouté ni pour une deuxième coupe ; la coupe neuve n'est pas recalculée à son premier rafraîchissement */
+        const b0 = build3DScene; let nb = 0, fast = null; build3DScene = function (...a) { nb++; return b0.apply(this, a); };
+        try { shapes.push({ type: 'text', layerId: activeLayerId, x: 0, y: 0, content: 'note', height: 1 }); saveState(); secRefreshAll(); const afterText = nb;
+            sectionPlace(sectionData({ x: 2 * m, y: -20 * m }, { x: 78 * m, y: -20 * m }, 1), { x: 40 * m, y: -120 * m }); const afterSecond = nb; const sd0 = sectionData; let nd = 0; sectionData = function (...a) { nd++; return sd0.apply(this, a); }; secRefreshAll(); sectionData = sd0;
+            fast = { afterText, afterSecond: nb - afterText, recalc: nd }; } finally { build3DScene = b0; }
+        shapes = keepS; invalidateCache(); saveState(); return { styles, near: mk.length > 0 && mk.every(d => d > 0 && d < 5), alive, fast }; });
+    t.eq('coupe : traits coupés épais, au-delà fins, TN tireté, rappels pointillés ; niveaux contre le bâtiment ; titre effacé, coupe toujours dynamique ; maquette des coupes pas refaite pour un texte ni une 2e coupe', cs, { styles: ['dashed', 2, 0.5, 'dotted'], near: true, alive: true, fast: { afterText: 0, afterSecond: 0, recalc: 0 } });
     // coupe : l'au-delà vient de la maquette filaire des vues de façade (faîtage vu derrière la coupe), rien sous la terre coupée ; cotes de niveau déplaçables, elles suivent la coupe
     const cw = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         for (let i = 0; i <= 10; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + j * 400, zk: 1 });

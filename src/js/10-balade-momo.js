@@ -199,7 +199,7 @@
             V3.center = { x: cx, y: cy }; V3.R = Math.max(1, Math.hypot(maxX - minX, maxY - minY) / 2, (zmax - zmin) * exag / 2);
             try { blk3DBuild(root, vis, Zm); } catch (e) { console.error(e); }
             try { cadBati3D(root, vis, P, Zm, exag); } catch (e) { console.error(e); }
-            try { bois3D(root, vis, P, Zm, exag); } catch (e) { console.error(e); }
+            if (!SEC_SCENE) try { bois3D(root, vis, P, Zm, exag); } catch (e) { console.error(e); }   /* maquette des coupes : sans arbres */
             try { bassin3D(root, vis, P, Zm); } catch (e) { console.error(e); }
             try { stair3D(root, vis, P, Zm); } catch (e) { console.error(e); }
             try { stair2_3D(root, vis, P, Zm); } catch (e) { console.error(e); }
@@ -493,7 +493,7 @@
                 const L = []; const ring = Zo.ring; for (let k = 0; k < ring.length; k++) { const a = ring[k], b = ring[(k + 1) % ring.length], A2 = P(a.x, a.y), B2 = P(b.x, b.y); L.push(A2.x, A2.y, Zm(hasZ(a.z) ? a.z : Zo.zp), B2.x, B2.y, Zm(hasZ(b.z) ? b.z : Zo.zp)); }
                 try { const G = talusGeom(Zo.s); if (G) (G.parts || []).forEach(pt => { for (let k = 1; k < pt.length; k++) { const a = P(pt[k - 1].x, pt[k - 1].y), b = P(pt[k].x, pt[k].y); L.push(a.x, a.y, Zm(pt[k - 1].z), b.x, b.y, Zm(pt[k].z)); } }); } catch (e) {}
                 const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(L, 3)); const ls = new THREE.LineSegments(g, new THREE.LineBasicMaterial()); ls.userData.edgeOf = Zo.s; root.add(ls); });
-            if (v3Flat) planWire3D(root);
+            if (v3Flat && !SEC_SCENE) planWire3D(root);
             V3.scene.add(root); V3.snaps = [...SN.values()].slice(0, 30000); if (V3.cut) v3CutCaps(); if (typeof EC !== 'undefined' && EC && EC.g3) { try { ecAttach3D(); } catch (e) { console.error(e); } }   // test d'écoulement : l'eau et la pluie suivent la scène
             try { v3BrushBuild(); } catch (e) { console.error(e); }
             if (V3.tmp) V3.tmp.position.copy(root.position);

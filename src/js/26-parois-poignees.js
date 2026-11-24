@@ -309,7 +309,7 @@
         function wallBordersRepair() { const H = shapes.filter(h => isWallHatch(h) && h.loops && h.loops[0] && h.loops[0].length >= 3), L = shapes.filter(x => x.type === 'line' && x.wallMat), eps = mmToWorld(3), add = [];
             const segD = (p, a, b) => { const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy; let t = l2 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy); };
             H.forEach(h => { const P = h.loops[0], n = P.length; let A2 = 0; for (let i = 0; i < n; i++) A2 += P[i].x * P[(i + 1) % n].y - P[(i + 1) % n].x * P[i].y; const sg = A2 > 0 ? 1 : -1;
-                const Lm = L.filter(l => l.wallMat === h.wallMat), others = H.filter(o => o !== h && o.wallMat === h.wallMat), ops = h.openings || [];
+                const Lm = L.filter(l => l.wallMat === h.wallMat), others = H.filter(o => o !== h && o.wallMat === h.wallMat), ops = (h.groupId ? H.filter(o => o.groupId === h.groupId && o.lvl === h.lvl) : [h]).flatMap(o => o.openings || []);   /* toutes les ouvertures de la paroi : une porte à cheval sur deux tronçons ne fait pas border l'autre */
                 for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % n], len = Math.hypot(b.x - a.x, b.y - a.y); if (len < mmToWorld(5)) continue;
                     const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, nx = (b.y - a.y) / len * sg, ny = -(b.x - a.x) / len * sg, out = { x: m.x + nx * eps, y: m.y + ny * eps };
                     if (Lm.some(l => segD(m, { x: l.x1, y: l.y1 }, { x: l.x2, y: l.y2 }) < eps)) continue;   // déjà bordé
