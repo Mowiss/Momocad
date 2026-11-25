@@ -17,6 +17,7 @@
             terre:   { name: 'Terre (terrain)', fill: '#d6b88a', ink: '#78350f', line: '#a16207' },
             air:     { name: "Lame d'air", fill: null, ink: '#64748b', line: '#94a3b8' },
             metal:   { name: 'Métal (ossature)', fill: '#9ca3af', ink: '#374151', line: '#cbd5e1' },
+            verre:   { name: 'Véranda (alu vitré)', fill: '#e0f2fe', ink: '#0369a1', line: '#7dd3fc' },
         };
         // Parois indépendantes : un seul matériau chacune, tracées en traits (contour) sur un calque coloré par matériau.
         // On superpose soi-même (ex. béton puis isolant puis placo, côte à côte) et on recoupe les angles (Couper, Prolonger…).
@@ -30,6 +31,7 @@
             { id: 'w-enduit', name: 'Enduit', layers: [['enduit', 15]] },
             { id: 'w-bois', name: 'Ossature bois', layers: [['bois', 145]] },
             { id: 'w-air', name: "Lame d'air", layers: [['air', 20]] },
+            { id: 'w-veranda', name: 'Véranda (alu vitré)', layers: [['verre', 70]] },
         ];
         let wallOpt = { e: 0, align: 'gauche' };   // épaisseur imposée (0 = celle de la paroi) et côté du tracé
         try { Object.assign(wallOpt, JSON.parse(localStorage.getItem('momocad-wallopt') || '{}')); } catch (e) {}
@@ -59,6 +61,9 @@
             const from = (x0, st) => x0 + Math.max(0, Math.floor((X0 - x0) / st)) * st;   // premier motif visible, en gardant la même trame
             const diag = (st, ang) => { st = thin(st, 3); const t = Math.tan(ang), ex = e / Math.abs(t), a0 = X0 - ex - st, x0 = Math.floor(a0 / st) * st; for (let x = x0; x < X1 + ex + st; x += st) { c.moveTo(x, 0); c.lineTo(x + e / t, e); } };   // hachures inclinées : elles débordent d'une épaisseur des deux côtés (sinon un coin reste vide)
             c.beginPath();
+            if (mat === 'verre') {   // véranda : vitrage au milieu de l'épaisseur, montants alu (pleins) tous les mètres
+                c.moveTo(X0, e / 2); c.lineTo(X1, e / 2); c.lineWidth = 1 / px; c.stroke(); c.beginPath(); c.save(); c.fillStyle = c.strokeStyle; c.globalAlpha *= 0.7; const st = 1000;
+                for (let x = Math.max(0, Math.floor(X0 / st) * st); x <= Math.min(Lmm, X1 + st); x += st) c.fillRect(Math.min(Math.max(x, 0), Lmm - e) , 0, Math.min(e, Lmm), e); c.fillRect(Math.max(0, Lmm - e), 0, Math.min(e, Lmm), e); c.restore(); return; }
             if (mat === 'metal') { c.save(); c.fillStyle = c.strokeStyle; c.globalAlpha *= 0.55; c.fillRect(Math.max(0, X0), 0, Math.min(Lmm, X1) - Math.max(0, X0), e); c.restore(); return; }   // ossature métallique : plein
             if (mat === 'isolant') {   // laine : boucles régulières sur l'épaisseur
                 const st = Math.max(e * 0.55, 8) * sc;

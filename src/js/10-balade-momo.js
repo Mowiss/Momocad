@@ -363,6 +363,7 @@
                     const TU = TEX_LIB.find(t => t.id === o.texU), mu = TU ? texMaterial(o.texU) : null;
                     if (mu) { const gg = texGeometry(g, TX ? TX.tile : TU.tile); m = new THREE.Mesh(gg, [tm || m.material, mu]); } }
                 if ((o.ftex && Object.keys(o.ftex).length || (o.fte && o.fte.length)) && faceable(o)) { try { m = wallFaceMesh(o, g, m.material, P); } catch (e) {} }   /* chaque face sa texture */
+                if (verIsGlass(o)) { m = new THREE.Mesh(m.geometry, verGlass()); m.renderOrder = 2; try { (verIsWall(o) ? verWallFrame(o, g, P) : verIsRoof(o) ? verRoofFrame(o, m, P) : []).forEach(f => { f.userData.shape = o; root.add(f); }); } catch (e) { mcIncident(e, '3D : véranda'); } }   /* véranda : vitrage + ossature alu */
                 if (tm && selectedShapes.includes(o)) tm.emissive = new THREE.Color(0x5b1840);
                 m.userData.shape = o; root.add(m);
                 let eg = o.wallMat ? wallEdges3D(o, P, Zm, exag) : null; if (!eg) { eg = new THREE.EdgesGeometry(g, 30); if (o.wallMat || o.csg || o.type === 'mesh') eg = flatEdgesClean(g, eg); }

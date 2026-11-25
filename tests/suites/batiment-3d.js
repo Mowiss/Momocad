@@ -1065,6 +1065,23 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         openSolNote(); r.stale = /ont changé/.test(document.getElementById('sol-res').textContent); closeTopoModal();
         const j = JSON.stringify(projectData()); loadProjectText(j, 'sol.mmc'); r.saved = solProbes().length === 3 && !!(solNote && solNote.res && solNote.res.probes.length === 3);
         solStop(true); solNote = keepN; bldActivate(null); lvlOn = false; shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
+    /* véranda : parois « Véranda (alu vitré) » et toit coché « Toiture de véranda » rendus en vitrage, avec montants (tous les mètres au plus, pas dans la porte), lisses, chevrons */
+    const ver = await ev(async () => { const keepS = shapes; shapes = []; bldActivate(null); lvlOn = false; await loadPolyClip(); const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
+        r.preset = !!WALL_PRESETS.find(w => w.id === 'w-veranda') && !!WALL_MATS.verre;
+        wallOpt.align = 'gauche'; startWall('w-veranda'); wallStart = pt(0, 4); wallChain = null; wallAddTo(pt(0, 0).x, pt(0, 0).y); wallAddTo(pt(6, 0).x, pt(6, 0).y); wallAddTo(pt(6, 4).x, pt(6, 4).y); wallChain = null; wallStart = null; setMode('select-box');
+        const vw = shapes.filter(x => x.wallMat === 'verre' && x.type === 'hatch'), front = vw.find(h => { const q = wallQuadSeg(h); return q && Math.abs(q.p.y - q.q.y) < 1e-6 && Math.abs(q.p.y) < m; });
+        openA = pt(2.2, 0); openWall = front; openDir = { x: 1, y: 0 }; openLast.kind = 'porte'; openingFinish(pt(3.2, 0)); [...document.querySelectorAll('#tm-actions button')].find(b => /Valider/.test(b.textContent)).click();
+        const base = { type: 'poly', layerId: activeLayerId, points: [[0, 0], [6, 0], [6, 4], [0, 4]].map(([x, y]) => Object.assign(pt(x, y), { z: 0 })) }; shapes.push(base);
+        roofDialog(base, true); document.querySelector('input[name=rf-p][value="1"]').checked = true; rfSw(1); r.opt = document.getElementById('rf-verw').style.display !== 'none'; document.getElementById('rf-eg').value = '0'; document.getElementById('rf-he').value = '2,5'; document.getElementById('rf-hf').value = '3,1'; document.getElementById('rf-db').value = '0'; document.getElementById('rf-fill').checked = true; document.getElementById('rf-ver').checked = true; document.getElementById('rf-vere').value = '1';
+        [...document.querySelectorAll('#tm-actions button')].find(b => /Créer le toit/.test(b.textContent)).click(); const pan = shapes.find(x => x.roofDef); r.roof = !!pan && pan.roofDef.o.ver === 1 && pan.roofDef.o.verE === 1 && Math.abs(pan.roofDef.o.e - 0.032) < 1e-9;
+        selectedShapes = []; await open3D(); const fr = [], gl = new Set(); V3.root.traverse(o => { if (o.userData.verFrame) fr.push(o); if (o.isMesh && o.userData.shape && o.material && o.material.transparent && o.material.opacity < 0.5) gl.add(o.userData.shape); });
+        r.glass = vw.every(h => gl.has(h)) && gl.has(pan) && [...gl].some(x => x.name === 'Pignons');
+        const P0 = (x, y) => ({ x: x + V3.root.position.x, y: y + V3.root.position.y }), dx = P0(2.2, 0), dX = P0(3.2, 0); V3.root.updateMatrixWorld(true);
+        const posts = fr.filter(f => f.userData.shape === front).map(f => new THREE.Box3().setFromObject(f)).filter(b => b.max.z - b.min.z > 1.5);
+        r.posts = posts.length >= 6 && !posts.some(b => { const c = (b.min.x + b.max.x) / 2; return c > dx.x + 0.1 && c < dX.x - 0.1; });
+        const raft = fr.filter(f => f.userData.shape === pan); r.rafters = raft.length === 7;
+        close3D(); shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('véranda : paroi alu vitrée et toiture de véranda en vitrage, montants (aucun dans la porte), lisses, chevrons tous les mètres, pignons vitrés', ver, { preset: true, opt: true, roof: true, glass: true, posts: true, rafters: true });
     t.eq('ensoleillement : soleil d\'équinoxe, pièce à baie sud au soleil autour de midi, pièce fermée jamais, dehors toute la journée ; note, Y, enregistrement', sol,
         { placed: true, sun: true, win: true, closed: true, out: true, cls: true, note: true, y: true, h: true, stale: true, saved: true });
 } };

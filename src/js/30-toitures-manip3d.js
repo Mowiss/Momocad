@@ -22,7 +22,7 @@
             const ic4 = '<path d="M6 40H68V30H40V14H6Z" fill="#374151" stroke="#9ca3af"/><path d="M6 40L14 32H60L68 40M6 14L14 22V32M40 14L32 22V30M14 22H32M14 32L32 22M60 32L68 30" stroke="#f97316" stroke-width="1.6"/>';
             openTopoModal('🏠 Toiture', `<div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:#e5e7eb;max-width:440px">
                 <div style="color:#9ca3af">Le contour (${n} côtés) est celui des murs : le toit le couvre, avec son débord tout autour, et les pignons s'alignent sur les murs. Les altitudes sont celles du plan : si le terrain est à 0, ce sont directement des hauteurs.</div>
-                ${spChapter('rf-type', '⌂', 'Type de toit', `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px">${card(0, 'Toit terrasse', icT)}${card(1, '1 pan (appentis)', ic1)}${card(2, '2 pans', ic2, !quad)}${card(4, 'Pans multiples', ic4)}</div>` + (quad ? '' : '<div style="color:#fbbf24;font-size:12px;margin-top:6px">2 pans : contour à 4 côtés. Pour ce contour, prenez <b>Pans multiples</b> (un pan par côté, pignons au choix).</div>'), true)}
+                ${spChapter('rf-type', '⌂', 'Type de toit', `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px">${card(0, 'Toit terrasse', icT)}${card(1, '1 pan (appentis)', ic1)}${card(2, '2 pans', ic2, !quad)}${card(4, 'Pans multiples', ic4)}</div>` + `<div id="rf-verw" style="display:${pans ? 'flex' : 'none'};gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid #374151;margin-top:8px;padding-top:8px"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="rf-ver" ${R0.ver ? 'checked' : ''}> <span><b>Toiture de véranda</b> <span style="color:#9ca3af;font-size:12px">couverture vitrée sur chevrons alu</span></span></label><span style="white-space:nowrap;color:#cbd5e1;font-size:12.5px">chevrons tous les <input id="rf-vere" class="mf-in" style="width:3.6rem" value="${f2(R0.verE || 0.8)}"> m</span></div>` + (quad ? '' : '<div style="color:#fbbf24;font-size:12px;margin-top:6px">2 pans : contour à 4 côtés. Pour ce contour, prenez <b>Pans multiples</b> (un pan par côté, pignons au choix).</div>'), true)}
                 <div id="rf-o0" style="display:${pans === 0 ? 'flex' : 'none'};flex-direction:column;gap:0">
                     ${spChapter('rf-tdim', '▭', 'Dimensions', `<div class="tal-dia"><svg viewBox="0 0 360 210" width="100%"><defs><pattern id="rfdh" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 7L7 0" stroke="#52525b" stroke-width="1"/></pattern></defs>
                         <rect x="72" y="128" width="16" height="80" fill="#1f2937" stroke="#9ca3af"/><text x="92" y="200" fill="#9ca3af" font-size="9" font-family="Arial">mur</text>
@@ -97,7 +97,7 @@
             strip.innerHTML = vis.map(d => { const ic = (d.querySelector('.sp-ic') || {}).textContent || '•', t = (d.querySelector('.sp-t') || {}).textContent || '', sh = t.split(/\s+[—–-]\s+|\s+/)[0]; return `<button type="button" class="${key(d) === cur ? 'on' : ''}" title="${MF.esc(t)}" onclick="window.tmTab='${MF.esc(key(d))}';tmTabify()"><span>${MF.esc(ic)}</span><small>${MF.esc(sh)}</small></button>`; }).join('');
             D.forEach(d => { d.open = true; d.classList.toggle('sp-off', key(d) !== cur); });
         }
-        function rfSw(v) { const d = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? 'flex' : 'none'; }; d('rf-o0', v === 0); d('rf-pitch', v !== 0); d('rf-o1', v === 1); d('rf-o2', v === 2); d('rf-o4', v === 4);
+        function rfSw(v) { const d = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? 'flex' : 'none'; }; d('rf-o0', v === 0); d('rf-pitch', v !== 0); d('rf-o1', v === 1); d('rf-o2', v === 2); d('rf-o4', v === 4); d('rf-verw', v !== 0);
             document.querySelectorAll('.rf-card').forEach(c => c.classList.toggle('on', !!(c.querySelector('input') || {}).checked)); rfDia(v); rfDebDraw(); tmTabify(); }
         // coupe schématique du toit à pans : murs, pente, égout, faîtage, épaisseur et débord cotés
         function rfDia(v) { const sv = document.getElementById('rf-svg'); if (!sv || !v) return; const D = '#f59e0b', g = 196, wT = 118, wl = 78, wr = 282, ex = 26;
@@ -167,6 +167,7 @@
             if (!isFinite(o.he) || !isFinite(o.hf) || o.hf <= o.he + 0.001) { alert('Le faîtage doit être plus haut que l\'égout.'); return; }
             if (o.gab && o.gab.every(Boolean)) { alert('Pans multiples : gardez au moins un côté en pan.'); return; }
             if (rfCxSum('p') > 0) o.e = rfCxSum('p'); if (!(o.e > 0)) o.e = 0.2; if (!(o.ge > 0)) o.ge = 0.2;   // épaisseur = somme des couches du complexe
+            { const vb = document.getElementById('rf-ver'); if (vb && vb.checked) { o.ver = 1; const ve = t2Num((document.getElementById('rf-vere') || {}).value); o.verE = isFinite(ve) && ve >= 0.3 && ve <= 3 ? ve : 0.8; o.e = 0.032; } }   /* véranda : vitrage de 32 mm sur chevrons alu (dessinés en 3D sous le vitrage) */
             const z0 = hasZ(base.points[0].z) ? base.points[0].z : 0;
             roofLast = Object.assign(roofLast, { pans: o.pans, rel: o.he - z0 / 1000, rise: o.hf - o.he, e: o.e, ge: o.ge, fill: o.fill, dir: o.dir, db: o.db, cxP: o.cxP }); delete roofLast.gab; try { localStorage.setItem('momocad-roof', JSON.stringify(roofLast)); } catch (e) {}
             closeTopoModal(); const out = buildRoof(base, o); if (!out) return;
@@ -335,7 +336,7 @@
                         prism(F, [worldToMm(nx * thick), -worldToMm(ny * thick)]);
                     }
                 });
-                if (t.length) { const g = meshFromTris(t, { layerId: base.layerId, color: base.color }); g.name = 'Pignons'; g.groupId = gid; g.roofPart = 1; out.push(g); }
+                if (t.length) { const g = meshFromTris(t, { layerId: base.layerId, color: base.color }); g.name = 'Pignons'; g.groupId = gid; g.roofPart = 1; if (o.ver) g.ver = 1; out.push(g); }
             }
             return out;
         }
