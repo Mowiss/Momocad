@@ -1080,8 +1080,14 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const posts = fr.filter(f => f.userData.shape === front).map(f => new THREE.Box3().setFromObject(f)).filter(b => b.max.z - b.min.z > 1.5);
         r.posts = posts.length >= 6 && !posts.some(b => { const c = (b.min.x + b.max.x) / 2; return c > dx.x + 0.1 && c < dX.x - 0.1; });
         const raft = fr.filter(f => f.userData.shape === pan); r.rafters = raft.length === 7;
+        /* petits carreaux : chaque travée partagée à parts égales (petits bois plus fins que le profilé), rien dans la travée de la porte ; réglage gardé dans le fichier */
+        selectedShapes = shapes.filter(x => x.wallMat === 'verre'); openSelectionParamModal(); r.yv = !!document.getElementById('sp-vr-pw'); verSet('pw', '60'); verSet('cw', '330'); verSet('ch', '500'); verSet('mode', 'carreaux'); closeSelectionParamModal(); selectedShapes = [];
+        build3DScene(); V3.root.updateMatrixWorld(true); const mu = []; V3.root.traverse(o => { if (o.userData.verFrame && o.userData.shape === front) mu.push(new THREE.Box3().setFromObject(o)); });
+        const thin = mu.filter(b => b.max.z - b.min.z > 1.5 && Math.min(b.max.x - b.min.x, b.max.y - b.min.y) < 0.04);
+        r.muntins = thin.length >= 8 && !thin.some(b => { const c = (b.min.x + b.max.x) / 2; return c > dx.x - 0.02 && c < dX.x + 0.02; }) && mu.length > posts.length + 10;
+        r.kept = JSON.parse(JSON.stringify(projectData())).shapes.filter(x => x.wallMat === 'verre' && x.type === 'hatch').every(x => x.vr && x.vr.mode === 'carreaux' && x.vr.cw === 330) && pan.roofDef.o.verW === 60;
         close3D(); shapes = keepS; selectedShapes = []; invalidateCache(); saveState(); draw(); return r; });
-    t.eq('véranda : paroi alu vitrée et toiture de véranda en vitrage, montants (aucun dans la porte), lisses, chevrons tous les mètres, pignons vitrés', ver, { preset: true, opt: true, roof: true, glass: true, posts: true, rafters: true });
+    t.eq('véranda : paroi alu vitrée et toiture de véranda en vitrage, montants (aucun dans la porte), lisses, chevrons tous les mètres, pignons vitrés ; petits carreaux répartis par travée, profilé réglable', ver, { preset: true, opt: true, roof: true, glass: true, posts: true, rafters: true, yv: true, muntins: true, kept: true });
     t.eq('ensoleillement : soleil d\'équinoxe, pièce à baie sud au soleil autour de midi, pièce fermée jamais, dehors toute la journée ; note, Y, enregistrement', sol,
         { placed: true, sun: true, win: true, closed: true, out: true, cls: true, note: true, y: true, h: true, stale: true, saved: true });
 } };

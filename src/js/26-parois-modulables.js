@@ -26,14 +26,14 @@
         /* refaire un bloc de parois avec de nouveaux tracés : les plus anciens d'abord, les suivants recoupés contre eux (comme à la fusion), un seul contour */
         /* paroi refaite (poignée, fusion…) : les nouvelles hachures reprennent l'habillage des anciennes de même matière (texture, dessus/dessous/bouts, faces peintes) ;
            une face peinte posée sur un tronçon qui a bougé suit son tronçon (même décalage) ; chaque nouvelle hachure ne garde que les faces qui tombent sur ses côtés */
-        function wallPaintCarry(G, Hn, oldP, newP) { const olds = G.filter(x => x.type === 'hatch' && (x.tex || x.ftex || (x.fte && x.fte.length))); if (!olds.length) return;
+        function wallPaintCarry(G, Hn, oldP, newP) { const olds = G.filter(x => x.type === 'hatch' && (x.tex || x.ftex || (x.fte && x.fte.length) || x.vr)); if (!olds.length) return;
             const shift = (e) => { if (!oldP || !newP) return e; let best = null; oldP.forEach((P, k) => { const Q = newP[k]; if (!Q || Q.length !== P.length) return; for (let j = 0; j + 1 < P.length; j++) { const a = P[j], b = P[j + 1], L = Math.hypot(b.x - a.x, b.y - a.y); if (L < 1e-9) continue;
                     const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L, le = Math.hypot(e.b.x - e.a.x, e.b.y - e.a.y) || 1; if (Math.abs(ux * (e.b.y - e.a.y) / le - uy * (e.b.x - e.a.x) / le) > 0.02) continue;
                     const off = ((e.a.x + e.b.x) / 2 - a.x) * -uy + ((e.a.y + e.b.y) / 2 - a.y) * ux, tm = ((e.a.x + e.b.x) / 2 - a.x) * ux + ((e.a.y + e.b.y) / 2 - a.y) * uy; if (tm < -mmToWorld(50) || tm > L + mmToWorld(50)) continue;
                     if (!best || Math.abs(off) < Math.abs(best.off)) { const d = ((Q[j].x - a.x) * -uy + (Q[j].y - a.y) * ux + (Q[j + 1].x - b.x) * -uy + (Q[j + 1].y - b.y) * ux) / 2; best = { off, dx: -uy * d, dy: ux * d }; } } });
                 return best && (best.dx || best.dy) ? { a: { x: e.a.x + best.dx, y: e.a.y + best.dy }, b: { x: e.b.x + best.dx, y: e.b.y + best.dy }, t: e.t } : e; };
             Hn.forEach(h => { if (h.type !== 'hatch' || h.stud || !h.loops || !h.loops[0]) return; const same = olds.filter(x => x.wallMat === h.wallMat && (x.cxB === undefined || x.cxB === h.cxB)), src = same.length ? same : [];
-                if (!src.length) return; const t = src.find(x => x.tex); if (t && !h.tex) h.tex = t.tex; const fx = Object.assign({}, ...src.map(x => x.ftex || {})); if (Object.keys(fx).length) h.ftex = fx;
+                if (!src.length) return; const t = src.find(x => x.tex); if (t && !h.tex) h.tex = t.tex; { const v = src.find(x => x.vr); if (v && !h.vr) h.vr = JSON.parse(JSON.stringify(v.vr)); }   /* réglages de véranda */ const fx = Object.assign({}, ...src.map(x => x.ftex || {})); if (Object.keys(fx).length) h.ftex = fx;
                 const L = h.loops[0], E = []; src.forEach(x => (x.fte || []).forEach(e => { const e2 = shift(e); if (L.some((c, i) => wallFteMatch(e2, c, L[(i + 1) % L.length])) && !E.some(f => f.t === e2.t && wallFteMatch(f, e2.a, e2.b))) E.push(JSON.parse(JSON.stringify(e2))); }));
                 if (E.length) h.fte = E; else delete h.fte; }); }
         function wallPathsApply(info, Ps) { if (info.single) { const p = info.paths[0]; return wallRebuildPath(info.gid, Ps[0], p.closed, p.tool, info.G, p.P); }
