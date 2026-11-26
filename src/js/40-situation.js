@@ -8,7 +8,7 @@
             planign: { name: 'Plan IGN', url: (z, x, y) => BM_BASES.planign.url(z, x, y), maxZoom: 18, attrib: 'Plan IGN © IGN' },
             photo: { name: 'Photo aérienne', url: (z, x, y) => BM_BASES.ortho.url(z, x, y), maxZoom: 19, attrib: '© IGN' } };
         const SIT_OVS = { routes: { name: 'Routes', src: () => BM_OVLS.routes }, cad: { name: 'Parcelles (cadastre)', src: () => BM_OVLS.cad } };   /* calques posés sur le fond, dans cet ordre */
-        const SIT_DEF = () => ({ S: 25000, base: 'photo', ov: { routes: true, cad: true }, pin: null, pinMm: 26, cmp: { on: true, fx: 0.9, fy: 0.13, mm: 16 }, bar: { on: true, fx: 0.04, fy: 0.92 } });
+        const SIT_DEF = () => ({ S: 25000, base: 'photo', ov: { routes: true, cad: true }, pin: null, pinMm: 26, cmp: { on: true, fx: 0.88, fy: 0.17, mm: 26 }, bar: { on: true, fx: 0.04, fy: 0.92 } });
         function sitOpt(v) { const d = SIT_DEF(), o = v.sit || (v.sit = {}); ['S', 'base', 'pinMm'].forEach(k => { if (o[k] === undefined) o[k] = d[k]; }); o.ov = Object.assign({}, o.ov || (o.base === 'photo' ? d.ov : {})); o.cmp = Object.assign(d.cmp, o.cmp || {}); o.bar = Object.assign(d.bar, o.bar || {}); if (!SIT_BASES[o.base]) o.base = 'osm'; return o; }
         // le lieu du projet (lat / lon) : centre du dessin, par son système de coordonnées (Lambert 93 ou CC), sinon un fond de carte posé
         function sitProjectLL() { const M = (typeof lpModelShapes === 'function' && layoutOn) ? lpModelShapes() : shapes, S = M.filter(x => !isBg(x) && !x.gen), bb = S.length ? getShapesBoundingBox(S) : null;
@@ -48,11 +48,20 @@
         function sitReadyAll(ms) { const P = (layoutData.vps || []).filter(v => v.kind === 'sit').map(v => { const C = sitCanvas(v); return C && C.ready; }).filter(Boolean); if (!P.length) return Promise.resolve();
             return Promise.race([Promise.all(P), new Promise(r => setTimeout(r, ms || 8000))]); }
         let SIT_IMG = null; function sitFinger() { if (!SIT_IMG) { SIT_IMG = new Image(); SIT_IMG.onload = () => sitRedraw(); SIT_IMG.src = SIT_FINGER.src; } return SIT_IMG.complete && SIT_IMG.naturalWidth ? SIT_IMG : null; }
-        // boussole : disque blanc, aiguille noire au nord, « N »
-        function sitCompass(c, X, Y, R) { c.save(); c.setLineDash([]); c.lineWidth = Math.max(0.6, R * 0.06); c.strokeStyle = '#000'; c.fillStyle = 'rgba(255,255,255,.92)'; c.beginPath(); c.arc(X, Y, R, 0, 2 * Math.PI); c.fill(); c.stroke();
-            c.beginPath(); c.moveTo(X, Y - R * 0.78); c.lineTo(X + R * 0.26, Y); c.lineTo(X - R * 0.26, Y); c.closePath(); c.fillStyle = '#000'; c.fill();
-            c.beginPath(); c.moveTo(X, Y + R * 0.78); c.lineTo(X + R * 0.26, Y); c.lineTo(X - R * 0.26, Y); c.closePath(); c.fillStyle = '#fff'; c.fill(); c.stroke();
-            c.fillStyle = '#000'; c.font = 'bold ' + (R * 0.5) + 'px Helvetica, Arial, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'bottom'; c.fillText('N', X, Y - R * 1.04); c.restore(); }
+        // boussole : rose graduée (degrés sur le pourtour, tous les 5° et 10° plus longs), cercles, rayons, points cardinaux N E S W, aiguille en losange fin ; le nord en haut
+        function sitCompass(c, X, Y, R) { const lw = Math.max(0.4, R * 0.012), P = (a, r) => [X + Math.sin(a) * r, Y - Math.cos(a) * r], D = Math.PI / 180;
+            c.save(); c.setLineDash([]); c.strokeStyle = '#000'; c.lineWidth = lw * 1.6; c.fillStyle = 'rgba(255,255,255,.94)'; c.beginPath(); c.arc(X, Y, R, 0, 2 * Math.PI); c.fill(); c.stroke();
+            c.lineWidth = lw; [0.86, 0.72, 0.52, 0.22].forEach(k => { c.beginPath(); c.arc(X, Y, R * k, 0, 2 * Math.PI); c.stroke(); });
+            c.beginPath(); for (let d = 0; d < 360; d++) { const r1 = d % 10 === 0 ? 0.9 : d % 5 === 0 ? 0.925 : 0.95, a = P(d * D, R * 0.995), b = P(d * D, R * r1); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); } c.stroke();   /* graduations */
+            c.beginPath(); for (let d = 0; d < 360; d += 10) { if (d % 90 === 0) continue; const a = P(d * D, R * 0.52), b = P(d * D, R * 0.72); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); }
+            for (let d = 15; d < 360; d += 30) { if (d % 90 === 0) continue; const a = P(d * D, R * 0.22), b = P(d * D, R * 0.52); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); } c.stroke();   /* rayons */
+            c.beginPath(); [0, 90, 180, 270].forEach(d => { const a = P(d * D, R * 0.07), b = P(d * D, R * 0.7); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); }); c.stroke();   /* croix des axes */
+            const w = R * 0.065, t = R * 0.68; c.lineWidth = lw * 1.3; c.fillStyle = '#fff'; c.beginPath(); c.moveTo(X, Y - t); c.lineTo(X + w, Y); c.lineTo(X, Y + t); c.lineTo(X - w, Y); c.closePath(); c.fill(); c.stroke();
+            c.fillStyle = '#000'; c.beginPath(); c.moveTo(X, Y - t); c.lineTo(X + w, Y); c.lineTo(X, Y); c.closePath(); c.fill();   /* aiguille : moitié nord marquée */
+            c.lineWidth = lw; c.beginPath(); c.moveTo(X, Y - t); c.lineTo(X, Y + t); c.stroke(); c.fillStyle = '#fff'; c.beginPath(); c.arc(X, Y, R * 0.06, 0, 2 * Math.PI); c.fill(); c.stroke();
+            c.fillStyle = '#000'; c.font = (R * 0.13) + 'px Helvetica, Arial, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+            [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([l, d]) => { const q = P(d * D, R * 0.79), bw = R * 0.1; c.fillStyle = 'rgba(255,255,255,1)'; c.fillRect(q[0] - bw / 2, q[1] - bw / 2, bw, bw); c.fillStyle = '#000'; c.fillText(l, q[0], q[1] + R * 0.005); });
+            c.restore(); }
         // échelle graphique : 4 cases noir / blanc, 0 · moitié · longueur, et l'échelle numérique
         function sitBar(c, o, X, Y, k, wmm) { const L = sitBarLen(o, wmm), lw = L * 1000 / o.S * k, h = 1.8 * k, fs = 2.6 * k; c.save(); c.setLineDash([]);
             c.fillStyle = 'rgba(255,255,255,.9)'; c.fillRect(X - 2 * k, Y - h - fs - 2.2 * k, lw + 4 * k + fs * 2.2, h + fs * 2 + 4.4 * k);

@@ -360,7 +360,9 @@
                                 const fin = (v) => isFinite(v) ? v : own, gx = isFinite(own) ? Math.abs(fin(zAt2(x + 1, y)) - fin(zAt2(x - 1, y))) / 2 : 0, gy = isFinite(own) ? Math.abs(fin(zAt2(x, y + 1)) - fin(zAt2(x, y - 1))) / 2 : 0;   // pente du tampon : une arête posée sur un toit rasant reste visible (pas de pointillés)
                                 vis = dd <= m2 + c * 2 + 40 || (isFinite(own) && dd <= own + c * 2 + 40 + 1.5 * (gx + gy));  if (vis && under(uu, zz)) vis = false; }
                             if (vis) { if (!run) run = [uu, zz]; run[2] = uu; run[3] = zz; } if ((!vis || s2 === n) && run) { if (Math.hypot(run[2] - run[0], run[3] - run[1]) > c * 0.5) { beyond.push([run[0], run[1], run[2], run[3], lay]); budget--; } run = null; } } };
-                    if (SC) SC.edges.forEach(([p, q, lay]) => visEdge(p, q, lay));   // les traits de la maquette filaire (vues de façade) : murs, menuiseries, toitures continues…
+                    /* façade : seulement les traits des ouvrages (murs, menuiseries, toitures, dalles) et pas plus loin que 40 m derrière la façade ; ni cadastre, ni lignes du terrain */
+                    const okLay = fac ? new Set(objs.map(o => o.layerId || 'layer-0').concat(objs.flatMap(o => (o.openings || []).map(q => q.layerId)).filter(Boolean))) : null, dMax = fac && footP ? Math.max(...footP.dep) + 40000 : Infinity;
+                    if (SC) SC.edges.forEach(([p, q, lay]) => { if (okLay && !okLay.has(lay || 'layer-0')) return; if (fac && Math.min(Dp(p), Dp(q)) > dMax) return; visEdge(p, q, lay); });   // les traits de la maquette filaire (vues de façade) : murs, menuiseries, toitures continues…
                     else { // arêtes vives de chaque objet (bord libre ou angle > 25° entre faces)
                     allT.forEach(({ o, t }) => { const E = new Map(), key = (q) => Math.round(q[0]) + ',' + Math.round(q[1]) + ',' + Math.round(q[2]);
                         for (let i = 0; i < t.length; i += 9) { const P = [0, 1, 2].map(k => [t[i + 3 * k], t[i + 3 * k + 1], t[i + 3 * k + 2]]), e1 = [P[1][0] - P[0][0], P[1][1] - P[0][1], P[1][2] - P[0][2]], e2 = [P[2][0] - P[0][0], P[2][1] - P[0][1], P[2][2] - P[0][2]];
@@ -405,7 +407,7 @@
         //      (égouts, faîtages, dessus de dalles). La coupe garde sa place ; on peut la déplacer d'un bloc, elle suit.
         /* calques d'une coupe : un groupe « Coupe A-A » avec son dessin, ses cotes et sa ligne sur le plan (coupes d'avant : le calque « Coupes ») */
         function secLayers(def, make) { if (!def.lay && !make) { const c = cutLayerId(); return { d: c, c, p: c }; } if (def.lay && def.lay.d && layers.some(l => l.id === def.lay.d)) return def.lay;
-            const g = secLab(def), mk = (n, col) => { let l = layers.find(x => x.name === g + ' — ' + n); if (!l) { l = { id: generateId(), name: g + ' — ' + n, visible: true, color: col, dash: 'solid', width: 1, textH: '', hatch: 'lines', hatchScale: 1, group: g }; layers.push(l); } return l.id; };
+            const g = secLab(def), mk = (n, col) => { let l = layers.find(x => x.name === g + ' — ' + n); if (!l) { l = { id: generateId(), name: g + ' — ' + n, visible: !(def.fac && n === 'ligne sur le plan'), color: col, dash: 'solid', width: 1, textH: '', hatch: 'lines', hatchScale: 1, group: g }; layers.push(l); } return l.id; };
             def.lay = { d: mk('dessin', '#f472b6'), c: mk('cotes', '#fbbf24'), p: mk('ligne sur le plan', '#f472b6') }; updateLayerUI(); return def.lay; }
         /* réglages de la cotation d'une coupe (fenêtre Y) : pas du TN, écart de la colonne des niveaux au bâtiment, écart mini entre niveaux, chiffre du TN sous le trait, cotes affichées */
         function secOpt(def) { const o = def.opt || {}; return { tn: o.tn > 0 ? o.tn : 5, col: isFinite(o.col) ? o.col : 1.5, gap: isFinite(o.gap) ? o.gap : 0.45, tnOff: isFinite(o.tnOff) ? o.tnOff : 0.8, on: Object.assign({ F: 1, E: 1, D: 1, P: 1, T: 1 }, o.on || {}) }; }
