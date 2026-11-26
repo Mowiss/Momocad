@@ -8,7 +8,7 @@
             planign: { name: 'Plan IGN', url: (z, x, y) => BM_BASES.planign.url(z, x, y), maxZoom: 18, attrib: 'Plan IGN © IGN' },
             photo: { name: 'Photo aérienne', url: (z, x, y) => BM_BASES.ortho.url(z, x, y), maxZoom: 19, attrib: '© IGN' } };
         const SIT_OVS = { routes: { name: 'Routes', src: () => BM_OVLS.routes }, cad: { name: 'Parcelles (cadastre)', src: () => BM_OVLS.cad } };   /* calques posés sur le fond, dans cet ordre */
-        const SIT_DEF = () => ({ S: 25000, base: 'photo', ov: { routes: true, cad: true }, pin: null, pinMm: 26, cmp: { on: true, fx: 0.88, fy: 0.17, mm: 26 }, bar: { on: true, fx: 0.04, fy: 0.92 } });
+        const SIT_DEF = () => ({ S: 25000, base: 'photo', ov: { routes: true, cad: true }, pin: null, pinMm: 26, cmp: { on: true, st: 'nord', fx: 0.9, fy: 0.17, mm: 26 }, bar: { on: true, fx: 0.04, fy: 0.92 } });
         function sitOpt(v) { const d = SIT_DEF(), o = v.sit || (v.sit = {}); ['S', 'base', 'pinMm'].forEach(k => { if (o[k] === undefined) o[k] = d[k]; }); o.ov = Object.assign({}, o.ov || (o.base === 'photo' ? d.ov : {})); o.cmp = Object.assign(d.cmp, o.cmp || {}); o.bar = Object.assign(d.bar, o.bar || {}); if (!SIT_BASES[o.base]) o.base = 'osm'; return o; }
         // le lieu du projet (lat / lon) : centre du dessin, par son système de coordonnées (Lambert 93 ou CC), sinon un fond de carte posé
         function sitProjectLL() { const M = (typeof lpModelShapes === 'function' && layoutOn) ? lpModelShapes() : shapes, S = M.filter(x => !isBg(x) && !x.gen), bb = S.length ? getShapesBoundingBox(S) : null;
@@ -62,6 +62,16 @@
             c.fillStyle = '#000'; c.font = (R * 0.13) + 'px Helvetica, Arial, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
             [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([l, d]) => { const q = P(d * D, R * 0.79), bw = R * 0.1; c.fillStyle = 'rgba(255,255,255,1)'; c.fillRect(q[0] - bw / 2, q[1] - bw / 2, bw, bw); c.fillStyle = '#000'; c.fillText(l, q[0], q[1] + R * 0.005); });
             c.restore(); }
+        // flèche du nord : pointe de flèche dont la moitié droite est noire, « N » au milieu (noir sur le blanc, blanc sur le noir)
+        function sitNorth(c, X, Y, R) { const H = R * 2, W = H * 0.56, T = [X, Y - H / 2], L = [X - W / 2, Y + H * 0.46], M = [X, Y + H * 0.3], Rr = [X + W / 2, Y + H * 0.46], lw = Math.max(0.6, H * 0.025);
+            c.save(); c.setLineDash([]); c.lineJoin = 'miter';
+            c.beginPath(); c.moveTo(...T); c.lineTo(...L); c.lineTo(...M); c.closePath(); c.fillStyle = '#fff'; c.fill();
+            c.beginPath(); c.moveTo(...T); c.lineTo(...Rr); c.lineTo(...M); c.closePath(); c.fillStyle = '#000'; c.fill();
+            c.beginPath(); c.moveTo(...T); c.lineTo(...L); c.lineTo(...M); c.lineTo(...Rr); c.closePath(); c.strokeStyle = '#000'; c.lineWidth = lw; c.stroke();
+            const fs = H * 0.27, ny = Y + H * 0.08; c.font = 'bold ' + fs + 'px Helvetica, Arial, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+            c.save(); c.beginPath(); c.rect(X - W, Y - H, W, 2 * H); c.clip(); c.fillStyle = '#000'; c.fillText('N', X, ny); c.restore();
+            c.save(); c.beginPath(); c.rect(X, Y - H, W, 2 * H); c.clip(); c.fillStyle = '#fff'; c.fillText('N', X, ny); c.restore();
+            c.restore(); }
         // échelle graphique : 4 cases noir / blanc, 0 · moitié · longueur, et l'échelle numérique
         function sitBar(c, o, X, Y, k, wmm) { const L = sitBarLen(o, wmm), lw = L * 1000 / o.S * k, h = 1.8 * k, fs = 2.6 * k; c.save(); c.setLineDash([]);
             c.fillStyle = 'rgba(255,255,255,.9)'; c.fillRect(X - 2 * k, Y - h - fs - 2.2 * k, lw + 4 * k + fs * 2.2, h + fs * 2 + 4.4 * k);
@@ -74,7 +84,7 @@
             const C = sitCanvas(v); if (C) c.drawImage(C.cv, rx, ry, rw, rh);
             const P = (lat, lon) => { const q = sitToMm(o, lat, lon); return { x: rx + rw / 2 + q.x * k, y: ry + rh / 2 + q.y * k }; };
             if (o.pin) { const im = sitFinger(), p = P(o.pin.lat, o.pin.lon), H = o.pinMm * k, W = H * SIT_FINGER.ar; if (im) c.drawImage(im, p.x - SIT_FINGER.tx * W, p.y - SIT_FINGER.ty * H, W, H); }
-            if (o.cmp.on) sitCompass(c, rx + o.cmp.fx * rw, ry + o.cmp.fy * rh, o.cmp.mm / 2 * k);
+            if (o.cmp.on) (o.cmp.st === 'rose' ? sitCompass : sitNorth)(c, rx + o.cmp.fx * rw, ry + o.cmp.fy * rh, o.cmp.mm / 2 * k);
             if (o.bar.on) sitBar(c, o, rx + o.bar.fx * rw, ry + o.bar.fy * rh, k, v.w);
             { const t = [SIT_BASES[o.base].attrib].concat(Object.keys(SIT_OVS).filter(k => o.ov[k] && o.base !== 'osm').map(k => SIT_OVS[k].src().attrib)).filter((x, i, a) => a.indexOf(x) === i).join(' · '), fs = 1.8 * k; c.font = fs + 'px Helvetica, Arial, sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(255,255,255,.8)'; c.fillRect(rx + rw - tw - 1.6 * k, ry + rh - fs - 1.2 * k, tw + 1.6 * k, fs + 1.2 * k); c.fillStyle = '#333'; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(t, rx + rw - 0.8 * k, ry + rh - 0.6 * k); }
             c.restore(); }
@@ -113,7 +123,7 @@
                 else if (key === 'base') { if (SIT_BASES[val]) o.base = val; }
                 else if (key === 'pinMm') { const n = t2Num(val); if (n >= 5 && n <= 120) o.pinMm = n; }
                 else if (key === 'ov.routes' || key === 'ov.cad') o.ov[key.slice(3)] = !!val;
-                else if (key === 'cmp') o.cmp.on = !!val; else if (key === 'cmpMm') { const n = t2Num(val); if (n >= 6 && n <= 60) o.cmp.mm = n; } else if (key === 'bar') o.bar.on = !!val;
+                else if (key === 'cmp') o.cmp.on = !!val; else if (key === 'cmpSt') o.cmp.st = val === 'rose' ? 'rose' : 'nord'; else if (key === 'cmpMm') { const n = t2Num(val); if (n >= 6 && n <= 60) o.cmp.mm = n; } else if (key === 'bar') o.bar.on = !!val;
                 else if (key === 'pin') o.pin = val ? (isFinite(o.lat) ? { lat: o.lat, lon: o.lon } : null) : null;
                 else if (key === 'home') { const ll = sitProjectLL(); if (!ll) { mcToast('Le plan n\'a pas de coordonnées : cherchez l\'adresse.'); return; } o.lat = ll.lat; o.lon = ll.lon; o.pin = { lat: ll.lat, lon: ll.lon }; }
                 else if (key === 'addr') { const q = String(val || '').trim(); if (!q) return; const inf = document.getElementById('sit-inf'); if (inf) inf.textContent = 'Recherche…';
@@ -129,7 +139,7 @@
                 <label style="display:flex;gap:8px;align-items:center">Fond <select class="mf-in" onchange="sitSet('base',this.value)">${bases}</select></label>
                 <div style="display:flex;gap:14px">${Object.keys(SIT_OVS).map(k => `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox"${o.ov[k] ? ' checked' : ''} onchange="sitSet('ov.${k}',this.checked)"> ${SIT_OVS[k].name}</label>`).join('')}</div>
                 <label style="display:flex;gap:8px;align-items:center"><input type="checkbox"${o.pin ? ' checked' : ''} onchange="sitSet('pin',this.checked)"> Doigt, hauteur <input class="mf-in" style="width:60px" inputmode="decimal" value="${nfr(o.pinMm, 0)}" onchange="sitSet('pinMm',this.value)"> mm</label>
-                <label style="display:flex;gap:8px;align-items:center"><input type="checkbox"${o.cmp.on ? ' checked' : ''} onchange="sitSet('cmp',this.checked)"> Boussole, diamètre <input class="mf-in" style="width:60px" inputmode="decimal" value="${nfr(o.cmp.mm, 0)}" onchange="sitSet('cmpMm',this.value)"> mm</label>
+                <label style="display:flex;gap:8px;align-items:center"><input type="checkbox"${o.cmp.on ? ' checked' : ''} onchange="sitSet('cmp',this.checked)"> Nord <select class="mf-in" onchange="sitSet('cmpSt',this.value)"><option value="nord"${o.cmp.st !== 'rose' ? ' selected' : ''}>flèche N</option><option value="rose"${o.cmp.st === 'rose' ? ' selected' : ''}>rose graduée</option></select>, taille <input class="mf-in" style="width:60px" inputmode="decimal" value="${nfr(o.cmp.mm, 0)}" onchange="sitSet('cmpMm',this.value)"> mm</label>
                 <label style="display:flex;gap:8px;align-items:center"><input type="checkbox"${o.bar.on ? ' checked' : ''} onchange="sitSet('bar',this.checked)"> Échelle graphique</label>
                 <div style="color:#9ca3af;font-size:12px">Double-clic dans la fenêtre pour régler à la souris : clic = poser le doigt, glisser = déplacer la carte, la boussole ou l'échelle, molette = échelle.</div></div>`,
                 [['Annuler', () => { v.sit = JSON.parse(b0); sitSet = () => {}; closeTopoModal(); draw(); }, false], ['Valider', () => { sitSet = () => {}; closeTopoModal(); saveState(); draw(); updateCommandMessageText('SITUATION : 1/' + nfr(o.S, 0) + ', ' + SIT_BASES[o.base].name + '.'); }, true]]); }

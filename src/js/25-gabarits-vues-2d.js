@@ -212,11 +212,16 @@
             const chev = (x, dir) => { const w = 4.6, tip = (x0) => `<polyline points="${x0 - dir * w},-7 ${x0},0 ${x0 - dir * w},7"/>`;
                 return `<g style="cursor:pointer;" onclick="roseSpin(${dir},'${where}')"><title>Tourner d'un quart de tour vers la ${dir < 0 ? 'gauche' : 'droite'} (autour de Z)</title><rect x="${x - 9}" y="-12" width="18" height="24" fill="transparent"/>`
                     + `<g fill="none" stroke="#9ca3af" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${tip(x + dir * 2.6)}${tip(x - dir * 3.4)}</g></g>`; };
-            const pinOn = typeof V3 !== 'undefined' && V3 && V3.pin, pinPick = typeof V3 !== 'undefined' && V3 && V3.pinPick, pc = pinPick ? '#4ade80' : pinOn ? '#fbbf24' : '#9ca3af';
-            const flag = where === '3d' ? `<g style="cursor:pointer;" onclick="v3PinToggle()"><title>${pinOn ? 'Point d\'ancrage posé : la vue tourne et zoome autour de lui. Clic : le retirer' : pinPick ? 'Cliquez un point de la maquette pour y poser l\'ancrage (Échap : annuler)' : 'Poser un point d\'ancrage : la vue tournera et zoomera toujours autour de lui'}</title><circle cx="-38" cy="38" r="12" fill="${pinOn ? '#78350f' : '#0f172a'}" stroke="${pc}" stroke-width="1.6" ${pinPick ? 'stroke-dasharray="3 2"' : ''}/>`
-                + `<path d="M-41.5 46V30" stroke="${pc}" stroke-width="1.6" stroke-linecap="round"/><path d="M-41 30.5L-32 33.6L-41 37Z" fill="${pc}"/><ellipse cx="-41.5" cy="46.2" rx="4" ry="1.4" fill="none" stroke="${pc}" stroke-width="1"/></g>` : '';
-            const grid = where === '2d' ? `<g style="cursor:pointer;" onclick="toggleGrid()"><title>${showGrid ? 'Masquer' : 'Afficher'} la grille de fond</title><circle cx="-38" cy="38" r="12" fill="#0f172a" stroke="${showGrid ? '#e5e7eb' : '#6b7280'}" stroke-width="1.6"/>`
-                + `<g fill="none" stroke="${showGrid ? '#e5e7eb' : '#6b7280'}" stroke-width="1.3"><circle cx="-38" cy="38" r="7.2"/><path d="M-45 34.4 H-31 M-45 41.6 H-31 M-41.6 31 V45 M-34.4 31 V45"/></g>${showGrid ? '' : '<path d="M-46 46 L-30 30" stroke="#f87171" stroke-width="1.8" stroke-linecap="round"/>'}</g>` : '';
+            /* drapeau : au repos gris ; 1er clic = on le prend (la pastille se vide, le curseur devient le drapeau) ; planté = pastille verte comme les autres boutons actifs (repérable sans les couleurs : remplie et cerclée épais) */
+            const pinOn = typeof V3 !== 'undefined' && V3 && V3.pin, pinPick = typeof V3 !== 'undefined' && V3 && V3.pinPick, pc = pinOn ? '#bef264' : '#9ca3af';
+            const flag = where === '3d' ? `<g style="cursor:pointer;" onclick="v3PinToggle()"><title>${pinOn ? 'Drapeau planté : la vue tourne et zoome autour de lui. Clic : le retirer' : pinPick ? 'Drapeau en main : cliquez un point de la maquette pour le planter (Échap ou clic ici : annuler)' : 'Prendre le drapeau : la vue tournera et zoomera toujours autour du point où vous le plantez'}</title>`
+                + (pinPick ? `<circle cx="-38" cy="38" r="12" fill="none" stroke="#e5e7eb" stroke-width="1.6" stroke-dasharray="3 2.4"/>`
+                    : `<circle cx="-38" cy="38" r="12" fill="${pinOn ? '#1a2e05' : '#0f172a'}" stroke="${pc}" stroke-width="${pinOn ? 2.2 : 1.6}"/>`
+                    + `<path d="M-41.5 46V30" stroke="${pinOn ? '#f7fee7' : pc}" stroke-width="1.6" stroke-linecap="round"/><path d="M-41 30.5L-32 33.6L-41 37Z" fill="${pinOn ? '#bef264' : pc}"/><ellipse cx="-41.5" cy="46.2" rx="4" ry="1.4" fill="none" stroke="${pc}" stroke-width="1"/>`) + `</g>` : '';
+            /* présentation (en bas à gauche de la rosace du plan, comme l'œil de la 3D) : allumée = pastille verte remplie et cerclée épais */
+            const lpOn = typeof layoutOn !== 'undefined' && layoutOn;
+            const grid = where === '2d' ? `<g class="rose-pres" style="cursor:pointer;" onclick="toggleLayout()"><title>${lpOn ? 'Présentation ouverte — revenir au plan' : 'Présentation (MP + Espace) : feuilles, fenêtres à l\'échelle, cartouche, PDF'}</title><circle cx="-38" cy="38" r="12" fill="${lpOn ? '#1a2e05' : '#0f172a'}" stroke="${lpOn ? '#bef264' : '#e5e7eb'}" stroke-width="${lpOn ? 2.2 : 1.6}"/>`
+                + `<g fill="none" stroke="${lpOn ? '#ecfccb' : '#e5e7eb'}" stroke-width="1.3" stroke-linejoin="round"><rect x="-45.5" y="32" width="15" height="12" rx="0.8"/><rect x="-43.5" y="34.2" width="6.5" height="4.6"/><rect x="-35.6" y="34.2" width="3.2" height="4.6"/><path d="M-43.5 41.4h11"/></g></g>` : '';
             // chevrons verticaux : monter / descendre le point de vue (dessus ↔ iso ↔ côté)
             const vch = (y, dir) => { const w = 4.6, tip = (y0) => `<polyline points="-7,${y0 - dir * w} 0,${y0} 7,${y0 - dir * w}"/>`;
                 return `<g style="cursor:pointer;" onclick="roseTilt(${dir},'${where}')"><title>${dir < 0 ? 'Monter le point de vue (vers la vue de dessus)' : 'Descendre le point de vue (vers la vue de côté)'}</title><rect x="-12" y="${y - 9}" width="24" height="18" fill="transparent"/>`
@@ -235,6 +240,6 @@
             if (where === '3d') { if (V3) spin3D(dir); return; }
             const a = view2d.a, e = view2d.e; setView2D(a + 90 * dir, e);
         }
-        function updateRose() { const svg = document.getElementById('rose-svg'); if (!svg) return; const k = view2d.a.toFixed(1) + '|' + view2d.e.toFixed(1); if (svg.dataset.k !== k + showGrid) { svg.dataset.k = k + showGrid; svg.innerHTML = roseSVG(view2d.a, view2d.e, '2d'); } }
+        function updateRose() { const svg = document.getElementById('rose-svg'); if (!svg) return; const k = view2d.a.toFixed(1) + '|' + view2d.e.toFixed(1); if (svg.dataset.k !== k + layoutOn) { svg.dataset.k = k + layoutOn; svg.innerHTML = roseSVG(view2d.a, view2d.e, '2d'); } }
 
 

@@ -137,4 +137,12 @@ module.exports = { name: 'edition', run: async (H, t) => {
         const B = document.getElementById('sp-zall'); B.value = '1020,00'; B.dispatchEvent(new Event('input', { bubbles: true })); r.sync = T.value === '1020,20';
         spCancel(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('volume : cotes du dessous et du dessus sur le schéma, le dessus tapé recale la base (épaisseur gardée)', dz, { fig: true, top0: true, base: true, sync: true });
+    // grille : bouton à part, à côté des blocs ; présentation : dans la rosace (comme l'œil de la 3D), plus dans l'en-tête ; pastilles allumées remplies et cerclées
+    const gp = await ev(async () => { const r = {}, g = document.getElementById('btn-grid'), bl = document.getElementById('btn-blocks').closest('.tool-group'); r.place = !!g && g.closest('.tool-group') !== bl && g.closest('.tool-group') === bl.nextElementSibling;
+        const g0 = showGrid; g.click(); r.grid = showGrid === !g0 && (g.querySelector('.grid-off').style.display === (showGrid ? 'none' : '')); g.click(); r.back = showGrid === g0 && g.style.borderColor !== '';
+        r.header = getComputedStyle(document.getElementById('btn-layout')).display === 'none'; r.noGridInRose = ![...document.querySelectorAll('#rose-svg g[onclick]')].some(x => /toggleGrid/.test(x.getAttribute('onclick')));
+        const pres = () => [...document.querySelectorAll('#rose-svg g[onclick]')].find(x => /toggleLayout/.test(x.getAttribute('onclick'))); r.btn = !!pres();
+        pres().dispatchEvent(new MouseEvent('click', { bubbles: true })); await new Promise(res => setTimeout(res, 100)); r.on = layoutOn && pres().querySelector('circle').getAttribute('stroke') === '#bef264';
+        pres().dispatchEvent(new MouseEvent('click', { bubbles: true })); await new Promise(res => setTimeout(res, 100)); r.off = !layoutOn && pres().querySelector('circle').getAttribute('stroke') === '#e5e7eb'; return r; });
+    t.eq('grille : bouton à côté des blocs ; présentation : pastille de la rosace (allumée en vert), plus dans l\'en-tête', gp, { place: true, grid: true, back: true, header: true, noGridInRose: true, btn: true, on: true, off: true });
 } };

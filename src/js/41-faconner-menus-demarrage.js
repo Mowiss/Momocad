@@ -688,7 +688,7 @@
                 if (k === 'o') { e.preventDefault(); openProject(); return; }
             }
             if (is3DOpen()) { if (d3Key(e)) return; if (brushTool && brushCur && brushCur.brush.poly && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); if (e.key === 'Enter') brushPolyEnd(); else brushPolyCancel(); return; }
-                if (e.key === 'Escape') { if (V3 && V3.pinPick) { V3.pinPick = false; render3D(); updateCommandMessageText('VUE 3D : pose du point d\'ancrage annulée.'); return; } if (brushTool) brushStop(); else if (texPaint) texStop(); else close3D(); return; }
+                if (e.key === 'Escape') { if (V3 && V3.pinPick) { V3.pinPick = false; v3PinCursor(); render3D(); updateCommandMessageText('VUE 3D : pose du point d\'ancrage annulée.'); return; } if (brushTool) brushStop(); else if (texPaint) texStop(); else close3D(); return; }
                 if ((e.key === 'y' || e.key === 'Y') && !e.ctrlKey && !brushTool) { e.preventDefault(); v3ParamSel(); return; }
                 if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; } if (e.ctrlKey && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; } return; }
             if (document.getElementById('topo-modal').style.display === 'flex') { if (e.key === 'Escape') { closeTopoModal(); return; } if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#topo-modal')) return; }   // volet non bloquant : le clavier reste au dessin si le focus n'est pas dans le volet

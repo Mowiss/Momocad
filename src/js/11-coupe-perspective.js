@@ -53,7 +53,7 @@
             camera.near = V3.dist / 1000; camera.far = Math.max(V3.dist * 100 + V3.R * 10, realOn() && REAL ? REAL_OUT * 1.6 : 0); camera.updateProjectionMatrix();
             camera.lookAt(target); } v3EnvPlace(); V3.renderer.clippingPlanes = v3CutPlanes(); V3.renderer.render(V3.scene, camera); if (!V3.lowRes) V3.rt = performance.now() - rt0;
             // rosace X Y Z : même que dans le plan (a = 180° − azimut caméra, e = hauteur)
-            const r3 = document.getElementById('v3-rose'); if (r3) { const a = 180 - V3.az * 180 / Math.PI, e = V3.el * 180 / Math.PI, key = a.toFixed(1) + '|' + e.toFixed(1); if (r3.dataset.k !== key) { r3.dataset.k = key; r3.innerHTML = roseSVG(a, e, '3d'); } }
+            const r3 = document.getElementById('v3-rose'); if (r3) { const a = 180 - V3.az * 180 / Math.PI, e = V3.el * 180 / Math.PI, key = a.toFixed(1) + '|' + e.toFixed(1) + '|' + (V3.pin ? 1 : 0) + (V3.pinPick ? 1 : 0); if (r3.dataset.k !== key) { r3.dataset.k = key; r3.innerHTML = roseSVG(a, e, '3d'); } }
             // étiquettes d'altitude
             const box = document.getElementById('v3-labels'), W = V3.renderer.domElement.clientWidth, H = V3.renderer.domElement.clientHeight;
             if (!document.getElementById('v3-lab').checked) { box.innerHTML = ''; return; }

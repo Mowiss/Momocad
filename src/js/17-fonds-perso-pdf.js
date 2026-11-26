@@ -985,7 +985,11 @@
             return shapes.filter(isBg).concat(shapes.filter(s => !isBg(s)));
         }
 
-        function toggleGrid() { showGrid = !showGrid; const svg = document.getElementById('rose-svg'); if (svg) svg.dataset.k = ''; try { updateRose(); } catch (e) {} draw(); }
+        function toggleGrid() { showGrid = !showGrid; gridBtnSync(); draw(); }
+        // bouton de la grille (à côté des blocs) : allumé = rempli vert et cerclé (lisible sans les couleurs : barré quand la grille est masquée)
+        setTimeout(() => gridBtnSync(), 0);
+        function gridBtnSync() { const b = document.getElementById('btn-grid'); if (!b) return; b.style.background = showGrid ? '#365314' : ''; b.style.borderColor = showGrid ? '#bef264' : ''; b.style.color = showGrid ? '#ecfccb' : '#9ca3af';
+            const x = b.querySelector('.grid-off'); if (x) x.style.display = showGrid ? 'none' : ''; b.title = (showGrid ? 'Masquer' : 'Afficher') + ' la grille de fond'; }
         function toggleOrtho() {
             orthoMode = !orthoMode;
             const btn = document.getElementById('btn-toggle-ortho');
