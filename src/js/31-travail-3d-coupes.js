@@ -573,32 +573,36 @@
             await new Promise(r => setTimeout(r, 30));
             const T = vis.map(o => { let t = null; try { t = objTrisMM(o); } catch (e) {} if (!t || !t.length) return null;
                 let b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]; for (let i = 0; i < t.length; i += 3) { for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k], t[i + k]); b[k + 3] = Math.max(b[k + 3], t[i + k]); } } return { o, t, b }; });
-            const out = [], t0 = performance.now(); let tested = 0, skipped = 0;
+            const out = [], t0 = performance.now(); let tested = 0, skipped = 0, odd = 0; const VOL = (X) => X.vol === undefined ? (X.vol = signedVol(X.t) / 1e9) : X.vol;
             for (let i = 0; i < T.length; i++) for (let j = i + 1; j < T.length; j++) {
                 const A = T[i], B = T[j]; if (!A || !B) continue;
                 if (A.o.groupId && A.o.groupId === B.o.groupId) continue;   // morceaux d'un même ouvrage (mur et ses pièces)
                 const e = 1; if (A.b[3] <= B.b[0] + e || B.b[3] <= A.b[0] + e || A.b[4] <= B.b[1] + e || B.b[4] <= A.b[1] + e || A.b[5] <= B.b[2] + e || B.b[5] <= A.b[2] + e) continue;
                 if (A.t.length + B.t.length > 9 * 60000) { skipped++; continue; }
                 tested++; let r; try { r = csgTris(A.t, B.t, 'inter'); } catch (er) { continue; }
-                const v = r && r.length ? Math.abs(signedVol(r)) / 1e9 : 0;
-                if (v > 1e-6) out.push({ a: A.o, b: B.o, v, t: r });
+                const v = r && r.length ? signedVol(r) / 1e9 : 0;
+                if (Math.abs(v) <= 1e-6) continue;
+                if (v < 0 || v > Math.min(VOL(A), VOL(B)) * 1.01 + 1e-4) { odd++; continue; }   /* volume commun impossible (plus grand qu'un des deux, ou retourné) : forme non fermée, calcul incertain */
+                out.push({ a: A.o, b: B.o, v, t: r });
                 if (performance.now() - t0 > 20000) break;
             }
-            d3Col = out.sort((x, y) => y.v - x.v); d3ColDraw();
-            const html = out.length ? `<div style="color:#fca5a5">${out.length} collision${out.length > 1 ? 's' : ''} : le volume commun est en rouge dans la vue 3D. Clique une ligne pour sélectionner les deux objets.</div>
+            d3Col = out.sort((x, y) => y.v - x.v); d3ColSel = null; d3ColCyc = { key: '', i: -1 }; d3ColDraw();
+            const html = out.length ? `<div style="color:#fca5a5">${out.length} collision${out.length > 1 ? 's' : ''} : les zones en conflit sont en rouge dans la vue 3D. Clique une ligne pour sélectionner les deux objets.</div>
+                <div style="color:#e5e7eb;margin-top:4px"><b>Supprimer une collision</b> : <b>clic molette</b> sur une zone rouge, chaque clic passe à l'objet suivant de la zone ; puis <b>Entrée</b> (ou « ✂ Couper les autres ») : l'objet choisi reste entier et coupe tous ceux qui le touchent.</div>
+                <div id="d3col-sel" style="color:#fbbf24;margin-top:4px;min-height:16px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">${out.map((c, k) => `<button type="button" onclick="d3ColPick(${k})" style="text-align:left;background:#3f1d1d;border:1px solid #7f1d1d;border-radius:6px;padding:6px 8px;color:#fee2e2;cursor:pointer"><b>${k + 1}.</b> ${iaEsc(d3ObjName(c.a))} × ${iaEsc(d3ObjName(c.b))}<br><span style="color:#fca5a5">${nfr(c.v, c.v < 0.01 ? 4 : 3)} m³ en commun</span></button>`).join('')}</div>`
                 : `<div style="color:#86efac">✓ Aucune collision entre les ${vis.length} volumes visibles.</div>`;
-            t2Panel('⚠ Collisions', html + (skipped ? `<div class="ps-sub" style="margin-top:6px">${skipped} paire(s) trop lourde(s) pour le contrôle (maillages très fins) : non vérifiée(s).</div>` : '') + `<div class="ps-sub" style="margin-top:6px">Les volumes qui se touchent juste ne comptent pas. Un ouvrage et ses propres pièces (mur et ouvertures) ne sont pas comparés entre eux.</div>`,
-                [['Recontrôler', 'd3Collisions()', false]].concat(out.length ? [['Masquer les zones', 'd3ColToggle(this)', false]] : [], [['Fermer', 'd3ColClear()', true]]), 'd3ColClear()');
+            t2Panel('⚠ Collisions', html + (skipped ? `<div class="ps-sub" style="margin-top:6px">${skipped} paire(s) trop lourde(s) pour le contrôle (maillages très fins) : non vérifiée(s).</div>` : '') + (odd ? `<div class="ps-sub" style="margin-top:6px">${odd} paire(s) au calcul incertain (surfaces non fermées, comme des pans de toit sans épaisseur) : non comptée(s).</div>` : '') + `<div class="ps-sub" style="margin-top:6px">Les volumes qui se touchent juste ne comptent pas. Un ouvrage et ses propres pièces (mur et ouvertures) ne sont pas comparés entre eux.</div>`,
+                [['Recontrôler', 'd3Collisions()', false]].concat(out.length ? [['Masquer les zones', 'd3ColToggle(this)', false], ['✂ Couper les autres', 'd3ColCut()', false]] : [], [['Fermer', 'd3ColClear()', true]]), 'd3ColClear()');
             updateCommandMessageText(out.length ? 'COLLISIONS : ' + out.length + ' conflit(s) trouvé(s) (' + tested + ' paire(s) contrôlée(s)).' : 'COLLISIONS : aucun conflit (' + tested + ' paire(s) proches contrôlée(s)).');
         }
         function d3ColDraw() {
             if (!V3 || !window.THREE) return;
             if (!V3.col) { V3.col = new THREE.Group(); V3.scene.add(V3.col); } V3.col.clear(); V3.col.visible = true; V3.col.position.copy(V3.root ? V3.root.position : new THREE.Vector3());
             const ex = V3.exag || 1, zm = V3.zmin || 0;
-            d3Col.forEach(c => { const t = c.t, pos = new Float32Array(t.length); for (let i = 0; i < t.length; i += 3) { pos[i] = t[i] / 1000; pos[i + 1] = t[i + 1] / 1000; pos[i + 2] = (t[i + 2] / 1000 - zm) * ex; }
+            d3Col.forEach((c, k) => { const t = c.t, pos = new Float32Array(t.length); for (let i = 0; i < t.length; i += 3) { pos[i] = t[i] / 1000; pos[i + 1] = t[i + 1] / 1000; pos[i + 2] = (t[i + 2] / 1000 - zm) * ex; }
                 const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.computeVertexNormals();
-                const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide })); m.renderOrder = 998; V3.col.add(m);
+                const on = d3ColSel && (c.a === d3ColSel || c.b === d3ColSel), m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: on ? 0xf59e0b : 0xef4444, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide })); m.renderOrder = 998; m.userData.colK = k; V3.col.add(m);
                 const eg = new THREE.LineSegments(new THREE.EdgesGeometry(g, 20), new THREE.LineBasicMaterial({ color: 0xfef2f2, depthTest: false, transparent: true })); eg.renderOrder = 999; V3.col.add(eg); });
             render3D();
         }
@@ -606,7 +610,31 @@
         /* masquer / réafficher les volumes rouges des collisions, sans perdre la liste (pour voir l'ouvrage dessous) */
         function d3ColToggle(b) { if (!V3 || !V3.col) return; V3.col.visible = !V3.col.visible; if (b) b.textContent = V3.col.visible ? 'Masquer les zones' : 'Afficher les zones'; render3D();
             updateCommandMessageText(V3.col.visible ? 'COLLISIONS : zones en conflit affichées en rouge.' : 'COLLISIONS : zones en conflit masquées (la liste reste là ; « Afficher les zones » pour les revoir).'); }
-        function d3ColClear() { d3Col = []; if (V3 && V3.col) { V3.col.clear(); render3D(); } t2PanelClose(); }
+        /* clic molette sur une zone rouge : on fait défiler les objets de la (des) zone(s) touchée(s) ; l'objet choisi est sélectionné, ses zones passent en orange */
+        let d3ColSel = null, d3ColCyc = { key: '', i: -1 };
+        function d3ColCycle(e) { if (!d3Col.length || !V3 || !V3.col || !V3.col.visible) return false; const r = V3.renderer.domElement.getBoundingClientRect(), ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), V3.camera); V3.col.updateMatrixWorld(true);
+            const K = [...new Set(ray.intersectObjects(V3.col.children.filter(x => x.isMesh), false).map(h => h.object.userData.colK))].filter(k => d3Col[k]).sort((a, b) => a - b); if (!K.length) return false;
+            const C = []; K.forEach(k => [d3Col[k].a, d3Col[k].b].forEach(o => { if (!C.includes(o)) C.push(o); })); const key = K.join(',');
+            d3ColCyc = { key, i: d3ColCyc.key === key ? (d3ColCyc.i + 1) % C.length : 0 }; d3ColSel = C[d3ColCyc.i]; selectedShapes = [d3ColSel];
+            const n = d3Col.filter(c => c.a === d3ColSel || c.b === d3ColSel).length; build3DScene(); d3ColDraw();
+            const t = 'Gardé entier : ' + d3ObjName(d3ColSel) + ' (' + (d3ColCyc.i + 1) + '/' + C.length + ') — il coupera ' + n + ' objet' + (n > 1 ? 's' : '') + '. Entrée pour valider, clic molette pour le suivant.';
+            const el = document.getElementById('d3col-sel'); if (el) el.textContent = t; updateCommandMessageText('COLLISION : ' + t); return true; }
+        // valider : l'objet choisi reste entier, chaque objet qui le touche perd le volume commun (découpe gardée sur lui, retirée par Y)
+        function d3ColCut() { const S = d3ColSel; if (!S) { updateCommandMessageText('COLLISION : clic molette d\'abord sur une zone rouge pour choisir l\'objet à garder entier.'); return; }
+            const P = d3Col.filter(c => c.a === S || c.b === S); if (!P.length) return; let tS = null; const done = new Set(), bad = new Set(), vol = (o) => { try { const t = objTrisMM(o); return t ? signedVol(t) / 1e9 : NaN; } catch (e) { return NaN; } };
+            P.forEach(c => { const O = c.a === S ? c.b : c.a, g = Array.from(c.t, v => Math.round(v * 100) / 100);   /* le volume commun exact (gonflé, il fausse le booléen sur les faces confondues) */
+                const v0 = vol(O), ok = () => { const v1 = vol(O); return Math.abs(v1 - (v0 - c.v)) <= Math.max(0.02 * Math.abs(v0), 0.005); };
+                O.carve = (O.carve || []).concat([{ t: g }]); if (ok()) { done.add(O); return; }
+                O.carve.pop(); if (!tS) { try { tS = Array.from(objTrisMM(S) || [], v => Math.round(v * 100) / 100); } catch (e) { tS = []; } }   /* 2e essai : on retire tout l'objet gardé (plus robuste quand les faces se confondent) */
+                if (tS.length) { O.carve.push({ t: tS }); if (ok()) { done.add(O); return; } O.carve.pop(); }
+                if (!O.carve.length) delete O.carve; bad.add(O); });   /* découpe vérifiée : le volume perdu est bien le volume commun, sinon on n'y touche pas */
+            const n = done.size, nb = [...bad].filter(o => !done.has(o)).length; d3ColSel = null; selectedShapes = []; invalidateCache(); saveState(); if (is3DOpen()) build3DScene(); draw();
+            updateCommandMessageText('COLLISION supprimée : ' + d3ObjName(S) + ' gardé entier, ' + n + ' objet' + (n > 1 ? 's' : '') + ' recoupé' + (n > 1 ? 's' : '') + ' (Y sur un objet pour retirer sa découpe)' + (nb ? ' ; ' + nb + ' objet' + (nb > 1 ? 's' : '') + ' n\'a pas pu être coupé proprement (forme trop complexe) et reste tel quel' : '') + '. Nouveau contrôle…');
+            setTimeout(() => d3Collisions(), 50); }
+        function carveClear(gid) { const S = shapes.filter(x => (gid && x.groupId === gid) || selectedShapes.includes(x)); S.forEach(x => { delete x.carve; }); invalidateCache(); saveState(); draw(); refresh3D(); if (selectedShapes.length) openSelectionParamModal(); }
+        window.addEventListener('keydown', e => { if (e.key !== 'Enter' || !d3ColSel || !d3Col.length || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) return; e.preventDefault(); e.stopImmediatePropagation(); d3ColCut(); }, true);
+        function d3ColClear() { d3ColSel = null; d3Col = []; if (V3 && V3.col) { V3.col.clear(); render3D(); } t2PanelClose(); }
         function d3Finish(close) {
             if (mode !== 'pline') return; const L = D3.pts; if (L.length >= 2) { const sh = { type: 'poly', layerId: activeLayerId, points: L.map(q => { const w = d3ToPlan(q); return { x: w.x, y: w.y, z: w.z }; }) }; if (!close) sh.open = true; shapes.push(sh); saveState(); build3DScene(); updateCommandMessageText('POLYLIGNE 3D ' + (close ? 'fermée' : '') + ' : ' + L.length + ' points. Cliquez pour en commencer une autre, ou Échap.'); }
             D3.pts = []; D3.plane = null; d3Rubber(); render3D();

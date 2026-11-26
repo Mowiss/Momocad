@@ -273,14 +273,14 @@
             const f = Math.min(0.06, (s1 - s0) / 6), door = o.kind === 'porte' || o.kind === 'garage', ang = Math.atan2(u.y, u.x);
             const box = (a0, a1, b0, b1, d, mat) => { if (a1 - a0 < 1e-4 || b1 - b0 < 1e-4) return; const g = new THREE.BoxGeometry(a1 - a0, d, b1 - b0), m = new THREE.Mesh(g, mat);
                 const sc = (a0 + a1) / 2; m.position.set(A.x + u.x * sc + n.x * tm, A.y + u.y * sc + n.y * tm, (b0 + b1) / 2); m.rotation.z = ang; m.userData.opening = o; root.add(m); };
-            const frame = new THREE.MeshLambertMaterial({ color: o.kind === 'garage' ? 0x6b7280 : door ? 0x8b5a2b : 0xf3f4f6 });
+            const oc = o.col ? new THREE.Color(o.col) : null, frame = new THREE.MeshLambertMaterial({ color: oc || (o.kind === 'garage' ? 0x6b7280 : door ? 0x8b5a2b : 0xf3f4f6) });   /* couleur choisie (o.col) : cadre, vantaux, porte */
             box(s0, s0 + f, z0, z1, 0.07, frame); box(s1 - f, s1, z0, z1, 0.07, frame); box(s0, s1, z1 - f, z1, 0.07, frame);
-            if (o.kind === 'garage') { const pm = new THREE.MeshLambertMaterial({ color: 0xe5e7eb }), gm = new THREE.MeshLambertMaterial({ color: 0x9ca3af }), a0 = s0 + f, a1 = s1 - f, nP = 5, ph = (z1 - f - z0) / nP;   /* porte sectionnelle : 5 panneaux, joints marqués */
+            if (o.kind === 'garage') { const pm = new THREE.MeshLambertMaterial({ color: oc || 0xe5e7eb }), gm = new THREE.MeshLambertMaterial({ color: oc ? oc.clone().multiplyScalar(0.72) : 0x9ca3af }), a0 = s0 + f, a1 = s1 - f, nP = 5, ph = (z1 - f - z0) / nP;   /* porte sectionnelle : 5 panneaux, joints marqués */
                 /* elle bascule d'un bloc sur son bord haut et se range à plat sous le plafond, du côté de ses rails sur le plan (sens choisi, o.side), d'où que Momo l'ouvre */
                 const zt = z1 - f, sc = (a0 + a1) / 2, pv = new THREE.Group(), tl = new THREE.Group(); pv.position.set(A.x + u.x * sc + n.x * tm, A.y + u.y * sc + n.y * tm, zt); pv.rotation.z = ang; pv.add(tl); tl.userData.door = { axis: 'x', a0: 0, open: false, to: 0, garage: true, dir: (Math.sign(sn[3] - sn[0]) || 1) * (o.side === -1 ? -1 : 1) };
                 const pan = (b0, b1, d, mat) => { if (b1 - b0 < 1e-4) return; const m = new THREE.Mesh(new THREE.BoxGeometry(a1 - a0, d, b1 - b0), mat); m.position.set(0, 0, (b0 + b1) / 2 - zt); m.userData.opening = o; m.userData.leaf = o; tl.add(m); };
                 for (let i = 0; i < nP; i++) { pan(z0 + i * ph + 0.006, Math.min(zt, z0 + (i + 1) * ph - 0.006), 0.045, pm); if (i < nP - 1) pan(z0 + (i + 1) * ph - 0.006, z0 + (i + 1) * ph + 0.006, 0.03, gm); } root.add(pv); }
-            else if (door) { const tm2 = texMaterial('bois') || new THREE.MeshLambertMaterial({ color: 0xa0522d }), a0 = s0 + f, a1 = s1 - f;   // vantail sur ses gonds : il s'ouvre dans la vue Momo
+            else if (door) { const tm2 = oc ? new THREE.MeshLambertMaterial({ color: oc }) : texMaterial('bois') || new THREE.MeshLambertMaterial({ color: 0xa0522d }), a0 = s0 + f, a1 = s1 - f;   // vantail sur ses gonds : il s'ouvre dans la vue Momo
                 /* comme sur le plan : gonds du côté choisi (o.hinge), battant qui s'ouvre vers la face choisie (o.side) ; fermé, il reste dans l'épaisseur du chambranle */
                 if (a1 - a0 > 1e-4 && z1 - f - z0 > 1e-4) { const hb = o.hinge === 'b', sd = o.side === -1 ? -1 : 1, dir = (Math.sign(sn[3] - sn[0]) || 1) * sd, ht = (Math.max(...sn) - Math.min(...sn)) / 2, pn = tm + dir * Math.min(0.015, Math.max(0, ht - 0.02)), ps = hb ? a1 : a0;
                     const pv = new THREE.Group(); pv.position.set(A.x + u.x * ps + n.x * pn, A.y + u.y * ps + n.y * pn, 0); pv.rotation.z = ang; pv.userData.door = { a0: ang, open: false, to: ang, sw: (hb ? -dir : dir) * Math.PI / 2 };
@@ -296,8 +296,9 @@
                 const es = o.shut.side === -1 ? (sn[0] + sn[1]) / 2 : (sn[2] + sn[3]) / 2, dir = Math.sign(es - tm) || 1;
                 const box2 = (a0, a1, b0, b1, d, nc, mat) => { if (a1 - a0 < 1e-4 || b1 - b0 < 1e-4) return; const m = new THREE.Mesh(new THREE.BoxGeometry(a1 - a0, d, b1 - b0), mat), sc = (a0 + a1) / 2; m.position.set(A.x + u.x * sc + n.x * nc, A.y + u.y * sc + n.y * nc, (b0 + b1) / 2); m.rotation.z = ang; m.userData.shutter = o.shut.type; root.add(m); };
                 const w2 = (s1 - s0) / 2;
-                if (o.shut.type === 'battant') { const vm = new THREE.MeshLambertMaterial({ color: 0x5f7f6e }); box2(s0 - w2, s0 - 0.005, z0, z1, 0.035, es + dir * 0.03, vm); box2(s1 + 0.005, s1 + w2, z0, z1, 0.035, es + dir * 0.03, vm); }
-                else { const rail = new THREE.MeshLambertMaterial({ color: 0x9ca3af }), sl = texMaterial('alu') || new THREE.MeshLambertMaterial({ color: 0xd1d5db }), nc = es - dir * 0.05, zl = z1 - (z1 - z0) * 0.3;
+                const vc = o.shut.col ? new THREE.Color(o.shut.col) : null;
+                if (o.shut.type === 'battant') { const vm = new THREE.MeshLambertMaterial({ color: vc || 0x5f7f6e }); box2(s0 - w2, s0 - 0.005, z0, z1, 0.035, es + dir * 0.03, vm); box2(s1 + 0.005, s1 + w2, z0, z1, 0.035, es + dir * 0.03, vm); }
+                else { const rail = new THREE.MeshLambertMaterial({ color: 0x9ca3af }), sl = vc ? new THREE.MeshLambertMaterial({ color: vc }) : texMaterial('alu') || new THREE.MeshLambertMaterial({ color: 0xd1d5db }), nc = es - dir * 0.05, zl = z1 - (z1 - z0) * 0.3;
                     box2(s0, s0 + 0.04, z0, z1, 0.05, nc, rail); box2(s1 - 0.04, s1, z0, z1, 0.05, nc, rail); box2(s0 + 0.04, s1 - 0.04, zl, z1, 0.015, nc, sl); box2(s0 + 0.04, s1 - 0.04, zl - 0.03, zl, 0.03, nc, rail); }
             }
         }
@@ -326,7 +327,13 @@
                 const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3)); return out;
             } catch (e) { return eg; }
         }
-        function objGeom3D(so, P, Zm, exag, ext) { return rcpGeom3D(objGeom3D0(so, P, Zm, exag, ext), so, P); }   /* recoupes (outil Recouper) */
+        function objGeom3D(so, P, Zm, exag, ext) { return carveGeom3D(rcpGeom3D(objGeom3D0(so, P, Zm, exag, ext), so, P), so, P, Zm); }
+        /* découpes de collision (so.carve) : volumes communs retirés à cet objet quand un autre a été gardé entier (contrôle de collisions › « Couper les autres ») ;
+           chaque découpe = triangles en coordonnées réelles (mm), le volume commun exact */
+        function carveGeom3D(g, so, P, Zm) { if (!g || !so.carve || !so.carve.length) return g; try {
+                const cuts = so.carve.map(c => { const t = c.t || [], pos = new Float32Array(t.length); for (let i = 0; i < t.length; i += 3) { const q = P(mmToWorld(t[i]), -mmToWorld(t[i + 1])); pos[i] = q.x; pos[i + 1] = q.y; pos[i + 2] = Zm(t[i + 2]); }
+                    const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); return cg; }).filter(cg => cg.attributes.position.count >= 3);
+                return cuts.length ? csgGeom(g.index ? g.toNonIndexed() : g, cuts, 'sub') : g; } catch (e) { console.error(e); return g; } }   /* recoupes (outil Recouper) */
         function objGeom3D0(so, P, Zm, exag, ext) {
             ext = ext || (() => {});
             if (so.solid) {
