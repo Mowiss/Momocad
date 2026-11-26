@@ -7,8 +7,9 @@
         const SIT_BASES = { osm: { name: 'Plan OpenStreetMap', url: (z, x, y) => 'https://tile.openstreetmap.org/' + z + '/' + x + '/' + y + '.png', maxZoom: 19, attrib: '© OpenStreetMap' },
             planign: { name: 'Plan IGN', url: (z, x, y) => BM_BASES.planign.url(z, x, y), maxZoom: 18, attrib: 'Plan IGN © IGN' },
             photo: { name: 'Photo aérienne', url: (z, x, y) => BM_BASES.ortho.url(z, x, y), maxZoom: 19, attrib: '© IGN' } };
-        const SIT_DEF = () => ({ S: 25000, base: 'osm', pin: null, pinMm: 26, cmp: { on: true, fx: 0.9, fy: 0.13, mm: 16 }, bar: { on: true, fx: 0.04, fy: 0.92 } });
-        function sitOpt(v) { const d = SIT_DEF(), o = v.sit || (v.sit = {}); ['S', 'base', 'pinMm'].forEach(k => { if (o[k] === undefined) o[k] = d[k]; }); o.cmp = Object.assign(d.cmp, o.cmp || {}); o.bar = Object.assign(d.bar, o.bar || {}); if (!SIT_BASES[o.base]) o.base = 'osm'; return o; }
+        const SIT_OVS = { routes: { name: 'Routes', src: () => BM_OVLS.routes }, cad: { name: 'Parcelles (cadastre)', src: () => BM_OVLS.cad } };   /* calques posés sur le fond, dans cet ordre */
+        const SIT_DEF = () => ({ S: 25000, base: 'photo', ov: { routes: true, cad: true }, pin: null, pinMm: 26, cmp: { on: true, fx: 0.9, fy: 0.13, mm: 16 }, bar: { on: true, fx: 0.04, fy: 0.92 } });
+        function sitOpt(v) { const d = SIT_DEF(), o = v.sit || (v.sit = {}); ['S', 'base', 'pinMm'].forEach(k => { if (o[k] === undefined) o[k] = d[k]; }); o.ov = Object.assign({}, o.ov || (o.base === 'photo' ? d.ov : {})); o.cmp = Object.assign(d.cmp, o.cmp || {}); o.bar = Object.assign(d.bar, o.bar || {}); if (!SIT_BASES[o.base]) o.base = 'osm'; return o; }
         // le lieu du projet (lat / lon) : centre du dessin, par son système de coordonnées (Lambert 93 ou CC), sinon un fond de carte posé
         function sitProjectLL() { const M = (typeof lpModelShapes === 'function' && layoutOn) ? lpModelShapes() : shapes, S = M.filter(x => !isBg(x) && !x.gen), bb = S.length ? getShapesBoundingBox(S) : null;
             const c = bb ? { x: (bb.minX + bb.maxX) / 2, y: (bb.minY + bb.maxY) / 2 } : { x: 0, y: 0 }, X = realX(c.x) / 1000, Y = realY(c.y) / 1000; let P = null;
@@ -28,7 +29,7 @@
         // assemblage des tuiles du cadrage courant (une toile par fenêtre ; recommencé quand le cadrage change)
         const SIT_C = {}; let sitRaf = 0;
         const sitRedraw = () => { if (sitRaf) return; sitRaf = requestAnimationFrame(() => { sitRaf = 0; draw(); }); };
-        function sitKey(v, o) { return [o.base, o.lat.toFixed(6), o.lon.toFixed(6), o.S, Math.round(v.w), Math.round(v.h)].join('|'); }
+        function sitKey(v, o) { return [o.base, Object.keys(SIT_OVS).filter(k => o.ov[k]).join('+'), o.lat.toFixed(6), o.lon.toFixed(6), o.S, Math.round(v.w), Math.round(v.h)].join('|'); }
         function sitCanvas(v) { const o = sitOpt(v); if (!isFinite(o.lat) || !isFinite(o.lon)) return null; const key = sitKey(v, o); let C = SIT_C[v.id];
             if (C && C.key === key) return C;
             const z = sitZoom(o), n = Math.pow(2, z), T = 256, mpp = 2 * Math.PI * SIT_R / (T * n), c = sitMerc(o.lat, o.lon), gx = (c.x + Math.PI * SIT_R) / mpp, gy = (Math.PI * SIT_R - c.y) / mpp;   /* pixels globaux du centre */
@@ -37,8 +38,10 @@
             const x0 = gx - pw / 2, y0 = gy - ph / 2, tx0 = Math.floor(x0 / T), tx1 = Math.floor((x0 + pw) / T), ty0 = Math.max(0, Math.floor(y0 / T)), ty1 = Math.min(n - 1, Math.floor((y0 + ph) / T));
             C = SIT_C[v.id] = { key, cv, z, n: 0, ok: 0, bad: 0, done: false, ready: null }; const B = SIT_BASES[o.base], jobs = [];
             if (v.snap && v.snapKey === key) { const im = new Image(); im.onload = () => { if (SIT_C[v.id] === C && !C.ok) { g.drawImage(im, 0, 0, pw, ph); C.snap = true; sitRedraw(); } }; im.src = v.snap; }   /* image gardée dans le fichier : tout de suite, même hors ligne */
-            for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const X = ((tx % n) + n) % n; C.n++;
-                jobs.push(new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { if (SIT_C[v.id] === C) { if (C.snap && !C.ok) { g.fillStyle = '#eef0ec'; } g.drawImage(im, tx * T - x0, ty * T - y0); C.ok++; sitRedraw(); } res(); }; im.onerror = () => { C.bad++; res(); }; im.src = B.url(z, X, ty); })); }
+            const urls = (X, Y) => [B.url(z, X, Y)].concat(Object.keys(SIT_OVS).filter(k => o.ov[k]).map(k => SIT_OVS[k].src()).filter(L => L && z <= (L.maxZoom || 19) && z >= (L.minZoom || 0)).map(L => L.url(z, X, Y)));
+            const load = (u) => new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { C.ok++; res(im); }; im.onerror = () => { C.bad++; res(null); }; im.src = u; });
+            for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const X = ((tx % n) + n) % n, U = urls(X, ty); C.n += U.length;   /* une tuile : le fond puis ses calques (routes, parcelles), dessinés dans l'ordre */
+                jobs.push(Promise.all(U.map(load)).then(I => { if (SIT_C[v.id] !== C || !I[0]) return; I.forEach(im => { if (im) g.drawImage(im, tx * T - x0, ty * T - y0); }); sitRedraw(); })); }
             C.ready = Promise.all(jobs).then(() => { C.done = true; if (SIT_C[v.id] !== C) return; if (C.ok === C.n) { try { v.snap = cv.toDataURL('image/jpeg', 0.85); v.snapKey = key; } catch (e) {} } sitRedraw(); });
             return C; }
         // toutes les cartes prêtes (impression) : attente bornée
@@ -64,7 +67,7 @@
             if (o.pin) { const im = sitFinger(), p = P(o.pin.lat, o.pin.lon), H = o.pinMm * k, W = H * SIT_FINGER.ar; if (im) c.drawImage(im, p.x - SIT_FINGER.tx * W, p.y - SIT_FINGER.ty * H, W, H); }
             if (o.cmp.on) sitCompass(c, rx + o.cmp.fx * rw, ry + o.cmp.fy * rh, o.cmp.mm / 2 * k);
             if (o.bar.on) sitBar(c, o, rx + o.bar.fx * rw, ry + o.bar.fy * rh, k, v.w);
-            { const t = SIT_BASES[o.base].attrib, fs = 1.8 * k; c.font = fs + 'px Helvetica, Arial, sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(255,255,255,.8)'; c.fillRect(rx + rw - tw - 1.6 * k, ry + rh - fs - 1.2 * k, tw + 1.6 * k, fs + 1.2 * k); c.fillStyle = '#333'; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(t, rx + rw - 0.8 * k, ry + rh - 0.6 * k); }
+            { const t = [SIT_BASES[o.base].attrib].concat(Object.keys(SIT_OVS).filter(k => o.ov[k] && o.base !== 'osm').map(k => SIT_OVS[k].src().attrib)).filter((x, i, a) => a.indexOf(x) === i).join(' · '), fs = 1.8 * k; c.font = fs + 'px Helvetica, Arial, sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(255,255,255,.8)'; c.fillRect(rx + rw - tw - 1.6 * k, ry + rh - fs - 1.2 * k, tw + 1.6 * k, fs + 1.2 * k); c.fillStyle = '#333'; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(t, rx + rw - 0.8 * k, ry + rh - 0.6 * k); }
             c.restore(); }
         // création : cadre tracé (2 coins), carte centrée sur le projet, doigt dessus
         function sitCreate(fr) { const ll = sitProjectLL(), o = SIT_DEF(); if (ll) { o.lat = ll.lat; o.lon = ll.lon; o.pin = { lat: ll.lat, lon: ll.lon }; }
@@ -100,6 +103,7 @@
             sitSet = async (key, val) => { if (key === 'S') { const n = Math.round(t2Num(String(val).replace(/^1\s*[\/:]\s*/, ''))); if (n >= 200 && n <= 2000000) o.S = n; }
                 else if (key === 'base') { if (SIT_BASES[val]) o.base = val; }
                 else if (key === 'pinMm') { const n = t2Num(val); if (n >= 5 && n <= 120) o.pinMm = n; }
+                else if (key === 'ov.routes' || key === 'ov.cad') o.ov[key.slice(3)] = !!val;
                 else if (key === 'cmp') o.cmp.on = !!val; else if (key === 'cmpMm') { const n = t2Num(val); if (n >= 6 && n <= 60) o.cmp.mm = n; } else if (key === 'bar') o.bar.on = !!val;
                 else if (key === 'pin') o.pin = val ? (isFinite(o.lat) ? { lat: o.lat, lon: o.lon } : null) : null;
                 else if (key === 'home') { const ll = sitProjectLL(); if (!ll) { mcToast('Le plan n\'a pas de coordonnées : cherchez l\'adresse.'); return; } o.lat = ll.lat; o.lon = ll.lon; o.pin = { lat: ll.lat, lon: ll.lon }; }
@@ -114,6 +118,7 @@
                 <button type="button" class="mf-btn" onclick="sitSet('home')">⌂ Recentrer sur le projet (doigt compris)</button>
                 <label style="display:flex;gap:8px;align-items:center">Échelle <select id="sit-S" class="mf-in" onchange="sitSet('S',this.value)">${opts}</select> ou 1/<input class="mf-in" style="width:80px" inputmode="numeric" placeholder="${o.S}" onchange="sitSet('S',this.value)"></label>
                 <label style="display:flex;gap:8px;align-items:center">Fond <select class="mf-in" onchange="sitSet('base',this.value)">${bases}</select></label>
+                <div style="display:flex;gap:14px">${Object.keys(SIT_OVS).map(k => `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox"${o.ov[k] ? ' checked' : ''} onchange="sitSet('ov.${k}',this.checked)"> ${SIT_OVS[k].name}</label>`).join('')}</div>
                 <label style="display:flex;gap:8px;align-items:center"><input type="checkbox"${o.pin ? ' checked' : ''} onchange="sitSet('pin',this.checked)"> Doigt, hauteur <input class="mf-in" style="width:60px" inputmode="decimal" value="${nfr(o.pinMm, 0)}" onchange="sitSet('pinMm',this.value)"> mm</label>
                 <label style="display:flex;gap:8px;align-items:center"><input type="checkbox"${o.cmp.on ? ' checked' : ''} onchange="sitSet('cmp',this.checked)"> Boussole, diamètre <input class="mf-in" style="width:60px" inputmode="decimal" value="${nfr(o.cmp.mm, 0)}" onchange="sitSet('cmpMm',this.value)"> mm</label>
                 <label style="display:flex;gap:8px;align-items:center"><input type="checkbox"${o.bar.on ? ' checked' : ''} onchange="sitSet('bar',this.checked)"> Échelle graphique</label>

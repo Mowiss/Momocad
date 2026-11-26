@@ -76,7 +76,7 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
     const sit = await ev(async () => { const e = { preventDefault() {} }, r = {}, n0 = layoutData.vps.length; setMode('lpsit'); const s = (mx, my) => ({ x: lpCam.x + mx * lpCam.k, y: lpCam.y + my * lpCam.k });
         let a = s(30, 30), b = s(160, 130); lpMouseDown(e, a.x, a.y); lpMouseDown(e, b.x, b.y); const v = layoutData.vps.find(x => x.kind === 'sit'); r.made = !!v && layoutData.vps.length === n0 + 1 && mode === 'select-box';
         if (!v) return r; const o = sitOpt(v); o.lat = 44.56; o.lon = 6.11; o.S = 25000; o.pin = { lat: 44.56, lon: 6.11 };
-        r.btn = lpBtnRects(v).map(q => q.id).join(','); r.bar = sitBarLen(o, v.w); r.z = sitZoom(o);
+        r.def = o.base === 'photo' && !!o.ov.cad && !!o.ov.routes; { const C = sitCanvas(v); r.layers = !!C && C.n > 0 && C.n % 3 === 0; } r.btn = lpBtnRects(v).map(q => q.id).join(','); r.bar = sitBarLen(o, v.w); r.z = sitZoom(o);
         const q = sitFromMm(o, 12, -8), back = sitToMm(o, q.lat, q.lon); r.round = Math.abs(back.x - 12) < 1e-6 && Math.abs(back.y + 8) < 1e-6;
         const R = lpRect(v); lpDblClick(R.x + R.w / 2, R.y + R.h / 2); r.edit = lpSE.id === v.id;
         const px = R.x + R.w / 2 + 20 * lpCam.k, py = R.y + R.h / 2 + 10 * lpCam.k; sitDown(e, px, py); sitUp(px, py); const pm = sitToMm(o, o.pin.lat, o.pin.lon); r.pin = Math.abs(pm.x - 20) < 1e-3 && Math.abs(pm.y - 10) < 1e-3;
@@ -87,8 +87,8 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         const D = g.getImageData(0, 0, 390, 300).data; let blk = 0; for (let i = 0; i < D.length; i += 4) if (D[i] < 40 && D[i + 1] < 40 && D[i + 2] < 40 && D[i + 3] > 200) blk++; r.ink = blk > 500;   /* doigt, boussole, échelle */
         r.cart = !layoutData.vps.filter(x => !lpFlat(x) && !x.v3).includes(v); await sitReadyAll(1500); r.ready = true;
         layoutData.vps.splice(layoutData.vps.indexOf(v), 1); draw(); return r; });
-    t.eq('présentation : plan de situation (carte du lieu, doigt au clic, carte glissée, boussole déplaçable, échelle graphique, molette = échelle normalisée)', sit,
-        { made: true, btn: 'name,lock,frame,sit', bar: 500, z: 14, round: true, edit: true, pin: true, pan: true, cmp: true, out: 50000, in: 25000, left: true, draw: null, ink: true, cart: true, ready: true });
+    t.eq('présentation : plan de situation (photo avec parcelles et routes, carte du lieu, doigt au clic, carte glissée, boussole déplaçable, échelle graphique, molette = échelle normalisée)', sit,
+        { made: true, def: true, layers: true, btn: 'name,lock,frame,sit', bar: 500, z: 14, round: true, edit: true, pin: true, pan: true, cmp: true, out: 50000, in: 25000, left: true, draw: null, ink: true, cart: true, ready: true });
     // fenêtre en vue 3D, pilotée : la vraie vue 3D (bandeau d'affichage, mêmes gestes : glisser = tourner, clic droit = déplacer, molette = zoom) posée dans le cadre ; Échap la fige
     const v3a = await ev(async () => { const v = layoutData.vps[layoutData.vps.length - 1]; await lp3DSnap(v); await lp3DEnter(v); const r = lpRect(v), c = canvas.getBoundingClientRect(), el = document.getElementById('view3d'), b = el.getBoundingClientRect(), band = document.getElementById('v3-band');
         return { ok: !!(v.v3 && v.v3.img), active: lp3D.id === v.id, live: el.style.display === 'block' && el.classList.contains('v3-lp'), fit: Math.abs(b.left - c.left - r.x) < 2 && Math.abs(b.width - r.w) < 2 && Math.abs(b.height - r.h) < 2, band: !band.classList.contains('v3-up') && band.parentElement === document.body, az: V3.az, dist: V3.dist, tx: V3.target.x, cx: c.left + r.x + r.w / 2, cy: c.top + r.y + r.h / 2 + 30 }; });
