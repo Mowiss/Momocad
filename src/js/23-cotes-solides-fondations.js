@@ -98,7 +98,14 @@
             try { localStorage.setItem('momocad-pal', JSON.stringify(st)); } catch (e) {}
         }
         function restorePal() { let st = {}; try { st = JSON.parse(localStorage.getItem('momocad-pal') || '{}'); } catch (e) {} document.querySelectorAll('.pal').forEach(x => x.classList.toggle('closed', !!st[x.dataset.pal]));
-            const mo = document.querySelector('.pal[data-pal="model"]'); if (mo) mo.classList.add('closed'); }   // Bâtiment : réduite à chaque ouverture du logiciel
+            let mt = 'tout'; try { mt = localStorage.getItem('momocad-metier') || 'tout'; } catch (e) {} if (mt !== 'tout' && METIERS[mt]) { setMetier(mt, true); return; }
+            const mo = document.querySelector('.pal[data-pal="model"]'); if (mo) mo.classList.add('closed'); metierBtnSync('tout'); }   // Bâtiment : réduite à chaque ouverture du logiciel
+        /* métier : les palettes utiles dépliées, les autres repliées (jamais retirées) ; mémorisé sur ce poste */
+        const METIERS = { tout: { open: ['modif', 'dessin', 'model', 'topo', 'nomo'], shut: [] }, bat: { open: ['modif', 'dessin', 'model', 'nomo'], shut: ['topo'] }, vrd: { open: ['modif', 'dessin', 'topo', 'nomo'], shut: ['model'] } };
+        function setMetier(m, quiet) { const M = METIERS[m]; if (!M) return; M.open.forEach(id => { const p = document.querySelector('.pal[data-pal="' + id + '"]'); if (p) p.classList.remove('closed'); }); M.shut.forEach(id => { const p = document.querySelector('.pal[data-pal="' + id + '"]'); if (p) p.classList.add('closed'); });
+            try { localStorage.setItem('momocad-metier', m); const st = {}; document.querySelectorAll('.pal').forEach(x => { st[x.dataset.pal] = x.classList.contains('closed'); }); localStorage.setItem('momocad-pal', JSON.stringify(st)); } catch (e) {}
+            metierBtnSync(m); if (!quiet) updateCommandMessageText('MÉTIER : ' + ({ tout: 'toutes les palettes dépliées', bat: 'Bâtiment — palettes Bâtiment et Cotation dépliées, Topo repliée', vrd: 'Terrassement / VRD — palettes Topo et Cotation dépliées, Bâtiment repliée' })[m] + ' (un clic sur le titre d\'une palette la déplie quand même).'); }
+        function metierBtnSync(m) { document.querySelectorAll('#metier-bar button').forEach(b => { const on = b.dataset.m === m; b.style.background = on ? '#365314' : '#1f2937'; b.style.borderColor = on ? '#bef264' : '#4b5563'; b.style.color = on ? '#ecfccb' : '#d1d5db'; b.style.borderWidth = on ? '2px' : '1px'; }); }
         function markActivePal() { document.querySelectorAll('.pal').forEach(x => x.classList.toggle('has-active', !!x.querySelector('.tool-btn.active'))); }
         // ---- Solides 3D : pavé (rectangle), cylindre / cône / sphère (cercle) + hauteur. Base = Z des sommets / du cercle ----
         const SOLID_NAMES = { box: 'Pavé', cyl: 'Cylindre', cone: 'Cône', sphere: 'Sphère', tube: 'Tube', tcone: 'Tronc de cône', pyr: 'Pyramide', torus: 'Tore', rev: 'Révolution', roof: 'Pan de toiture', beam: 'Poutre' };

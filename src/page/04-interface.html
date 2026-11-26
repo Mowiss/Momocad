@@ -118,6 +118,11 @@
 
     <div class="flex flex-1 overflow-hidden">
         <aside id="tool-pal" class="w-[124px] shrink-0 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-2 shadow-md z-10 overflow-y-auto custom-scrollbar" style="overflow-x:hidden">
+            <div id="metier-bar" style="display:flex;gap:3px;width:112px;margin:0 0 6px" title="Métier : déplie les palettes utiles et replie les autres (rien n'est retiré, tout reste accessible)">
+                <button type="button" data-m="tout" onclick="setMetier('tout')" style="flex:1;font:bold 10px Arial;padding:4px 0;border-radius:5px;border:1px solid #4b5563;background:#1f2937;color:#d1d5db;cursor:pointer" title="Tout : toutes les palettes dépliées">Tout</button>
+                <button type="button" data-m="bat" onclick="setMetier('bat')" style="flex:1;font:bold 10px Arial;padding:4px 0;border-radius:5px;border:1px solid #4b5563;background:#1f2937;color:#d1d5db;cursor:pointer" title="Bâtiment : Bâtiment et Cotation dépliées, Topo repliée">Bât.</button>
+                <button type="button" data-m="vrd" onclick="setMetier('vrd')" style="flex:1;font:bold 10px Arial;padding:4px 0;border-radius:5px;border:1px solid #4b5563;background:#1f2937;color:#d1d5db;cursor:pointer" title="Terrassement / VRD : Topo et Cotation dépliées, Bâtiment repliée">VRD</button>
+            </div>
             <div class="pal" data-pal="modif">
                 <button type="button" class="pal-h" title="Modification : déplacer, copier, couper, raccorder, mettre à l'échelle — cliquer pour réduire / déplier" onclick="togglePal('modif')"><span>Modif</span><svg class="pal-chev" width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 <div class="tool-group pal-body grid grid-cols-3 gap-1">

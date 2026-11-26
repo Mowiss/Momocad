@@ -145,4 +145,9 @@ module.exports = { name: 'edition', run: async (H, t) => {
         pres().dispatchEvent(new MouseEvent('click', { bubbles: true })); await new Promise(res => setTimeout(res, 100)); r.on = layoutOn && pres().querySelector('circle').getAttribute('stroke') === '#bef264';
         pres().dispatchEvent(new MouseEvent('click', { bubbles: true })); await new Promise(res => setTimeout(res, 100)); r.off = !layoutOn && pres().querySelector('circle').getAttribute('stroke') === '#e5e7eb'; return r; });
     t.eq('grille : bouton à côté des blocs ; présentation : pastille de la rosace (allumée en vert), plus dans l\'en-tête', gp, { place: true, grid: true, back: true, header: true, noGridInRose: true, btn: true, on: true, off: true });
+    // métier : palettes utiles dépliées, les autres repliées (jamais retirées), bouton allumé rempli et cerclé, mémorisé
+    const mt = await ev(() => { const cl = (id) => document.querySelector('.pal[data-pal="' + id + '"]').classList.contains('closed'), on = (m) => document.querySelector('#metier-bar [data-m="' + m + '"]').style.borderColor === 'rgb(190, 242, 100)', r = {};
+        setMetier('vrd'); r.vrd = !cl('topo') && cl('model') && !cl('nomo') && on('vrd') && !on('bat'); setMetier('bat'); r.bat = cl('topo') && !cl('model') && on('bat'); let st = null; try { st = localStorage.getItem('momocad-metier'); } catch (e) {} r.saved = st === 'bat';
+        setMetier('tout'); r.tout = ['modif', 'dessin', 'model', 'topo', 'nomo'].every(id => !cl(id)) && on('tout'); r.allThere = document.querySelectorAll('.pal .tool-btn').length > 40; return r; });
+    t.eq('métier (Tout / Bât. / VRD) : palettes utiles dépliées, les autres repliées, mémorisé', mt, { vrd: true, bat: true, saved: true, tout: true, allThere: true });
 } };

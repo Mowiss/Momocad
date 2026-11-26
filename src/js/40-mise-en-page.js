@@ -72,8 +72,11 @@
             const lid = ensureLayer('Pièces à fournir', '#ffffff'), NL = layers.find(l => l.id === lid); if (NL && !(parseFloat(NL.textH) > 0)) NL.textH = '3.5'; const NW = 95;   /* textes de 3,5 mm sur la feuille */
             K.P.forEach(([code, title, paper, orient, sc]) => { const L = lpNew(); Object.assign(L, { paper, orient, cartouche: true, cartType: 'mini', margin: 10, folds: false, name: code + ' ' + title, cart: { planName: code + ' — ' + title, phase: K.ph, indice: 'A' } });
                 const sz = PAPER_SIZES[paper], W = orient === 'landscape' ? sz[1] : sz[0], H = orient === 'landscape' ? sz[0] : sz[1], m = 10; L.paperShapes = lpNeedShapes(code, sc ? W - m - 5 - NW : m + 5, m + 5, sc ? NW : Math.min(160, W - 2 * m - 10), lid);   /* ce que la pièce doit montrer */
-                if (sc) {
-                    L.vps.push({ id: 'vp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), x: m + 5, y: m + 5, w: W - 2 * m - 15 - NW, h: H - 2 * m - 10 - (CART_H + 5), cx: bb ? bb.centerX : 0, cy: bb ? bb.centerY : 0, scale: LP_SCALES.find(t => t >= sc * 0.999) || sc, a: 0, e: 90, round: false }); }
+                if (sc && code === K.P[0][0]) {   /* plan de situation : la carte du lieu, doigt, nord et échelle graphique */
+                    const o = SIT_DEF(), ll = sitProjectLL(); if (ll) { o.lat = ll.lat; o.lon = ll.lon; o.pin = { lat: ll.lat, lon: ll.lon }; }
+                    L.vps.push({ id: 'st' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), kind: 'sit', x: m + 5, y: m + 5, w: W - 2 * m - 15 - NW, h: H - 2 * m - 10 - (CART_H + 5), title: 'Plan de situation', sit: o }); }
+                else if (sc) {
+                    L.vps.push({ id: 'vp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), x: m + 5, y: m + 5, w: W - 2 * m - 15 - NW, h: H - 2 * m - 10 - (CART_H + 5), cx: bb ? bb.centerX : 0, cy: bb ? bb.centerY : 0, scale: LP_SCALES.find(t => t >= sc * 0.999) || sc, a: 0, e: 90, round: false, ...(sc <= 500 ? { north: true } : {}) }); }   /* plan de masse : nord affiché d'office */
                 layouts.push(L); last = L; });
             layoutIdx = layouts.indexOf(layoutData); if (!layoutOn) toggleLayout(true); lpSwitch(first); if (lpMenuShown()) lpMenuRender();
             updateCommandMessageText(K.nm.toUpperCase() + ' : ' + K.P.length + ' présentations ajoutées (' + K.P[0][0] + ' à ' + K.P[K.P.length - 1][0] + '), cartouche rempli ; plans cadrés au 1:' + K.P.filter(x => x[4]).map(x => x[4]).join(', 1:') + '.'); return last; }
@@ -126,7 +129,7 @@
                   + '<button type="button" data-a="dup" data-i="' + i + '" title="Dupliquer (fenêtres, textes de la feuille, cartouche)">' + ICO('copy') + '</button><button type="button" class="lpm-danger" data-a="del" data-i="' + i + '" title="Supprimer cette présentation"' + (layouts.length > 1 ? '' : ' disabled') + '>' + ICO('trash') + '</button>') + '</div>'; });
             h += '</div></div><div class="lpm-foot"><div style="display:flex;flex-direction:column;gap:6px"><label class="lpm-ck" title="Traits et textes nets à toutes les échelles, épaisseurs exactes en mm. Décoché : la feuille en image (plus léger sur un plan très chargé)."><input type="checkbox" data-f="lpvec"' + (printSettings.lpVec !== false ? ' checked' : '') + '> PDF vectoriel (toutes les présentations)</label>'
                 + '<span class="lpm-sub">Le cartouche se remplit sur la feuille : un clic sur une case. Le titre suit le nom de l\'onglet tant qu\'on ne l\'a pas écrit.</span></div>'
-                + '<div style="display:flex;gap:8px"><button type="button" class="lpm-btn" data-a="add" style="background:#065f46;border-color:#10b981">+ Nouvelle présentation</button><button type="button" class="lpm-btn" data-a="addpc" style="background:#1e3a8a;border-color:#3b82f6" title="Permis de construire (maison individuelle) : une présentation par pièce, PCMI1 à PCMI8, cartouche rempli">+ Nouveau PC</button><button type="button" class="lpm-btn" data-a="adddp" style="background:#4c1d95;border-color:#8b5cf6" title="Déclaration préalable : une présentation par pièce, DP1 à DP8, cartouche rempli">+ Nouvelle DP</button><button type="button" class="lpm-btn pri" data-a="close">Fermer</button></div></div></div>';
+                + '<div style="display:flex;gap:8px"><button type="button" class="lpm-btn" data-a="add" style="background:#065f46;border-color:#10b981">+ Nouvelle présentation</button><button type="button" class="lpm-btn" data-a="addpc" style="background:#1e3a8a;border-color:#3b82f6" title="Permis de construire (maison individuelle) : une présentation par pièce, PCMI1 à PCMI8, cartouche rempli">+ Nouveau PC</button><button type="button" class="lpm-btn" data-a="adddp" style="background:#4c1d95;border-color:#8b5cf6" title="Déclaration préalable : une présentation par pièce, DP1 à DP8, cartouche rempli">+ Nouvelle DP</button><button type="button" class="lpm-btn" data-a="dos" style="background:#14532d;border-color:#4ade80" title="Contrôle du dossier PC / DP : pièces présentes, échelles, nord, cotes, altitudes NGF">✔ Contrôle du dossier</button><button type="button" class="lpm-btn pri" data-a="close">Fermer</button></div></div></div>';
             o.innerHTML = h; }
         function lpMenuSet(i, f, el) {
             if (f === 'lpvec') { printSettings.lpVec = !!el.checked; try { localStorage.setItem('momocad-print', JSON.stringify(printSettings)); } catch (e) {} return; }
@@ -147,7 +150,7 @@
                 o.addEventListener('keydown', (e) => { const el = e.target; if (e.key === 'Enter' && el && el.dataset && el.dataset.f === 'name') { e.preventDefault(); el.blur(); } });
                 o.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button[data-a]'); if (!b) return; const a = b.dataset.a, i = +b.dataset.i;
                     if (a === 'close') lpMenuClose(); else if (a === 'open') { if (!layoutOn) toggleLayout(true); lpSwitch(i); } else if (a === 'up') lpMove(i, -1); else if (a === 'down') lpMove(i, 1);
-                    else if (a === 'dup') { lpSync(); lpAdd(layouts[i]); } else if (a === 'add') lpAdd(); else if (a === 'addpc') lpAddSet('pc'); else if (a === 'adddp') lpAddSet('dp');
+                    else if (a === 'dup') { lpSync(); lpAdd(layouts[i]); } else if (a === 'add') lpAdd(); else if (a === 'addpc') lpAddSet('pc'); else if (a === 'adddp') lpAddSet('dp'); else if (a === 'dos') { lpMenuClose(); dosPanel(); return; }
                     else if (a === 'del') { piDelAsk = i; lpMenuRender(); } else if (a === 'delno') { piDelAsk = -1; lpMenuRender(); } else if (a === 'delok') { piDelAsk = -1; lpRemove(i); } }); }
             lpMenuRender(); o.style.display = 'flex'; }
         function lpMenuClose() { const o = document.getElementById('lp-menu'); if (!o) return; const ae = document.activeElement; if (ae && o.contains(ae)) ae.blur(); o.style.display = 'none'; draw(); }
@@ -352,7 +355,11 @@
                 [['Comme le plan', () => { delete v.lv; closeTopoModal(); saveState(); draw(); updateCommandMessageText('FENÊTRE : calques comme dans le plan.'); }, false], ['Annuler', () => { lpLvLive = () => {}; closeTopoModal(); lvBack(); }, false],
                  ['Valider', () => { lpLvLive = () => {}; lvRead(); closeTopoModal(); saveState(); draw();
                     updateCommandMessageText('FENÊTRE : ' + (v.lv ? Object.keys(v.lv).length + ' calque(s) réglé(s) pour cette fenêtre.' : 'calques comme dans le plan.')); }, true]]); }
-        function lpRenderVp(tctx, v, k, rx, ry, rw, rh) {
+        // flèche du nord d'une fenêtre de plan : en haut à droite, 14 mm, tournée comme la vue
+        function lpNorthDraw(c, v, k, rx, ry, rw, rh) { if (!v.north || !lpNorthOk(v) || typeof sitNorth !== 'function') return; const R = 7 * k, X = rx + rw - R - 4 * k, Y = ry + R + 4 * k;
+            c.save(); c.translate(X, Y); c.rotate((v.a || 0) * Math.PI / 180); sitNorth(c, 0, 0, R); c.restore(); }
+        function lpRenderVp(tctx, v, k, rx, ry, rw, rh) { const r = lpRenderVp0(tctx, v, k, rx, ry, rw, rh); try { tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip(); lpNorthDraw(tctx, v, k, rx, ry, rw, rh); tctx.restore(); } catch (e) {} return r; }
+        function lpRenderVp0(tctx, v, k, rx, ry, rw, rh) {
             if (v && v.lv && !v._lvOn) { const L = lpSpace === 'paper' && lpModelStore && lpModelStore.layers ? lpModelStore.layers : layers, keepV = L.map(l => l.visible); v._lvOn = true;
                 try { L.forEach(l => { l.visible = lpVpVis(v, l); }); return lpRenderVp(tctx, v, k, rx, ry, rw, rh); } finally { L.forEach((l, i) => { l.visible = keepV[i]; }); delete v._lvOn; } }
             const keep = { x: camera.x, y: camera.y, zoom: camera.zoom }, c = lpCamFor(v, k, rx, ry, rw, rh);
@@ -469,6 +476,7 @@
                     const pc = document.getElementById('prop-color'), keepPC = pc.value; if (/^#f{3}(f{3})?$/i.test(keepPC)) pc.value = '#000000';
                     lpInner = true; lpInkFlag = true;
                     try { lpWithLv(A, () => draw()); } finally { lpInner = false; lpInkFlag = false; pc.value = keepPC; }   /* calques propres à la fenêtre, aussi quand elle est active */
+                    { const r = lpRect(A); lpNorthDraw(c, A, lpCam.k, r.x, r.y, r.w, r.h); }
                 }
                 c.restore();
                 c.save(); c.strokeStyle = A.locked ? '#f59e0b' : '#2563eb'; c.lineWidth = 2.5; c.setLineDash([]); if (A.round) { c.beginPath(); c.arc(r.x + r.w / 2, r.y + r.h / 2, r.w / 2 + 1, 0, 7); c.stroke(); } else c.strokeRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2); c.restore();
@@ -510,8 +518,9 @@
             draw();
         }
         // 3 boutons flottants par fenêtre (écran seulement) : nommer, verrouiller, cadre visible
-        const LP_BTNS = [['lay', '☰', 'Calques de cette fenêtre : choisir ceux qu\'elle affiche (sans toucher aux autres fenêtres ni au plan)'], ['plat', 'Z', 'Plateformes : masque les points cotés sous les plateformes et écrit la cote de chaque plateforme'], ['v3d', '3D', 'Vue 3D / plan 2D : la fenêtre part du point de vue de la vue 3D ; double-clic dedans pour la piloter (tourner, déplacer, zoomer)'], ['name', '✎', 'Nommer la fenêtre (titre écrit avant l\'échelle)'], ['lock', '🔒', 'Verrouiller / déverrouiller (ni déplacement, ni taille, ni échelle, ni cadrage)'], ['frame', '▢', 'Afficher / masquer le cadre (à l\'impression)'], ['sit', '⌖', 'Plan de situation : adresse, échelle, fond, doigt, boussole, échelle graphique ; double-clic dans la carte pour la régler à la souris'], ['img', '⤢', 'Taille et place de l\'image dans son cadre (entière ou remplie, agrandir, recentrer) ; double-clic dans l\'image pour la placer à la souris']];
-        function lpBtnRects(v) { if (lpIsSit(v)) return lpBtnRects0(v, ['name', 'lock', 'frame', 'sit']); if (lpIsImg(v)) return lpBtnRects0(v, ['img', 'name', 'lock', 'frame']); if (v.v3) return lpBtnRects0(v, ['v3d', 'name', 'lock', 'frame']); return lpBtnRects0(v, ['lay', 'plat', 'v3d', 'name', 'lock', 'frame']); }
+        const LP_BTNS = [['lay', '☰', 'Calques de cette fenêtre : choisir ceux qu\'elle affiche (sans toucher aux autres fenêtres ni au plan)'], ['plat', 'Z', 'Plateformes : masque les points cotés sous les plateformes et écrit la cote de chaque plateforme'], ['v3d', '3D', 'Vue 3D / plan 2D : la fenêtre part du point de vue de la vue 3D ; double-clic dedans pour la piloter (tourner, déplacer, zoomer)'], ['name', '✎', 'Nommer la fenêtre (titre écrit avant l\'échelle)'], ['lock', '🔒', 'Verrouiller / déverrouiller (ni déplacement, ni taille, ni échelle, ni cadrage)'], ['frame', '▢', 'Afficher / masquer le cadre (à l\'impression)'], ['north', 'N', 'Flèche du nord dans cette fenêtre (plan de masse : obligatoire) ; elle suit la rotation de la vue'], ['sit', '⌖', 'Plan de situation : adresse, échelle, fond, doigt, boussole, échelle graphique ; double-clic dans la carte pour la régler à la souris'], ['img', '⤢', 'Taille et place de l\'image dans son cadre (entière ou remplie, agrandir, recentrer) ; double-clic dans l\'image pour la placer à la souris']];
+        function lpBtnRects(v) { if (lpIsSit(v)) return lpBtnRects0(v, ['name', 'lock', 'frame', 'sit']); if (lpIsImg(v)) return lpBtnRects0(v, ['img', 'name', 'lock', 'frame']); if (v.v3) return lpBtnRects0(v, ['v3d', 'name', 'lock', 'frame']); return lpBtnRects0(v, ['lay', 'plat', 'v3d', 'name', 'lock', 'frame'].concat(lpNorthOk(v) ? ['north'] : [])); }
+        const lpNorthOk = (v) => !lpFlat(v) && !v.v3 && Math.abs((v.e === undefined ? 90 : v.e) - 90) < 1e-6;   /* vue de dessus seulement */
         function lpBtnRects0(v, ids) { const B = ids ? LP_BTNS.filter(b => ids.includes(b[0])) : LP_BTNS, r = lpRect(v), s = 20, g = 3, x0 = r.x + r.w - B.length * s - (B.length - 1) * g, y0 = r.y - s - 4; return B.map((b, i) => ({ id: b[0], ico: b[1], tip: b[2], x: x0 + i * (s + g), y: y0, s })); }
         function lpDrawButtons(c) {
             if (lpInner) return;
@@ -522,7 +531,7 @@
                 if (v.id === lpIE.id) { const r = lpRect(v); c.save(); c.strokeStyle = '#22d3ee'; c.lineWidth = 2.5; c.setLineDash([]); c.strokeRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4);   // image en cadrage
                     const t = 'Image : glisser = déplacer · molette = agrandir / réduire · Échap = finir'; c.font = '12px sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(8,145,178,.92)'; c.fillRect(r.x, r.y + r.h + 4, tw + 12, 20); c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(t, r.x + 6, r.y + r.h + 14); c.restore(); }
                 lpBtnRects(v).forEach(b => {
-                    const on = (b.id === 'lay' && v.lv && Object.keys(v.lv).length > 0) || (b.id === 'lock' && v.locked) || (b.id === 'frame' && !v.noFrame) || (b.id === 'name' && v.title) || (b.id === 'v3d' && v.v3) || (b.id === 'plat' && v.plat) || (b.id === 'sit' && lpSE.id === v.id) || (b.id === 'img' && (lpIE.id === v.id || v.ifit === 'cover' || (+v.iz || 1) !== 1 || !!v.ix || !!v.iy));
+                    const on = (b.id === 'lay' && v.lv && Object.keys(v.lv).length > 0) || (b.id === 'lock' && v.locked) || (b.id === 'frame' && !v.noFrame) || (b.id === 'name' && v.title) || (b.id === 'v3d' && v.v3) || (b.id === 'plat' && v.plat) || (b.id === 'north' && !!v.north) || (b.id === 'sit' && lpSE.id === v.id) || (b.id === 'img' && (lpIE.id === v.id || v.ifit === 'cover' || (+v.iz || 1) !== 1 || !!v.ix || !!v.iy));
                     c.save(); c.fillStyle = on ? (b.id === 'lock' ? '#b45309' : '#1d4ed8') : 'rgba(31,41,55,.88)'; c.strokeStyle = '#6b7280'; c.lineWidth = 1;
                     c.beginPath(); c.roundRect ? c.roundRect(b.x, b.y, b.s, b.s, 4) : c.rect(b.x, b.y, b.s, b.s); c.fill(); c.stroke();
                     c.fillStyle = '#fff'; c.font = '12px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -605,6 +614,7 @@
         function lpButtonAction(v, id, bx, by) {
             if (id === 'name') { askText('Nom de la ' + (lpIsImg(v) ? 'image' : 'fenêtre') + ' (écrit avant l\'échelle ; vide = aucun)', v.title || '', (bx || 100) - 260, (by || 100) + 24, (t) => { v.title = t.trim(); updateCommandMessageText(v.title ? 'Nom : « ' + v.title + ' ».' : 'Nom retiré.'); }); lpSelId = v.id; draw(); return; }
             else if (id === 'lay') { lpVpLayers(v); return; }
+            else if (id === 'north') { v.north = !v.north; saveState(); draw(); updateCommandMessageText('FENÊTRE : flèche du nord ' + (v.north ? 'affichée (en haut à droite, elle suit la rotation de la vue).' : 'retirée.')); return; }
             else if (id === 'sit') { if (v.locked) { updateCommandMessageText('SITUATION verrouillée (cadenas au-dessus pour la libérer).'); return; } lpSelId = v.id; draw(); sitPanel(v); return; }
             else if (id === 'img') { if (v.locked) { updateCommandMessageText('IMAGE verrouillée (cadenas au-dessus pour la libérer).'); return; } lpSelId = v.id; draw(); lpImgPanel(v); return; }
             else if (id === 'plat') { v.plat = !v.plat; updateCommandMessageText(v.plat ? 'FENÊTRE : plateformes — points cotés sous les plateformes masqués, cote de chaque plateforme écrite.' : 'FENÊTRE : tous les points cotés affichés.'); }
