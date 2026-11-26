@@ -27,7 +27,7 @@
         function lpResetAll(L) { layoutData = L || lpNew(); layouts = [layoutData]; layoutIdx = 0; Object.keys(lpHistById).forEach(k => delete lpHistById[k]); lpPaperHist = { hist: [], step: -1 }; }
         function lpSwitch(i) {
             lpSync(); if (!layouts[i]) return; if (i === layoutIdx) { lpTabsRender(); return; }
-            if (lp3D.id) lp3DLeave(); lpIELeave(); if (lpActiveId) lpLeaveVp(); lpEndCartEdit(true);
+            if (lp3D.id) lp3DLeave(); lpIELeave(); sitLeave(); if (lpActiveId) lpLeaveVp(); lpEndCartEdit(true);
             const paper = lpSpace === 'paper'; if (paper) lpUseModel();
             lpHistById[layoutData.id] = lpPaperHist;
             layoutIdx = i; layoutData = layouts[i]; lpPaperHist = lpHistById[layoutData.id] || { hist: [], step: -1 };
@@ -268,6 +268,7 @@
         const lpIn = (r, sx, sy) => sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h;
         const lpInV = (v, sx, sy) => { const r = lpRect(v); if (v.round) return Math.hypot(sx - (r.x + r.w / 2), sy - (r.y + r.h / 2)) <= r.w / 2; return lpIn(r, sx, sy); };
         const lpIsImg = (v) => v && v.kind === 'img';
+        const lpIsSit = (v) => v && v.kind === 'sit', lpFlat = (v) => lpIsImg(v) || lpIsSit(v);   /* fenêtres sans plan : image, plan de situation */
         function lpVpAt(sx, sy) { for (let i = layoutData.vps.length - 1; i >= 0; i--) { const v = layoutData.vps[i]; if (lpInV(v, sx, sy)) return v; } return null; }
         // contour d'une fenêtre (rectangle ou cercle) comme chemin
         function lpPath(c, v, rx, ry, rw, rh) { c.beginPath(); if (v.round) c.arc(rx + rw / 2, ry + rh / 2, rw / 2, 0, 2 * Math.PI); else c.rect(rx, ry, rw, rh); }
@@ -359,6 +360,7 @@
             if (v.v3) { camera.x = keep.x; camera.y = keep.y; camera.zoom = keep.zoom; const im = lp3DImg(v); tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip(); tctx.fillStyle = '#fff'; tctx.fillRect(rx, ry, rw, rh);
                 if (im && im.complete && im.naturalWidth) { const r = Math.max(rw / im.naturalWidth, rh / im.naturalHeight), w = im.naturalWidth * r, h = im.naturalHeight * r; tctx.drawImage(im, rx + (rw - w) / 2, ry + (rh - h) / 2, w, h); }
                 tctx.restore(); return; }
+            if (lpIsSit(v)) { camera.x = keep.x; camera.y = keep.y; camera.zoom = keep.zoom; sitRender(tctx, v, k, rx, ry, rw, rh); return; }
             if (lpIsImg(v)) { camera.x = keep.x; camera.y = keep.y; camera.zoom = keep.zoom; const im = lpImg(v); if (im) { const B = lpImgBox(v, im, rx, ry, rw, rh, k); tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip(); tctx.drawImage(im, B.x, B.y, B.w, B.h); tctx.restore(); } return; }
             const kS = shapes, kT = tinCache, kU = printSettings.unit; if (lpSpace === 'paper') { shapes = lpModelStore.shapes; tinCache = lpVpTin; if (lpModelStore.unit && lpModelStore.unit !== kU) { printSettings.unit = lpModelStore.unit; applyUnitSettings(); } }   /* cotes du plan dans l'unité du plan (la feuille, elle, est en mm) */
             tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip();
@@ -400,7 +402,7 @@
             for (let i = 1; i <= 3; i++) { tctx.moveTo(cX + logoW, cY + rowH * i); tctx.lineTo(cX + cW, cY + rowH * i); } tctx.stroke();
             tctx.fillStyle = '#000'; tctx.font = pt(CART_FONT) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'left'; tctx.textBaseline = 'alphabetic';
             const ind = cartoucheIndice(D.indice || ''), indW = ind ? 11 * k : 0;
-            const rows = [D.planName ? 'Plan : ' + D.planName : 'Plan :', 'Client : ' + (D.clientName || ''), 'Dessin : ' + (D.draftsmanName || ''), 'Échelle : ' + (layoutData.vps.some(v => !lpIsImg(v) && !v.v3) ? [...new Set(layoutData.vps.filter(v => !v.v3).filter(v => !lpIsImg(v)).map(v => lpScaleTxt(v.scale)))].join(', ') : '—')];
+            const rows = [D.planName ? 'Plan : ' + D.planName : 'Plan :', 'Client : ' + (D.clientName || ''), 'Dessin : ' + (D.draftsmanName || ''), 'Échelle : ' + (layoutData.vps.some(v => !lpFlat(v) && !v.v3) ? [...new Set(layoutData.vps.filter(v => !v.v3).filter(v => !lpFlat(v)).map(v => lpScaleTxt(v.scale)))].join(', ') : '—')];
             rows.forEach((t, i) => tctx.fillText(t, cX + logoW + 1.2 * k, cY + rowH * i + rowH * 0.68, cW - logoW - 2.4 * k - (i === 0 ? indW : 0)));
             if (ind) { tctx.font = 'bold ' + pt(CART_FONT) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'right'; tctx.fillText(ind, cX + cW - 1.2 * k, cY + rowH * 0.68); }
             tctx.fillStyle = 'rgb(80,80,80)'; tctx.font = pt(CART_FONT - 1) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'right';
@@ -421,12 +423,12 @@
                 if (!v.noFrame) { lpPath(tctx, v, rx, ry, rw, rh); tctx.stroke(); }
                 else if (!printing) { tctx.strokeStyle = 'rgba(37,99,235,.35)'; tctx.lineWidth = 1; tctx.setLineDash([4, 4]); lpPath(tctx, v, rx, ry, rw, rh); tctx.stroke(); tctx.setLineDash([]); }
                 tctx.fillStyle = '#111'; tctx.font = 'bold ' + pt(lpTitlePt()) + 'px Helvetica, Arial, sans-serif'; tctx.textAlign = 'left'; tctx.textBaseline = 'alphabetic';
-                const lab = lpIsImg(v) ? (v.title || '') : v.v3 ? (v.title ? v.title + ' — ' : '') + 'Vue 3D' : (v.title ? v.title + ' — ' : '') + 'Éch. ' + lpScaleTxt(v.scale) + (lpIsOrtho(v) ? ' — ' + viewName(v.a || 0, v.e) : '');
+                const lab = lpFlat(v) ? (v.title || '') : v.v3 ? (v.title ? v.title + ' — ' : '') + 'Vue 3D' : (v.title ? v.title + ' — ' : '') + 'Éch. ' + lpScaleTxt(v.scale) + (lpIsOrtho(v) ? ' — ' + viewName(v.a || 0, v.e) : '');
                 if (lab) { if (v.round) lpArcText(tctx, lab, rx + rw / 2, ry + rh / 2, rw / 2 + 2 * k); else tctx.fillText(lab, rx, ry - 2 * k); }
                 tctx.restore();
             } }
         function lpSheetEnd(tctx, ox, oy, k, printing) { const P = lpPage(), pt = (q) => q * 0.3528 * k;
-            if (layoutData.cartouche) { const D = lpCartSrc(), cd = cartDims(P.W, P.H, P.m, layoutData.cartType), sv = layoutData.vps.filter(v => !lpIsImg(v) && !v.v3), sc = sv.length ? [...new Set(sv.map(v => lpScaleTxt(v.scale)))].join(', ') : '';
+            if (layoutData.cartouche) { const D = lpCartSrc(), cd = cartDims(P.W, P.H, P.m, layoutData.cartType), sv = layoutData.vps.filter(v => !lpFlat(v) && !v.v3), sc = sv.length ? [...new Set(sv.map(v => lpScaleTxt(v.scale)))].join(', ') : '';
                 if (cd.a4) drawCartA4(tctx, ox + (P.W - P.m - cd.w) * k, oy + (P.H - P.m - cd.h) * k, k, cartInfo(sc, layoutData.paper, D), cd.w, cd.h);
                 else lpCartouche(tctx, ox + (P.W - P.m - CART_W) * k, oy + (P.H - P.m - CART_H) * k, k, D); }
             if (printing || lpSpace !== 'paper') lpRenderPaper(tctx, ox, oy, k);
@@ -477,7 +479,7 @@
             { const Hv = lpHov && lpHov.v; if (Hv && Hv !== Sv && Hv !== A) { const r = lpRect(Hv); c.save(); c.strokeStyle = 'rgba(29,116,245,.6)'; c.lineWidth = 1.5; lpPath(c, Hv, r.x, r.y, r.w, r.h); c.stroke(); c.restore(); lpDrawHandles(c, Hv, false, lpHov.c); } }
             { const Hc = (lpCartEd && lpCartEd.cell) || (lpHov && lpHov.cell); if (Hc && !A) { const x = lpCam.x + Hc.x * k, y = lpCam.y + Hc.y * k, w = Hc.w * k, h = Hc.h * k; c.save(); c.fillStyle = 'rgba(37,99,235,.12)'; c.fillRect(x, y, w, h); c.strokeStyle = '#2563eb'; c.lineWidth = 1.5; c.setLineDash([]); c.strokeRect(x, y, w, h);
                 if (!lpCartEd) { const t = Hc.lab + (Hc.key === 'logo' ? '' : ' — clic pour écrire'); c.font = '12px sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(17,24,39,.92)'; c.fillRect(x, y - 22, tw + 12, 19); c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(t, x + 6, y - 12.5); } c.restore(); } }
-            if ((mode === 'lpvp' || mode === 'lpimg') && lpVpStart) { const a = { x: lpCam.x + lpVpStart.x * k, y: lpCam.y + lpVpStart.y * k }; c.save(); c.strokeStyle = '#2563eb'; c.lineWidth = 1.5; c.setLineDash([6, 4]); c.strokeRect(a.x, a.y, currentX_screen - a.x, currentY_screen - a.y); c.restore(); }
+            if ((mode === 'lpvp' || mode === 'lpimg' || mode === 'lpsit') && lpVpStart) { const a = { x: lpCam.x + lpVpStart.x * k, y: lpCam.y + lpVpStart.y * k }; c.save(); c.strokeStyle = '#2563eb'; c.lineWidth = 1.5; c.setLineDash([6, 4]); c.strokeRect(a.x, a.y, currentX_screen - a.x, currentY_screen - a.y); c.restore(); }
             if (mode === 'lpvpc' && lpVpStart) { const a = { x: lpCam.x + lpVpStart.x * k, y: lpCam.y + lpVpStart.y * k }; c.save(); c.strokeStyle = '#2563eb'; c.lineWidth = 1.5; c.setLineDash([6, 4]); c.beginPath(); c.arc(a.x, a.y, Math.hypot(currentX_screen - a.x, currentY_screen - a.y), 0, 7); c.stroke(); c.restore(); }
             lpDrawButtons(c);
             // rosace : vue de la fenêtre active / sélectionnée
@@ -497,7 +499,7 @@
                 updateCommandMessageText(layoutData.vps.length ? 'MISE EN PAGE : dessinez et écrivez sur la feuille (1 mm = 1 mm) ; double-clic dans une fenêtre pour y travailler sur le plan (molette = échelle).' : 'MISE EN PAGE : tracez une fenêtre (palette Présentation ou FE + Espace), 2 coins sur la feuille ; elle se met à l\'échelle de ce que vous regardiez. Les outils dessinent sur la feuille, à l\'échelle 1.');
             } else {
                 if (mode !== 'select-box') setMode('select-box'); isDrawing = false;
-                lp3D.id = null; lp3D.drag = null; lpIELeave(); lpUseModel(); layoutOn = false; lpActiveId = null; lpSelId = null; lpVpStart = null; lpDrag = null;
+                lp3D.id = null; lp3D.drag = null; lpIELeave(); sitLeave(); lpUseModel(); layoutOn = false; lpActiveId = null; lpSelId = null; lpVpStart = null; lpDrag = null;
                 const tp = document.querySelector('.pal[data-pal="topo"]'); if (tp) { tp.classList.remove('pal-locked'); tp.classList.toggle('closed', lpTopoClosed); }
                 if (lpSaved) { camera.x = lpSaved.x; camera.y = lpSaved.y; camera.zoom = lpSaved.zoom; }
                 const svg = document.getElementById('rose-svg'); if (svg) svg.dataset.k = ''; updateRose();
@@ -508,18 +510,19 @@
             draw();
         }
         // 3 boutons flottants par fenêtre (écran seulement) : nommer, verrouiller, cadre visible
-        const LP_BTNS = [['lay', '☰', 'Calques de cette fenêtre : choisir ceux qu\'elle affiche (sans toucher aux autres fenêtres ni au plan)'], ['plat', 'Z', 'Plateformes : masque les points cotés sous les plateformes et écrit la cote de chaque plateforme'], ['v3d', '3D', 'Vue 3D / plan 2D : la fenêtre part du point de vue de la vue 3D ; double-clic dedans pour la piloter (tourner, déplacer, zoomer)'], ['name', '✎', 'Nommer la fenêtre (titre écrit avant l\'échelle)'], ['lock', '🔒', 'Verrouiller / déverrouiller (ni déplacement, ni taille, ni échelle, ni cadrage)'], ['frame', '▢', 'Afficher / masquer le cadre (à l\'impression)'], ['img', '⤢', 'Taille et place de l\'image dans son cadre (entière ou remplie, agrandir, recentrer) ; double-clic dans l\'image pour la placer à la souris']];
-        function lpBtnRects(v) { if (lpIsImg(v)) return lpBtnRects0(v, ['img', 'name', 'lock', 'frame']); if (v.v3) return lpBtnRects0(v, ['v3d', 'name', 'lock', 'frame']); return lpBtnRects0(v, ['lay', 'plat', 'v3d', 'name', 'lock', 'frame']); }
+        const LP_BTNS = [['lay', '☰', 'Calques de cette fenêtre : choisir ceux qu\'elle affiche (sans toucher aux autres fenêtres ni au plan)'], ['plat', 'Z', 'Plateformes : masque les points cotés sous les plateformes et écrit la cote de chaque plateforme'], ['v3d', '3D', 'Vue 3D / plan 2D : la fenêtre part du point de vue de la vue 3D ; double-clic dedans pour la piloter (tourner, déplacer, zoomer)'], ['name', '✎', 'Nommer la fenêtre (titre écrit avant l\'échelle)'], ['lock', '🔒', 'Verrouiller / déverrouiller (ni déplacement, ni taille, ni échelle, ni cadrage)'], ['frame', '▢', 'Afficher / masquer le cadre (à l\'impression)'], ['sit', '⌖', 'Plan de situation : adresse, échelle, fond, doigt, boussole, échelle graphique ; double-clic dans la carte pour la régler à la souris'], ['img', '⤢', 'Taille et place de l\'image dans son cadre (entière ou remplie, agrandir, recentrer) ; double-clic dans l\'image pour la placer à la souris']];
+        function lpBtnRects(v) { if (lpIsSit(v)) return lpBtnRects0(v, ['name', 'lock', 'frame', 'sit']); if (lpIsImg(v)) return lpBtnRects0(v, ['img', 'name', 'lock', 'frame']); if (v.v3) return lpBtnRects0(v, ['v3d', 'name', 'lock', 'frame']); return lpBtnRects0(v, ['lay', 'plat', 'v3d', 'name', 'lock', 'frame']); }
         function lpBtnRects0(v, ids) { const B = ids ? LP_BTNS.filter(b => ids.includes(b[0])) : LP_BTNS, r = lpRect(v), s = 20, g = 3, x0 = r.x + r.w - B.length * s - (B.length - 1) * g, y0 = r.y - s - 4; return B.map((b, i) => ({ id: b[0], ico: b[1], tip: b[2], x: x0 + i * (s + g), y: y0, s })); }
         function lpDrawButtons(c) {
             if (lpInner) return;
             for (const v of layoutData.vps) {
                 if (v.id === lp3D.id) { lpPlace3D(v); const r = lpRect(v); c.save(); c.strokeStyle = '#22d3ee'; c.lineWidth = 2.5; c.setLineDash([]); c.strokeRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4);   // fenêtre 3D pilotée
                     const t = 'Vue 3D active : glisser = tourner · clic droit ou molette enfoncée = déplacer · molette = zoom · Échap = figer'; c.font = '12px sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(8,145,178,.92)'; c.fillRect(r.x, r.y + r.h + 4, tw + 12, 20); c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(t, r.x + 6, r.y + r.h + 14); c.restore(); }
+                sitHint(c, v);
                 if (v.id === lpIE.id) { const r = lpRect(v); c.save(); c.strokeStyle = '#22d3ee'; c.lineWidth = 2.5; c.setLineDash([]); c.strokeRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4);   // image en cadrage
                     const t = 'Image : glisser = déplacer · molette = agrandir / réduire · Échap = finir'; c.font = '12px sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(8,145,178,.92)'; c.fillRect(r.x, r.y + r.h + 4, tw + 12, 20); c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(t, r.x + 6, r.y + r.h + 14); c.restore(); }
                 lpBtnRects(v).forEach(b => {
-                    const on = (b.id === 'lay' && v.lv && Object.keys(v.lv).length > 0) || (b.id === 'lock' && v.locked) || (b.id === 'frame' && !v.noFrame) || (b.id === 'name' && v.title) || (b.id === 'v3d' && v.v3) || (b.id === 'plat' && v.plat) || (b.id === 'img' && (lpIE.id === v.id || v.ifit === 'cover' || (+v.iz || 1) !== 1 || !!v.ix || !!v.iy));
+                    const on = (b.id === 'lay' && v.lv && Object.keys(v.lv).length > 0) || (b.id === 'lock' && v.locked) || (b.id === 'frame' && !v.noFrame) || (b.id === 'name' && v.title) || (b.id === 'v3d' && v.v3) || (b.id === 'plat' && v.plat) || (b.id === 'sit' && lpSE.id === v.id) || (b.id === 'img' && (lpIE.id === v.id || v.ifit === 'cover' || (+v.iz || 1) !== 1 || !!v.ix || !!v.iy));
                     c.save(); c.fillStyle = on ? (b.id === 'lock' ? '#b45309' : '#1d4ed8') : 'rgba(31,41,55,.88)'; c.strokeStyle = '#6b7280'; c.lineWidth = 1;
                     c.beginPath(); c.roundRect ? c.roundRect(b.x, b.y, b.s, b.s, 4) : c.rect(b.x, b.y, b.s, b.s); c.fill(); c.stroke();
                     c.fillStyle = '#fff'; c.font = '12px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -602,6 +605,7 @@
         function lpButtonAction(v, id, bx, by) {
             if (id === 'name') { askText('Nom de la ' + (lpIsImg(v) ? 'image' : 'fenêtre') + ' (écrit avant l\'échelle ; vide = aucun)', v.title || '', (bx || 100) - 260, (by || 100) + 24, (t) => { v.title = t.trim(); updateCommandMessageText(v.title ? 'Nom : « ' + v.title + ' ».' : 'Nom retiré.'); }); lpSelId = v.id; draw(); return; }
             else if (id === 'lay') { lpVpLayers(v); return; }
+            else if (id === 'sit') { if (v.locked) { updateCommandMessageText('SITUATION verrouillée (cadenas au-dessus pour la libérer).'); return; } lpSelId = v.id; draw(); sitPanel(v); return; }
             else if (id === 'img') { if (v.locked) { updateCommandMessageText('IMAGE verrouillée (cadenas au-dessus pour la libérer).'); return; } lpSelId = v.id; draw(); lpImgPanel(v); return; }
             else if (id === 'plat') { v.plat = !v.plat; updateCommandMessageText(v.plat ? 'FENÊTRE : plateformes — points cotés sous les plateformes masqués, cote de chaque plateforme écrite.' : 'FENÊTRE : tous les points cotés affichés.'); }
             else if (id === 'v3d') { if (v.v3) { delete v.v3; updateCommandMessageText('FENÊTRE : retour au plan 2D, à l\'échelle ' + lpScaleTxt(v.scale) + '.'); } else lp3DSnap(v); }
@@ -637,8 +641,8 @@
             layoutData.vps.push(v); lpSelId = v.id; lpActiveId = null;
             updateCommandMessageText('FENÊTRE : ' + Math.round(w) + ' × ' + Math.round(h) + ' mm, échelle ' + lpScaleTxt(S) + '. Double-clic dedans pour la régler (molette = échelle, clic molette = cadrer) ; tapez 200 + Entrée pour 1:200 ; Suppr la retire.');
         }
-        function lpSetScale(v, S) { if (!(S > 0) || !v || lpIsImg(v)) return; if (v.locked) { updateCommandMessageText('FENÊTRE verrouillée : déverrouillez-la (bouton cadenas) pour changer l\'échelle.'); return; } v.scale = S; if (v.id === lpActiveId) lpApplyCam(v); updateCommandMessageText('FENÊTRE : échelle ' + lpScaleTxt(S) + '.'); draw(); }
-        function lpAskScale() { const v = lpVp(lpActiveId) || lpVp(lpSelId); if (v && (lpIsImg(v) || v.locked)) { lpSetScale(v, 1); return; } if (!v) { updateCommandMessageText('MISE EN PAGE : sélectionnez d\'abord une fenêtre (clic dessus).'); return; }
+        function lpSetScale(v, S) { if (!(S > 0) || !v || lpFlat(v)) return; if (v.locked) { updateCommandMessageText('FENÊTRE verrouillée : déverrouillez-la (bouton cadenas) pour changer l\'échelle.'); return; } v.scale = S; if (v.id === lpActiveId) lpApplyCam(v); updateCommandMessageText('FENÊTRE : échelle ' + lpScaleTxt(S) + '.'); draw(); }
+        function lpAskScale() { const v = lpVp(lpActiveId) || lpVp(lpSelId); if (v && (lpFlat(v) || v.locked)) { lpSetScale(v, 1); return; } if (!v) { updateCommandMessageText('MISE EN PAGE : sélectionnez d\'abord une fenêtre (clic dessus).'); return; }
             const r = lpRect(v); askText('Échelle de la fenêtre : 1 / …', String(v.scale), r.x + 10, Math.max(10, r.y + 10), (t) => { const S = parseFloat(String(t).replace(',', '.').replace(/^1\s*[:/]\s*/, '')); if (S > 0) lpSetScale(v, S); }); }
         // molette : dans la fenêtre active = échelle suivante (le point sous la souris reste en place) ; ailleurs = zoom de la feuille
         function lpWheel(e, sx, sy) {
@@ -664,6 +668,10 @@
                     const a = lpVpStart; lpVpStart = null; setMode('select-box'); const w = Math.abs(pm.x - a.x), h = Math.abs(pm.y - a.y);
                     if (w < 5 || h < 5) updateCommandMessageText('IMAGE : cadre trop petit.'); else { lpImgFrame = { x: Math.min(a.x, pm.x), y: Math.min(a.y, pm.y), w, h }; updateCommandMessageText('IMAGE : choisissez le fichier…'); document.getElementById('lp-img-input').click(); } }
                 draw(); return true; }
+            if (mode === 'lpsit') { const pm = lpToMm(sx, sy); if (!lpVpStart) { lpVpStart = pm; updateCommandMessageText('SITUATION : cliquez le coin opposé du cadre.'); } else {
+                    const a = lpVpStart; lpVpStart = null; setMode('select-box'); const w = Math.abs(pm.x - a.x), h = Math.abs(pm.y - a.y);
+                    if (w < 10 || h < 10) updateCommandMessageText('SITUATION : cadre trop petit.'); else sitCreate({ x: Math.min(a.x, pm.x), y: Math.min(a.y, pm.y), w, h }); }
+                draw(); return true; }
             if (mode === 'lpvp') { const pm = lpToMm(sx, sy); if (!lpVpStart) { lpVpStart = pm; updateCommandMessageText('FENÊTRE : cliquez le coin opposé.'); } else { lpCreateVp(lpVpStart, pm); lpVpStart = null; setMode('select-box'); } draw(); return true; }
             const A = lpVp(lpActiveId);
             if (A) {
@@ -683,7 +691,7 @@
             lpSelId = v.id; selectedShapes = []; const ci = -1;
             if (v.locked) { updateCommandMessageText((lpIsImg(v) ? 'IMAGE' : 'FENÊTRE') + ' verrouillée (cadenas au-dessus pour la libérer)' + (lpIsImg(v) ? '.' : ' ; double-clic pour dessiner dedans.')); draw(); return true; }
             lpDrag = { id: v.id, kind: ci >= 0 ? 'size' : 'move', c: ci, s: lpToMm(sx, sy), o: { x: v.x, y: v.y, w: v.w, h: v.h } };
-            updateCommandMessageText(lpIsImg(v) ? 'IMAGE : glissez pour la déplacer (coins = taille), Suppr pour la retirer ; boutons au-dessus : nommer, verrouiller, cadre.' : 'FENÊTRE ' + lpScaleTxt(v.scale) + ' : glissez pour la déplacer (coins = taille), double-clic pour y travailler, tapez 200 + Entrée pour 1:200, Suppr pour la retirer.');
+            updateCommandMessageText(lpIsSit(v) ? 'SITUATION : glissez pour la déplacer (coins = taille), Suppr pour la retirer ; double-clic dedans pour poser le doigt, déplacer la carte, changer l\'échelle ; bouton ⌖ : adresse, fond, réglages.' : lpIsImg(v) ? 'IMAGE : glissez pour la déplacer (coins = taille), Suppr pour la retirer ; boutons au-dessus : nommer, verrouiller, cadre.' : 'FENÊTRE ' + lpScaleTxt(v.scale) + ' : glissez pour la déplacer (coins = taille), double-clic pour y travailler, tapez 200 + Entrée pour 1:200, Suppr pour la retirer.');
             draw(); return true;
         }
         function lpEnterVp(v) { lpUseModel(); lpActiveId = v.id; lpSelId = null; selectedShapes = []; lpApplyCam(v); }
@@ -702,6 +710,8 @@
             if (mode !== 'select-box' || isDrawing) return !!A;   // double-clic d'un outil de la feuille (polyligne…) : on le laisse finir
             let v = lpVpAt(sx, sy);
             if (lpIE.id && !(v && v.id === lpIE.id)) { lpIELeave(); return true; }
+            if (lpSE.id && !(v && v.id === lpSE.id)) { sitLeave(); return true; }
+            if (lpIsSit(v)) { if (lpSE.id !== v.id) sitEnter(v); return true; }
             if (lpIsImg(v)) { if (lpIE.id !== v.id) lpIEEnter(v); return true; }
             if (lp3D.id && !(v && v.id === lp3D.id)) { lp3DLeave(); return true; }
             if (v && v.v3) { if (lp3D.id !== v.id) lp3DEnter(v); return true; }
@@ -841,8 +851,8 @@
         async function lpBuildPDFAsync(opt) { opt = Object.assign({ vec: printSettings.lpVec !== false, bw: !!printSettings.bw }, opt || {});
             const P = lpPage(), dpi = lpDpi(), k = dpi / 25.4, { jsPDF } = window.jspdf, doc = new jsPDF({ orientation: layoutData.orient === 'landscape' ? 'landscape' : 'portrait', unit: 'mm', format: layoutData.paper.toLowerCase(), compress: opt.compress !== false });
             const keepCam = { x: camera.x, y: camera.y, zoom: camera.zoom }, keepX = vecExact, V = layoutData.vps, N = V.length + 3; let c, cv = null;
-            const nm = (v) => v.title || (lpIsImg(v) ? 'image' : v.v3 ? 'vue 3D' : 'plan au ' + lpScaleTxt(v.scale));
-            try { await busyStep('Impression : préparation de la feuille', 1, N);
+            const nm = (v) => v.title || (lpIsSit(v) ? 'situation' : lpFlat(v) ? 'image' : v.v3 ? 'vue 3D' : 'plan au ' + lpScaleTxt(v.scale));
+            try { await busyStep('Impression : préparation de la feuille', 1, N); await sitReadyAll(8000);   /* cartes de situation chargées */
                 if (opt.vec) { c = new PdfCtx(doc, k, opt.bw); vecExact = true; } else { cv = document.createElement('canvas'); cv.width = Math.round(P.W * k); cv.height = Math.round(P.H * k); c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); }
                 lpSheetStart(c, 0, 0, k);
                 for (let i = 0; i < V.length; i++) { await busyStep('Impression : fenêtre ' + (i + 1) + ' sur ' + V.length + ' (' + nm(V[i]) + ')', i + 2, N); lpSheetVp(c, V[i], 0, 0, k, true); }
@@ -997,6 +1007,7 @@
             else if (mode === 'pen') msg = 'PLUME : ' + (penPts.length ? 'clic = point anguleux, cliquer-glisser = point courbe — Espace / Échap / double-clic = terminer, clic sur le 1er point = fermer.' : 'cliquez (ou cliquez-glissez) le premier point.');
             else if (mode === 'lpvp') msg = 'FENÊTRE : ' + (lpVpStart ? 'cliquez le coin opposé.' : 'cliquez le 1er coin sur la feuille.');
             else if (mode === 'lpvpc') msg = 'FENÊTRE RONDE : ' + (lpVpStart ? 'cliquez pour le rayon.' : 'cliquez le centre sur la feuille.');
+            else if (mode === 'lpsit') msg = 'SITUATION : ' + (lpVpStart ? 'cliquez le coin opposé du cadre.' : 'cliquez le 1er coin du cadre de la carte (elle se centre sur le projet, doigt posé dessus).');
             else if (mode === 'lpimg') msg = 'IMAGE : ' + (lpVpStart ? 'cliquez le coin opposé du cadre.' : 'cliquez le 1er coin du cadre, puis choisissez l\'image.');
             else if (mode === 'mirror') msg = 'COPIE MIROIR (' + selectedShapes.length + ' objet(s)) : ' + (!mirrorA ? 'cliquez le 1er point de l\'axe.' : !mirrorB ? 'cliquez le 2e point de l\'axe (Maj / ortho = axe H ou V).' : 'Espace = copie miroir (garde l\'original) · Suppr = miroir sans l\'original · Échap = annuler.');
             else if (mode === 'paintzone' && brushTool) msg = 'PEINDRE — zone : cliquez dans un contour fermé pour le peindre, ou dans une zone peinte pour la repeindre ; Échap pour finir.';

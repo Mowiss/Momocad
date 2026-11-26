@@ -85,7 +85,7 @@
             if (where === '3d') { if (!V3) return; const D = Math.PI / 180; if (a === -45 && e === 35) { V3.target.set(0, 0, 0); V3.dist = V3.R * 2.6; } animate3D((180 - a) * D, Math.max(-89.9, Math.min(89.9, e)) * D); }
             else if (layoutOn) {
                 const v = lpVp(lpActiveId) || lpVp(lpSelId);
-                if (!v || lpIsImg(v)) { updateCommandMessageText('MISE EN PAGE : sélectionnez une fenêtre (clic) pour choisir sa vue avec la rosace.'); return; }
+                if (!v || lpFlat(v)) { updateCommandMessageText('MISE EN PAGE : sélectionnez une fenêtre (clic) pour choisir sa vue avec la rosace.'); return; }
                 if (v.locked) { updateCommandMessageText('FENÊTRE verrouillée : déverrouillez-la pour changer de vue.'); return; }
                 if (lpIsOrtho({ a, e }) && !lpIsOrtho(v)) { const zr = zRange(); v.cz = (zr.min + zr.max) / 2; }
                 v.a = ((a % 360) + 360) % 360; v.e = e; v.ou = 0; v.ov = 0; if (v.id === lpActiveId) { if (lpIsOrtho(v) && mode !== 'select-box') setMode('select-box'); lpApplyCam(v); }
@@ -97,7 +97,7 @@
         // Raccourcis de commande : lettres puis Entrée (comme AutoCAD)
         const CMD_ALIASES = {
             D: ['move', 'Déplacer'], R: ['rotate', 'Rotation'], C: ['trim', 'Couper (ajuster)'], P: ['extend', 'Prolonger'], DE: ['offset', 'Décaler'],
-            DR: ['line', 'Droite'], QR: ['rect', 'Quadrilatère'], RO: ['circle', 'Rond (cercle)'], AR: ['arc', 'Arc'], PL: ['poly', 'Polygone'], PLI: ['pline', 'Polyligne'], PU: ['pen', 'Plume'], MI: ['mirror', 'Copie miroir'], FE: ['lpvp', 'Fenêtre de mise en page'], FR: ['lpvpc', 'Fenêtre ronde'], IM: ['lpimg', 'Image (mise en page)'], MP: ['layout', 'Mise en page'],
+            DR: ['line', 'Droite'], QR: ['rect', 'Quadrilatère'], RO: ['circle', 'Rond (cercle)'], AR: ['arc', 'Arc'], PL: ['poly', 'Polygone'], PLI: ['pline', 'Polyligne'], PU: ['pen', 'Plume'], MI: ['mirror', 'Copie miroir'], FE: ['lpvp', 'Fenêtre de mise en page'], FR: ['lpvpc', 'Fenêtre ronde'], IM: ['lpimg', 'Image (mise en page)'], SIT: ['lpsit', 'Plan de situation (mise en page)'], MP: ['layout', 'Mise en page'],
             HA: ['hatch', 'Hachure'], TX: ['text', 'Texte'], IF: ['detail', 'Infobulle (détail)'], PT: ['topo', 'Point topo'], LR: ['brk', 'Ligne de rupture'], BAT: ['bat', 'Bâtiment existant'], CAR: ['gridcal', 'Caler un fond sur 2 croix du carroyage'], VU: ['view3d', 'Vue 3D'], PE: ['slope', 'Étiquette de pente'], PR: ['profile', 'Profil en long'], CN: ['contours', 'Courbes de niveau'], CU: ['cubature', 'Cubatures'], ME: ['metre', 'Métré'], FC: ['bmplace', 'Fond de carte'], EC: ['explode', 'Éclater'], ET: ['stretch', 'Étirer'], BL: ['blocks', 'Catalogue de blocs'], RA: ['fillet', 'Arrondir'], PO: ['solid-beam', 'Poutre'], OU: ['opening', 'Ouverture dans un mur'], TOI: ['solid-roof', 'Toiture'], CP: ['copy', 'Copier'], RE: ['array', 'Réseau'], JO: ['join', 'Joindre'], CA: ['break', 'Couper au point'], CH: ['chamfer', 'Chanfrein'], LO: ['lengthen', 'Longueur'], ELL: ['ellipse', 'Ellipse'], PN: ['point', 'Point'], DV: ['divide', 'Diviser'], CR: ['dim-rad', 'Cote de rayon'], CD: ['dim-dia', 'Cote de diamètre'], MES: ['measure', 'Mesurer'], PEI: ['paint', 'Peindre (texture)'], PIN: ['brush', 'Peindre — trait au pinceau'], AP: ['addpt', 'Ajouter / retirer un point'], ETA: ['etages', 'Étages (niveaux du bâtiment)'], IB: ['blkimport', 'Importer un bloc'], PAR: ['paroi', 'Paroi (mur)'], DA: ['solid-dalle', 'Dalle'], ESC: ['stair2', 'Escalier d\'étage'], RCP: ['recoupe', 'Recouper'], POT: ['poteau', 'Poteau'], FON: ['fond', 'Fondations'], CO: ['cut', 'Trait de coupe'], FAC: ['facade', 'Vue de façade'], TCO: ['cline2', 'Trait de construction'], TRA: ['trench', 'Tranchée'], EAU: ['water', 'Niveau d\'eau naturel'], BOI: ['bois', 'Zone boisée'], BAS: ['bassin', 'Bassin de rétention'], MAI: ['maille', 'Maillage géotechnique / pollution'],
         };
         let cmdBuffer = '';
@@ -152,6 +152,6 @@
             if (a[0] === 'blkimport') { startBlockImport(); return; }
             if (a[0] === 'join') { startJoin(); return; }
             if (a[0] === 'layout') { toggleLayout(); return; }
-            if (a[0] === 'lpvp' || a[0] === 'lpvpc' || a[0] === 'lpimg') { if (!layoutOn) toggleLayout(true); setMode(a[0]); draw(); return; }
+            if (a[0] === 'lpvp' || a[0] === 'lpvpc' || a[0] === 'lpimg' || a[0] === 'lpsit') { if (!layoutOn) toggleLayout(true); setMode(a[0]); draw(); return; }
             setMode(a[0]); draw();
         }

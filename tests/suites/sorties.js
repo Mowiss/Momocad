@@ -72,6 +72,23 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         layoutData.vps.splice(layoutData.vps.indexOf(v), 1); draw(); return r; });
     t.eq('présentation : image redimensionnée et placée dans sa fenêtre (bouton ⤢, double-clic, glisser, molette), recadrée par le cadre', imv,
         { btn: 'name,lock,frame,img', btnPlan: false, fit: [0, 25, 100, 50], cover: [-50, 0, 200, 100], z2: [-50, 0, 200, 100], fixed: true, edit: true, dx: 10, zoomed: true, moved: true, left: true, clip: { inside: true, outside: true } });
+    // plan de situation : carte du lieu dans une fenêtre, doigt posé au clic, boussole et échelle graphique déplaçables, molette = échelle normalisée, carte déplacée au glisser
+    const sit = await ev(async () => { const e = { preventDefault() {} }, r = {}, n0 = layoutData.vps.length; setMode('lpsit'); const s = (mx, my) => ({ x: lpCam.x + mx * lpCam.k, y: lpCam.y + my * lpCam.k });
+        let a = s(30, 30), b = s(160, 130); lpMouseDown(e, a.x, a.y); lpMouseDown(e, b.x, b.y); const v = layoutData.vps.find(x => x.kind === 'sit'); r.made = !!v && layoutData.vps.length === n0 + 1 && mode === 'select-box';
+        if (!v) return r; const o = sitOpt(v); o.lat = 44.56; o.lon = 6.11; o.S = 25000; o.pin = { lat: 44.56, lon: 6.11 };
+        r.btn = lpBtnRects(v).map(q => q.id).join(','); r.bar = sitBarLen(o, v.w); r.z = sitZoom(o);
+        const q = sitFromMm(o, 12, -8), back = sitToMm(o, q.lat, q.lon); r.round = Math.abs(back.x - 12) < 1e-6 && Math.abs(back.y + 8) < 1e-6;
+        const R = lpRect(v); lpDblClick(R.x + R.w / 2, R.y + R.h / 2); r.edit = lpSE.id === v.id;
+        const px = R.x + R.w / 2 + 20 * lpCam.k, py = R.y + R.h / 2 + 10 * lpCam.k; sitDown(e, px, py); sitUp(px, py); const pm = sitToMm(o, o.pin.lat, o.pin.lon); r.pin = Math.abs(pm.x - 20) < 1e-3 && Math.abs(pm.y - 10) < 1e-3;
+        const pin0 = Object.assign({}, o.pin), lat0 = o.lat; sitDown(e, R.x + R.w * 0.3, R.y + R.h * 0.6); sitMove(R.x + R.w * 0.3 + 10 * lpCam.k, R.y + R.h * 0.6); sitUp(R.x + R.w * 0.3 + 10 * lpCam.k, R.y + R.h * 0.6); r.pan = o.lon < 6.11 && Math.abs(o.lat - lat0) < 1e-9 && o.pin.lon === pin0.lon;
+        const cx = R.x + o.cmp.fx * R.w, cy = R.y + o.cmp.fy * R.h, f0 = o.cmp.fx; sitDown(e, cx, cy); sitMove(cx - 20 * lpCam.k, cy); sitUp(cx - 20 * lpCam.k, cy); r.cmp = o.cmp.fx < f0 && o.lon < 6.11;
+        sitWheel({ preventDefault() {}, deltaY: 100 }, R.x + R.w / 2, R.y + R.h / 2); r.out = o.S; sitWheel({ preventDefault() {}, deltaY: -100 }, R.x + R.w / 2, R.y + R.h / 2); r.in = o.S; sitLeave(); r.left = lpSE.id === null;
+        sitFinger(); await new Promise(res => setTimeout(res, 150)); const cv = document.createElement('canvas'); cv.width = 600; cv.height = 500; const g = cv.getContext('2d'); let err = null; try { lpRenderVp(g, v, 3, 0, 0, 390, 300); } catch (x) { err = x.message; } r.draw = err;
+        const D = g.getImageData(0, 0, 390, 300).data; let blk = 0; for (let i = 0; i < D.length; i += 4) if (D[i] < 40 && D[i + 1] < 40 && D[i + 2] < 40 && D[i + 3] > 200) blk++; r.ink = blk > 500;   /* doigt, boussole, échelle */
+        r.cart = !layoutData.vps.filter(x => !lpFlat(x) && !x.v3).includes(v); await sitReadyAll(1500); r.ready = true;
+        layoutData.vps.splice(layoutData.vps.indexOf(v), 1); draw(); return r; });
+    t.eq('présentation : plan de situation (carte du lieu, doigt au clic, carte glissée, boussole déplaçable, échelle graphique, molette = échelle normalisée)', sit,
+        { made: true, btn: 'name,lock,frame,sit', bar: 500, z: 14, round: true, edit: true, pin: true, pan: true, cmp: true, out: 50000, in: 25000, left: true, draw: null, ink: true, cart: true, ready: true });
     // fenêtre en vue 3D, pilotée : la vraie vue 3D (bandeau d'affichage, mêmes gestes : glisser = tourner, clic droit = déplacer, molette = zoom) posée dans le cadre ; Échap la fige
     const v3a = await ev(async () => { const v = layoutData.vps[layoutData.vps.length - 1]; await lp3DSnap(v); await lp3DEnter(v); const r = lpRect(v), c = canvas.getBoundingClientRect(), el = document.getElementById('view3d'), b = el.getBoundingClientRect(), band = document.getElementById('v3-band');
         return { ok: !!(v.v3 && v.v3.img), active: lp3D.id === v.id, live: el.style.display === 'block' && el.classList.contains('v3-lp'), fit: Math.abs(b.left - c.left - r.x) < 2 && Math.abs(b.width - r.w) < 2 && Math.abs(b.height - r.h) < 2, band: !band.classList.contains('v3-up') && band.parentElement === document.body, az: V3.az, dist: V3.dist, tx: V3.target.x, cx: c.left + r.x + r.w / 2, cy: c.top + r.y + r.h / 2 + 30 }; });

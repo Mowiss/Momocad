@@ -178,6 +178,16 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         finally { window.sectionData = f0; }
         shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
     t.eq('coupes légères : un trait ajouté ne relance pas le calcul, un volume ajouté la marque à rafraîchir (calcul au clic) ; vue au-delà en polylignes', cp, { chained: true, skip: true, redo: true });
+    // toit terrasse avec acrotère : la coupe et la façade cotent le dessus de l'acrotère (pas la dalle de toit qu'il cache, ni le complexe d'étanchéité)
+    const acr = await ev(async () => { await loadThree(); const keepS = shapes, keepL = layers.slice(); shapes = []; const m = mmToWorld(1000), r = {}, R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m })), W = (x, y) => ({ x: x * m, y: -y * m });
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });
+        const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); [[18, 10, 18.2, 20], [29.8, 10, 30, 20], [18, 10, 30, 10.2], [18, 19.8, 30, 20]].forEach(([a, b2, c, d], k) => shapes.push({ type: 'hatch', layerId: wl, loops: [R(a, b2, c, d)], wallMat: 'parpaing', groupId: 'ac' + k, wz: { b: 100000, t: 102750 } }));
+        shapes.push(...buildTerrace({ type: 'poly', layerId: 'layer-0', points: R(18, 10, 30, 20).map(q => Object.assign(q, { z: 103000 })) }, { pans: 0, he: 103, te: 0.25, tc: 0, ah: 0.4, at: 0.2, fp: 0, fe: 0.05, ct: 0.1 })); saveState();
+        const lab = (id) => shapes.filter(x => x.secOf === id && x.type === 'text' && /^(Acrotère|Dessus de dalle)/.test(x.content)).map(x => x.content).sort();
+        sectionPlace(sectionData(W(10, 15), W(38, 15), 1), W(24, -40)); const d1 = shapes.find(x => x.cutDef && !x.cutDef.fac).cutDef; r.cut = lab(d1.id);
+        sectionPlace(sectionData(W(14, 4), W(34, 4), facSide(W(14, 4), W(34, 4)), true), W(24, -80)); const d2 = shapes.find(x => x.cutDef && x.cutDef.fac).cutDef; r.fac = lab(d2.id);
+        shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
+    t.eq('toit terrasse : la coupe et la façade cotent le dessus de l\'acrotère', acr, { cut: ['Acrotère 103,40'], fac: ['Acrotère 103,40'] });
     // vue de façade : ligne tracée devant, rien de coupé, regard vers le bâtiment, nom selon l'orientation, terrain lu au pied du mur, niveaux de la toiture
     const fa = await ev(async () => { await loadThree(); const keepS = shapes, keepL = layers.slice(); shapes = []; const m = mmToWorld(1000), r = {}, R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m })), W = (x, y) => ({ x: x * m, y: -y * m });
         for (let i = 0; i <= 10; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + j * 300, zk: 1 });

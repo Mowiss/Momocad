@@ -116,6 +116,7 @@
             if (spDirPick && e.button === 0) { const w = screenToWorld(sx, sy); spDirClick(w.x, w.y); draw(); return; }
             if (layoutOn && lp3D.id && (e.button === 0 || e.button === 1) && lp3DDown(e, sx, sy)) return;
             if (layoutOn && lpIE.id && e.button === 0 && lpIEDown(e, sx, sy)) return;
+            if (layoutOn && lpSE.id && e.button === 0 && sitDown(e, sx, sy)) return;
             if (layoutOn && e.button === 0 && lpMouseDown(e, sx, sy)) return;
 
             if (isOrthoView()) { updateCommandMessageText('VUE ' + viewName(view2d.a, view2d.e).toUpperCase() + ' : consultation seulement — cliquez Z ou « Dessus » dans la rosace pour dessiner.'); return; }
@@ -494,6 +495,7 @@
             if (isPanning) { if (layoutOn && !lpActiveId) { lpCam.x += (sx-lastPanX); lpCam.y += (sy-lastPanY); } else { navBegin(); camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); } lastPanX = sx; lastPanY = sy; if (layoutOn) draw(); else navDraw(); return; }
             if (layoutOn && lp3D.drag) { lp3DMove(sx, sy); return; }
             if (layoutOn && lpIE.drag) { lpIEMove(sx, sy); return; }
+            if (layoutOn && lpSE.drag) { sitMove(sx, sy); return; }
             if (layoutOn && lpIE.id) { const v = lpVp(lpIE.id); canvas.style.cursor = v && lpInV(v, sx, sy) ? 'grab' : ''; }
             if (layoutOn && lpDrag) { lpMouseMoveDrag(sx, sy); draw(); return; }
             if (layoutOn && lpHover(sx, sy) === true) draw();
@@ -553,6 +555,7 @@
             if (brush2D() && e.button === 0) { brushTool.down = false; brushUp(); return; }
             if (layoutOn && lp3D.drag) { lp3DUp(); return; }
             if (layoutOn && lpIE.drag) { lpIEUp(); return; }
+            if (layoutOn && lpSE.drag) { const r = canvas.getBoundingClientRect(); sitUp(e.clientX - r.left, e.clientY - r.top); return; }
             if (layoutOn && lpDrag) { lpDrag = null; draw(); return; }
             if (mode === 'pen' && e.button === 0) penUp();
             if (gripDrag && e.button === 0) { const moved = Math.hypot(currentX - gripDrag.x0, currentY - gripDrag.y0) * camera.zoom > 3; if (moved) endGrip(false); return; }
@@ -733,9 +736,10 @@
             }
             if (gripDrag && e.key === 'Escape') { e.preventDefault(); endGrip(true); return; }
             if (layoutOn) {
-                if (e.key === 'Escape' && (mode === 'lpvp' || mode === 'lpvpc' || mode === 'lpimg')) { e.preventDefault(); lpVpStart = null; setMode('select-box'); draw(); return; }
+                if (e.key === 'Escape' && (mode === 'lpvp' || mode === 'lpvpc' || mode === 'lpimg' || mode === 'lpsit')) { e.preventDefault(); lpVpStart = null; setMode('select-box'); draw(); return; }
                 if (e.key === 'Escape' && layoutOn && lp3D.id) { e.preventDefault(); lp3DLeave(); return; }
                 if (e.key === 'Escape' && lpIE.id) { e.preventDefault(); lpIELeave(); return; }
+                if (e.key === 'Escape' && lpSE.id) { e.preventDefault(); sitLeave(); return; }
                 if (e.key === 'Escape' && lpActiveId && mode === 'select-box' && !isDrawing && !selectedShapes.length && !gripDrag) { e.preventDefault(); lpLeaveVp(); updateCommandMessageText('MISE EN PAGE : feuille (1 mm = 1 mm).'); draw(); return; }
                 if (!lpActiveId && lpSelId && mode === 'select-box') {
                     if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); lpTyped += e.key.replace(',', '.'); updateCommandMessageText('FENÊTRE : échelle 1:' + lpTyped + ' (Espace)'); return; }
@@ -894,7 +898,7 @@
         });
 
         // Règle générale : Espace valide et garde l'outil ; Entrée valide et revient en mode Sélection, sans rien de sélectionné.
-        const ENTER_KEEP = new Set(['select-box', 'preview', 'print', 'text', 'array', 'divide', 'lpvp', 'lpvpc', 'lpimg', 'calibrate', 'blkbase', 'cubpick', 'sweeppick']);
+        const ENTER_KEEP = new Set(['select-box', 'preview', 'print', 'text', 'array', 'divide', 'lpvp', 'lpvpc', 'lpimg', 'lpsit', 'calibrate', 'blkbase', 'cubpick', 'sweeppick']);
         document.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey) return;
             const ae = document.activeElement; if (ae && (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(ae.tagName) || ae.isContentEditable)) return;
@@ -933,7 +937,7 @@
                 updateCommandMessage(); draw(); return;
             }
             const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top;
-            if (layoutOn) { if (lp3D.id && lp3DWheel(e, sx, sy)) return; if (lpIE.id && lpIEWheel(e, sx, sy)) return; lpWheel(e, sx, sy); return; }
+            if (layoutOn) { if (lp3D.id && lp3DWheel(e, sx, sy)) return; if (lpIE.id && lpIEWheel(e, sx, sy)) return; if (lpSE.id && sitWheel(e, sx, sy)) return; lpWheel(e, sx, sy); return; }
             if (mode === 'preview' && previewPin) { sx = previewPin.x; sy = previewPin.y; }
             let wp = screenToWorld(sx, sy);
             const nav = mode !== 'print' && mode !== 'preview'; if (nav) navBegin();

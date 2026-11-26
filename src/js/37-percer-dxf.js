@@ -63,7 +63,7 @@
             closeTextModal(); closeLayerModal(); closeCartoucheModal(); closeSnapModal(); closeHelpModal();
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
             const btn = document.getElementById('btn-' + (newMode === 'wall' && blkParois ? 'paroi' : newMode)); if (btn) btn.classList.add('active'); markActivePal();
-            if (newMode !== 'lpvp' && newMode !== 'lpvpc' && newMode !== 'lpimg') lpVpStart = null;
+            if (newMode !== 'lpvp' && newMode !== 'lpvpc' && newMode !== 'lpimg' && newMode !== 'lpsit') lpVpStart = null;
             canvas.style.cursor = (['move', 'rotate', 'scale-up', 'scale-down', 'select-box', 'text', 'print', 'preview', 'trim', 'extend', 'paste', 'offset'].includes(mode)) ? 'default' : 'crosshair';
             previewPin = null;
             if (newMode === 'print' || newMode === 'preview') {
@@ -258,7 +258,7 @@
             // unité du dessin (m, cm, mm) : toutes les coordonnées, altitudes et longueurs du DXF sont écrites dans cette unité
             const U = 1 / (UNIT_MM[currentUnit] || 1), Lu = (mm) => mm * U;
             // textes « variables » (taille constante à l'écran) : hauteur papier × échelle de présentation (fenêtres, impression rapide, sinon 1:200)
-            const annS = (() => { const v = (layoutData.vps || []).filter(q => q.kind !== 'img').map(q => q.scale); if (v.length) return arrMax(v); const m = /^1:(\d+)/.exec(currentPrintScale || ''); return m && +m[1] > 1 ? +m[1] : 200; })();
+            const annS = (() => { const v = (layoutData.vps || []).filter(q => q.kind !== 'img' && q.kind !== 'sit').map(q => q.scale); if (v.length) return arrMax(v); const m = /^1:(\d+)/.exec(currentPrintScale || ''); return m && +m[1] > 1 ? +m[1] : 200; })();
             const X = (v) => (worldToMm(v) + geoOrigin.x) * U;
             const Y = (v) => (-worldToMm(v) + geoOrigin.y) * U;   // l'axe Y est inversé entre l'écran et le DXF ; + origine géoréférencée
             const ZZ = (z) => hasZ(z) ? num(z * U) : 0;

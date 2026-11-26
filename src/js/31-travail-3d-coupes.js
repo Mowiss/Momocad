@@ -380,7 +380,7 @@
             const lvF = []; if (fac) { const uB2 = (bx - ax) * rx + (by - ay) * ry, uLo = Math.min(0, uB2), uHi = Math.max(0, uB2), vx = -ry, vy = rx;
                 allT.forEach(({ o, t }) => { let zmax = -Infinity, zmin = Infinity, um = 0; for (let i = 0; i < t.length; i += 3) { const u = (t[i] - ax) * rx + (t[i + 1] - ay) * ry, d = (t[i] - ax) * vx + (t[i + 1] - ay) * vy; if (d < 0 || u < uLo - 1 || u > uHi + 1) continue; if (t[i + 2] > zmax) { zmax = t[i + 2]; um = u; } zmin = Math.min(zmin, t[i + 2]); }
                     if (!isFinite(zmax)) return; if (o.solid && o.solid.kind === 'roof') { lvF.push({ k: 'Faîtage', z: zmax, u: um, c: o.layerId }); const he = o.roofDef && o.roofDef.o && isFinite(o.roofDef.o.he) && o.roofDef.o.pans ? o.roofDef.o.he * 1000 : zmin; lvF.push({ k: 'Égout', z: he, u: um, c: o.layerId }); }
-                    else if (o.solid && o.solid.kind === 'box' && (/dalle/i.test(o.name || '') || (o.solid.H || 0) <= 400)) lvF.push({ k: /toit/i.test(o.name || '') ? 'Dessus de dalle (toit)' : 'Dessus de dalle', z: zmax, u: um, c: o.layerId }); }); }
+                    else { const kk = secLvKind(o); if (kk) lvF.push({ k: kk, z: zmax, u: um, c: o.layerId, g: o.groupId }); } }); }
             const all = loopsOut.flatMap(x => x.loop).concat(tn, beyond.flatMap(b => [[b[0], b[1]], [b[2], b[3]]])); let u0 = Infinity, u1 = -Infinity, z0 = Infinity, z1 = -Infinity; all.forEach(q => { u0 = Math.min(u0, q[0]); u1 = Math.max(u1, q[0]); z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); });
             const used = new Set(shapes.filter(x => x.cutName).map(x => x.cutName)); let k = 0; while (k < 26 && used.has(String.fromCharCode(65 + k))) k++;
             let name = String.fromCharCode(65 + (k % 26)); if (fac) { const b0 = facName(-ry, rx); name = b0; let n = 2; while (used.has(name)) name = b0 + ' ' + n++; }
@@ -391,6 +391,11 @@
             shapes.forEach(o => { const l = layers.find(y => y.id === (o.layerId || 'layer-0')); if ((l && l.visible === false) || !is3DObj(o) || o.gen || o.secOf) return; let t; try { t = objTrisMM(o); } catch (e) { t = null; } if (!t) return;
                 for (let i = 0; i < t.length; i += 3) { const u = (t[i] - ax) * tx + (t[i + 1] - ay) * ty; if (u < 0 || u > L) continue; const d = (t[i] - ax) * nx + (t[i + 1] - ay) * ny; if (d > 1) dp = Math.min(dp, d); else if (d < -1) dn = Math.min(dn, -d); } });
             if (!isFinite(dp) && !isFinite(dn)) return 0; return dp <= dn ? -1 : 1; }   /* regard = normale × −côté */
+        /* niveau coté d'un objet coupé ou vu : acrotère (son dessus), dalle (son dessus) ; les couches de toiture (forme de pente, complexe d'étanchéité) ne sont pas cotées */
+        function secLvKind(o) { if (!o || !o.solid || o.solid.kind !== 'box' || o.roofPart) return null; if (/^acrot/i.test(o.name || '')) return 'Acrotère'; if (/étanch|forme de pente/i.test(o.name || '')) return null;
+            return (/dalle/i.test(o.name || '') || (o.solid.H || 0) <= 400) ? (/toit/i.test(o.name || '') ? 'Dessus de dalle (toit)' : 'Dessus de dalle') : null; }
+        // un toit terrasse avec acrotère : on cote le dessus de l'acrotère, pas la dalle qu'il cache
+        function secLvClean(L) { const G = new Set(L.filter(l => l.k === 'Acrotère' && l.g).map(l => l.g)); return L.filter(l => !(l.k === 'Dessus de dalle (toit)' && l.g && G.has(l.g))); }
         function footAt(F, u) { if (!F || !F.dep.length) return 0; const i = Math.max(0, Math.min(F.dep.length - 1, Math.floor((u - F.uL) / F.c))); return F.dep[i]; }
         function facFoot(D, f) { const wx = D.A.x + (D.B.x - D.A.x) * f, wy = D.A.y + (D.B.y - D.A.y) * f; if (!D.foot) return { x: wx, y: wy }; const uB = (worldToMm(D.B.x) - D.ax) * D.rx + (-worldToMm(D.B.y) - D.ay) * D.ry, d = footAt(D.foot, f * uB);
             return { x: wx + mmToWorld(-D.ry * d), y: wy - mmToWorld(D.rx * d) }; }
@@ -408,7 +413,7 @@
             const chk = (k, lab) => `<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox"${O.on[k] ? ' checked' : ''} onchange="secOptSet('${id}','on.${k}',this.checked)"> ${lab}</label>`;
             return `<div style="font-weight:600;margin:6px 0 4px">Cotation de la coupe</div><div style="display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center">${num('tn', O.tn, 'Terrain naturel : une cote tous les', 'm')}${num('col', O.col, 'Colonne des niveaux : écart au bâtiment', 'm')}${num('gap', O.gap, 'Écart mini entre deux niveaux', 'm')}${num('tnOff', O.tnOff, 'Chiffre du TN sous le trait', 'm')}</div>
                 <label style="display:flex;gap:6px;align-items:center;cursor:pointer;margin:2px 0 8px"><input type="checkbox"${d.auto ? ' checked' : ''} onchange="secOptSet('${id}','auto',this.checked)"> Mise à jour automatique (sinon : pastille ⟳ sur la coupe)</label>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:8px">${chk('F', 'Faîtages')}${chk('E', 'Égouts')}${chk('D', 'Dessus de dalle')}${chk('P', 'Plateformes')}${chk('T', 'Terrain naturel')}</div>`
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:8px">${chk('F', 'Faîtages, acrotères')}${chk('E', 'Égouts')}${chk('D', 'Dessus de dalle')}${chk('P', 'Plateformes')}${chk('T', 'Terrain naturel')}</div>`
                 + MF.acts([['Remettre les cotes à leur place', `secOptSet('${id}','reset',1)`, 'Les cotes déplacées à la main reviennent à leur place automatique']]); }
         function secOptSet(id, k, v) { const L = shapes.find(x => x.cutDef && x.cutDef.id === id); if (!L) return; const d = L.cutDef; d.opt = d.opt || {};
             if (k === 'reset') { delete d.lvOff; shapes.forEach(x => { if (x.secOf === id && x.type === 'text' && x.lvKey && x.lvRef) { x.x = x.lvRef.x; x.y = x.lvRef.y; } }); }   /* sinon le recalcul relirait leur place déplacée */ else if (k === 'auto') {} else if (k.startsWith('on.')) { d.opt.on = Object.assign({}, d.opt.on || {}); d.opt.on[k.slice(3)] = v ? 1 : 0; } else { const n = t2Num(v); if (!isFinite(n) || n < 0 || n > 100 || (k === 'tn' && n < 0.5)) { updateCommandMessageText('COUPE : valeur non valable.'); return; } d.opt[k] = Math.round(n * 100) / 100; }
@@ -470,8 +475,9 @@
             //   Chaque cote est son propre groupe (calque « cotes » de la coupe) : on la déplace où elle se lit le mieux, son rappel suit ; elle garde sa place quand la coupe se recalcule.
             const OP = secOpt(def), ON = OP.on; const lv = []; D.loops.forEach(({ o: ob, loop }) => { const zs = loop.map(q => q[1]), zmax = Math.max(...zs);
                 if (ob.solid && ob.solid.kind === 'roof') { const top = loop[zs.indexOf(zmax)]; lv.push({ k: 'Faîtage', z: zmax, u: top[0], c: ob.layerId }); const he = ob.roofDef && ob.roofDef.o && isFinite(ob.roofDef.o.he) && ob.roofDef.o.pans ? ob.roofDef.o.he * 1000 : Math.min(...zs); const lo = loop[zs.indexOf(Math.min(...zs))]; lv.push({ k: 'Égout', z: he, u: lo[0], c: ob.layerId }); }
-                else if (ob.solid && (ob.solid.kind === 'box') && (/dalle/i.test(ob.name || '') || (ob.solid.H || 0) <= 400)) lv.push({ k: /toit/i.test(ob.name || '') ? 'Dessus de dalle (toit)' : 'Dessus de dalle', z: zmax, u: loop[zs.indexOf(zmax)][0], c: ob.layerId }); });
+                else { const kk = secLvKind(ob); if (kk) lv.push({ k: kk, z: zmax, u: loop[zs.indexOf(zmax)][0], c: ob.layerId, g: ob.groupId }); } });
             (D.lvF || []).forEach(l => lv.push(l));   /* façade : niveaux vus de face */
+            { const cl = secLvClean(lv); lv.length = 0; lv.push(...cl); }
             const pt = [];   // cotes posées sur leur point (plateformes, terrain)
             if (PFs) { let k = 0; const { u, pj, gv } = PFs; while (k < u.length) { const g = gv[k]; let e = k; while (e + 1 < u.length && gv[e + 1] === g) e++; if (ON.P && g >= 0 && e > k && u[e] - u[k] > 400) { const m = Math.round(k + (e - k) / 4), P = FMp && FMp.P[g] && FMp.P[g].s;   /* au premier quart : loin des cotes du bâtiment */
                         pt.push({ k: 'Plateforme' + (P && P.name ? ' ' + P.name : ''), z: pj[m], u: u[m], c: P ? P.layerId : null, key: 'P' + g + '_' + Math.round(u[m] / 1000) }); } k = e + 1; } }
@@ -483,7 +489,7 @@
                 if (moved) out.push(lvT({ type: 'line', layerId: lidC, x1: P.x, y1: P.y, x2: M0.x + (Mx !== l.u ? mmToWorld(1800) : 0), y2: M0.y, dash: 'dotted', width: 0.5, colOf: l.c }));   /* rappel : du point coté au repère */
                 out.push(lvT(Object.assign(poly([[Mx - hh * 0.6, l.z + hh], [Mx + hh * 0.6, l.z + hh], [Mx, l.z]], { hatch: true, width: 1, colOf: l.c }), {}))); out[out.length - 1].points = out[out.length - 1].points.map(mv);
                 const T0 = Wp([Mx + hh * 0.8, Mz + (l.small ? -OP.tnOff * 1000 : 0)]),   /* TN : chiffre sous le trait */ T1 = { x: T0.x, y: T0.y - mmToWorld(120) }; out.push(lvT({ type: 'text', layerId: lidC, x: T1.x + O.dx, y: T1.y + O.dy, content: l.k + ' ' + fmtZ(l.z), size: sz, colOf: l.c, lvRef: T1 })); };
-            lv.filter(l => ON[l.k[0] === 'É' ? 'E' : l.k[0]]).sort((a, b) => b.z - a.z).forEach(l => { const key = l.k[0] + Math.round(l.z / 10); if (seen.has(key)) return; seen.add(key); const zt = Math.min(l.z, zPrev - OP.gap * 1000); zPrev = zt; mark(l, key, xm, zt); });
+            lv.filter(l => ON[l.k[0] === 'É' ? 'E' : l.k[0] === 'A' ? 'F' : l.k[0]]).sort((a, b) => b.z - a.z).forEach(l => { const key = l.k[0] + Math.round(l.z / 10); if (seen.has(key)) return; seen.add(key); const zt = Math.min(l.z, zPrev - OP.gap * 1000); zPrev = zt; mark(l, key, xm, zt); });
             pt.forEach(l => { if (seen.has(l.key)) return; seen.add(l.key); mark(l, l.key, l.u, l.z); });
             // titre au-dessus de la coupe (pas de cadre)
             const m = Math.max(500, Math.min(2000, (z1 - z0) * 0.15)), F0 = Wp([u0, z1 + m]);
