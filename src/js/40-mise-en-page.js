@@ -27,7 +27,7 @@
         function lpResetAll(L) { layoutData = L || lpNew(); layouts = [layoutData]; layoutIdx = 0; Object.keys(lpHistById).forEach(k => delete lpHistById[k]); lpPaperHist = { hist: [], step: -1 }; }
         function lpSwitch(i) {
             lpSync(); if (!layouts[i]) return; if (i === layoutIdx) { lpTabsRender(); return; }
-            if (lp3D.id) lp3DLeave(); if (lpActiveId) lpLeaveVp(); lpEndCartEdit(true);
+            if (lp3D.id) lp3DLeave(); lpIELeave(); if (lpActiveId) lpLeaveVp(); lpEndCartEdit(true);
             const paper = lpSpace === 'paper'; if (paper) lpUseModel();
             lpHistById[layoutData.id] = lpPaperHist;
             layoutIdx = i; layoutData = layouts[i]; lpPaperHist = lpHistById[layoutData.id] || { hist: [], step: -1 };
@@ -279,6 +279,39 @@
             c.restore();
         }
         const lpImgCache = {};
+        /* image dans sa fenêtre : v.ifit = 'contain' (entière, par défaut) ou 'cover' (remplit le cadre), v.iz = agrandissement (1 = ajustée),
+           v.ix / v.iy = décalage du centre de l'image en mm de feuille ; le cadre recadre ce qui dépasse */
+        const LP_IZ = [0.1, 20];
+        function lpImgBox(v, im, rx, ry, rw, rh, k) { const nw = im.naturalWidth || 1, nh = im.naturalHeight || 1, f = v.ifit === 'cover' ? Math.max(rw / nw, rh / nh) : Math.min(rw / nw, rh / nh), z = Math.max(LP_IZ[0], Math.min(LP_IZ[1], +v.iz || 1)), w = nw * f * z, h = nh * f * z;
+            return { x: rx + (rw - w) / 2 + (+v.ix || 0) * k, y: ry + (rh - h) / 2 + (+v.iy || 0) * k, w, h }; }
+        // zoom autour d'un point de l'écran (sx, sy), qui reste sous la souris
+        function lpImgZoom(v, fz, sx, sy) { const r = lpRect(v), k = lpCam.k, z0 = Math.max(LP_IZ[0], Math.min(LP_IZ[1], +v.iz || 1)), z1 = Math.max(LP_IZ[0], Math.min(LP_IZ[1], z0 * fz)); if (z1 === z0) return;
+            const cx = r.x + r.w / 2 + (+v.ix || 0) * k, cy = r.y + r.h / 2 + (+v.iy || 0) * k, px = sx == null ? r.x + r.w / 2 : sx, py = sy == null ? r.y + r.h / 2 : sy, q = z1 / z0;
+            v.ix = ((px + (cx - px) * q) - (r.x + r.w / 2)) / k; v.iy = ((py + (cy - py) * q) - (r.y + r.h / 2)) / k; v.iz = z1; }
+        function lpImgReset(v) { delete v.iz; delete v.ix; delete v.iy; }
+        // cadrage à la souris : double-clic dans l'image, glisser = déplacer l'image, molette = l'agrandir ou la réduire, Échap ou double-clic dehors = finir
+        const lpIE = { id: null, drag: null };
+        function lpIEEnter(v) { if (v.locked) { updateCommandMessageText('IMAGE verrouillée (cadenas au-dessus pour la libérer).'); return; } lpIE.id = v.id; lpIE.drag = null; lpSelId = v.id;
+            updateCommandMessageText('IMAGE : glissez pour la déplacer dans son cadre, molette pour l\'agrandir ou la réduire ; Échap ou double-clic dehors pour finir.'); draw(); }
+        function lpIELeave() { if (!lpIE.id) return false; lpIE.id = null; lpIE.drag = null; canvas.style.cursor = ''; saveState(); updateCommandMessageText('IMAGE : cadrage enregistré.'); draw(); return true; }
+        function lpIEDown(e, sx, sy) { const v = lpVp(lpIE.id); if (!v) { lpIE.id = null; return false; } if (!lpInV(v, sx, sy)) { lpIELeave(); return false; } e.preventDefault(); lpIE.drag = { x: sx, y: sy }; canvas.style.cursor = 'grabbing'; return true; }
+        function lpIEMove(sx, sy) { const D = lpIE.drag, v = lpVp(lpIE.id); if (!D || !v) return false; v.ix = (+v.ix || 0) + (sx - D.x) / lpCam.k; v.iy = (+v.iy || 0) + (sy - D.y) / lpCam.k; D.x = sx; D.y = sy; draw(); return true; }
+        function lpIEUp() { if (!lpIE.drag) return false; lpIE.drag = null; canvas.style.cursor = 'grab'; draw(); return true; }
+        function lpIEWheel(e, sx, sy) { const v = lpVp(lpIE.id); if (!v || !lpInV(v, sx, sy)) return false; e.preventDefault && e.preventDefault(); lpImgZoom(v, e.deltaY < 0 ? 1.1 : 1 / 1.1, sx, sy); clearTimeout(lpIE.wt); lpIE.wt = setTimeout(() => saveState(), 400); draw(); return true; }
+        // réglages de l'image (bouton ⤢ au-dessus d'une fenêtre image)
+        function lpImgPanel(v) { const z = Math.round((+v.iz || 1) * 100), cover = v.ifit === 'cover', b0 = { iz: v.iz, ix: v.ix, iy: v.iy, ifit: v.ifit };
+            const rad = (val, l, on) => `<label style="display:flex;gap:8px;align-items:center;cursor:pointer;padding:2px 0"><input type="radio" name="lpi-fit" value="${val}"${on ? ' checked' : ''} onchange="lpImgSet('fit',this.value)"> ${l}</label>`;
+            lpImgSet = (key, val) => { if (key === 'fit') { v.ifit = val === 'cover' ? 'cover' : 'contain'; if (v.ifit === 'contain') delete v.ifit; delete v.ix; delete v.iy; }
+                else if (key === 'z') { const n = typeof val === 'number' ? val : t2Num(val); if (!isFinite(n) || n <= 0) return; lpImgZoom(v, Math.max(LP_IZ[0], Math.min(LP_IZ[1], n / 100)) / Math.max(LP_IZ[0], Math.min(LP_IZ[1], +v.iz || 1))); }
+                else if (key === 'reset') { lpImgReset(v); delete v.ifit; }
+                const zi = document.getElementById('lpi-z'); if (zi && document.activeElement !== zi) zi.value = Math.round((+v.iz || 1) * 100); document.querySelectorAll('input[name=lpi-fit]').forEach(c => { c.checked = c.value === (v.ifit === 'cover' ? 'cover' : 'contain'); }); draw(); };
+            openTopoModal('⤢ Image dans sa fenêtre' + (v.title ? ' « ' + String(v.title).replace(/&/g, '&amp;').replace(/</g, '&lt;') + ' »' : ''), `<div style="font-size:13px;color:#e5e7eb;min-width:300px;max-width:400px">
+                ${rad('contain', 'Entière dans le cadre', !cover)}${rad('cover', 'Remplir le cadre (les bords qui dépassent sont recadrés)', cover)}
+                <div style="display:flex;align-items:center;gap:8px;margin:10px 0 4px"><span>Taille</span><button type="button" class="mf-btn" onclick="lpImgSet('z',(+document.getElementById('lpi-z').value||100)/1.25)">−</button><input id="lpi-z" type="text" inputmode="decimal" value="${z}" style="width:64px;text-align:right" class="mf-in" onchange="lpImgSet('z',this.value)"><span>%</span><button type="button" class="mf-btn" onclick="lpImgSet('z',(+document.getElementById('lpi-z').value||100)*1.25)">+</button><button type="button" class="mf-btn" onclick="lpImgSet('reset')">Recentrer</button></div>
+                <div style="color:#9ca3af;font-size:12px;margin-top:6px">100 % = ajustée au cadre. Pour la placer à la souris : double-clic dans l'image, puis glisser pour la déplacer et molette pour la taille.</div></div>`,
+                [['Annuler', () => { Object.assign(v, b0); ['iz', 'ix', 'iy', 'ifit'].forEach(q => { if (v[q] === undefined) delete v[q]; }); lpImgSet = () => {}; closeTopoModal(); draw(); }, false],
+                 ['Valider', () => { lpImgSet = () => {}; closeTopoModal(); saveState(); draw(); updateCommandMessageText('IMAGE : ' + (v.ifit === 'cover' ? 'remplit le cadre' : 'entière') + ', ' + Math.round((+v.iz || 1) * 100) + ' %.'); }, true]]); }
+        let lpImgSet = () => {};
         function lpImg(v) { let im = lpImgCache[v.id]; if (!im || im._src !== v.src) { im = new Image(); im.onload = () => draw(); im.src = v.src; im._src = v.src; lpImgCache[v.id] = im; } return im.complete && im.naturalWidth ? im : null; }
         const lpScaleTxt = (S) => S >= 1 ? '1:' + (+S.toFixed(2)).toLocaleString('fr-FR') : (1 / S).toFixed(0) + ':1';
         // caméra du plan pour une fenêtre : k = px par mm de papier ; 1:S → zoom = k / (5 × S)
@@ -304,13 +337,19 @@
             return best || { x: xs.reduce((t, v) => t + v, 0) / R.length, y: ys.reduce((t, v) => t + v, 0) / R.length }; }
         // calques propres à une fenêtre de mise en page : v.lv = { idCalque: visible } (les autres suivent le plan)
         function lpVpVis(v, l) { return v && v.lv && Object.prototype.hasOwnProperty.call(v.lv, l.id) ? !!v.lv[l.id] : l.visible !== false; }
+        // applique les calques propres à la fenêtre le temps d'un dessin (fenêtre active comprise)
+        function lpWithLv(v, fn) { if (!v || !v.lv || v._lvOn) return fn(); const L = layers, keepV = L.map(l => l.visible); v._lvOn = true;
+            try { L.forEach(l => { l.visible = lpVpVis(v, l); }); return fn(); } finally { L.forEach((l, i) => { l.visible = keepV[i]; }); delete v._lvOn; } }
+        let lpLvLive = () => {};
         function lpVpLayers(v) { const L = lpSpace === 'paper' && lpModelStore && lpModelStore.layers ? lpModelStore.layers : layers, esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-            const rows = L.map(l => `<label style="display:flex;align-items:center;gap:8px;padding:2px 0;cursor:pointer"><input type="checkbox" class="lpv-cb" data-id="${l.id}" ${lpVpVis(v, l) ? 'checked' : ''}><span style="width:12px;height:12px;border-radius:3px;background:${l.color || '#fff'};display:inline-block"></span><span>${esc((layGroupOf(l) ? layGroupOf(l) + ' › ' : '') + l.name)}</span>${l.visible === false ? '<span style="color:#6b7280;font-size:11px">(masqué dans le plan)</span>' : ''}</label>`).join('');
+            const rows = L.map(l => `<label style="display:flex;align-items:center;gap:8px;padding:2px 0;cursor:pointer"><input type="checkbox" class="lpv-cb" onchange="lpLvLive()" data-id="${l.id}" ${lpVpVis(v, l) ? 'checked' : ''}><span style="width:12px;height:12px;border-radius:3px;background:${l.color || '#fff'};display:inline-block"></span><span>${esc((layGroupOf(l) ? layGroupOf(l) + ' › ' : '') + l.name)}</span>${l.visible === false ? '<span style="color:#6b7280;font-size:11px">(masqué dans le plan)</span>' : ''}</label>`).join('');
+            const lv0 = v.lv ? Object.assign({}, v.lv) : null, lvRead = () => { const lv = {}; document.querySelectorAll('.lpv-cb').forEach(c => { const l = L.find(x => x.id === c.dataset.id); if (l && c.checked !== (l.visible !== false)) lv[l.id] = c.checked; }); if (Object.keys(lv).length) v.lv = lv; else delete v.lv; }, lvBack = () => { if (lv0) v.lv = lv0; else delete v.lv; draw(); };
+            lpLvLive = () => { lvRead(); draw(); };   /* aperçu en direct, Annuler revient en arrière */
             openTopoModal('☰ Calques de la fenêtre' + (v.title ? ' « ' + esc(v.title) + ' »' : ''), `<div style="font-size:13px;color:#e5e7eb;min-width:320px;max-width:420px"><div style="color:#9ca3af;font-size:12px;margin-bottom:8px">Cochés : affichés dans cette fenêtre seulement. Les autres fenêtres et le plan ne changent pas.</div>
-                <div style="display:flex;gap:6px;margin-bottom:6px"><button type="button" class="mf-btn" onclick="document.querySelectorAll('.lpv-cb').forEach(c=>c.checked=true)">Tout cocher</button><button type="button" class="mf-btn" onclick="document.querySelectorAll('.lpv-cb').forEach(c=>c.checked=false)">Tout décocher</button></div>
+                <div style="display:flex;gap:6px;margin-bottom:6px"><button type="button" class="mf-btn" onclick="document.querySelectorAll('.lpv-cb').forEach(c=>c.checked=true);lpLvLive()">Tout cocher</button><button type="button" class="mf-btn" onclick="document.querySelectorAll('.lpv-cb').forEach(c=>c.checked=false);lpLvLive()">Tout décocher</button></div>
                 <div style="max-height:52vh;overflow-y:auto">${rows}</div></div>`,
-                [['Comme le plan', () => { delete v.lv; closeTopoModal(); saveState(); draw(); updateCommandMessageText('FENÊTRE : calques comme dans le plan.'); }, false], ['Annuler', () => closeTopoModal(), false],
-                 ['Valider', () => { const lv = {}; document.querySelectorAll('.lpv-cb').forEach(c => { const l = L.find(x => x.id === c.dataset.id); if (l && c.checked !== (l.visible !== false)) lv[l.id] = c.checked; }); if (Object.keys(lv).length) v.lv = lv; else delete v.lv; closeTopoModal(); saveState(); draw();
+                [['Comme le plan', () => { delete v.lv; closeTopoModal(); saveState(); draw(); updateCommandMessageText('FENÊTRE : calques comme dans le plan.'); }, false], ['Annuler', () => { lpLvLive = () => {}; closeTopoModal(); lvBack(); }, false],
+                 ['Valider', () => { lpLvLive = () => {}; lvRead(); closeTopoModal(); saveState(); draw();
                     updateCommandMessageText('FENÊTRE : ' + (v.lv ? Object.keys(v.lv).length + ' calque(s) réglé(s) pour cette fenêtre.' : 'calques comme dans le plan.')); }, true]]); }
         function lpRenderVp(tctx, v, k, rx, ry, rw, rh) {
             if (v && v.lv && !v._lvOn) { const L = lpSpace === 'paper' && lpModelStore && lpModelStore.layers ? lpModelStore.layers : layers, keepV = L.map(l => l.visible); v._lvOn = true;
@@ -320,8 +359,8 @@
             if (v.v3) { camera.x = keep.x; camera.y = keep.y; camera.zoom = keep.zoom; const im = lp3DImg(v); tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip(); tctx.fillStyle = '#fff'; tctx.fillRect(rx, ry, rw, rh);
                 if (im && im.complete && im.naturalWidth) { const r = Math.max(rw / im.naturalWidth, rh / im.naturalHeight), w = im.naturalWidth * r, h = im.naturalHeight * r; tctx.drawImage(im, rx + (rw - w) / 2, ry + (rh - h) / 2, w, h); }
                 tctx.restore(); return; }
-            if (lpIsImg(v)) { camera.x = keep.x; camera.y = keep.y; camera.zoom = keep.zoom; const im = lpImg(v); if (im) { const r = Math.min(rw / im.naturalWidth, rh / im.naturalHeight), w = im.naturalWidth * r, h = im.naturalHeight * r; tctx.drawImage(im, rx + (rw - w) / 2, ry + (rh - h) / 2, w, h); } return; }
-            const kS = shapes, kT = tinCache; if (lpSpace === 'paper') { shapes = lpModelStore.shapes; tinCache = lpVpTin; }
+            if (lpIsImg(v)) { camera.x = keep.x; camera.y = keep.y; camera.zoom = keep.zoom; const im = lpImg(v); if (im) { const B = lpImgBox(v, im, rx, ry, rw, rh, k); tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip(); tctx.drawImage(im, B.x, B.y, B.w, B.h); tctx.restore(); } return; }
+            const kS = shapes, kT = tinCache, kU = printSettings.unit; if (lpSpace === 'paper') { shapes = lpModelStore.shapes; tinCache = lpVpTin; if (lpModelStore.unit && lpModelStore.unit !== kU) { printSettings.unit = lpModelStore.unit; applyUnitSettings(); } }   /* cotes du plan dans l'unité du plan (la feuille, elle, est en mm) */
             tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip();
             try {
                 if (lpIsOrtho(v)) { const kv = view2d, ks = selectedShapes; view2d = { a: v.a || 0, e: v.e }; selectedShapes = []; lpInkFlag = true; try { drawOrthoView(tctx); } finally { view2d = kv; selectedShapes = ks; lpInkFlag = false; } }
@@ -338,7 +377,7 @@
                     tctx.restore();
                     drawAnnotations(tctx, worldToScreen, f, camera.zoom, true);
                 }
-            } finally { tctx.restore(); camera.x = keep.x; camera.y = keep.y; camera.zoom = keep.zoom; if (lpSpace === 'paper') { lpVpTin = tinCache; shapes = kS; tinCache = kT; } }
+            } finally { tctx.restore(); camera.x = keep.x; camera.y = keep.y; camera.zoom = keep.zoom; if (lpSpace === 'paper') { lpVpTin = tinCache; shapes = kS; tinCache = kT; if (printSettings.unit !== kU) { printSettings.unit = kU; applyUnitSettings(); } } }
         }
         // dessin de la feuille (textes, traits hors fenêtres) en rendu impression, à l'échelle 1 (1 mm = 1 mm de feuille)
         function lpRenderPaper(tctx, ox, oy, k) {
@@ -427,7 +466,7 @@
                 else {
                     const pc = document.getElementById('prop-color'), keepPC = pc.value; if (/^#f{3}(f{3})?$/i.test(keepPC)) pc.value = '#000000';
                     lpInner = true; lpInkFlag = true;
-                    try { draw(); } finally { lpInner = false; lpInkFlag = false; pc.value = keepPC; }
+                    try { lpWithLv(A, () => draw()); } finally { lpInner = false; lpInkFlag = false; pc.value = keepPC; }   /* calques propres à la fenêtre, aussi quand elle est active */
                 }
                 c.restore();
                 c.save(); c.strokeStyle = A.locked ? '#f59e0b' : '#2563eb'; c.lineWidth = 2.5; c.setLineDash([]); if (A.round) { c.beginPath(); c.arc(r.x + r.w / 2, r.y + r.h / 2, r.w / 2 + 1, 0, 7); c.stroke(); } else c.strokeRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2); c.restore();
@@ -458,7 +497,7 @@
                 updateCommandMessageText(layoutData.vps.length ? 'MISE EN PAGE : dessinez et écrivez sur la feuille (1 mm = 1 mm) ; double-clic dans une fenêtre pour y travailler sur le plan (molette = échelle).' : 'MISE EN PAGE : tracez une fenêtre (palette Présentation ou FE + Espace), 2 coins sur la feuille ; elle se met à l\'échelle de ce que vous regardiez. Les outils dessinent sur la feuille, à l\'échelle 1.');
             } else {
                 if (mode !== 'select-box') setMode('select-box'); isDrawing = false;
-                lp3D.id = null; lp3D.drag = null; lpUseModel(); layoutOn = false; lpActiveId = null; lpSelId = null; lpVpStart = null; lpDrag = null;
+                lp3D.id = null; lp3D.drag = null; lpIELeave(); lpUseModel(); layoutOn = false; lpActiveId = null; lpSelId = null; lpVpStart = null; lpDrag = null;
                 const tp = document.querySelector('.pal[data-pal="topo"]'); if (tp) { tp.classList.remove('pal-locked'); tp.classList.toggle('closed', lpTopoClosed); }
                 if (lpSaved) { camera.x = lpSaved.x; camera.y = lpSaved.y; camera.zoom = lpSaved.zoom; }
                 const svg = document.getElementById('rose-svg'); if (svg) svg.dataset.k = ''; updateRose();
@@ -469,16 +508,18 @@
             draw();
         }
         // 3 boutons flottants par fenêtre (écran seulement) : nommer, verrouiller, cadre visible
-        const LP_BTNS = [['lay', '☰', 'Calques de cette fenêtre : choisir ceux qu\'elle affiche (sans toucher aux autres fenêtres ni au plan)'], ['plat', 'Z', 'Plateformes : masque les points cotés sous les plateformes et écrit la cote de chaque plateforme'], ['v3d', '3D', 'Vue 3D / plan 2D : la fenêtre part du point de vue de la vue 3D ; double-clic dedans pour la piloter (tourner, déplacer, zoomer)'], ['name', '✎', 'Nommer la fenêtre (titre écrit avant l\'échelle)'], ['lock', '🔒', 'Verrouiller / déverrouiller (ni déplacement, ni taille, ni échelle, ni cadrage)'], ['frame', '▢', 'Afficher / masquer le cadre (à l\'impression)']];
-        function lpBtnRects(v) { if (lpIsImg(v)) return lpBtnRects0(v).filter(b => b.id !== 'v3d' && b.id !== 'plat' && b.id !== 'lay'); if (v.v3) return lpBtnRects0(v).filter(b => b.id !== 'plat' && b.id !== 'lay'); return lpBtnRects0(v); }
-        function lpBtnRects0(v) { const r = lpRect(v), s = 20, g = 3, x0 = r.x + r.w - LP_BTNS.length * s - (LP_BTNS.length - 1) * g, y0 = r.y - s - 4 - (v.round ? 0 : 0); return LP_BTNS.map((b, i) => ({ id: b[0], ico: b[1], tip: b[2], x: x0 + i * (s + g), y: y0, s })); }
+        const LP_BTNS = [['lay', '☰', 'Calques de cette fenêtre : choisir ceux qu\'elle affiche (sans toucher aux autres fenêtres ni au plan)'], ['plat', 'Z', 'Plateformes : masque les points cotés sous les plateformes et écrit la cote de chaque plateforme'], ['v3d', '3D', 'Vue 3D / plan 2D : la fenêtre part du point de vue de la vue 3D ; double-clic dedans pour la piloter (tourner, déplacer, zoomer)'], ['name', '✎', 'Nommer la fenêtre (titre écrit avant l\'échelle)'], ['lock', '🔒', 'Verrouiller / déverrouiller (ni déplacement, ni taille, ni échelle, ni cadrage)'], ['frame', '▢', 'Afficher / masquer le cadre (à l\'impression)'], ['img', '⤢', 'Taille et place de l\'image dans son cadre (entière ou remplie, agrandir, recentrer) ; double-clic dans l\'image pour la placer à la souris']];
+        function lpBtnRects(v) { if (lpIsImg(v)) return lpBtnRects0(v, ['img', 'name', 'lock', 'frame']); if (v.v3) return lpBtnRects0(v, ['v3d', 'name', 'lock', 'frame']); return lpBtnRects0(v, ['lay', 'plat', 'v3d', 'name', 'lock', 'frame']); }
+        function lpBtnRects0(v, ids) { const B = ids ? LP_BTNS.filter(b => ids.includes(b[0])) : LP_BTNS, r = lpRect(v), s = 20, g = 3, x0 = r.x + r.w - B.length * s - (B.length - 1) * g, y0 = r.y - s - 4; return B.map((b, i) => ({ id: b[0], ico: b[1], tip: b[2], x: x0 + i * (s + g), y: y0, s })); }
         function lpDrawButtons(c) {
             if (lpInner) return;
             for (const v of layoutData.vps) {
                 if (v.id === lp3D.id) { lpPlace3D(v); const r = lpRect(v); c.save(); c.strokeStyle = '#22d3ee'; c.lineWidth = 2.5; c.setLineDash([]); c.strokeRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4);   // fenêtre 3D pilotée
                     const t = 'Vue 3D active : glisser = tourner · clic droit ou molette enfoncée = déplacer · molette = zoom · Échap = figer'; c.font = '12px sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(8,145,178,.92)'; c.fillRect(r.x, r.y + r.h + 4, tw + 12, 20); c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(t, r.x + 6, r.y + r.h + 14); c.restore(); }
+                if (v.id === lpIE.id) { const r = lpRect(v); c.save(); c.strokeStyle = '#22d3ee'; c.lineWidth = 2.5; c.setLineDash([]); c.strokeRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4);   // image en cadrage
+                    const t = 'Image : glisser = déplacer · molette = agrandir / réduire · Échap = finir'; c.font = '12px sans-serif'; const tw = c.measureText(t).width; c.fillStyle = 'rgba(8,145,178,.92)'; c.fillRect(r.x, r.y + r.h + 4, tw + 12, 20); c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(t, r.x + 6, r.y + r.h + 14); c.restore(); }
                 lpBtnRects(v).forEach(b => {
-                    const on = (b.id === 'lay' && v.lv && Object.keys(v.lv).length > 0) || (b.id === 'lock' && v.locked) || (b.id === 'frame' && !v.noFrame) || (b.id === 'name' && v.title) || (b.id === 'v3d' && v.v3) || (b.id === 'plat' && v.plat);
+                    const on = (b.id === 'lay' && v.lv && Object.keys(v.lv).length > 0) || (b.id === 'lock' && v.locked) || (b.id === 'frame' && !v.noFrame) || (b.id === 'name' && v.title) || (b.id === 'v3d' && v.v3) || (b.id === 'plat' && v.plat) || (b.id === 'img' && (lpIE.id === v.id || v.ifit === 'cover' || (+v.iz || 1) !== 1 || !!v.ix || !!v.iy));
                     c.save(); c.fillStyle = on ? (b.id === 'lock' ? '#b45309' : '#1d4ed8') : 'rgba(31,41,55,.88)'; c.strokeStyle = '#6b7280'; c.lineWidth = 1;
                     c.beginPath(); c.roundRect ? c.roundRect(b.x, b.y, b.s, b.s, 4) : c.rect(b.x, b.y, b.s, b.s); c.fill(); c.stroke();
                     c.fillStyle = '#fff'; c.font = '12px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -561,6 +602,7 @@
         function lpButtonAction(v, id, bx, by) {
             if (id === 'name') { askText('Nom de la ' + (lpIsImg(v) ? 'image' : 'fenêtre') + ' (écrit avant l\'échelle ; vide = aucun)', v.title || '', (bx || 100) - 260, (by || 100) + 24, (t) => { v.title = t.trim(); updateCommandMessageText(v.title ? 'Nom : « ' + v.title + ' ».' : 'Nom retiré.'); }); lpSelId = v.id; draw(); return; }
             else if (id === 'lay') { lpVpLayers(v); return; }
+            else if (id === 'img') { if (v.locked) { updateCommandMessageText('IMAGE verrouillée (cadenas au-dessus pour la libérer).'); return; } lpSelId = v.id; draw(); lpImgPanel(v); return; }
             else if (id === 'plat') { v.plat = !v.plat; updateCommandMessageText(v.plat ? 'FENÊTRE : plateformes — points cotés sous les plateformes masqués, cote de chaque plateforme écrite.' : 'FENÊTRE : tous les points cotés affichés.'); }
             else if (id === 'v3d') { if (v.v3) { delete v.v3; updateCommandMessageText('FENÊTRE : retour au plan 2D, à l\'échelle ' + lpScaleTxt(v.scale) + '.'); } else lp3DSnap(v); }
             else if (id === 'lock') { v.locked = !v.locked; updateCommandMessageText((lpIsImg(v) ? 'IMAGE ' : 'FENÊTRE ') + (v.locked ? 'verrouillée : ni déplacement, ni taille, ni échelle, ni cadrage.' : 'déverrouillée.')); }
@@ -658,7 +700,9 @@
             const A = lpVp(lpActiveId);
             if (A && lpInV(A, sx, sy)) return false;
             if (mode !== 'select-box' || isDrawing) return !!A;   // double-clic d'un outil de la feuille (polyligne…) : on le laisse finir
-            let v = lpVpAt(sx, sy); if (lpIsImg(v)) v = null;
+            let v = lpVpAt(sx, sy);
+            if (lpIE.id && !(v && v.id === lpIE.id)) { lpIELeave(); return true; }
+            if (lpIsImg(v)) { if (lpIE.id !== v.id) lpIEEnter(v); return true; }
             if (lp3D.id && !(v && v.id === lp3D.id)) { lp3DLeave(); return true; }
             if (v && v.v3) { if (lp3D.id !== v.id) lp3DEnter(v); return true; }
             if (!v && !A) return false;

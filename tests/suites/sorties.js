@@ -45,6 +45,33 @@ module.exports = { name: 'sorties', timeout: 240, run: async (H, t) => {
         const run = () => { const drawn = []; const o = window.drawSingleShape; window.drawSingleShape = function (c, s2, ...a) { if (s2 === sh) drawn.push(s2); return o.call(this, c, s2, ...a); }; const cv = document.createElement('canvas'); cv.width = 800; cv.height = 600; try { lpRenderVp(cv.getContext('2d'), v, 1, 0, 0, 800, 600); } finally { window.drawSingleShape = o; } return drawn.length > 0; };
         const before = run(); v.lv = { [L]: false }; const hid = run(), planVis = layers.find(l => l.id === L).visible !== false, btn = lpBtnRects(v).some(b => b.id === 'lay'); delete v.lv; S.splice(S.indexOf(sh), 1); return { before, hid, planVis, btn }; });
     t.eq('présentation : calques réglés par fenêtre', lvv, { before: true, hid: false, planVis: true, btn: true });
+    // fenêtre active (on travaille dedans) : ses calques décochés restent cachés, le fond de carte décoché disparaît aussi
+    const lva = await ev(() => { const v = layoutData.vps[0], m = mmToWorld(1000), L = ensureLayer('Fond test', '#ffffff'); lpEnterVp(v); const sh = { type: 'line', layerId: L, x1: 0, y1: 0, x2: 10 * m, y2: 0 }; shapes.push(sh);
+        const run = () => { let n = 0; const o = window.drawSingleShape; window.drawSingleShape = function (c, s2, ...a) { if (s2 === sh) n++; return o.call(this, c, s2, ...a); }; try { draw(); } finally { window.drawSingleShape = o; } return n > 0; };
+        const before = run(); v.lv = { [L]: false }; const hid = run(), planVis = layers.find(l => l.id === L).visible !== false; delete v.lv; const back = run(); shapes.splice(shapes.indexOf(sh), 1); lpLeaveVp(); draw(); return { before, hid, planVis, back }; });
+    t.eq('présentation : calque décoché dans la fenêtre active (fond de carte), caché aussi pendant qu\'on travaille dedans', lva, { before: true, hid: false, planVis: true, back: true });
+    // cotes du plan dans une fenêtre de présentation : écrites dans l'unité du plan (m), pas dans celle de la feuille (mm)
+    const dun = await ev(() => { const v = layoutData.vps[0], S = lpModelStore.shapes, m = mmToWorld(1000), u0 = lpModelStore.unit, d0 = printSettings.decimals; lpModelStore.unit = 'm'; printSettings.decimals = 2;
+        const dm = { type: 'dim', layerId: 'layer-0', x1: 0, y1: 0, x2: 24.21 * m, y2: 0, ox: 12 * m, oy: 2 * m }; S.push(dm); let txt = [];
+        const oa = window.drawAnnotations; window.drawAnnotations = function (...a) { txt = dimensionTextsToDraw.map(d => d.text); return oa.apply(this, a); };
+        const cv = document.createElement('canvas'); cv.width = 800; cv.height = 600; try { lpRenderVp(cv.getContext('2d'), v, 1, 0, 0, 800, 600); } finally { window.drawAnnotations = oa; }
+        const after = printSettings.unit; S.splice(S.indexOf(dm), 1); lpModelStore.unit = u0; printSettings.decimals = d0; return { m: txt.some(t => /^24,21 m$/.test(t)), mm: txt.some(t => / mm$/.test(t)), sheet: after }; });
+    t.eq('présentation : cotes du plan en m dans une fenêtre (la feuille reste en mm)', dun, { m: true, mm: false, sheet: 'mm' });
+    // image dans sa fenêtre : entière / remplir, taille, déplacement à la souris (double-clic, glisser, molette), recadrée par le cadre
+    const imv = await ev(async () => { const cv = document.createElement('canvas'); cv.width = 200; cv.height = 100; const g = cv.getContext('2d'); g.fillStyle = '#f00'; g.fillRect(0, 0, 200, 100);
+        const v = { id: 'vimgt', kind: 'img', src: cv.toDataURL('image/png'), x: 20, y: 20, w: 100, h: 100 }; layoutData.vps.push(v); lpImg(v); await new Promise(r => setTimeout(r, 200)); const im = lpImg(v);
+        const box = () => { const B = lpImgBox(v, im, 0, 0, 100, 100, 1); return [B.x, B.y, B.w, B.h].map(q => Math.round(q * 10) / 10); };
+        const r = { btn: lpBtnRects(v).map(b => b.id).join(','), btnPlan: lpBtnRects(layoutData.vps[0]).some(b => b.id === 'img'), fit: box() };
+        v.ifit = 'cover'; r.cover = box(); delete v.ifit;
+        lpImgZoom(v, 2); r.z2 = box(); lpImgReset(v);
+        const R = lpRect(v), px = R.x + R.w * 0.25, py = R.y + R.h * 0.25, before = lpImgBox(v, im, R.x, R.y, R.w, R.h, lpCam.k), u0 = (px - before.x) / before.w; lpImgZoom(v, 1.5, px, py); const after = lpImgBox(v, im, R.x, R.y, R.w, R.h, lpCam.k); r.fixed = Math.abs((px - after.x) / after.w - u0) < 1e-6;
+        lpImgReset(v); lpDblClick(R.x + R.w / 2, R.y + R.h / 2); r.edit = lpIE.id === v.id; const e = { preventDefault() {}, deltaY: -100 };
+        lpIEDown(e, R.x + R.w / 2, R.y + R.h / 2); lpIEMove(R.x + R.w / 2 + 10 * lpCam.k, R.y + R.h / 2); lpIEUp(); r.dx = Math.round(v.ix * 10) / 10; lpIEWheel(e, R.x + R.w / 2, R.y + R.h / 2); r.zoomed = v.iz > 1; r.moved = v.x === 20 && v.y === 20;
+        lpIELeave(); r.left = lpIE.id === null;
+        const c2 = document.createElement('canvas'); c2.width = 300; c2.height = 300; const tc = c2.getContext('2d'); v.iz = 5; lpRenderVp(tc, v, 1, 100, 100, 100, 100); const px2 = (x, y) => tc.getImageData(x, y, 1, 1).data[0]; r.clip = { inside: px2(150, 150) > 200, outside: px2(50, 150) === 0 && px2(250, 150) === 0 };
+        layoutData.vps.splice(layoutData.vps.indexOf(v), 1); draw(); return r; });
+    t.eq('présentation : image redimensionnée et placée dans sa fenêtre (bouton ⤢, double-clic, glisser, molette), recadrée par le cadre', imv,
+        { btn: 'name,lock,frame,img', btnPlan: false, fit: [0, 25, 100, 50], cover: [-50, 0, 200, 100], z2: [-50, 0, 200, 100], fixed: true, edit: true, dx: 10, zoomed: true, moved: true, left: true, clip: { inside: true, outside: true } });
     // fenêtre en vue 3D, pilotée : la vraie vue 3D (bandeau d'affichage, mêmes gestes : glisser = tourner, clic droit = déplacer, molette = zoom) posée dans le cadre ; Échap la fige
     const v3a = await ev(async () => { const v = layoutData.vps[layoutData.vps.length - 1]; await lp3DSnap(v); await lp3DEnter(v); const r = lpRect(v), c = canvas.getBoundingClientRect(), el = document.getElementById('view3d'), b = el.getBoundingClientRect(), band = document.getElementById('v3-band');
         return { ok: !!(v.v3 && v.v3.img), active: lp3D.id === v.id, live: el.style.display === 'block' && el.classList.contains('v3-lp'), fit: Math.abs(b.left - c.left - r.x) < 2 && Math.abs(b.width - r.w) < 2 && Math.abs(b.height - r.h) < 2, band: !band.classList.contains('v3-up') && band.parentElement === document.body, az: V3.az, dist: V3.dist, tx: V3.target.x, cx: c.left + r.x + r.w / 2, cy: c.top + r.y + r.h / 2 + 30 }; });

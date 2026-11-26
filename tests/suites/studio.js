@@ -107,6 +107,10 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         close3D(); shapes = keep; invalidateCache(); saveState(); const r = { none: inn === 0, around: out > 100 }; if (inn) r.dbg = [inn, out]; return r; });
     t.eq('rendu : aucun brin d\'herbe sur une zone peinte, même sur un plan loin de l\'origine', nsr, { none: true, around: true });
 
+    // herbe : l'herbe sèche, jaunie ou olive de la photo aérienne reçoit du gazon (plus de trous) ; routes grises et tuiles rouges restent nues
+    const gz = await ev(() => ({ dry: isGrassyPx([150, 140, 80]), olive: isGrassyPx([128, 128, 96]), dark: isGrassyPx([40, 52, 38]), road: isGrassyPx([110, 110, 110]), tile: isGrassyPx([170, 80, 60]), white: isGrassyPx([235, 235, 230]) }));
+    t.eq('herbe : pas de trou sur l\'herbe sèche ou olive de la photo, rien sur route et tuiles', gz, { dry: true, olive: true, dark: true, road: false, tile: false, white: false });
+
     // rendu : terrain naturel affiné (bien plus de triangles) et sans fente entre triangles voisins
     const tf = await ev(async () => { await open3D(); build3DScene(); const t0 = V3.terrStats.tris; const rc = V3.camera.clone(); rc.clearViewOffset(); rc.updateProjectionMatrix(); rc.updateMatrixWorld(true);
         V3.hq = { tree: 1, terr: 2, grass: 0, earth: false, rc }; try { build3DScene(); } finally { V3.hq = null; } const t1 = V3.terrStats.tris;
