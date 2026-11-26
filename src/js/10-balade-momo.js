@@ -149,10 +149,20 @@
             });
             add.forEach(([o, g]) => { const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: gray })); l.position.copy(o.position); l.rotation.copy(o.rotation); l.scale.copy(o.scale); (o.parent || root).add(l); });
         }
+        const V3_KEEP = {};
+        function v3KeepSig(A) { let h1 = 0x811c9dc5, h2 = 7; const str = JSON.stringify(A); for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619); h2 = (Math.imul(h2, 31) + c) | 0; } return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36) + str.length; }
+        function v3KeepTerr(vis) { let t = '', f = ''; try { const tin = getTIN(); t = tin ? tinSig(tin.nodes) : ''; } catch (e) {} try { const FM = finishedModel(); f = FM ? v3KeepSig(FM.sig) : ''; } catch (e) {} return t + '#' + f + '#' + vis.filter(isBg).map(b => (b.mapId || b.id || '') + (b.type === 'basemap' ? JSON.stringify(b.ovl || '') : '')).join(','); }
+        // un sous-ensemble de la scène gardé d'une construction à l'autre : même clé = le même groupe est remis, sinon il est refait (et l'ancien libéré)
+        function v3Kept(root, id, keyFn, buildFn) { const k = keyFn(), C = V3_KEEP[id]; if (!k) { if (C) { v3KeepDrop(C.g); delete V3_KEEP[id]; } return; }
+            if (C && C.k === k) { if (C.g.parent) C.g.parent.remove(C.g); root.add(C.g); V3_KEEP_ST.hit++; return; }
+            if (C) v3KeepDrop(C.g); const g = new THREE.Group(); g.userData.gcKeep = 1; buildFn(g); V3_KEEP[id] = { k, g }; root.add(g); V3_KEEP_ST.miss++; }
+        const V3_KEEP_ST = { hit: 0, miss: 0 };
+        function v3KeepDrop(g) { if (g.parent) g.parent.remove(g); g.traverse(o => { if (o.geometry) o.geometry.dispose(); [].concat(o.material || []).forEach(m => { if (m && m.dispose) m.dispose(); }); }); }
         function build3DScene() {
             if (!V3 || V3.holdBuild) return;
             if (typeof layoutOn !== 'undefined' && layoutOn && lpSpace === 'paper' && !V3.inModel) { V3.inModel = true; try { return withModel(build3DScene); } finally { V3.inModel = false; } }   // fenêtre 3D de la mise en page : toujours la maquette
-            if (V3.root) { V3.scene.remove(V3.root); V3.root.traverse(o => { if (o.geometry) o.geometry.dispose(); [].concat(o.material || []).forEach(m => { if (m.map && m.map.dispose && !(m.map.userData && m.map.userData.keep)) m.map.dispose(); if (m.dispose) m.dispose(); }); }); }   // un objet peut porter plusieurs matériaux (toit + sous-face)
+            if (V3.root) { V3.scene.remove(V3.root); V3.root.children.filter(c => c.userData.gcKeep).forEach(c => V3.root.remove(c));   /* groupes gardés (arbres, bâti) : pas jetés */
+                V3.root.traverse(o => { if (o.geometry) o.geometry.dispose(); [].concat(o.material || []).forEach(m => { if (m.map && m.map.dispose && !(m.map.userData && m.map.userData.keep)) m.map.dispose(); if (m.dispose) m.dispose(); }); }); }   // un objet peut porter plusieurs matériaux (toit + sous-face)
             const exag = parseFloat(document.getElementById('v3-exag').value) || 1;
             const showSurf = document.getElementById('v3-surf').checked, showBg = document.getElementById('v3-bg').checked;
             const root = new THREE.Group(); V3.root = root; V3.labels = []; V3.snaps = []; V3.exag = exag; V3.flat = v3Flat;
@@ -199,8 +209,10 @@
             if (V3.keepCenter && V3.center) { cx = V3.center.x; cy = V3.center.y; }   // vue 3D ouverte : on ne recentre pas à chaque ajout (la vue ne saute pas)
             V3.center = { x: cx, y: cy }; V3.R = Math.max(1, Math.hypot(maxX - minX, maxY - minY) / 2, (zmax - zmin) * exag / 2);
             try { blk3DBuild(root, vis, Zm); } catch (e) { console.error(e); }
-            try { cadBati3D(root, vis, P, Zm, exag); } catch (e) { console.error(e); }
-            if (!SEC_SCENE) try { bois3D(root, vis, P, Zm, exag); } catch (e) { console.error(e); }   /* maquette des coupes : sans arbres */
+            /* bâti du cadastre et arbres : gardés tels quels tant que leurs objets, le terrain, les photos et le cadre de la scène ne changent pas (une retouche de mur ne les refait plus) */
+            const gcFrame = [exag, zmin, v3Flat ? 1 : 0, V3.hq ? JSON.stringify(V3.hq) : 0, SEC_SCENE ? 1 : 0].join('|');
+            try { v3Kept(root, 'cad', () => { const B = vis.filter(isCadBati); return B.length ? gcFrame + '#' + v3KeepSig(B) + '#' + B.map(x => selectedShapes.includes(x) ? 1 : 0).join('') + '#' + v3KeepTerr(vis) : null; }, (g) => cadBati3D(g, vis, P, Zm, exag)); } catch (e) { console.error(e); }
+            if (!SEC_SCENE) try { v3Kept(root, 'bois', () => { const B = vis.filter(s => s.bois); return B.length ? gcFrame + '#' + v3KeepSig(B) + '#' + B.map(x => selectedShapes.includes(x) ? 1 : 0).join('') + '#' + v3KeepTerr(vis) : null; }, (g) => bois3D(g, vis, P, Zm, exag)); } catch (e) { console.error(e); }   /* maquette des coupes : sans arbres */
             try { bassin3D(root, vis, P, Zm); } catch (e) { console.error(e); }
             try { stair3D(root, vis, P, Zm); } catch (e) { console.error(e); }
             try { stair2_3D(root, vis, P, Zm); } catch (e) { console.error(e); }

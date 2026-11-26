@@ -511,25 +511,35 @@
         let SEC_SIG_NOW = null;
         function secSkOf(L, sig) { return sig + '|' + [L.x1, L.y1, L.x2, L.y2, L.cutDef.side].join(','); }
         function secStale(L) { if (SEC_SIG_NOW === null) SEC_SIG_NOW = secModelSig(); return L.cutDef.sk !== secSkOf(L, SEC_SIG_NOW); }
+        /* coupes en mise à jour automatique : ce qui ne demande pas de recalcul se fait tout de suite ; les recalculs passent dans une file, une coupe à la fois entre deux gestes
+           (pastille bleue « calcul en cours »), et la file repart de zéro si le plan change entre-temps */
+        let SEC_DEFER = false; const SEC_BUSY = new Set(), SEC_Q = { ids: [], run: false };
+        function secQueue(L) { const id = L.cutDef.id; if (!SEC_Q.ids.includes(id)) SEC_Q.ids.push(id); SEC_BUSY.add(id); if (!SEC_Q.run) secQueueRun(); }
+        async function secQueueRun() { SEC_Q.run = true; try { while (SEC_Q.ids.length) { draw(); await secPaint(); await new Promise(r => setTimeout(r, 60)); const id = SEC_Q.ids.shift(), L = shapes.find(x => x.cutDef && x.cutDef.id === id && x.type === 'line');
+                    if (L) { try { const sig = secModelSig(); SEC_SIG_NOW = sig; if (secRefresh(L, sig, false)) { invalidateCache(); if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = shapes; } } catch (e) { console.error(e); } }
+                    SEC_BUSY.delete(id); draw(); } } finally { SEC_Q.run = false; } }
         function secRefreshAll(force) { if (!window.THREE) { loadThree().then(() => secRefreshAll(force)); return; } let ch = false; const sig = secModelSig(); SEC_SIG_NOW = sig;
-            shapes.filter(x => x.cutDef && x.type === 'line').forEach(L => { try { if (secRefresh(L, sig, force)) ch = true; } catch (e) { console.error(e); } });
+            SEC_DEFER = !force; try { shapes.filter(x => x.cutDef && x.type === 'line').forEach(L => { try { if (secRefresh(L, sig, force)) ch = true; } catch (e) { console.error(e); } }); } finally { SEC_DEFER = false; }
             if (ch) { invalidateCache(); if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = shapes; draw(); } }
         /* pastille de chaque coupe (au-dessus de son titre et au milieu de sa ligne sur le plan) : ⟳ verte « à jour », orange « à rafraîchir » ; un clic la recalcule */
         let secBadgeHits = [];
         function drawSecBadges(c) { secBadgeHits = []; const Ls = shapes.filter(x => x.cutDef && x.type === 'line'); if (!Ls.length) return; c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
             Ls.forEach(L => { const d = L.cutDef, st = secStale(L), T = shapes.find(x => x.secTitle && x.secOf === d.id), vis = (id) => { const l = layers.find(x => x.id === (id || 'layer-0')); return !(l && l.visible === false); };
-                const pill = (wx, wy, dy) => { const X = wx * camera.zoom + camera.x, Y = wy * camera.zoom + camera.y + dy, nm = secLab(d), sub = st ? '⟳ à rafraîchir' : '✓ à jour';
+                const busy = SEC_BUSY.has(d.id), pill = (wx, wy, dy) => { const X = wx * camera.zoom + camera.x, Y = wy * camera.zoom + camera.y + dy, nm = secLab(d), sub = busy ? '◔ calcul en cours…' : st ? '⟳ à rafraîchir' : '✓ à jour';
                     c.font = 'bold 12px Arial'; const w = Math.max(c.measureText(nm).width, c.measureText(sub).width) + 18, h = 30, x0 = X - w / 2, y0 = Y - h; if (x0 > c.canvas.width || y0 > c.canvas.height || x0 + w < 0 || y0 + h < 0) return;
-                    c.fillStyle = st ? '#9a3412' : '#14532d'; c.strokeStyle = st ? '#fb923c' : '#4ade80'; c.lineWidth = 1.5; c.beginPath(); if (c.roundRect) c.roundRect(x0, y0, w, h, 9); else c.rect(x0, y0, w, h); c.fill(); c.stroke();
-                    c.fillStyle = '#fff'; c.textBaseline = 'top'; c.fillText(nm, x0 + 9, y0 + 3); c.fillStyle = st ? '#fed7aa' : '#bbf7d0'; c.font = '10px Arial'; c.fillText(sub, x0 + 9, y0 + 17); secBadgeHits.push({ x0, y0, x1: x0 + w, y1: y0 + h, id: d.id }); };
+                    c.fillStyle = busy ? '#1e3a8a' : st ? '#9a3412' : '#14532d'; c.strokeStyle = busy ? '#93c5fd' : st ? '#fb923c' : '#4ade80'; c.lineWidth = 1.5; c.beginPath(); if (c.roundRect) c.roundRect(x0, y0, w, h, 9); else c.rect(x0, y0, w, h); c.fill(); c.stroke();
+                    c.fillStyle = '#fff'; c.textBaseline = 'top'; c.fillText(nm, x0 + 9, y0 + 3); c.fillStyle = busy ? '#dbeafe' : st ? '#fed7aa' : '#bbf7d0'; c.font = '10px Arial'; c.fillText(sub, x0 + 9, y0 + 17); secBadgeHits.push({ x0, y0, x1: x0 + w, y1: y0 + h, id: d.id }); };
                 if (T && vis(T.layerId)) pill(T.x, T.y, -Math.max(16, (T.height || 0) * camera.zoom * 1.4));
                 if (vis(L.layerId)) pill((L.x1 + L.x2) / 2, (L.y1 + L.y2) / 2, -8); });
             c.restore(); }
         function secBadgeAt(sx, sy) { return secBadgeHits.find(b => sx >= b.x0 && sx <= b.x1 && sy >= b.y0 && sy <= b.y1) || null; }
         function secForce(id) { const L = shapes.find(x => x.cutDef && x.cutDef.id === id && x.type === 'line'); if (!L) return; if (!window.THREE) { loadThree().then(() => secForce(id)); return; }
-            updateCommandMessageText(secLabU(L.cutDef) + ' : calcul…'); setTimeout(() => { const t0 = performance.now(); SEC_SIG_NOW = secModelSig(); L.cutDef.key = null; secRefresh(L, SEC_SIG_NOW, true); invalidateCache();
-                if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = shapes; draw();
-                updateCommandMessageText(secLabU(L.cutDef) + ' rafraîchie (' + nfr((performance.now() - t0) / 1000, 1) + ' s).'); }, 30); }
+            const id0 = L.cutDef.id; SEC_BUSY.add(id0); updateCommandMessageText(secLabU(L.cutDef) + ' : calcul…'); draw();   /* la pastille passe en bleu « calcul en cours » avant le calcul */
+            secPaint().then(() => { const t0 = performance.now(); try { SEC_SIG_NOW = secModelSig(); L.cutDef.key = null; secRefresh(L, SEC_SIG_NOW, true); invalidateCache();
+                if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = shapes; } catch (e) { console.error(e); } SEC_BUSY.delete(id0); draw();
+                if (L.cutDef) updateCommandMessageText(secLabU(L.cutDef) + ' rafraîchie (' + nfr((performance.now() - t0) / 1000, 1) + ' s).'); }); }
+        // laisse l'écran se redessiner (pastille, message) avant un calcul long
+        function secPaint() { return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 0)))); }
         function secRefresh(L, sig, force) { const d = L.cutDef, old = shapes.filter(x => x.secOf === d.id), title = old.find(x => x.secTitle);
             if (!old.length) { delete L.cutDef; return false; }   // tout le dessin de la coupe a été supprimé : la ligne redevient un simple repère (un titre effacé seul ne casse plus la coupe : il revient)
             const tdx = title && isFinite(d.tx) ? title.x - d.tx : 0, tdy = title && isFinite(d.ty) ? title.y - d.ty : 0;
@@ -540,6 +550,7 @@
             if (C && C.sk === sk) D = C.D;
             else { const up = d.sk === sk;   /* à jour mais pas encore calculée dans cette session (fichier rouvert) : calculée seulement si on la touche */
                 if (!force && !d.auto && (!up || (!moved && title))) { if (Math.abs(tdx) > 1e-9 || Math.abs(tdy) > 1e-9) { /* coupe déplacée par son titre sans recalcul : tout son dessin suit */ shapes.forEach(x => { if (x.secOf === d.id && !x.secTitle) { translateShape(x, tdx, tdy); if (x.lvRef) x.lvRef = { x: x.lvRef.x + tdx, y: x.lvRef.y + tdy }; } }); d.tx = title.x; d.ty = title.y; return true; } return false; }
+                if (SEC_DEFER && !force) { secQueue(L); return false; }   /* mise à jour automatique : calculée à part, une coupe à la fois, sans figer la saisie */
                 const t0 = performance.now(); D = sectionData({ x: L.x1, y: L.y1 }, { x: L.x2, y: L.y2 }, d.side, d.fac); if (!D || D.wait) return false; SEC_D.set(d.id, { sk, D }); d.sk = sk; SEC_LAST_MS = Math.round(performance.now() - t0); }
             D.name = d.name;
             const out = secBuild(D, d), key = JSON.stringify(out.map(x => [x.type, x.points || x.loops || [x.x, x.y, x.x1, x.y1, x.x2, x.y2, x.content]])).replace(/(\d+\.\d{4})\d+/g, '$1');
@@ -625,26 +636,36 @@
         /* empreinte en plan d'un objet (mur : sa hachure ; volume extrudé : son contour) */
         function colPlanRing(o) { if (o.type === 'hatch' && o.wallMat && o.loops && o.loops[0] && o.loops[0].length >= 3) return o.loops[0]; if (o.type === 'poly' && o.solid && o.points && o.points.length >= 3) return o.points; return null; }
         /* découpe en plan : une dalle (volume extrudé) perd l'empreinte de l'objet gardé, son contour est vraiment redessiné (plan, 3D, métrés) ; plusieurs morceaux = plusieurs dalles */
-        function colPlanCut(O, K) { if (!(O.solid && O.solid.kind === 'box' && O.type === 'poly' && !O.roofDef && !O.roofPart && !O.bld)) return null; const R = colPlanRing(K); if (!R) return null;
-            const O0 = O.points[0], loc = (A) => A.map(q => [q.x - O0.x, q.y - O0.y]); let MP; try { MP = polygonClipping.difference([[loc(O.points), ...holesOf(O).map(loc)]], [[loc(R)]]); } catch (e) { return null; }
+        // hauteur occupée (mm) d'un objet 3D
+        function colZr(o) { try { const t = objTrisMM(o); if (!t || !t.length) return null; let a = Infinity, b = -Infinity; for (let i = 2; i < t.length; i += 3) { if (t[i] < a) a = t[i]; if (t[i] > b) b = t[i]; } return [a, b]; } catch (e) { return null; } }
+        /* découpe en plan : un volume extrudé (dalle, poteau, bloc…) ou un mur perd l'empreinte de l'objet gardé, son contour est vraiment redessiné (plan, 3D, métrés) ; plusieurs morceaux = plusieurs objets.
+           Seulement si l'objet gardé occupe toute la hauteur de celui qu'on coupe (sinon on enlèverait trop : la découpe 3D prend le relais) */
+        function colPlanCut(O, K) { const wall = O.type === 'hatch' && O.wallMat && O.loops && O.loops[0] && O.loops[0].length >= 3, box = O.solid && O.solid.kind === 'box' && O.type === 'poly' && !O.roofDef && !O.roofPart && !O.bld;
+            if (!wall && !box) return null; const Rk = colPlanRing(K); if (!Rk) return null; const zo = colZr(O), zk = colZr(K); if (!zo || !zk || zk[0] > zo[0] + 5 || zk[1] < zo[1] - 5) return null;
+            const ring0 = wall ? O.loops[0] : O.points, holes0 = wall ? O.loops.slice(1) : holesOf(O), O0 = ring0[0], loc = (A) => A.map(q => [q.x - O0.x, q.y - O0.y]); let MP;
+            try { MP = polygonClipping.difference([[loc(ring0), ...holes0.map(loc)]], [[loc(Rk)]]); } catch (e) { return null; }
             if (!MP || !MP.length) return null; const z = O0.z, area = (r) => Math.abs(r.reduce((a, p, k) => { const q = r[(k + 1) % r.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
             const back = (r) => { const a = r.slice(); if (a.length > 1 && a[0][0] === a[a.length - 1][0] && a[0][1] === a[a.length - 1][1]) a.pop(); return a.map(([x, y]) => Object.assign({ x: x + O0.x, y: y + O0.y }, z !== undefined ? { z } : {})); };
-            MP.sort((a, b) => area(b[0]) - area(a[0])); return MP.filter(pg => area(pg[0]) > 1e-9).map(pg => ({ pts: back(pg[0]), holes: pg.slice(1).map(back) })); }
+            MP.sort((a, b) => area(b[0]) - area(a[0])); const parts = MP.filter(pg => area(pg[0]) > 1e-9).map(pg => ({ pts: back(pg[0]), holes: pg.slice(1).map(back) })); parts.wall = wall; return parts; }
+        // applique les morceaux à l'objet (et ses copies pour les morceaux suivants) ; rend de quoi revenir en arrière
+        function colPlanApply(O, parts) { const keep = parts.wall ? { loops: O.loops, openings: O.openings } : { points: O.points, solid: O.solid }, extra = [];
+            const set = (X, pp) => { if (parts.wall) X.loops = [pp.pts, ...pp.holes]; else { X.points = pp.pts; X.solid = Object.assign({}, X.solid); if (pp.holes.length) X.solid.holes = pp.holes; else delete X.solid.holes; } };
+            set(O, parts[0]); parts.slice(1).forEach(pp => { const cl = JSON.parse(JSON.stringify(Object.assign({}, O, { openings: [] }))); set(cl, pp); extra.push(cl); });
+            return { extra, undo: () => { Object.assign(O, keep); } }; }
         // l'objet S reste entier ; chaque objet qui le touche (ou seulement celui de la collision k) est découpé : en plan si c'est une dalle / un volume extrudé, sinon en 3D (découpe gardée sur lui)
         function d3ColCut(Sx, onlyK) { const S = Sx || d3ColSel; if (!S) { updateCommandMessageText('COLLISION : clic molette d\'abord sur une zone rouge pour choisir l\'objet à garder entier, ou un bouton ✂ de la liste.'); return; }
-            const P = (onlyK !== undefined ? [d3Col[onlyK]] : d3Col.filter(c => c.a === S || c.b === S)).filter(Boolean); if (!P.length) return; let tS = null; const done = new Set(), bad = new Set(), plan = new Set();
+            const P = (onlyK !== undefined ? [d3Col[onlyK]] : d3Col.filter(c => c.a === S || c.b === S)).filter(Boolean); if (!P.length) return; let tS = null, wallsCut = false; const done = new Set(), bad = new Set(), plan = new Set();
             const vol = (o) => { try { const t = objTrisMM(o); return t ? signedVol(t) / 1e9 : NaN; } catch (e) { return NaN; } }, inter = (a, b) => { try { const r = csgTris(objTrisMM(a), objTrisMM(b), 'inter'); return r && r.length ? signedVol(r) / 1e9 : 0; } catch (e) { return NaN; } };
             P.forEach(c => { const O = c.a === S ? c.b : c.a;
-                { const parts = colPlanCut(O, S); if (parts && parts.length) { const keep = { points: O.points, solid: O.solid }, extra = [];
-                        O.points = parts[0].pts; O.solid = Object.assign({}, O.solid); if (parts[0].holes.length) O.solid.holes = parts[0].holes; else delete O.solid.holes;
-                        parts.slice(1).forEach(pp => { const cl = JSON.parse(JSON.stringify(O)); cl.points = pp.pts; cl.solid = Object.assign({}, O.solid); if (pp.holes.length) cl.solid.holes = pp.holes; else delete cl.solid.holes; extra.push(cl); });
-                        const iv = inter(O, S); if (isFinite(iv) && Math.abs(iv) <= Math.max(1e-4, c.v * 0.02)) { if (extra.length) shapes.splice(shapes.indexOf(O) + 1, 0, ...extra); done.add(O); plan.add(O); return; }
-                        O.points = keep.points; O.solid = keep.solid; } }
+                { const parts = colPlanCut(O, S); if (parts && parts.length) { const A = colPlanApply(O, parts);
+                        const iv = inter(O, S); if (isFinite(iv) && Math.abs(iv) <= Math.max(1e-4, c.v * 0.02)) { if (A.extra.length) shapes.splice(shapes.indexOf(O) + 1, 0, ...A.extra); done.add(O); plan.add(O); if (parts.wall) wallsCut = true; return; }
+                        A.undo(); } }
                 const g = Array.from(c.t, v => Math.round(v * 100) / 100), v0 = vol(O), ok = () => { const v1 = vol(O); return Math.abs(v1 - (v0 - c.v)) <= Math.max(0.02 * Math.abs(v0), 0.005); };
                 O.carve = (O.carve || []).concat([{ t: g }]); if (ok()) { done.add(O); return; }
                 O.carve.pop(); if (!tS) { try { tS = Array.from(objTrisMM(S) || [], v => Math.round(v * 100) / 100); } catch (e) { tS = []; } }   /* 2e essai : on retire tout l'objet gardé (plus robuste quand les faces se confondent) */
                 if (tS.length) { O.carve.push({ t: tS }); if (ok()) { done.add(O); return; } O.carve.pop(); }
                 if (!O.carve.length) delete O.carve; bad.add(O); });   /* découpe vérifiée, sinon on n'y touche pas */
+            if (wallsCut) { try { wallOpRepair(); wallBordersRepair(); } catch (e) { console.error(e); } }   /* murs redessinés : bords et ouvertures remis en place */
             const n = done.size, nb = [...bad].filter(o => !done.has(o)).length; d3ColSel = null; selectedShapes = [...done]; invalidateCache(); saveState(); if (is3DOpen()) build3DScene(); draw();
             const nm = [...done].map(o => d3ObjName(o)).slice(0, 3).join(', ');
             updateCommandMessageText((n ? 'COLLISION supprimée : ' + nm + (n > 3 ? '…' : '') + ' découpé' + (n > 1 ? 's' : '') + ' par ' + d3ObjName(S) + (plan.size ? ' (contour redessiné en plan' + (plan.size < n ? ' pour ' + plan.size : '') + ')' : '') + (plan.size < n ? ' ; découpe 3D retirable par Y' : '') : 'COLLISION : rien n\'a pu être découpé')
