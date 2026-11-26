@@ -48,4 +48,19 @@ module.exports = { name: 'sauvegarde', page: { fresh: false }, run: async (H, t)
         try { res = loadProjectText(JSON.stringify({ app: 'MomoCAD', layers: [], shapes: [{ type: 'line', layerId: 'layer-0', x1: 0, y1: 0, x2: 1, y2: 1 }, { type: 'line', layerId: 'layer-0', x1: 0, y1: 0, x2: 2, y2: 2 }] }), 'casse.mmc'); } finally { window.lvlMarkAll = k; }
         const t = document.getElementById('mc-toast'), r = { res, back: shapes.length === 1 && shapes[0].x2 === 7777 && fileName === 'avant.mmc', msg: !!t && /précédent est conservé/.test(t.textContent) }; if (t) t.remove(); return r; });
     t.eq('ouverture tout ou rien : le plan précédent revient si l\'ouverture casse', fs3, { res: false, back: true, msg: true });
+    // fichier abîmé : géométrie manquante ou champs de mauvais type réparés ou écartés ; le plan, la 3D, l'enregistrement tiennent
+    const fz = await ev(async () => { const keep = { shapes, layers }, r = {}, m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m, z: 100000 }));
+        const S = [{ type: 'line', layerId: 'layer-0', x1: 0, y1: 0, x2: m, y2: m }, { type: 'line', layerId: 'layer-0', x1: 0, y1: 0 }, { type: 'poly', layerId: 'layer-0' }, { type: 'circle', layerId: 'layer-0', x: 1, y: 1 },
+            { type: 'hatch', layerId: 'layer-0', loops: 'x', wallMat: 'parpaing' }, { type: 'hatch', layerId: 'layer-0', loops: [R(0, 0, 4, 0.2)], wallMat: 'parpaing', wz: 'x', openings: [{ kind: 'fen' }, null] },
+            { type: 'poly', layerId: 'layer-0', points: R(0, 0, 3, 3), solid: 'x', roofDef: 7 }, { type: 'poly', layerId: 'layer-0', points: R(5, 0, 8, 3).map((q, i) => i ? q : Object.assign(q, { z: 'x' })), solid: { kind: 'box', H: 200 }, zk: 1 }];
+        let ok = true; try { ok = loadProjectText(JSON.stringify({ app: 'MomoCAD', layers: [], shapes: S }), 'abime.mmc') !== false; } catch (e) { ok = false; } await new Promise(res => setTimeout(res, 600));
+        r.loaded = ok && shapes.filter(x => !(x.wallMat && x.type === 'line')).length === 4;   /* les bords du mur sont refaits à l'ouverture */ const h = shapes.find(x => x.type === 'hatch'); r.hatch = !!h && (!h.wz || (typeof h.wz.b === 'number' && typeof h.wz.t === 'number')) && Array.isArray(h.openings) && h.openings.length === 0;
+        const p0 = shapes.find(x => x.type === 'poly' && !x.solid); r.poly = !!p0 && p0.roofDef === undefined; const b = shapes.find(x => x.solid); r.box = !!b && b.points[0].z === undefined;
+        let e3 = null; try { await open3D(); close3D(); draw(); JSON.stringify(projectData()); } catch (e) { e3 = e.message; } r.work = e3;
+        shapes = keep.shapes; layers = keep.layers; updateLayerUI(); invalidateCache(); draw(); return r; });
+    t.eq('fichier abîmé : géométrie manquante écartée, champs de mauvais type retirés ; plan, 3D et enregistrement tiennent', fz, { loaded: true, hatch: true, poly: true, box: true, work: null });
+    // historique : plafonné en mémoire (≈ 120 Mo de copies), au moins 15 pas d'annulation gardés
+    const hb = await ev(() => { const keepH = shapesHistory, keepS = historyStep, big = 'x'.repeat(15e6); shapesHistory = []; for (let i = 0; i < 20; i++) shapesHistory.push(histEntry(big, '[]', 'layer-0')); historyStep = 19; histTrim();
+        const r = { n: shapesHistory.length, step: historyStep }; shapesHistory = keepH; historyStep = keepS; return r; });
+    t.eq('historique plafonné en mémoire (au moins 15 pas gardés)', hb, { n: 15, step: 14 });
 } };

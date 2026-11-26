@@ -256,7 +256,7 @@
                    ou retoucher un mur ne le recalcule plus (c'était la plus grosse part du temps sur un plan chargé) */
                 let TK = null; try { TK = [tinSig(tin.nodes), FM ? FM.sig : '', JSON.stringify(zones.map(Zo => [FM.P.indexOf(Zo), Zo.s])), showSurf, nat, JSON.stringify(V3.hq || 0), zmin, exag, step, hasRoad ? JSON.stringify(roadPolys()) : '', !!tp].join('§'); } catch (e) { TK = null; }
                 const TC = TK ? TERR_C.find(e => e.k === TK) || null : null;
-                if (TC) { const app = (d, s) => { for (let k = 0; k < s.length; k++) d.push(s[k]); }; app(pp, TC.pp); app(cc, TC.cc); app(wp, TC.wp); app(gp, TC.gp); app(gk, TC.gk); app(ep, TC.ep); app(ap, TC.ap); if (tp && TC.tp) app(tp, TC.tp); refBudget = TC.rb; }
+                if (TC) { const app = (d, s) => { for (let k = 0; k < s.length; k += 32768) d.push(...s.slice(k, k + 32768)); };   /* par blocs : bien plus rapide qu'élément par élément */ app(pp, TC.pp); app(cc, TC.cc); app(wp, TC.wp); app(gp, TC.gp); app(gk, TC.gk); app(ep, TC.ep); app(ap, TC.ap); if (tp && TC.tp) app(tp, TC.tp); refBudget = TC.rb; }
                 else {
                 let HS = null; if (V3.hq && nat) { const k = worldToMm(1), NN = new Float32Array(tin.nodes.length * 3);
                     tin.tris.forEach(([a, b, c]) => { const A = tin.nodes[a], B = tin.nodes[b], C = tin.nodes[c], ux = (B.x - A.x) * k, uy = (B.y - A.y) * k, uz = B.z - A.z, vx = (C.x - A.x) * k, vy = (C.y - A.y) * k, vz = C.z - A.z; let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; } [a, b, c].forEach(i => { NN[i * 3] += nx; NN[i * 3 + 1] += ny; NN[i * 3 + 2] += nz; }); });

@@ -312,12 +312,27 @@
         //      ouverture « tout ou rien » : si quelque chose casse en cours de route, le plan précédent est remis tel quel.
         const MMC_FORMAT = 2, MMC_LOAD_FIX = { walls: 0, bld: 0, wz: 0 };
         const MMC_MIGR = { 1: (d) => d };   // format 1 (fichiers sans numéro) → 2 : même contenu, le numéro apparaît
+        const MMC_NEED = { line: ['x1', 'y1', 'x2', 'y2'], dim: ['x1', 'y1', 'x2', 'y2'], circle: ['x', 'y', 'r'], arc: ['x', 'y', 'r'], text: ['x', 'y'], point: ['x', 'y'], basemap: ['x', 'y', 'r'], mesh: ['x', 'y'] };
+        const MMC_OBJ = ['solid', 'wz', 'roofDef', 'bois', 'brush', 'sweep', 'cutDef', 'sonde', 'trench', 'talus', 'bld', 'vr', 'shut', 'tf'], MMC_ARR = ['openings', 'fte', 'cuts', 'carve', 'loops'];
         function mmcPrepare(d) { const rep = { dropped: 0, fixed: 0, newer: false, from: +d.format || 1 }; if (rep.from > MMC_FORMAT) rep.newer = true;
             for (let f = rep.from; f < MMC_FORMAT; f++) if (MMC_MIGR[f]) d = MMC_MIGR[f](d) || d; d.format = MMC_FORMAT;
             const num = (v) => typeof v === 'number' && isFinite(v), XY = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'r', 'w', 'h'];
             d.shapes = d.shapes.filter(sh => { if (!sh || typeof sh !== 'object' || typeof sh.type !== 'string') { rep.dropped++; return false; }
                 if (XY.some(k => sh[k] !== undefined && sh[k] !== null && !num(sh[k]))) { rep.dropped++; return false; }
                 if (sh.points !== undefined) { if (!Array.isArray(sh.points)) { rep.dropped++; return false; } const n0 = sh.points.length; sh.points = sh.points.filter(q => q && num(q.x) && num(q.y)); if (sh.points.length !== n0) rep.fixed++; if (!sh.points.length) { rep.dropped++; return false; } }
+                /* géométrie indispensable selon le type (un fichier abîmé ne doit pas casser le plan ni la 3D) */
+                const need = MMC_NEED[sh.type]; if (need && need.some(k => !num(sh[k]))) { rep.dropped++; return false; }
+                if ((sh.type === 'poly' || sh.type === 'pline' || sh.type === 'spline') && !Array.isArray(sh.points)) { rep.dropped++; return false; }
+                if (sh.type === 'hatch') { if (!Array.isArray(sh.loops)) { rep.dropped++; return false; } const L0 = JSON.stringify(sh.loops.map(l => Array.isArray(l) ? l.length : -1)); sh.loops = sh.loops.filter(Array.isArray).map(l => l.filter(q => q && num(q.x) && num(q.y))).filter(l => l.length >= 3);
+                    if (JSON.stringify(sh.loops.map(l => l.length)) !== L0) rep.fixed++; if (!sh.loops.length) { rep.dropped++; return false; } }
+                // champs structurés de mauvais type (un objet attendu, une liste attendue) : retirés, l'objet reste
+                MMC_OBJ.forEach(k => { if (sh[k] !== undefined && (sh[k] === null || typeof sh[k] !== 'object' || Array.isArray(sh[k]))) { delete sh[k]; rep.fixed++; } });
+                MMC_ARR.forEach(k => { if (sh[k] !== undefined && !Array.isArray(sh[k])) { delete sh[k]; rep.fixed++; } });
+                if (sh.wz && !(num(sh.wz.b) && num(sh.wz.t))) { delete sh.wz; rep.fixed++; }
+                if (Array.isArray(sh.openings)) { const n0 = sh.openings.length; sh.openings = sh.openings.filter(o => o && typeof o === 'object' && o.a && o.b && num(o.a.x) && num(o.a.y) && num(o.b.x) && num(o.b.y) && Array.isArray(o.pts) && o.pts.length === 4 && o.pts.every(q => q && num(q.x) && num(q.y))); if (sh.openings.length !== n0) rep.fixed++; }
+                if (sh.solid && typeof sh.solid.kind !== 'string') { delete sh.solid; rep.fixed++; }
+                if (sh.z !== undefined && sh.z !== null && !num(sh.z)) { delete sh.z; rep.fixed++; }
+                if (Array.isArray(sh.points)) sh.points.forEach(q => { if (q.z !== undefined && q.z !== null && !num(q.z)) { delete q.z; rep.fixed++; } });
                 return true; });
             if (!Array.isArray(d.layers)) d.layers = []; d.layers = d.layers.filter(l => l && typeof l === 'object' && l.id);
             const ids = new Set(d.layers.map(l => l.id)), lost = d.shapes.filter(sh => sh.layerId && !ids.has(sh.layerId) && sh.layerId !== 'layer-0');

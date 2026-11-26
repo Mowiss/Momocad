@@ -38,7 +38,7 @@
         // Nouveaux objets : chaque sommet sans Z reprend l'altitude du point sur lequel il s'accroche, sinon le « Z courant »
         function shapeVertices(s) {
             if (s.type === 'line') return [{ get: () => s.z1, set: (z) => s.z1 = z, x: s.x1, y: s.y1 }, { get: () => s.z2, set: (z) => s.z2 = z, x: s.x2, y: s.y2 }];
-            if (s.type === 'poly') return s.points.map(p => ({ get: () => p.z, set: (z) => p.z = z, x: p.x, y: p.y }));
+            if (s.type === 'poly') return (Array.isArray(s.points) ? s.points : []).map(p => ({ get: () => p.z, set: (z) => p.z = z, x: p.x, y: p.y }));
             if (s.type === 'circle' || s.type === 'arc' || s.type === 'point') return [{ get: () => s.z, set: (z) => s.z = z, x: s.x, y: s.y }];
             return [];
         }
