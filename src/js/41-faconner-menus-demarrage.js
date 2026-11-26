@@ -179,7 +179,7 @@
             if (mode === 'fond' && e.button === 0) { fondClick(screenToWorld(sx, sy)); return; }
             if (mode === 'stair' && e.button === 0) { stairClick(screenToWorld(sx, sy)); return; }
             if (mode === 'cline2' && e.button === 0) { cl2Click(screenToWorld(sx, sy), e); return; }
-            if (mode === 'cut' && e.button === 0) { cutClick(screenToWorld(sx, sy)); return; }
+            if ((mode === 'cut' || mode === 'facade') && e.button === 0) { cutClick(screenToWorld(sx, sy)); return; }
             if (mode === 'pierce' && e.button === 0) {
                 const w = screenToWorld(sx, sy), t = !pierceTarget ? (closedAt(w, x => x.solid && ['box', 'cyl'].includes(x.solid.kind)) || pick3DObj(w)) : closedAt(w, x => x !== pierceTarget && isClosed2D(x));
                 if (!pierceTarget) {

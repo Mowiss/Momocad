@@ -178,6 +178,21 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         finally { window.sectionData = f0; }
         shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
     t.eq('coupes légères : un trait ajouté ne relance pas le calcul, un volume ajouté la marque à rafraîchir (calcul au clic) ; vue au-delà en polylignes', cp, { chained: true, skip: true, redo: true });
+    // vue de façade : ligne tracée devant, rien de coupé, regard vers le bâtiment, nom selon l'orientation, terrain lu au pied du mur, niveaux de la toiture
+    const fa = await ev(async () => { await loadThree(); const keepS = shapes, keepL = layers.slice(); shapes = []; const m = mmToWorld(1000), r = {}, R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m })), W = (x, y) => ({ x: x * m, y: -y * m });
+        for (let i = 0; i <= 10; i++) for (let j = 0; j <= 6; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + j * 300, zk: 1 });
+        const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }); [[18, 10, 18.2, 20], [29.8, 10, 30, 20], [18, 10, 30, 10.2], [18, 19.8, 30, 20]].forEach(([a, b2, c, d], k) => shapes.push({ type: 'hatch', layerId: wl, loops: [R(a, b2, c, d)], wallMat: 'parpaing', groupId: 'fa' + k, wz: { b: 100500, t: 103200 } }));
+        shapes.push(...buildRoof({ type: 'poly', layerId: 'layer-0', points: R(18, 10, 30, 20).map(q => Object.assign(q, { z: 103200 })) }, { pans: 2, he: 103.2, hf: 106, e: 0.25, ge: 0.2, fill: false, db: 0, dir: 'long' })); saveState();
+        const A = W(14, 4), B = W(34, 4); r.side = facSide(A, B); r.sideBack = facSide(B, A) === -r.side; const D = sectionData(A, B, r.side, true);
+        r.noCut = D.loops.length === 0; r.seen = D.beyond.length > 10; r.name = D.name; const d0 = footAt(D.foot, 10000); r.foot = d0 > 5300 && d0 < 6100;
+        const tm = D.tn[100]; r.tn = !!tm && Math.abs(tm[1] - 100600) < 40; r.lv = ['Faîtage', 'Égout'].every(k => D.lvF.some(l => l.k === k)) && D.lvF.some(l => l.k === 'Faîtage' && Math.abs(l.z - 106000) < 400);
+        setMode('facade'); cutClick(A); cutClick(B); r.tool = !!(CUT.D && CUT.D.fac && CUT.side === r.side); cutClick(W(24, -20)); cutValidate(); setMode('select-box');
+        const L = shapes.find(x => x.cutDef), d = L && L.cutDef; r.def = !!(d && d.fac === 1); r.title = shapes.filter(x => x.secTitle).map(x => x.content).join(); r.lay = layers.some(l => l.name === 'Façade sud — dessin');
+        r.hatchCut = !d || shapes.some(x => x.secOf === d.id && x.hatchMat === 'parpaing'); r.lvl = !!d && shapes.some(x => x.secOf === d.id && x.type === "text" && /^Faîtage /.test(x.content)); if (!d) { shapes = keepS; layers = keepL; return r; }
+        r.second = sectionData(A, B, r.side, true).name; shapes.filter(x => x.groupId === 'fa2').forEach(x => translateShape(x, 0, 3 * m)); saveState(); secForce(d.id); await new Promise(res => setTimeout(res, 400)); r.refreshed = !!shapes.find(x => x.secTitle && x.secOf === d.id) && !secStale(L);
+        shapes = keepS; layers = keepL; updateLayerUI(); invalidateCache(); saveState(); return r; });
+    t.eq('vue de façade : rien de coupé, regard vers le bâtiment, nommée selon l\'orientation, terrain au pied du mur, niveaux de toiture, outil et recalcul', fa,
+        { side: -1, sideBack: true, noCut: true, seen: true, name: 'sud', foot: true, tn: true, lv: true, tool: true, def: true, title: 'FAÇADE SUD', lay: true, hatchCut: false, lvl: true, second: 'sud 2', refreshed: true });
     // coupe : hiérarchie des traits (coupé épais, au-delà fin, TN tireté, rappels de niveau pointillés), niveaux à droite du bâtiment (pas au bout du terrain), titre effacé = coupe toujours dynamique
     const cs = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         for (let i = 0; i <= 16; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000 + i * 200, zk: 1 });

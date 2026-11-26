@@ -207,36 +207,42 @@
         // est dessinée sous le plan, sur le calque « Coupes », groupée et déplaçable.
         // =====================================================================
         const CUT = { a: null, b: null };
+        /* VUE DE FAÇADE : même outil que la coupe, mais la ligne est tracée devant la façade, rien n'est coupé ; on voit tout ce qui est derrière, en traits,
+           le terrain pris au pied de la façade, les niveaux des toitures et des dalles. Nom selon l'orientation (Façade sud…). */
+        const secLab = (d) => d && d.fac ? 'Façade ' + d.name : 'Coupe ' + (d ? d.name + '-' + d.name : '');
+        const secLabU = (d) => d && d.fac ? 'FAÇADE ' + String(d.name).toUpperCase() : 'COUPE ' + (d ? d.name + '-' + d.name : '');
+        function facName(vx, vy) { const a = Math.atan2(-vx, -vy) * 180 / Math.PI, k = Math.round(((a % 360) + 360) % 360 / 45) % 8; return ['nord', 'nord-est', 'est', 'sud-est', 'sud', 'sud-ouest', 'ouest', 'nord-ouest'][k]; }   /* la façade regarde vers celui qui la voit */
         function cutLayerId() { let l = layers.find(x => x.name === 'Coupes'); if (!l) { l = { id: generateId(), name: 'Coupes', visible: true, color: '#f472b6', dash: 'solid', width: 1 }; layers.push(l); updateLayerUI(); } return l.id; }
         // 1. la ligne (2 clics) ; 2. la fenêtre de la coupe suit la souris, un clic la pose (re-cliquer la replace) ; 3. Valider (Entrée ou bouton).
         //    Pendant ce temps : Tab ou ⇄ inverse le sens de vue (flèches dans le plan), Échap annule.
         function cutClick(w) {
             const sn = findSnap(w.x, w.y), q = sn ? { x: sn.x, y: sn.y } : { x: w.x, y: w.y };
-            if (!CUT.a) { CUT.a = q; CUT.side = 1; CUT.pos = null; CUT.D = null; updateCommandMessageText('COUPE : cliquez le 2e point de la ligne de coupe.'); draw(); return; }
-            if (!CUT.b) { if (Math.hypot(q.x - CUT.a.x, q.y - CUT.a.y) < 1e-6) return; CUT.b = q; CUT.D = sectionData(CUT.a, CUT.b, CUT.side);
-                if (!CUT.D) { CUT.a = CUT.b = null; updateCommandMessageText('COUPE : la ligne ne coupe aucun volume ni terrain. Tracez-la à travers les murs, dalles, toitures…'); draw(); return; }
-                cutBar(true); updateCommandMessageText('COUPE ' + CUT.D.name + '-' + CUT.D.name + ' : placez la fenêtre de la coupe (elle suit la souris), cliquez pour la poser, puis Valider (Entrée). Tab ou ⇄ : inverser le sens de vue ; Échap : annuler.'); draw(); return; }
+            const F = mode === 'facade', W0 = F ? 'FAÇADE' : 'COUPE';
+            if (!CUT.a) { CUT.a = q; CUT.side = 1; CUT.pos = null; CUT.D = null; CUT.fac = F; updateCommandMessageText(F ? 'FAÇADE : cliquez le 2e point de la ligne, tracée devant la façade (elle en donne la largeur).' : 'COUPE : cliquez le 2e point de la ligne de coupe.'); draw(); return; }
+            if (!CUT.b) { if (Math.hypot(q.x - CUT.a.x, q.y - CUT.a.y) < 1e-6) return; CUT.b = q; CUT.fac = F; if (F && window.THREE) CUT.side = facSide(CUT.a, CUT.b) || 1;   /* façade : regarder vers l'ouvrage le plus proche de la ligne */ CUT.D = sectionData(CUT.a, CUT.b, CUT.side, F);
+                if (!CUT.D) { CUT.a = CUT.b = null; updateCommandMessageText(F ? 'FAÇADE : rien à voir depuis cette ligne. Tracez-la devant la façade, face au bâtiment.' : 'COUPE : la ligne ne coupe aucun volume ni terrain. Tracez-la à travers les murs, dalles, toitures…'); draw(); return; }
+                cutBar(true); updateCommandMessageText(secLabU(CUT.D) + ' : placez la fenêtre (elle suit la souris), cliquez pour la poser, puis Valider (Entrée). Tab ou ⇄ : inverser le sens de vue ; Échap : annuler.'); draw(); return; }
             CUT.pos = { x: w.x, y: w.y }; cutBar(true); draw();
-            updateCommandMessageText('COUPE ' + CUT.D.name + '-' + CUT.D.name + ' posée : Valider (Entrée) ; cliquez ailleurs pour la déplacer ; Tab ou ⇄ : inverser le sens ; Échap : annuler.');
+            updateCommandMessageText(secLabU(CUT.D) + ' posée : Valider (Entrée) ; cliquez ailleurs pour la déplacer ; Tab ou ⇄ : inverser le sens ; Échap : annuler.');
         }
-        function cutReset() { CUT.a = CUT.b = CUT.pos = CUT.D = null; CUT.side = 1; cutBar(false); }
-        function cutFlip() { if (!CUT.b) return; CUT.side = -(CUT.side || 1); CUT.D = sectionData(CUT.a, CUT.b, CUT.side); cutBar(true); draw(); }
+        function cutReset() { CUT.a = CUT.b = CUT.pos = CUT.D = null; CUT.side = 1; CUT.fac = false; cutBar(false); }
+        function cutFlip() { if (!CUT.b) return; CUT.side = -(CUT.side || 1); CUT.D = sectionData(CUT.a, CUT.b, CUT.side, CUT.fac); cutBar(true); draw(); }
         function cutValidate() { if (!CUT.b || !CUT.D) return; const at = CUT.pos || { x: currentX, y: currentY }, D = CUT.D; cutReset(); sectionPlace(D, at); }
         // coin haut-gauche de la coupe pour que la fenêtre soit centrée sur le point donné
         function cutOrigin(D, at) { return { x: at.x - mmToWorld(D.u1 - D.u0) / 2, y: at.y - mmToWorld(D.z1 - D.z0) / 2 + mmToWorld(D.z1 - D.z0) }; }
         function cutBar(on) { let b = document.getElementById('cut-bar'); if (!on) { if (b) b.style.display = 'none'; return; }
             if (!b) { b = document.createElement('div'); b.id = 'cut-bar'; b.style.cssText = 'position:fixed;z-index:45;display:flex;gap:6px;align-items:center;background:#111827;border:1px solid #f472b6;border-radius:8px;padding:6px 8px;font:13px Arial;color:#e5e7eb;box-shadow:0 4px 14px rgba(0,0,0,.5)'; document.body.appendChild(b); }
             const btn = (t, js, main, tip) => `<button type="button" onclick="${js}" title="${tip}" style="padding:5px 10px;border-radius:6px;border:1px solid ${main ? '#f472b6' : '#4b5563'};background:${main ? '#be185d' : '#374151'};color:#fff;cursor:pointer">${t}</button>`;
-            b.innerHTML = `<b style="color:#f9a8d4">Coupe ${CUT.D ? CUT.D.name + '-' + CUT.D.name : ''}</b><span style="color:#9ca3af">${CUT.pos ? 'posée' : 'suit la souris'}</span>` + btn('⇄ Inverser le sens', 'cutFlip()', false, 'Regarder de l\'autre côté de la ligne (Tab)') + btn('✔ Valider', 'cutValidate()', true, 'Dessiner la coupe à cet endroit (Entrée)') + btn('✖ Annuler', 'cutReset();draw();updateCommandMessageText(\'COUPE : annulée. Cliquez le 1er point d\\\'une nouvelle ligne de coupe.\')', false, 'Échap');
+            b.innerHTML = `<b style="color:#f9a8d4">${CUT.D ? secLab(CUT.D) : CUT.fac ? 'Façade' : 'Coupe'}</b><span style="color:#9ca3af">${CUT.pos ? 'posée' : 'suit la souris'}</span>` + btn('⇄ Inverser le sens', 'cutFlip()', false, 'Regarder de l\'autre côté de la ligne (Tab)') + btn('✔ Valider', 'cutValidate()', true, 'Dessiner la vue à cet endroit (Entrée)') + btn('✖ Annuler', 'cutReset();draw();updateCommandMessageText(\'Annulé. Cliquez le 1er point d\\\'une nouvelle ligne.\')', false, 'Échap');
             const R = canvas.getBoundingClientRect(); b.style.display = 'flex'; b.style.left = (R.left + (R.width - b.offsetWidth) / 2) + 'px'; b.style.top = (R.top + 12) + 'px'; }   // en haut de la zone de dessin : la fenêtre de coupe se place le plus souvent dessous
-        function cutKey(e) { if (mode !== 'cut' || !CUT.b) return false;
+        function cutKey(e) { if ((mode !== 'cut' && mode !== 'facade') || !CUT.b) return false;
             if (e.key === 'Enter') { e.preventDefault(); cutValidate(); return true; }
             if (e.key === 'Tab') { e.preventDefault(); cutFlip(); return true; }
-            if (e.key === 'Escape') { e.preventDefault(); cutReset(); draw(); updateCommandMessageText('COUPE : annulée. Cliquez le 1er point d\'une nouvelle ligne de coupe.'); return true; }
+            if (e.key === 'Escape') { e.preventDefault(); cutReset(); draw(); updateCommandMessageText('Annulé. Cliquez le 1er point d\'une nouvelle ligne.'); return true; }
             return false; }
         window.addEventListener('keydown', e => { if (is3DOpen() || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) return; if (cutKey(e)) e.stopImmediatePropagation(); }, true);
         function cutPreview(c) {
-            if (mode !== 'cut') { if (CUT.a) cutReset(); return; } if (!CUT.a) return; const A = CUT.a, B = CUT.b || { x: currentX, y: currentY }, z = camera.zoom;
+            if (mode !== 'cut' && mode !== 'facade') { if (CUT.a) cutReset(); return; } if (!CUT.a) return; const A = CUT.a, B = CUT.b || { x: currentX, y: currentY }, z = camera.zoom;
             c.save(); c.strokeStyle = '#f472b6'; c.lineWidth = 2 / z; c.setLineDash([10 / z, 4 / z, 2 / z, 4 / z]);
             c.beginPath(); c.moveTo(A.x, A.y); c.lineTo(B.x, B.y); c.stroke(); c.setLineDash([]);
             if (CUT.b) { const L = Math.hypot(B.x - A.x, B.y - A.y) || 1, nx = -(B.y - A.y) / L, ny = (B.x - A.x) / L, sd = CUT.side || 1, k = 28 / z;
@@ -246,14 +252,15 @@
                     c.fillStyle = 'rgba(17,24,39,0.55)'; c.fillRect(F.x0, F.y0, F.x1 - F.x0, F.y1 - F.y0); c.strokeStyle = CUT.pos ? '#f472b6' : '#f9a8d4'; c.lineWidth = 1.5 / z; c.setLineDash(CUT.pos ? [] : [6 / z, 4 / z]); c.strokeRect(F.x0, F.y0, F.x1 - F.x0, F.y1 - F.y0); c.setLineDash([]);
                     c.fillStyle = 'rgba(244,114,182,0.25)'; c.strokeStyle = '#fbcfe8'; c.lineWidth = 1.2 / z;
                     D.loops.forEach(({ loop }) => { c.beginPath(); loop.forEach((q, i) => { const p = Wp(q); i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y); }); c.closePath(); c.fill(); c.stroke(); });
+                    if (D.beyond && D.beyond.length) { c.strokeStyle = 'rgba(253,242,248,.75)'; c.lineWidth = 0.8 / z; c.beginPath(); D.beyond.forEach(b => { const p = Wp([b[0], b[1]]), q2 = Wp([b[2], b[3]]); c.moveTo(p.x, p.y); c.lineTo(q2.x, q2.y); }); c.stroke(); c.lineWidth = 1.2 / z; }   /* vue au-delà (façade) en aperçu */
                     if (D.tn.length > 1) { c.strokeStyle = '#86efac'; c.beginPath(); D.tn.forEach((q, i) => { const p = Wp(q); i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y); }); c.stroke(); }
-                    t2Label(c, F.x0, F.y0, 'COUPE ' + D.name + '-' + D.name); } }
+                    t2Label(c, F.x0, F.y0, secLabU(D)); } }
             c.restore();
         }
         // cadre de la fenêtre de coupe (monde) : la coupe plus une marge
         function cutFrame(D, o) { const m = mmToWorld(Math.max(500, Math.min(2000, (D.z1 - D.z0) * 0.15))); return { x0: o.x - m, y0: o.y - mmToWorld(D.z1 - D.z0) - m, x1: o.x + mmToWorld(D.u1 - D.u0) + m, y1: o.y + m }; }
-        function makeSection(A, B, side, at) { if (!window.THREE) { updateCommandMessageText('COUPE : chargement du moteur 3D…'); loadThree().then(() => makeSection(A, B, side, at)); return; }
-            const D = sectionData(A, B, side); if (!D) { updateCommandMessageText('COUPE : la ligne ne coupe aucun volume ni terrain. Tracez-la à travers les murs, dalles, toitures…'); return; }
+        function makeSection(A, B, side, at, fac) { if (!window.THREE) { updateCommandMessageText('COUPE : chargement du moteur 3D…'); loadThree().then(() => makeSection(A, B, side, at, fac)); return; }
+            const D = sectionData(A, B, side, fac); if (!D) { updateCommandMessageText(fac ? 'FAÇADE : rien à voir depuis cette ligne.' : 'COUPE : la ligne ne coupe aucun volume ni terrain. Tracez-la à travers les murs, dalles, toitures…'); return; }
             if (!at) { const bb = getShapesBoundingBox(shapes.filter(x => !isBg(x))) || { minX: 0, maxY: 0 }, gap = mmToWorld(Math.max(2000, (D.z1 - D.z0) * 0.6)); at = { x: bb.minX + mmToWorld(D.u1 - D.u0) / 2, y: bb.maxY + gap + mmToWorld(D.z1 - D.z0) / 2 }; }
             sectionPlace(D, at); }
         // coupe calculée (repère de la coupe, mm) : boucles des volumes coupés, terrain naturel, étendue, nom
@@ -289,8 +296,8 @@
                 const R = tris.length || edges.length ? { tris, edges } : null; SEC_SCENE_C = is3DOpen() ? null : { key: orthoKey, R }; return R;
             } catch (e) { console.error(e); return null; }
         }
-        function sectionData(A, B, side) {
-            if (!window.THREE) { loadThree().then(() => { if (CUT.b) { CUT.D = sectionData(CUT.a, CUT.b, CUT.side); cutBar(true); draw(); } }); return { loops: [], tn: [], u0: 0, u1: 1000, z0: 0, z1: 1000, name: '…', A, B, side, wait: true }; }
+        function sectionData(A, B, side, fac) { fac = !!fac;
+            if (!window.THREE) { loadThree().then(() => { if (CUT.b) { CUT.D = sectionData(CUT.a, CUT.b, CUT.side, CUT.fac); cutBar(true); draw(); } }); return { loops: [], tn: [], u0: 0, u1: 1000, z0: 0, z1: 1000, name: '…', A, B, side, fac, wait: true }; }
             const ax = worldToMm(A.x), ay = -worldToMm(A.y), bx = worldToMm(B.x), by = -worldToMm(B.y), L = Math.hypot(bx - ax, by - ay), tx = (bx - ax) / L, ty = (by - ay) / L;
             const nx = -ty, ny = tx;   // normale du plan de coupe (repère réel)
             // sens de vue (repère réel) : côté cliqué ; « droite » du regard = axe horizontal de la coupe
@@ -300,7 +307,7 @@
             const loopsOut = [];
             const allT = [];
             objs.forEach(o => {
-                let t; try { t = objTrisMM(o); } catch (e) { t = null; } if (!t) return; allT.push({ o, t });
+                let t; try { t = objTrisMM(o); } catch (e) { t = null; } if (!t) return; allT.push({ o, t }); if (fac) return;   /* façade : rien n'est coupé */
                 const segs = [];
                 for (let i = 0; i < t.length; i += 9) {
                     const P = [0, 1, 2].map(k => [t[i + 3 * k], t[i + 3 * k + 1], t[i + 3 * k + 2]]), d = P.map(q => (q[0] - ax) * nx + (q[1] - ay) * ny);
@@ -321,7 +328,7 @@
                     if (loop.length >= 3) loopsOut.push({ o, loop }); }
             });
             // VUE AU-DELÀ : ce qui est derrière le plan de coupe, dans le sens du regard, en traits fins (arêtes vives et menuiseries ; parties cachées retirées par un tampon de profondeur)
-            const beyond = [], SC = secSceneMM(), ZT = SC ? SC.tris : allT; try { const vx = vwx, vy = vwy, U = (q) => (q[0] - ax) * rx + (q[1] - ay) * ry, Dp = (q) => (q[0] - ax) * vx + (q[1] - ay) * vy, uB = (bx - ax) * rx + (by - ay) * ry, uL = Math.min(0, uB), uH = Math.max(0, uB);
+            const beyond = [], SC = secSceneMM(), ZT = SC ? SC.tris : allT; let footP = null; try { const vx = vwx, vy = vwy, U = (q) => (q[0] - ax) * rx + (q[1] - ay) * ry, Dp = (q) => (q[0] - ax) * vx + (q[1] - ay) * vy, uB = (bx - ax) * rx + (by - ay) * ry, uL = Math.min(0, uB), uH = Math.max(0, uB);
                 // triangles coupés au plan (on ne garde que la partie derrière)
                 const clipT = (t, i) => { const P = [0, 1, 2].map(k => [t[i + 3 * k], t[i + 3 * k + 1], t[i + 3 * k + 2]]), d = P.map(Dp); if (d.every(v => v <= 0)) return []; if (d.every(v => v >= 0)) return [P];
                     const out = []; for (let k = 0; k < 3; k++) { const a = P[k], b = P[(k + 1) % 3], da = d[k], db = d[(k + 1) % 3]; if (da >= 0) out.push(a); if ((da >= 0) !== (db >= 0)) { const f = da / (da - db); out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]); } }
@@ -334,8 +341,16 @@
                         for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const px = x + 0.5, py = y + 0.5, w1 = ((b[1] - d[1]) * (px - d[0]) + (d[0] - b[0]) * (py - d[1])) / den, w2 = ((d[1] - a[1]) * (px - d[0]) + (a[0] - d[0]) * (py - d[1])) / den, w3 = 1 - w1 - w2;
                             if (w1 < -0.01 || w2 < -0.01 || w3 < -0.01) continue; const z = w1 * a[2] + w2 * b[2] + w3 * d[2], k = y * W + x; if (z < Z[k]) Z[k] = z; } }); });
                     let budget = 20000;
-                    // la terre coupée cache tout ce qui est derrière elle : sous le terrain naturel du plan de coupe, rien n'est vu
-                    const tinB = getTIN(), NE = 400, earth = new Float64Array(NE + 1).fill(-Infinity); if (tinB) for (let i = 0; i <= NE; i++) { const f = i / NE, z = tinZ(A.x + (B.x - A.x) * f, A.y + (B.y - A.y) * f, tinB); if (hasZ(z)) earth[i] = z; }
+                    /* façade : profondeur du pied de la façade, colonne par colonne (premier point vu en partant du bas) ; le terrain est lu là, pas sur la ligne tracée devant */
+                    if (fac) { const dep = new Array(W).fill(null), dR = new Array(W).fill(null);   /* la surface la plus proche de chaque colonne parmi les ouvrages (pas le terrain) : la façade ; une toiture seulement s'il n'y a rien d'autre */
+                        allT.forEach(({ o, t }) => { const roof = !!(o.solid && o.solid.kind === 'roof'), T = roof ? dR : dep; for (let i = 0; i < t.length; i += 9) clipT(t, i).forEach(T3 => { const us = T3.map(U), ds = T3.map(Dp), dm = Math.max(0, Math.min(...ds)), x0 = Math.max(0, Math.floor((Math.min(...us) - uL) / c)), x1 = Math.min(W - 1, Math.floor((Math.max(...us) - uL) / c));
+                            for (let x = x0; x <= x1; x++) if (T[x] === null || dm < T[x]) T[x] = dm; }); });
+                        for (let x = 0; x < W; x++) if (dep[x] === null) dep[x] = dR[x];
+                        let last = null; for (let x = 0; x < W; x++) { if (dep[x] !== null) last = dep[x]; else if (last !== null) dep[x] = last; } last = null; for (let x = W - 1; x >= 0; x--) { if (dep[x] !== null) last = dep[x]; else if (last !== null) dep[x] = last; }
+                        footP = { uL, c, dep: dep.map(v => v === null ? 0 : Math.round(v)) }; }
+                    const footW = (f) => { const wx = A.x + (B.x - A.x) * f, wy = A.y + (B.y - A.y) * f; if (!footP) return { x: wx, y: wy }; const d = footAt(footP, f * uB); return { x: wx + mmToWorld(vwx * d), y: wy - mmToWorld(vwy * d) }; };
+                    // la terre coupée cache tout ce qui est derrière elle : sous le terrain naturel du plan de coupe (façade : au pied du mur), rien n'est vu
+                    const tinB = getTIN(), NE = 400, earth = new Float64Array(NE + 1).fill(-Infinity); if (tinB) for (let i = 0; i <= NE; i++) { const f = i / NE, P = footW(f), z = tinZ(P.x, P.y, tinB); if (hasZ(z)) earth[i] = z; }
                     const under = (uu, zz) => { if (!tinB || Math.abs(uB) < 1e-6) return false; const f = uu / uB * NE; if (f < 0 || f > NE) return false; const i = Math.min(NE - 1, Math.floor(f)), w = f - i, e0 = earth[i], e1 = earth[i + 1]; if (!isFinite(e0) || !isFinite(e1)) return false; return zz < e0 + (e1 - e0) * w - 30; };
                     // un trait 3D : gardé là où il est devant le tampon (à la tolérance près)
                     const visEdge = (p, q, lay) => { if (budget <= 0) return; const dp = Dp(p), dq = Dp(q); if (Math.max(dp, dq) < 5) return; if (dp < 0 || dq < 0) { const f = dp / (dp - dq), m = [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f, p[2] + (q[2] - p[2]) * f]; if (dp < 0) p = m; else q = m; }
@@ -359,18 +374,33 @@
                         if (o.top && o.top !== 'droit') { const pr = opProfile(o, L2, 16).pts; pr.forEach(([x, z], i) => { const q = pr[(i + 1) % pr.length]; visEdge(P3(x, z0 + z), P3(q[0], z0 + q[1]), lay); }); } else rect(0, L2, z0, z1); if (o.kind !== 'baie' && !(o.top && o.top !== 'droit')) rect(fr, L2 - fr, z0 + (o.kind === 'porte' ? 0 : fr), z1 - fr); if (o.kind === 'fen' && L2 > 1000 && !(o.top && o.top !== 'droit')) visEdge(P3(L2 / 2, z0 + fr), P3(L2 / 2, z1 - fr), lay); })); } } } catch (e) { console.error(e); }
             // terrain naturel le long de la coupe
             const tin = getTIN(), tn = [];
-            if (tin) for (let i = 0; i <= 200; i++) { const f = i / 200, wx = A.x + (B.x - A.x) * f, wy = A.y + (B.y - A.y) * f, z = tinZ(wx, wy, tin); if (hasZ(z)) tn.push([((worldToMm(wx) - ax) * rx + (-worldToMm(wy) - ay) * ry), z]); }
-            if (!loopsOut.length && tn.length < 2 && !beyond.length) return null;
+            if (tin) for (let i = 0; i <= 200; i++) { const f = i / 200, P = facFoot({ A, B, ax, ay, rx, ry, foot: footP }, f), z = tinZ(P.x, P.y, tin); if (hasZ(z)) tn.push([f * ((bx - ax) * rx + (by - ay) * ry), z]); }
+            if (fac && !beyond.length) return null; if (!loopsOut.length && tn.length < 2 && !beyond.length) return null;
+            // façade : niveaux des toitures (faîtage, égout) et des dalles vues de face, dans la largeur de la ligne
+            const lvF = []; if (fac) { const uB2 = (bx - ax) * rx + (by - ay) * ry, uLo = Math.min(0, uB2), uHi = Math.max(0, uB2), vx = -ry, vy = rx;
+                allT.forEach(({ o, t }) => { let zmax = -Infinity, zmin = Infinity, um = 0; for (let i = 0; i < t.length; i += 3) { const u = (t[i] - ax) * rx + (t[i + 1] - ay) * ry, d = (t[i] - ax) * vx + (t[i + 1] - ay) * vy; if (d < 0 || u < uLo - 1 || u > uHi + 1) continue; if (t[i + 2] > zmax) { zmax = t[i + 2]; um = u; } zmin = Math.min(zmin, t[i + 2]); }
+                    if (!isFinite(zmax)) return; if (o.solid && o.solid.kind === 'roof') { lvF.push({ k: 'Faîtage', z: zmax, u: um, c: o.layerId }); const he = o.roofDef && o.roofDef.o && isFinite(o.roofDef.o.he) && o.roofDef.o.pans ? o.roofDef.o.he * 1000 : zmin; lvF.push({ k: 'Égout', z: he, u: um, c: o.layerId }); }
+                    else if (o.solid && o.solid.kind === 'box' && (/dalle/i.test(o.name || '') || (o.solid.H || 0) <= 400)) lvF.push({ k: /toit/i.test(o.name || '') ? 'Dessus de dalle (toit)' : 'Dessus de dalle', z: zmax, u: um, c: o.layerId }); }); }
             const all = loopsOut.flatMap(x => x.loop).concat(tn, beyond.flatMap(b => [[b[0], b[1]], [b[2], b[3]]])); let u0 = Infinity, u1 = -Infinity, z0 = Infinity, z1 = -Infinity; all.forEach(q => { u0 = Math.min(u0, q[0]); u1 = Math.max(u1, q[0]); z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); });
             const used = new Set(shapes.filter(x => x.cutName).map(x => x.cutName)); let k = 0; while (k < 26 && used.has(String.fromCharCode(65 + k))) k++;
-            return { loops: loopsOut, tn, u0, u1, z0, z1, name: String.fromCharCode(65 + (k % 26)), A, B, side, ax, ay, rx, ry, L, beyond }; }
+            let name = String.fromCharCode(65 + (k % 26)); if (fac) { const b0 = facName(-ry, rx); name = b0; let n = 2; while (used.has(name)) name = b0 + ' ' + n++; }
+            return { loops: loopsOut, tn, u0, u1, z0, z1, name, A, B, side, ax, ay, rx, ry, L, beyond, fac, foot: footP, lvF }; }
+        // façade : profondeur du pied de la façade à l'abscisse u (mm), et point du plan correspondant à la fraction f de la ligne
+        // façade : le côté de la ligne où se trouve l'ouvrage le plus proche (dans la largeur de la ligne) ; 0 si rien
+        function facSide(A, B) { const ax = worldToMm(A.x), ay = -worldToMm(A.y), bx = worldToMm(B.x), by = -worldToMm(B.y), L = Math.hypot(bx - ax, by - ay); if (L < 1) return 0; const tx = (bx - ax) / L, ty = (by - ay) / L, nx = -ty, ny = tx; let dp = Infinity, dn = Infinity;
+            shapes.forEach(o => { const l = layers.find(y => y.id === (o.layerId || 'layer-0')); if ((l && l.visible === false) || !is3DObj(o) || o.gen || o.secOf) return; let t; try { t = objTrisMM(o); } catch (e) { t = null; } if (!t) return;
+                for (let i = 0; i < t.length; i += 3) { const u = (t[i] - ax) * tx + (t[i + 1] - ay) * ty; if (u < 0 || u > L) continue; const d = (t[i] - ax) * nx + (t[i + 1] - ay) * ny; if (d > 1) dp = Math.min(dp, d); else if (d < -1) dn = Math.min(dn, -d); } });
+            if (!isFinite(dp) && !isFinite(dn)) return 0; return dp <= dn ? -1 : 1; }   /* regard = normale × −côté */
+        function footAt(F, u) { if (!F || !F.dep.length) return 0; const i = Math.max(0, Math.min(F.dep.length - 1, Math.floor((u - F.uL) / F.c))); return F.dep[i]; }
+        function facFoot(D, f) { const wx = D.A.x + (D.B.x - D.A.x) * f, wy = D.A.y + (D.B.y - D.A.y) * f; if (!D.foot) return { x: wx, y: wy }; const uB = (worldToMm(D.B.x) - D.ax) * D.rx + (-worldToMm(D.B.y) - D.ay) * D.ry, d = footAt(D.foot, f * uB);
+            return { x: wx + mmToWorld(-D.ry * d), y: wy - mmToWorld(D.rx * d) }; }
         // dessine la coupe calculée, fenêtre centrée sur « at » (monde), avec son cadre, son titre et le repère dans le plan
         // ---- COUPE DYNAMIQUE : la ligne de coupe du plan porte sa définition (cutDef) ; la coupe est recalculée après chaque modification du plan.
         //      Volumes hachurés selon leur matériau, terrain en place (terre), remblai, déblai (contour tireté), lignes TN et projet, cotes de niveau
         //      (égouts, faîtages, dessus de dalles). La coupe garde sa place ; on peut la déplacer d'un bloc, elle suit.
         /* calques d'une coupe : un groupe « Coupe A-A » avec son dessin, ses cotes et sa ligne sur le plan (coupes d'avant : le calque « Coupes ») */
         function secLayers(def, make) { if (!def.lay && !make) { const c = cutLayerId(); return { d: c, c, p: c }; } if (def.lay && def.lay.d && layers.some(l => l.id === def.lay.d)) return def.lay;
-            const g = 'Coupe ' + def.name + '-' + def.name, mk = (n, col) => { let l = layers.find(x => x.name === g + ' — ' + n); if (!l) { l = { id: generateId(), name: g + ' — ' + n, visible: true, color: col, dash: 'solid', width: 1, textH: '', hatch: 'lines', hatchScale: 1, group: g }; layers.push(l); } return l.id; };
+            const g = secLab(def), mk = (n, col) => { let l = layers.find(x => x.name === g + ' — ' + n); if (!l) { l = { id: generateId(), name: g + ' — ' + n, visible: true, color: col, dash: 'solid', width: 1, textH: '', hatch: 'lines', hatchScale: 1, group: g }; layers.push(l); } return l.id; };
             def.lay = { d: mk('dessin', '#f472b6'), c: mk('cotes', '#fbbf24'), p: mk('ligne sur le plan', '#f472b6') }; updateLayerUI(); return def.lay; }
         /* réglages de la cotation d'une coupe (fenêtre Y) : pas du TN, écart de la colonne des niveaux au bâtiment, écart mini entre niveaux, chiffre du TN sous le trait, cotes affichées */
         function secOpt(def) { const o = def.opt || {}; return { tn: o.tn > 0 ? o.tn : 5, col: isFinite(o.col) ? o.col : 1.5, gap: isFinite(o.gap) ? o.gap : 0.45, tnOff: isFinite(o.tnOff) ? o.tnOff : 0.8, on: Object.assign({ F: 1, E: 1, D: 1, P: 1, T: 1 }, o.on || {}) }; }
@@ -387,12 +417,12 @@
         /* le dessin d'une coupe dynamique ne se sélectionne pas (il serait refait) : seuls son titre (qui emmène toute la coupe) et ses cotes se prennent ; il reste accrochable */
         function secLock(s) { return !!(s && s.secOf && !s.secTitle && !s.lvKey); }
         function sectionPlace(D, at) {
-            if (D.wait) D = sectionData(D.A, D.B, D.side); if (!D) return;
+            if (D.wait) D = sectionData(D.A, D.B, D.side, D.fac); if (!D) return;
             const { name, A, B, side } = D, id = 'sec' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), lid = cutLayerId(), zRef = Math.round(D.z0 / 1000) * 1000;
-            const def = { id, name, side, zRef, gid: 'grp-coupe-' + id, o: { x: at.x - mmToWorld((D.u0 + D.u1) / 2), y: at.y + mmToWorld((D.z0 + D.z1) / 2 - zRef) } }; def.lay = secLayers(def, true);
+            const def = { id, name, side, zRef, ...(D.fac ? { fac: 1 } : {}), gid: 'grp-coupe-' + id, o: { x: at.x - mmToWorld((D.u0 + D.u1) / 2), y: at.y + mmToWorld((D.z0 + D.z1) / 2 - zRef) } }; def.lay = secLayers(def, true);
             const line = { type: 'line', layerId: def.lay.p, x1: A.x, y1: A.y, x2: B.x, y2: B.y, groupId: def.gid + '-plan', cutDef: def, zk: 1, lvs: 1 };
             shapes.push(line); const out = secBuild(D, def); shapes.push(...out, ...secMarks(line)); { const sk = secSkOf(line, secModelSig()); SEC_D.set(id, { sk, D }); def.sk = sk; } saveState(); draw();
-            updateCommandMessageText('COUPE ' + name + '-' + name + ' dessinée (groupe de calques « Coupe ' + name + '-' + name + ' ») : ' + D.loops.length + ' élément(s) coupé(s)' + (D.tn.length > 1 ? ', terrain et terrassement' : '') + '. Quand le plan change, sa pastille passe à « à rafraîchir » : un clic la recalcule (ou « Mise à jour automatique » dans sa fenêtre Y). Son dessin ne se modifie pas (il s\'accroche) ; ses cotes se déplacent une à une ; son titre déplace toute la coupe.');
+            updateCommandMessageText(secLabU(def) + ' dessinée (groupe de calques « ' + secLab(def) + ' ») : ' + (def.fac ? (D.beyond || []).length + ' trait(s) vus' : D.loops.length + ' élément(s) coupé(s)') + (D.tn.length > 1 ? ', terrain et terrassement' : '') + '. Quand le plan change, sa pastille passe à « à rafraîchir » : un clic la recalcule (ou « Mise à jour automatique » dans sa fenêtre Y). Son dessin ne se modifie pas (il s\'accroche) ; ses cotes se déplacent une à une ; son titre déplace toute la coupe.');
             return out;
         }
         // repère dans le plan : flèches du sens de vue et lettres, recalés sur la ligne
@@ -410,8 +440,8 @@
             // terrain : TN et projet (plateformes, talus) échantillonnés le long de la ligne
             const tin = getTIN(); let FM = null; try { FM = tin ? finishedModel(null, tin, null, false) : null; } catch (e) { FM = null; } FMp = FM;
             if (tin) { const N = 240, T = [], Pj = [], U = []; const A = D.A, B = D.B;
-                const govN = {}, G = []; for (let i = 0; i <= N; i++) { const f = i / N, wx = A.x + (B.x - A.x) * f, wy = A.y + (B.y - A.y) * f, zt = tinZ(wx, wy, tin); if (!hasZ(zt)) continue; let zp = zt, gk = -1; if (FM) { const r = FM.at(wx, wy); if (r && r.gov >= 0 && hasZ(r.z)) { zp = r.z; govN[r.gov] = (govN[r.gov] || 0) + 1; if (r.kind === 1) gk = r.gov; } }
-                    U.push((worldToMm(wx) - D.ax) * D.rx + (-worldToMm(wy) - D.ay) * D.ry); T.push(zt); Pj.push(zp); G.push(gk); }
+                const govN = {}, G = []; for (let i = 0; i <= N; i++) { const f = i / N, lx = A.x + (B.x - A.x) * f, ly = A.y + (B.y - A.y) * f, Pf = D.fac ? facFoot(D, f) : { x: lx, y: ly }, wx = Pf.x, wy = Pf.y, zt = tinZ(wx, wy, tin); if (!hasZ(zt)) continue; let zp = zt, gk = -1; if (FM) { const r = FM.at(wx, wy); if (r && r.gov >= 0 && hasZ(r.z)) { zp = r.z; govN[r.gov] = (govN[r.gov] || 0) + 1; if (r.kind === 1) gk = r.gov; } }
+                    U.push((worldToMm(lx) - D.ax) * D.rx + (-worldToMm(ly) - D.ay) * D.ry); T.push(zt); Pj.push(zp); G.push(gk); }
                 const gTop = Object.keys(govN).sort((a, b) => govN[b] - govN[a])[0], pjCol = gTop !== undefined && FM && FM.P[gTop] && FM.P[gTop].s ? FM.P[gTop].s.layerId : tnCol;
                 if (U.length > 1) { const ord = U.map((u, k) => k).sort((a, b) => U[a] - U[b]), u = ord.map(k => U[k]), t = ord.map(k => T[k]), pj = ord.map(k => Pj[k]), gv = ord.map(k => G[k]); TNs = { u, t }; PFs = { u, pj, gv };
                     z0 = Math.min(z0, ...t, ...pj); z1 = Math.max(z1, ...t, ...pj); u0 = Math.min(u0, u[0]); u1 = Math.max(u1, u[u.length - 1]);
@@ -441,6 +471,7 @@
             const OP = secOpt(def), ON = OP.on; const lv = []; D.loops.forEach(({ o: ob, loop }) => { const zs = loop.map(q => q[1]), zmax = Math.max(...zs);
                 if (ob.solid && ob.solid.kind === 'roof') { const top = loop[zs.indexOf(zmax)]; lv.push({ k: 'Faîtage', z: zmax, u: top[0], c: ob.layerId }); const he = ob.roofDef && ob.roofDef.o && isFinite(ob.roofDef.o.he) && ob.roofDef.o.pans ? ob.roofDef.o.he * 1000 : Math.min(...zs); const lo = loop[zs.indexOf(Math.min(...zs))]; lv.push({ k: 'Égout', z: he, u: lo[0], c: ob.layerId }); }
                 else if (ob.solid && (ob.solid.kind === 'box') && (/dalle/i.test(ob.name || '') || (ob.solid.H || 0) <= 400)) lv.push({ k: /toit/i.test(ob.name || '') ? 'Dessus de dalle (toit)' : 'Dessus de dalle', z: zmax, u: loop[zs.indexOf(zmax)][0], c: ob.layerId }); });
+            (D.lvF || []).forEach(l => lv.push(l));   /* façade : niveaux vus de face */
             const pt = [];   // cotes posées sur leur point (plateformes, terrain)
             if (PFs) { let k = 0; const { u, pj, gv } = PFs; while (k < u.length) { const g = gv[k]; let e = k; while (e + 1 < u.length && gv[e + 1] === g) e++; if (ON.P && g >= 0 && e > k && u[e] - u[k] > 400) { const m = Math.round(k + (e - k) / 4), P = FMp && FMp.P[g] && FMp.P[g].s;   /* au premier quart : loin des cotes du bâtiment */
                         pt.push({ k: 'Plateforme' + (P && P.name ? ' ' + P.name : ''), z: pj[m], u: u[m], c: P ? P.layerId : null, key: 'P' + g + '_' + Math.round(u[m] / 1000) }); } k = e + 1; } }
@@ -456,7 +487,7 @@
             pt.forEach(l => { if (seen.has(l.key)) return; seen.add(l.key); mark(l, l.key, l.u, l.z); });
             // titre au-dessus de la coupe (pas de cadre)
             const m = Math.max(500, Math.min(2000, (z1 - z0) * 0.15)), F0 = Wp([u0, z1 + m]);
-            const ts = TEXT_WORLD_SIZE * 1.4; out.push(tag({ type: 'text', layerId: lid, x: F0.x, y: F0.y - ts * 0.6, content: 'COUPE ' + D.name + '-' + D.name, size: ts, cutName: D.name, secTitle: 1 }));
+            const ts = TEXT_WORLD_SIZE * 1.4; out.push(tag({ type: 'text', layerId: lid, x: F0.x, y: F0.y - ts * 0.6, content: secLabU(def), size: ts, cutName: D.name, secTitle: 1 }));
             def.tx = F0.x; def.ty = F0.y - ts * 0.6; return out;
         }
         // mise à jour : après chaque modification (un instant après), toutes les coupes dynamiques sont recalculées ; une coupe déplacée garde sa nouvelle place
@@ -479,7 +510,7 @@
         let secBadgeHits = [];
         function drawSecBadges(c) { secBadgeHits = []; const Ls = shapes.filter(x => x.cutDef && x.type === 'line'); if (!Ls.length) return; c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
             Ls.forEach(L => { const d = L.cutDef, st = secStale(L), T = shapes.find(x => x.secTitle && x.secOf === d.id), vis = (id) => { const l = layers.find(x => x.id === (id || 'layer-0')); return !(l && l.visible === false); };
-                const pill = (wx, wy, dy) => { const X = wx * camera.zoom + camera.x, Y = wy * camera.zoom + camera.y + dy, nm = 'Coupe ' + d.name + '-' + d.name, sub = st ? '⟳ à rafraîchir' : '✓ à jour';
+                const pill = (wx, wy, dy) => { const X = wx * camera.zoom + camera.x, Y = wy * camera.zoom + camera.y + dy, nm = secLab(d), sub = st ? '⟳ à rafraîchir' : '✓ à jour';
                     c.font = 'bold 12px Arial'; const w = Math.max(c.measureText(nm).width, c.measureText(sub).width) + 18, h = 30, x0 = X - w / 2, y0 = Y - h; if (x0 > c.canvas.width || y0 > c.canvas.height || x0 + w < 0 || y0 + h < 0) return;
                     c.fillStyle = st ? '#9a3412' : '#14532d'; c.strokeStyle = st ? '#fb923c' : '#4ade80'; c.lineWidth = 1.5; c.beginPath(); if (c.roundRect) c.roundRect(x0, y0, w, h, 9); else c.rect(x0, y0, w, h); c.fill(); c.stroke();
                     c.fillStyle = '#fff'; c.textBaseline = 'top'; c.fillText(nm, x0 + 9, y0 + 3); c.fillStyle = st ? '#fed7aa' : '#bbf7d0'; c.font = '10px Arial'; c.fillText(sub, x0 + 9, y0 + 17); secBadgeHits.push({ x0, y0, x1: x0 + w, y1: y0 + h, id: d.id }); };
@@ -488,9 +519,9 @@
             c.restore(); }
         function secBadgeAt(sx, sy) { return secBadgeHits.find(b => sx >= b.x0 && sx <= b.x1 && sy >= b.y0 && sy <= b.y1) || null; }
         function secForce(id) { const L = shapes.find(x => x.cutDef && x.cutDef.id === id && x.type === 'line'); if (!L) return; if (!window.THREE) { loadThree().then(() => secForce(id)); return; }
-            updateCommandMessageText('COUPE ' + L.cutDef.name + '-' + L.cutDef.name + ' : calcul…'); setTimeout(() => { const t0 = performance.now(); SEC_SIG_NOW = secModelSig(); L.cutDef.key = null; secRefresh(L, SEC_SIG_NOW, true); invalidateCache();
+            updateCommandMessageText(secLabU(L.cutDef) + ' : calcul…'); setTimeout(() => { const t0 = performance.now(); SEC_SIG_NOW = secModelSig(); L.cutDef.key = null; secRefresh(L, SEC_SIG_NOW, true); invalidateCache();
                 if (shapesHistory[historyStep] && historyStep === shapesHistory.length - 1) shapesHistory[historyStep].shapes = shapes; draw();
-                updateCommandMessageText('COUPE ' + L.cutDef.name + '-' + L.cutDef.name + ' rafraîchie (' + nfr((performance.now() - t0) / 1000, 1) + ' s).'); }, 30); }
+                updateCommandMessageText(secLabU(L.cutDef) + ' rafraîchie (' + nfr((performance.now() - t0) / 1000, 1) + ' s).'); }, 30); }
         function secRefresh(L, sig, force) { const d = L.cutDef, old = shapes.filter(x => x.secOf === d.id), title = old.find(x => x.secTitle);
             if (!old.length) { delete L.cutDef; return false; }   // tout le dessin de la coupe a été supprimé : la ligne redevient un simple repère (un titre effacé seul ne casse plus la coupe : il revient)
             const tdx = title && isFinite(d.tx) ? title.x - d.tx : 0, tdy = title && isFinite(d.ty) ? title.y - d.ty : 0;
@@ -501,7 +532,7 @@
             if (C && C.sk === sk) D = C.D;
             else { const up = d.sk === sk;   /* à jour mais pas encore calculée dans cette session (fichier rouvert) : calculée seulement si on la touche */
                 if (!force && !d.auto && (!up || (!moved && title))) { if (Math.abs(tdx) > 1e-9 || Math.abs(tdy) > 1e-9) { /* coupe déplacée par son titre sans recalcul : tout son dessin suit */ shapes.forEach(x => { if (x.secOf === d.id && !x.secTitle) { translateShape(x, tdx, tdy); if (x.lvRef) x.lvRef = { x: x.lvRef.x + tdx, y: x.lvRef.y + tdy }; } }); d.tx = title.x; d.ty = title.y; return true; } return false; }
-                const t0 = performance.now(); D = sectionData({ x: L.x1, y: L.y1 }, { x: L.x2, y: L.y2 }, d.side); if (!D || D.wait) return false; SEC_D.set(d.id, { sk, D }); d.sk = sk; SEC_LAST_MS = Math.round(performance.now() - t0); }
+                const t0 = performance.now(); D = sectionData({ x: L.x1, y: L.y1 }, { x: L.x2, y: L.y2 }, d.side, d.fac); if (!D || D.wait) return false; SEC_D.set(d.id, { sk, D }); d.sk = sk; SEC_LAST_MS = Math.round(performance.now() - t0); }
             D.name = d.name;
             const out = secBuild(D, d), key = JSON.stringify(out.map(x => [x.type, x.points || x.loops || [x.x, x.y, x.x1, x.y1, x.x2, x.y2, x.content]])).replace(/(\d+\.\d{4})\d+/g, '$1');
             const mk = shapes.filter(x => x.secMark === d.id), mkKey = JSON.stringify([L.x1, L.y1, L.x2, L.y2]);

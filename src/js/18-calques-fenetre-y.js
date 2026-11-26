@@ -184,7 +184,7 @@
             const S = selectedShapes, one = S.length === 1 ? S[0] : null;
             const wallG = S.length && S.every(x => x.wallMat);
             if (wallG) { const g = new Set(S.map(x => x.groupId)).size, m = WALL_MATS[S[0].wallMat]; if (g === 1 && S.every(x => x.wallCx)) return { k: 'wall', t: 'Paroi complexe — ' + S[0].wallCx }; return { k: 'wall', t: (g > 1 ? g + ' murs' : 'Mur') + ' — ' + (m ? m.name : 'paroi') }; }
-            { const CL = S.length > 1 && S.some(x => x.secTitle) ? cutLineOf(S) : null; if (CL) return { k: 'section', t: 'Coupe ' + CL.cutDef.name + '-' + CL.cutDef.name }; }   /* une coupe dynamique : pas un bloc à éclater */
+            { const CL = S.length > 1 && S.some(x => x.secTitle) ? cutLineOf(S) : null; if (CL) return { k: 'section', t: secLab(CL.cutDef) }; }   /* une coupe dynamique : pas un bloc à éclater */
             if (S.length && S.every(x => x.groupId) && new Set(S.map(x => x.groupId)).size === 1) return { k: 'block', t: 'Bloc' + (S[0].block ? ' « ' + S[0].block + ' »' : '') + ' (' + S.length + ' objets)' };
             if (!one) return { k: S.every(x => x.type === 'point') ? 'points' : 'multi', t: S.length + ' objets' + (S.every(x => x.type === 'point') ? ' (points topo)' : '') };
             if (one.type === 'cline') return { k: 'cline', t: 'Trait de construction (sans calque)' };
