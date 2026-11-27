@@ -334,13 +334,18 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     // arbres HD (rendu photo, option du studio) : touffes de feuilles (silhouettes teintées) sur les houppiers des blocs arbres et des zones boisées ; rien hors rendu HD
     const lf = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {}; await leafLoad();
         for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 4 * m, y: j * 4 * m, z: 100000, zk: 1 });
-        [['arbre', -5], ['arbre-aiguilles', 5]].forEach(([id, x]) => { startStamp(id); currentX = x * m; currentY = 0; placeStamp(); }); setMode('select-box');
+        [['arbre', -5], ['arbre-aiguilles', 5], ['arbre', 400]].forEach(([id, x]) => { startStamp(id); currentX = x * m; currentY = 0; placeStamp(); }); setMode('select-box');
         shapes.push({ type: 'poly', layerId: 'layer-0', points: [[-8, 6], [8, 6], [8, 12], [-8, 12]].map(([x, y]) => ({ x: x * m, y: y * m })), bois: { h: 10, tex: 'vert' }, name: 'Zone boisée' }); saveState();
         await open3D(); const kinds = () => { const K = {}; V3.root.traverse(o => { if (o.userData.leafCards) K[o.userData.leafCards] = o.count; }); return K; };
-        r.none = Object.keys(kinds()).length === 0; V3.hq = { tree: 1, terr: 1, leaf: true }; build3DScene(); const K = kinds(); V3.hq = null; build3DScene();
+        r.none = Object.keys(kinds()).length === 0; V3.hq = { tree: 1, terr: 1, leaf: true }; build3DScene(); const K = kinds();
+        /* même l'arbre à 400 m porte ses feuilles ; sapin : touffes plus grandes en bas qu'en haut */
+        const mt = new THREE.Matrix4(), ps = new THREE.Vector3(), qu = new THREE.Quaternion(), sc = new THREE.Vector3(), far = new THREE.Vector3(400, 0, 0).applyMatrix4(V3.root.matrixWorld.clone()), lo = [], hi = []; let nFar = 0, zmin = 1e9, zmax = -1e9; const A = [];
+        V3.root.traverse(o => { if (!o.userData.leafCards) return; for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, mt); mt.premultiply(o.matrixWorld); mt.decompose(ps, qu, sc); if (Math.hypot(ps.x - far.x, ps.y - far.y) < 8) nFar++; if (o.userData.leafCards === 'aiguilles') { A.push([ps.z, sc.x]); zmin = Math.min(zmin, ps.z); zmax = Math.max(zmax, ps.z); } } });
+        A.forEach(([z, s]) => { const t = (z - zmin) / (zmax - zmin); if (t < 0.3) lo.push(s); else if (t > 0.7) hi.push(s); }); const av = a => a.reduce((x, y) => x + y, 0) / a.length;
+        r.far = nFar > 20; r.taper = lo.length > 20 && hi.length > 20 && av(lo) > av(hi) * 1.5; V3.hq = null; build3DScene();
         r.kinds = ['chene', 'aiguilles'].every(k => K[k] > 200) && (K.tilleul > 200 || K.plume > 200); r.back = Object.keys(kinds()).length === 0;
         r.opt = studioNew().leaf === true; close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
-    t.eq('arbres HD : touffes de feuilles par essence au rendu photo (chêne, aiguilles, tilleul / laurier), rien en vue 3D normale', lf, { none: true, kinds: true, back: true, opt: true });
+    t.eq('arbres HD : touffes de feuilles par essence au rendu photo (chêne, aiguilles, tilleul / laurier), tous les arbres même au loin, aiguilles plus fines vers la pointe, rien en vue 3D normale', lf, { none: true, far: true, taper: true, kinds: true, back: true, opt: true });
     // zone boisée : densité réglable au Y (plants au m²), le nombre d'arbres suit, la taille des houppiers reste ; case vide = automatique
     const bd = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
         const Z = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [50, 0], [50, 40], [0, 40]].map(([x, y]) => ({ x: x * m, y: -y * m })), bois: { h: 12 }, name: 'Zone boisée' }; shapes.push(Z); saveState(); selectedShapes = [Z];
