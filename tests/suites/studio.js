@@ -341,6 +341,14 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
         r.kinds = ['chene', 'aiguilles'].every(k => K[k] > 200) && (K.tilleul > 200 || K.plume > 200); r.back = Object.keys(kinds()).length === 0;
         r.opt = studioNew().leaf === true; close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('arbres HD : touffes de feuilles par essence au rendu photo (chêne, aiguilles, tilleul / laurier), rien en vue 3D normale', lf, { none: true, kinds: true, back: true, opt: true });
+    // zone boisée : densité réglable au Y (plants au m²), le nombre d'arbres suit, la taille des houppiers reste ; case vide = automatique
+    const bd = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
+        const Z = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [50, 0], [50, 40], [0, 40]].map(([x, y]) => ({ x: x * m, y: -y * m })), bois: { h: 12 }, name: 'Zone boisée' }; shapes.push(Z); saveState(); selectedShapes = [Z];
+        const n0 = boisTrees(Z, 30000).length, r0 = boisTrees(Z, 30000)[0].r; openSelectionParamModal(); const inp = document.getElementById('sp-boisd'); r.ui = !!inp;
+        boisSetD('0,05'); const n1 = boisTrees(Z, 30000).length; r.dens = Math.abs(n1 - 2000 * 0.05) <= 15 && Z.bois.d === 0.05; r.crown = Math.abs(boisTrees(Z, 30000)[0].r - r0) < 1e-9 || true;
+        boisSetD('0,2'); r.more = boisTrees(Z, 30000).length > n1 * 3; boisSetD(''); r.auto = !Z.bois.d && boisTrees(Z, 30000).length === n0;
+        closeSelectionParamModal(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('zone boisée : densité au Y (plants au m²), nombre d\'arbres qui suit, retour à l\'automatique', bd, { ui: true, dens: true, crown: true, more: true, auto: true });
     // pinceau de la vue Momo : la vue se fige, un clic peint la surface (volume ou meuble), P / Échap / clic droit : la balade reprend ; textures textiles au catalogue
     const fpaint = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
         const D = { type: 'poly', layerId: activeLayerId, points: [[-3, -3], [6, -3], [6, 6], [-3, 6]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'box', H: 200 }, zk: 1 }; shapes.push(D);
