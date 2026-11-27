@@ -93,6 +93,36 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const txt = JSON.stringify(projectData()); loadProjectText(txt, 'b.mmc'); await new Promise(r => setTimeout(r, 300)); o.saved = JSON.stringify(shapes.filter(x => x.bld).map(x => x.bld.nm + ':' + x.bld.lvls.length));
         lvlOn = false; bldActId = null; shapes = keepS; lvls = keepL; invalidateCache(); saveState(); return o; });
     t.eq('contours de bâtiment : niveaux propres à chacun, mur pris dans son contour, étage choisi sur le contour (Y), pastilles', bz, { wA: [69000, 72000, true], wB: [72500, 75200, true], panel: true, wB1: [75200, 77900], hidden: [false, false], badges: 2, badgeB: 'R + 1', moved: [70000, 72500], box: true, saved: '["A:1","B:2"]' });
+    // à l'ouverture : chaque bâtiment montré à son RDC (étages du dessus masqués, y compris dans le bâtiment non actif) ; la vue revient sur le bâtiment qu'on règle ; le plan ne rame plus avec l'étage actif
+    const rdc0 = await ev(async () => { const keepS = shapes, keepL = lvls; shapes = []; lvls = null; bldActId = null; lvlsGlobal = null; lvlOn = false; const m = mmToWorld(1000), M = mmToWorld, r = {};
+        const rect = (x0, y0, x1, y1) => ({ type: 'poly', layerId: activeLayerId, points: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m })) });
+        const A = rect(0, 0, 10, 8), B = rect(20, 0, 30, 8); shapes.push(A, B); saveState(); bldMake(A, 'A', 69000, 3000); bldMake(B, 'B', 72500, 2700); saveState();
+        const wall = async (x1, x2, y) => { startWall('w-beton20'); wallStart = { x: M(x1 * 1000), y: -M(y * 1000) }; wallAddTo(M(x2 * 1000), -M(y * 1000)); setMode('select-box'); await new Promise(q => setTimeout(q, 200)); return shapes.filter(isWallHatch).pop(); };
+        for (const Z of [A, B]) { bldActivate(Z, 'rdc'); lvlAdd(true); } bldActivate(A, 'rdc'); await wall(1, 9, 1); bldPick(lvlSorted().find(x => x.id !== 'rdc').id); await wall(1, 9, 7);
+        bldActivate(B, 'rdc'); bldPick('rdc'); await wall(21, 29, 1); bldPick(lvlSorted().find(x => x.id !== 'rdc').id); await wall(21, 29, 7); bldAll(); bldActivate(null);
+        const txt = JSON.stringify(projectData()); loadProjectText(txt, 'r.mmc'); await new Promise(q => setTimeout(q, 300));
+        const W = shapes.filter(isWallHatch), up = W.filter(w => w.lvl && w.lvl !== 'rdc'), dn = W.filter(w => w.lvl === 'rdc');
+        r.open = [lvlOn, lvlAct, shapes.filter(x => x.bld).map(x => x.bld.act).join(','), !!document.getElementById('btn-etages') === false || document.getElementById('btn-etages').classList.contains('active')];
+        r.hid = [up.length, up.every(w => lvlHidden(w)), dn.length, dn.some(w => lvlHidden(w) || lvlBelow(w))];
+        const B2 = shapes.find(x => x.bld && x.bld.nm === 'B'), A2 = shapes.find(x => x.bld && x.bld.nm === 'A'); bldOpen(B2.bld.id); bldPick(B2.bld.lvls.find(x => x.id !== 'rdc').id); closeSelectionParamModal();
+        r.pickB = [up.filter(w => w.bid === B2.bld.id).every(w => !lvlHidden(w)), up.filter(w => w.bid === A2.bld.id).every(w => lvlHidden(w)), dn.filter(w => w.bid === B2.bld.id).every(w => lvlBelow(w))];
+        // vue partie très loin : régler le bâtiment la ramène sur lui
+        camera.zoom = 1e-6; camera.x = 0; camera.y = 0; bldOpen(A2.bld.id); closeSelectionParamModal(); const P = A2.points.map(q => worldToScreen(q.x, q.y)), sz = Math.max(...P.map(q => q.x)) - Math.min(...P.map(q => q.x));
+        r.back = sz >= 60 && sz < canvas.width; const z1 = camera.zoom; bldPick('rdc'); r.stay = camera.zoom === z1;
+        // plan chargé (milliers d'objets) avec l'étage actif : une image coûte à peu près comme sans
+        for (let i = 0; i < 4000; i++) shapes.push({ type: 'point', layerId: activeLayerId, x: (i % 70) * m, y: -Math.floor(i / 70) * m, z: 70000 }); invalidateCache();
+        const tm = () => { const a = []; for (let i = 0; i < 5; i++) { const t0 = performance.now(); invalidateCache(); draw(); a.push(performance.now() - t0); } return a.sort((x, y) => x - y)[2]; };
+        lvlOn = false; const off = tm(); lvlOn = true; const on = tm(); r.fast = on < off * 3 + 60; r.ms = [Math.round(off), Math.round(on)];
+        bldAll(); bldActivate(null); lvlOn = false; shapes = keepS; lvls = keepL; invalidateCache(); saveState(); draw(); return r; });
+    const rdcMs = rdc0.ms; delete rdc0.ms;
+    t.eq('ouverture au RDC : étages du dessus masqués dans chaque bâtiment, vue ramenée sur le bâtiment réglé, plan fluide (' + rdcMs.join(' / ') + ' ms)', rdc0, { open: [true, 'rdc', 'rdc,rdc', true], hid: [2, true, 2, false], pickB: [true, true, true], back: true, stay: true, fast: true });
+    // double-clic molette : deux clics francs seulement ; un glisser suivi d'un clic ne cadre plus tout le fond de carte
+    const mid = await ev(async () => { const r = {}, cr = canvas.getBoundingClientRect(), X = cr.left + 400, Y = cr.top + 300, ev2 = (t, x, y) => canvas.dispatchEvent(new MouseEvent(t, { button: 1, buttons: t === 'mouseup' ? 0 : 4, clientX: x, clientY: y, bubbles: true, cancelable: true })), wait = (ms) => new Promise(q => setTimeout(q, ms));
+        const keep = { ...camera }, keepS = shapes; shapes = shapes.concat([{ type: 'line', layerId: activeLayerId, x1: 0, y1: 0, x2: mmToWorld(5000), y2: 0 }]); camera.zoom = 0.5; camera.x = 10; camera.y = 10;
+        ev2('mousedown', X, Y); ev2('mousemove', X + 60, Y + 30); ev2('mouseup', X + 60, Y + 30); await wait(40); ev2('mousedown', X + 2, Y + 1); ev2('mouseup', X + 2, Y + 1); r.drag = camera.zoom === 0.5;
+        await wait(450); const z = camera.zoom, cx = camera.x; ev2('mousedown', X, Y); ev2('mouseup', X, Y); await wait(60); ev2('mousedown', X, Y); ev2('mouseup', X, Y); r.dbl = camera.zoom !== z || camera.x !== cx;
+        shapes = keepS; Object.assign(camera, keep); invalidateCache(); draw(); return r; });
+    t.eq('double-clic molette : cadre tout seulement sur deux clics francs, pas après un glisser', mid, { drag: true, dbl: true });
     // bouton Contour de bâtiment (ex-Étages) : on trace le contour, à la fermeture la fenêtre du bâtiment s'ouvre ; avec une polyligne fermée sélectionnée, directement
     const bt = await ev(async () => { const keepS = shapes; shapes = []; saveState(); selectedShapes = []; etaClick(); const m0 = mode; const m = mmToWorld(1000);
         shapes.push({ type: 'poly', layerId: activeLayerId, points: [[0, 0], [8, 0], [8, -6], [0, -6]].map(([x, y]) => ({ x: x * m, y: y * m })) }); saveState(); await new Promise(r => setTimeout(r, 120));

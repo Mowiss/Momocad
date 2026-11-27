@@ -374,7 +374,7 @@
         // flèche du nord d'une fenêtre de plan : en haut à droite, 14 mm, tournée comme la vue
         function lpNorthDraw(c, v, k, rx, ry, rw, rh) { if (!v.north || !lpNorthOk(v) || typeof sitNorth !== 'function') return; const R = 7 * k, X = rx + rw - R - 4 * k, Y = ry + R + 4 * k;
             c.save(); c.translate(X, Y); c.rotate((v.a || 0) * Math.PI / 180); sitNorth(c, 0, 0, R); c.restore(); }
-        function lpRenderVp(tctx, v, k, rx, ry, rw, rh) { const r = lpRenderVp0(tctx, v, k, rx, ry, rw, rh); try { tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip(); lpGridDraw(tctx, v, k, rx, ry, rw, rh); lpNorthDraw(tctx, v, k, rx, ry, rw, rh); tctx.restore(); } catch (e) {} return r; }
+        function lpRenderVp(tctx, v, k, rx, ry, rw, rh) { const lvK = lvlOn; let r; lvlOn = false; try { r = lpRenderVp0(tctx, v, k, rx, ry, rw, rh); } finally { lvlOn = lvK; }   /* une fenêtre de présentation montre toute la maquette, quel que soit l'étage où l'on dessine */ try { tctx.save(); lpPath(tctx, v, rx, ry, rw, rh); tctx.clip(); lpGridDraw(tctx, v, k, rx, ry, rw, rh); lpNorthDraw(tctx, v, k, rx, ry, rw, rh); tctx.restore(); } catch (e) {} return r; }
         function lpRenderVp0(tctx, v, k, rx, ry, rw, rh) {
             if (v && v.lv && !v._lvOn) { const L = lpSpace === 'paper' && lpModelStore && lpModelStore.layers ? lpModelStore.layers : layers, keepV = L.map(l => l.visible); v._lvOn = true;
                 try { L.forEach(l => { l.visible = lpVpVis(v, l); }); return lpRenderVp(tctx, v, k, rx, ry, rw, rh); } finally { L.forEach((l, i) => { l.visible = keepV[i]; }); delete v._lvOn; } }

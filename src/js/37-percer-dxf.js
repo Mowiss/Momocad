@@ -932,7 +932,8 @@
 
 
         // Recentre et ajuste le zoom de la vue sur un ensemble de formes (après import DXF).
-        let midClickT = 0, midClickX = 0, midClickY = 0;
+        /* double-clic molette : deux clics francs (enfoncé puis relâché sur place, sans glisser) ; un glisser-déplacer suivi d'un autre ne compte plus comme un double-clic (la vue partait d'un coup sur tout le fond de carte) */
+        let midClickT = 0, midClickX = 0, midClickY = 0, midUpT = 0, midMoved = false;
         // Zoom étendu : tous les objets des calques visibles dans la fenêtre (en présentation : la feuille, ou la fenêtre active)
         function zoomExtents() {
             if (layoutOn && typeof lpFitView === 'function' && !lpInner) { lpFitView(); updateCommandMessageText('Zoom étendu : feuille entière.'); return; }

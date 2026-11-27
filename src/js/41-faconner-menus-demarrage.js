@@ -110,8 +110,8 @@
             if (e.button === 1) { e.preventDefault();
                 // double-clic molette : tout le dessin dans la fenêtre (comme AutoCAD)
                 const now = performance.now();
-                if (now - midClickT < 400 && Math.hypot(sx - midClickX, sy - midClickY) < 8) { midClickT = 0; isPanning = false; zoomExtents(); return; }
-                midClickT = now; midClickX = sx; midClickY = sy;
+                if (midUpT && now - midUpT < 350 && Math.hypot(sx - midClickX, sy - midClickY) < 8) { midClickT = 0; midUpT = 0; isPanning = false; zoomExtents(); return; }
+                midClickT = now; midClickX = sx; midClickY = sy; midMoved = false; midUpT = 0;
                 isPanning = true; lastPanX = sx; lastPanY = sy; canvas.style.cursor = 'grabbing'; return; }
             if (spDirPick && e.button === 0) { const w = screenToWorld(sx, sy); spDirClick(w.x, w.y); draw(); return; }
             if (layoutOn && lp3D.id && (e.button === 0 || e.button === 1) && lp3DDown(e, sx, sy)) return;
@@ -492,7 +492,7 @@
             const r = canvas.getBoundingClientRect(); let sx = e.clientX-r.left, sy = e.clientY-r.top;
             currentX_screen = sx; currentY_screen = sy;
             if (brush2D() && !isPanning) { const H = brush2DHit(sx, sy); if (brushTool.down) brushMove({ H }); else { brush2DAt = H.q; draw(); } return; }
-            if (isPanning) { if (layoutOn && !lpActiveId) { lpCam.x += (sx-lastPanX); lpCam.y += (sy-lastPanY); } else { navBegin(); camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); } lastPanX = sx; lastPanY = sy; if (layoutOn) draw(); else navDraw(); return; }
+            if (isPanning) { if (Math.hypot(sx - midClickX, sy - midClickY) > 4) midMoved = true; if (layoutOn && !lpActiveId) { lpCam.x += (sx-lastPanX); lpCam.y += (sy-lastPanY); } else { navBegin(); camera.x += (sx-lastPanX); camera.y += (sy-lastPanY); } lastPanX = sx; lastPanY = sy; if (layoutOn) draw(); else navDraw(); return; }
             if (layoutOn && lp3D.drag) { lp3DMove(sx, sy); return; }
             if (layoutOn && lpIE.drag) { lpIEMove(sx, sy); return; }
             if (layoutOn && lpSE.drag) { sitMove(sx, sy); return; }
@@ -559,7 +559,7 @@
             if (layoutOn && lpDrag) { lpDrag = null; draw(); return; }
             if (mode === 'pen' && e.button === 0) penUp();
             if (gripDrag && e.button === 0) { const moved = Math.hypot(currentX - gripDrag.x0, currentY - gripDrag.y0) * camera.zoom > 3; if (moved) endGrip(false); return; }
-            if (e.button === 1) { isPanning = false; if (NAV.snap) draw(); canvas.style.cursor = mode === 'select-box' ? 'default' : 'crosshair'; }
+            if (e.button === 1) { midUpT = !midMoved && performance.now() - midClickT < 300 ? performance.now() : 0; isPanning = false; if (NAV.snap) draw(); canvas.style.cursor = mode === 'select-box' ? 'default' : 'crosshair'; }
             if (mode === 'select-box' && isDrawing && t2SelUp(e)) {
                 moveTypedX = null; typedInput = "";
                 let dist = Math.hypot(currentX - startX, currentY - startY);

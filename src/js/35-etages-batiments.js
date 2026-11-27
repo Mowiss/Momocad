@@ -4,8 +4,10 @@
         // ---- CONTOURS DE BÂTIMENT : une polyligne fermée porte les niveaux de son bâtiment (s.bld = { id, nm, lvls, act }) ; plusieurs bâtiments à des altitudes différentes.
         // Ce qu'on dessine dans un contour prend ses niveaux (l'étage où l'on dessine, affiché sur la pastille du contour). lvls = les niveaux du bâtiment actif.
         let bldActId = null, lvlsGlobal = null;
-        function bldZones() { return shapes.filter(s => s.bld && s.type === 'poly' && s.points && s.points.length >= 3); }
-        function bldById(id) { return id ? bldZones().find(z => z.bld.id === id) || null : null; }
+        /* gardés tant que le plan ne change pas (même tableau, même nombre d'objets, même époque de dessin) : lvlOf les demande pour chaque objet à chaque image ; recalculés à chaque fois, le plan entier ramait (plus d'une seconde par image sur un grand fond de carte) */
+        let BZ_C = null; function bzReset() { BZ_C = null; }
+        function bldZones() { const k = renderEpoch; if (BZ_C && BZ_C.a === shapes && BZ_C.n === shapes.length && BZ_C.k === k) return BZ_C.z; const z = shapes.filter(s => s.bld && s.type === 'poly' && s.points && s.points.length >= 3); BZ_C = { a: shapes, n: shapes.length, k, z, id: new Map(z.map(x => [x.bld.id, x])) }; return z; }
+        function bldById(id) { if (!id) return null; bldZones(); const z = BZ_C.id.get(id); return z && z.bld && z.bld.id === id ? z : null; }
         function bldCur() { return bldById(bldActId); }
         function bldRep(s) { if (s.type === 'line' || s.type === 'slope') return { x: (s.x1 + s.x2) / 2, y: (s.y1 + s.y2) / 2 }; if ((s.type === 'circle' || s.type === 'text' || s.type === 'point') && isFinite(s.x)) return { x: s.x, y: s.y }; return shapeCenterOf(s); }
         function bldZoneAt(x, y) { const Z = bldZones().filter(z => pointInPolygon(x, y, z.points)); if (Z.length < 2) return Z[0] || null; return Z.sort((a, b) => Math.abs(polyArea(a.points)) - Math.abs(polyArea(b.points)))[0]; }
@@ -16,7 +18,7 @@
             bldActId = Z ? Z.bld.id : null; lvls = Z ? Z.bld.lvls : lvlsGlobal; const want = lvId || (Z ? Z.bld.act : null) || 'rdc'; lvlAct = lvlList().some(L => L.id === want) ? want : 'rdc'; if (Z) Z.bld.act = lvlAct; }
         function bldMake(sh, nm, z, h) { if (!sh || sh.type !== 'poly' || sh.open) return null; const legacy = !bldZones().length && (bldActId ? lvlsGlobal : lvls);
             const L = legacy && legacy.length ? JSON.parse(JSON.stringify(legacy)) : [{ id: 'rdc', z: Math.round(z), h: Math.round(h) || 2800 }]; const R = L.find(x => x.id === 'rdc'); if (R && hasZ(z)) { R.z = Math.round(z); if (h > 0) R.h = Math.round(h); }
-            sh.points.forEach(q => { delete q.z; }); delete sh.plat; delete sh.talus; delete sh.lvl; delete sh.bid; sh.bld = { id: 'b' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), nm: nm || ('Bâtiment ' + String.fromCharCode(65 + bldZones().filter(x => x !== sh).length)), lvls: L, act: 'rdc' };
+            sh.points.forEach(q => { delete q.z; }); delete sh.plat; delete sh.talus; delete sh.lvl; delete sh.bid; bzReset(); sh.bld = { id: 'b' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), nm: nm || ('Bâtiment ' + String.fromCharCode(65 + bldZones().filter(x => x !== sh).length)), lvls: L, act: 'rdc' }; bzReset();
             // ce qui est déjà dessiné dedans lui appartient (avec son étage d'après l'altitude)
             shapes.forEach(o => { if (o === sh || o.bld || o.bid || isPlateforme(o) || isBg(o)) return; const p = bldRep(o); if (p && pointInPolygon(p.x, p.y, sh.points)) o.bid = sh.bld.id; });
             if (legacy && legacy.length) { if (bldActId) lvlsGlobal = null; else lvls = null; }
@@ -35,7 +37,7 @@
                 [['Annuler', () => closeTopoModal(), false], ['Créer', () => { const z = t2Num(document.getElementById('bd-z').value), h = t2Num(document.getElementById('bd-h').value); if (!isFinite(z)) { alert('Donnez la cote du RDC.'); return; }
                     bldMake(sh, document.getElementById('bd-nm').value.trim(), z * 1000, isFinite(h) && h > 0 ? h * 1000 : 2800); closeTopoModal(); saveState(); selectedShapes = [sh]; lvlRefresh(); openSelectionParamModal();
                     updateCommandMessageText('BÂTIMENT ' + sh.bld.nm + ' : RDC à ' + nfr(z, 2) + ' m. Ce que vous dessinez dedans va sur l\'étage de sa pastille ; Y sur le contour pour les étages.'); }, true]]); }
-        function bldUnmake(id) { const Z = bldById(id); if (!Z) return; shapes.forEach(o => { if (o.bid === id) { delete o.bid; delete o.lvl; } }); if (bldActId === id) bldActivate(null); delete Z.bld; saveState(); closeSelectionParamModal(); lvlRefresh(); updateCommandMessageText('BÂTIMENT : ce contour redevient une simple polyligne (les objets gardent leurs altitudes).'); }
+        function bldUnmake(id) { const Z = bldById(id); if (!Z) return; shapes.forEach(o => { if (o.bid === id) { delete o.bid; delete o.lvl; } }); if (bldActId === id) bldActivate(null); delete Z.bld; bzReset(); saveState(); closeSelectionParamModal(); lvlRefresh(); updateCommandMessageText('BÂTIMENT : ce contour redevient une simple polyligne (les objets gardent leurs altitudes).'); }
         // le bouton Contour de bâtiment : une polyligne fermée sélectionnée en devient un ; sinon on trace le contour, et à la fermeture on règle le bâtiment
         let bldDrawing = false, bldDrawBase = 0;
         function etaClick() { const one = selectedShapes.length === 1 ? selectedShapes[0] : null;
@@ -104,8 +106,14 @@
                 C = C.filter((q, i) => i === 0 || !same(q, C[i - 1])); if (C.length > 2 && same(C[0], C[C.length - 1])) C.pop(); if (C.length < 3) return;
                 keep.points = C; delete keep.open; const gone = new Set(P.filter(x => x !== keep)); if (gone.size) { shapes = shapes.filter(x => !gone.has(x)); selectedShapes = selectedShapes.map(x => gone.has(x) ? keep : x).filter((x, i, A) => A.indexOf(x) === i); } fixed++; });
             return fixed; }
-        function bldOpen(id) { const Z = bldById(id); if (!Z) return; bldActivate(Z); selectedShapes = [Z]; (window.spOpenState = window.spOpenState || {})['bldlv'] = true; openSelectionParamModal(); draw(); }
-        function bldPick(id) { lvlOn = true; lvlMarkAll(); lvlAct = id; const Z = bldCur(); if (Z) Z.bld.act = id; bldPanelDraw(); lvlRefresh(); const L = lvlList().find(x => x.id === id); if (L && L.roof) { updateCommandMessageText('ÉTAGES — ' + (Z ? Z.bld.nm : '') + ' : TOIT — dessinez la toiture (palette Bâtiment) ; les étages restent visibles en dessous.'); return; } updateCommandMessageText('ÉTAGES — ' + (Z ? Z.bld.nm : '') + ' : ' + lvlName(L) + ' (plancher ' + lvlRel(L) + ', cote ' + nfr(L.z / 1000, 2) + ' m, H ' + nfr(L.h / 1000, 2) + ' m) : un mur dessiné dans le contour va de ' + lvlRel(L) + ' à ' + lvlRel({ z: L.z + L.h }) + ' ; les autres étages sont masqués sur le plan.'); }
+        /* le bâtiment reste sous les yeux : hors de l'écran ou réduit à quelques pixels (vue partie sur tout le fond de carte), la vue revient sur lui, avec de la marge */
+        function bldShow(Z) { if (!Z || !Z.points || Z.points.length < 3 || (typeof layoutOn !== 'undefined' && layoutOn)) return false; const P = Z.points.map(q => worldToScreen(q.x, q.y)), xs = P.map(q => q.x), ys = P.map(q => q.y);
+            const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+            if (Math.max(x1 - x0, y1 - y0) >= 60 && cx > 0 && cy > 0 && cx < canvas.width && cy < canvas.height) return false;
+            const W = Z.points.map(q => q.x), H = Z.points.map(q => q.y), mx = (Math.min(...W) + Math.max(...W)) / 2, my = (Math.min(...H) + Math.max(...H)) / 2;
+            zoomToFitShapes([{ points: Z.points.map(q => ({ x: mx + (q.x - mx) * 2.5, y: my + (q.y - my) * 2.5 })) }]); return true; }
+        function bldOpen(id) { const Z = bldById(id); if (!Z) return; bldShow(Z); bldActivate(Z); selectedShapes = [Z]; (window.spOpenState = window.spOpenState || {})['bldlv'] = true; openSelectionParamModal(); draw(); }
+        function bldPick(id) { lvlOn = true; lvlMarkAll(); lvlAct = id; const Z = bldCur(); if (Z) { Z.bld.act = id; bldShow(Z); } bldPanelDraw(); lvlRefresh(); const L = lvlList().find(x => x.id === id); if (L && L.roof) { updateCommandMessageText('ÉTAGES — ' + (Z ? Z.bld.nm : '') + ' : TOIT — dessinez la toiture (palette Bâtiment) ; les étages restent visibles en dessous.'); return; } updateCommandMessageText('ÉTAGES — ' + (Z ? Z.bld.nm : '') + ' : ' + lvlName(L) + ' (plancher ' + lvlRel(L) + ', cote ' + nfr(L.z / 1000, 2) + ' m, H ' + nfr(L.h / 1000, 2) + ' m) : un mur dessiné dans le contour va de ' + lvlRel(L) + ' à ' + lvlRel({ z: L.z + L.h }) + ' ; les autres étages sont masqués sur le plan.'); }
         function bldAll() { lvlOn = false; bldPanelDraw(); lvlRefresh(); updateCommandMessageText('ÉTAGES : toute la maquette est visible ; ce que vous dessinez dans le contour va toujours sur l\'étage de sa pastille.'); }
         function bldSetZ(v) { const z = t2Num(v); if (!isFinite(z)) return; lvlSet('rdc', Math.round(z * 1000)); saveState(); bldPanelDraw(); lvlRefresh(); }
         function bldSetH(id, v) { const h = t2Num(v); if (!(h > 0)) return; lvlSet(id, undefined, Math.round(h * 1000)); saveState(); bldPanelDraw(); lvlRefresh(); }
@@ -149,11 +157,20 @@
         function lvlRank(id) { return lvlList().findIndex(L => L.id === id); }
         /* un escalier d'étage appartient aux deux étages qu'il relie : visible et sélectionnable sur l'un comme sur l'autre */
         function lvlStairHere(s) { return !!(s && s.stair2 && (lvlAct === s.stair2.lo || lvlAct === s.stair2.hi) && (!s.bid || (bldCur() && bldCur().bld.id === s.bid))); }
-        function lvlHidden(s) { if (!lvlOn || !lvls || lvlStairHere(s)) return false; const id = lvlOf(s); return !!id && lvlRank(id) > lvlRank(lvlAct); }
+        /* niveaux qui règlent l'affichage d'un objet : ceux de son bâtiment, à l'étage retenu pour ce bâtiment (sa pastille) — l'actif comme les autres, sinon les étages des autres bâtiments restaient tous superposés */
+        function lvlCtx(s) { if (!lvlOn || !s || s.bld) return null; if (bldZones().length || bldActId) { const Z = bldOfObj(s); if (!Z) return null; if (Z === bldCur()) return lvls && lvls.length ? { LL: lvls, act: lvlAct, Z } : null; const LL = Z.bld.lvls; return LL && LL.length ? { LL, act: Z.bld.act || 'rdc', Z } : null; }
+            return lvls && lvls.length ? { LL: lvls, act: lvlAct, Z: null } : null; }
+        function lvlIdIn(s, LL) { if (s.lvl && (s.lvl === 'toit' || LL.some(L => L.id === s.lvl))) return s.lvl;
+            if (s.roofDef || s.roofPart || (s.solid && s.solid.kind === 'roof') || (s.groupId && (s.name === 'Pignons' || s.name === 'Forme de pente' || s.name === 'Acrotère' || s.name === 'Dalle de toit'))) return 'toit';
+            let z = null; if (s.wz && hasZ(s.wz.b)) z = s.wz.b; else if (s.type === 'mesh' && hasZ(s.z0) && !isPlateforme(s)) z = s.z0; else if ((s.solid || s.sweep) && s.points && s.points.length && hasZ(s.points[0].z)) z = Math.min(...s.points.map(q => hasZ(q.z) ? q.z : Infinity));
+            if (z === null || !isFinite(z)) return null; const S = LL.slice().sort((a, b) => a.z - b.z); let best = S[0]; S.forEach(L => { if (L.z <= z + 100) best = L; }); return best ? best.id : null; }
+        function lvlRankIn(LL, id) { const S = LL.slice().sort((a, b) => a.z - b.z); return id === 'toit' ? S.length : S.findIndex(L => L.id === id); }
+        function lvlStairIn(s, C) { return !!(s.stair2 && (C.act === s.stair2.lo || C.act === s.stair2.hi) && (!s.bid || (C.Z && C.Z.bld.id === s.bid))); }
+        function lvlHidden(s) { const C = lvlCtx(s); if (!C || lvlStairIn(s, C)) return false; const id = lvlIdIn(s, C.LL); return !!id && lvlRankIn(C.LL, id) > lvlRankIn(C.LL, C.act); }
         function lvlMine(s, id) { return s.lvl === id && (bldOfObj(s) || null) === (bldCur() || null); }
         /* plan : en éditant un étage, ceux du dessus sont masqués, ceux du dessous translucides ; ni les uns ni les autres ne se sélectionnent ni ne s'accrochent ; la 3D garde les étages du dessous */
         function lvlOff2D(s) { return lvlHidden(s) || lvlBelow(s); }
-        function lvlBelow(s) { if (!lvlOn || !lvls || lvlAct === 'toit' || lvlStairHere(s)) return false; const id = lvlOf(s); return !!id && lvlRank(id) < lvlRank(lvlAct); }
+        function lvlBelow(s) { const C = lvlCtx(s); if (!C || C.act === 'toit' || lvlStairIn(s, C)) return false; const id = lvlIdIn(s, C.LL); return !!id && lvlRankIn(C.LL, id) < lvlRankIn(C.LL, C.act); }
         // objets créés pendant qu'un étage est actif : rangés dans cet étage ; un mur prend la hauteur de l'étage
         function lvlTagNew() { const hasZ0 = bldZones().length > 0; if (!hasZ0 && (!lvlOn || !lvls)) { if (!lvlOn) { wallWzRepair(); return; } }
             shapes.forEach(s => { if (s.lvs) return; s.lvs = 1; if (isPlateforme(s) || isBg(s) || s.type === 'point' || s.brush || s.bld) return;
@@ -180,6 +197,9 @@
             const tol = mmToWorld(1000); let n = 0; W.forEach(s => { const g = s.groupId && byG.get(s.groupId); let Z = g ? bldById(g.bid) : null; if (g && !s.lvl && g.lvl) s.lvl = g.lvl;
                 if (!Z) { const p = bldRep(s); if (!p) return; Z = bldZoneAt(p.x, p.y); if (!Z) { let bd = tol; B.forEach(z => { const d = distToPoly(p.x, p.y, z.points); if (d < bd) { bd = d; Z = z; } }); } }
                 if (Z) { s.bid = Z.bld.id; n++; } }); return n; }
+        /* à l'ouverture d'un plan : chaque bâtiment montré à son RDC (les étages du dessus masqués), comme la pastille l'indique ; sans contour, les niveaux du plan au RDC */
+        function lvlStartRdc() { const B = bldZones(); if (B.length) { B.forEach(z => { z.bld.act = 'rdc'; }); bldActivate(B[0], 'rdc'); }
+            else if (!(lvls && lvls.length > 1)) return; lvlAct = 'rdc'; lvlOn = true; lvlInit(); lvlMarkAll(); const b = document.getElementById('btn-etages'); if (b) b.classList.add('active'); try { lvlUI(); } catch (e) {} }
         function lvlMarkAll() { shapes.forEach(s => { s.lvs = 1; }); }
         function lvlToggle(on) { lvlOn = on === undefined ? !lvlOn : !!on; if (lvlOn) { lvlInit(); lvlMarkAll(); } const b = document.getElementById('btn-etages'); if (b) b.classList.toggle('active', lvlOn); lvlUI(); lvlRefresh();
             updateCommandMessageText(lvlOn ? 'ÉTAGES : cliquez un niveau pour y travailler (on voit cet étage et tout ce qui est dessous) ; ▲ + ajoute un étage, ▼ − un sous-sol ; double-clic sur un niveau : nom, altitude, hauteur.' : 'ÉTAGES : outil éteint, toute la maquette est visible.'); }
