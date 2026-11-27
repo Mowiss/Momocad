@@ -222,7 +222,8 @@
                 const sh = new THREE.Shape(s.points.map(q => { const r = P(q.x, q.y); return new THREE.Vector2(r.x, r.y); })), g = new THREE.ShapeGeometry(sh); g.translate(0, 0, Zm(s.water.z));
                 { const pa = g.attributes.position, uv = g.attributes.uv; for (let i = 0; i < pa.count; i++) uv.setXY(i, pa.getX(i) / 4, pa.getY(i) / 4); uv.needsUpdate = true; }
                 const m = new THREE.Mesh(g, v3WaterMat() || new THREE.MeshLambertMaterial({ color: 0x1d4ed8, emissive: 0x0c2a6b, transparent: true, opacity: 0.62, side: THREE.DoubleSide, depthWrite: false })); m.renderOrder = 5; m.userData.shape = s; m.userData.water = true; root.add(m);
-                if (V3.hq && V3.hq.riv) { const zl = Zm(s.water.z), E = waterShore(s).map(([a, b]) => { const p1 = P(a.x, a.y), p2 = P(b.x, b.y); return [[p1.x, p1.y, zl], [p2.x, p2.y, zl]]; }); if (E.length) v3RiverBanks(root, E, 10); } });
+                if (V3.hq && V3.hq.riv) { const zl = Zm(s.water.z), E = waterShore(s).map(([a, b]) => { const p1 = P(a.x, a.y), p2 = P(b.x, b.y); return [[p1.x, p1.y, zl], [p2.x, p2.y, zl]]; }); if (E.length) v3RiverBanks(root, E, 10); }
+                if (V3.hq && V3.hq.bed) try { v3WaterBed(root, s.points, () => s.water.z, P, Zm); } catch (e) { console.error(e); } });
         }
         function trBuild3D(root, P, Zm, exag) {
             const G = trGround();

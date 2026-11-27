@@ -545,8 +545,8 @@
         PS({ title: 'Les collisions', in3D: true,
           why: `Dernier contrôle, le plus précieux avant de commander : les <b>collisions</b>. Nos poteaux partent du sol, donc ils traversent la dalle ; et leur tête rentre dans les poutres. MomoCAD va les trouver.`,
           items: [['Clique sur le bouton <b>Collisions</b> (le point d\'exclamation), en haut de la vue 3D.', '#v3-col-btn', 'Collisions', () => (gv(() => d3Col.length) || 0) > 0],
-                  ['Regarde les volumes rouges, et clique une ligne du tiroir : les deux objets se sélectionnent.', '#t2-panel', '', () => G.sel().length >= 2]],
-          more: `Pour corriger, on poserait les poteaux sur la dalle (${K('Y')} : altitude 0,20) et on les arrêterait sous les poutres, puis <b>Recontrôler</b>.` }),
+                  ['Regarde les zones rouges, et clique une ligne du tiroir : sa zone passe en orange et la vue se cadre dessus.', '#t2-panel', '', () => (gv(() => D3COL_HI) ?? -1) >= 0]],
+          more: `Pour corriger : <b>✂ Découper</b> sous la collision (la dalle est redessinée autour du poteau), ou poser les poteaux sur la dalle (${K('Y')} : altitude 0,20) et les arrêter sous les poutres, puis <b>Recontrôler</b>.` }),
         { title: 'Dieu de MomoCAD !', why: `Bravo, tu es le dieu de MomoCAD ! Une pergola placée au centimètre avec les traits de construction, coupée, mesurée et contrôlée : tu sais construire juste, du terrain au bâtiment.`, more: `Il n'y a pas de niveau au-dessus… pour l'instant !`, last: true },
     ];
 

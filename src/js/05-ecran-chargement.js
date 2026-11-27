@@ -94,6 +94,7 @@
                 const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
                 { const uv = []; for (let i = 0; i < pos.length; i += 3) uv.push(pos[i] / 4, pos[i + 1] / 4); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); }
                 const m = new THREE.Mesh(g, v3WaterMat() || new THREE.MeshLambertMaterial({ color: 0x1d4ed8, emissive: 0x0c2a6b, transparent: true, opacity: 0.66, side: THREE.DoubleSide, depthWrite: false })); m.renderOrder = 5; m.userData.shape = s; m.userData.river = true; m.userData.water = true; root.add(m);
-                if (V3.hq && V3.hq.riv) { const L = [], R = []; for (let i = 0; i < n; i++) { L.push(V[i]); R.push(V[N - 1 - i]); } v3RiverBanks(root, [L, R], s.river.w || 4); } }); }
+                if (V3.hq && V3.hq.riv) { const L = [], R = []; for (let i = 0; i < n; i++) { L.push(V[i]); R.push(V[N - 1 - i]); } v3RiverBanks(root, [L, R], s.river.w || 4); }
+                if (V3.hq && V3.hq.bed) try { const Z = s.river.zs; v3WaterBed(root, s.points, (x, y) => { let b = 0, d = Infinity; s.points.forEach((q, i) => { const e = (q.x - x) * (q.x - x) + (q.y - y) * (q.y - y); if (e < d) { d = e; b = i; } }); return Z[b]; }, P, Zm); } catch (e) { console.error(e); } }); }
         function cadFetchSelected() { const b = selectedShapes.find(x => x.type === 'basemap'); if (b) cadFetch(b); }
         function tnFetchSelected() { const b = selectedShapes.find(x => x.type === 'basemap'); if (b) tnFetch(b, (bmSettings.tn || {}).pas || 5); }

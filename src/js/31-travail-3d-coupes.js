@@ -588,6 +588,7 @@
             for (let i = 0; i < T.length; i++) for (let j = i + 1; j < T.length; j++) {
                 const A = T[i], B = T[j]; if (!A || !B) continue;
                 if (A.o.groupId && A.o.groupId === B.o.groupId) continue;   // morceaux d'un même ouvrage (mur et ses pièces)
+                if (A.o.wallMat && B.o.wallMat) continue;   /* murs entre eux (couches d'une même paroi, angles, jonctions en T) : la structure du mur n'est pas une collision */
                 const e = 1; if (A.b[3] <= B.b[0] + e || B.b[3] <= A.b[0] + e || A.b[4] <= B.b[1] + e || B.b[4] <= A.b[1] + e || A.b[5] <= B.b[2] + e || B.b[5] <= A.b[2] + e) continue;
                 if (A.t.length + B.t.length > 9 * 60000) { skipped++; continue; }
                 tested++; let r; try { r = csgTris(A.t, B.t, 'inter'); } catch (er) { continue; }
@@ -597,8 +598,8 @@
                 out.push({ a: A.o, b: B.o, v, t: r });
                 if (performance.now() - t0 > 20000) break;
             }
-            d3Col = out.sort((x, y) => y.v - x.v); d3ColSel = null; d3ColCyc = { key: '', i: -1 }; d3ColDraw();
-            const html = out.length ? `<div style="color:#fca5a5">${out.length} collision${out.length > 1 ? 's' : ''} : les zones en conflit sont en rouge dans la vue 3D. Clique une ligne pour sélectionner les deux objets.</div>
+            d3Col = out.sort((x, y) => y.v - x.v); d3ColSel = null; D3COL_HI = -1; d3ColCyc = { key: '', i: -1 }; d3ColDraw();
+            const html = out.length ? `<div style="color:#fca5a5">${out.length} collision${out.length > 1 ? 's' : ''} : les zones en conflit sont en rouge dans la vue 3D. Clique une ligne pour voir sa zone (orange) de près ; les murs entre eux (couches, angles, jonctions) ne comptent pas.</div>
                 <div style="color:#e5e7eb;margin-top:4px"><b>Supprimer une collision</b> : bouton <b>✂ Découper</b> sous la collision (une dalle est découpée en plan autour du mur : son contour est redessiné). Ou <b>clic molette</b> sur une zone rouge (chaque clic passe à l'objet suivant) puis <b>Entrée</b> : l'objet choisi reste entier et découpe tous ceux qui le touchent.</div>
                 <div id="d3col-sel" style="color:#fbbf24;margin-top:4px;min-height:16px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">${out.map((c, k) => `<div style="background:#3f1d1d;border:1px solid #7f1d1d;border-radius:6px;padding:6px 8px;color:#fee2e2"><div onclick="d3ColPick(${k})" style="cursor:pointer"><b>${k + 1}.</b> ${iaEsc(d3ObjName(c.a))} × ${iaEsc(d3ObjName(c.b))}<br><span style="color:#fca5a5">${nfr(c.v, c.v < 0.01 ? 4 : 3)} m³ en commun</span></div>
@@ -608,17 +609,23 @@
                 [['Recontrôler', 'd3Collisions()', false]].concat(out.length ? [['Masquer les zones', 'd3ColToggle(this)', false], ['✂ Couper les autres', 'd3ColCut()', false]] : [], [['Fermer', 'd3ColClear()', true]]), 'd3ColClear()');
             updateCommandMessageText(out.length ? 'COLLISIONS : ' + out.length + ' conflit(s) trouvé(s) (' + tested + ' paire(s) contrôlée(s)).' : 'COLLISIONS : aucun conflit (' + tested + ' paire(s) proches contrôlée(s)).');
         }
+        let D3COL_HI = -1;
+        // cadre la vue 3D sur une zone de collision
+        function d3ColFrame(c) { if (!V3 || !c || !c.t || !c.t.length) return; const ex = V3.exag || 1, zm = V3.zmin || 0, t = c.t; let a = [Infinity, Infinity, Infinity], b = [-Infinity, -Infinity, -Infinity];
+            for (let i = 0; i < t.length; i += 3) { const p = [t[i] / 1000, t[i + 1] / 1000, (t[i + 2] / 1000 - zm) * ex]; for (let k = 0; k < 3; k++) { a[k] = Math.min(a[k], p[k]); b[k] = Math.max(b[k], p[k]); } }
+            const o = V3.root ? V3.root.position : new THREE.Vector3(); V3.target.set((a[0] + b[0]) / 2 + o.x, (a[1] + b[1]) / 2 + o.y, (a[2] + b[2]) / 2 + o.z); if (V3.pin) { V3.pin = null; V3.pinRoot = null; try { v3PinMark(); } catch (e) {} }
+            V3.dist = Math.max(3, Math.min(V3.R * 2, Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) * 2.5 + 3)); }
         function d3ColDraw() {
             if (!V3 || !window.THREE) return;
             if (!V3.col) { V3.col = new THREE.Group(); V3.scene.add(V3.col); } V3.col.clear(); V3.col.visible = true; V3.col.position.copy(V3.root ? V3.root.position : new THREE.Vector3());
             const ex = V3.exag || 1, zm = V3.zmin || 0;
             d3Col.forEach((c, k) => { const t = c.t, pos = new Float32Array(t.length); for (let i = 0; i < t.length; i += 3) { pos[i] = t[i] / 1000; pos[i + 1] = t[i + 1] / 1000; pos[i + 2] = (t[i + 2] / 1000 - zm) * ex; }
                 const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.computeVertexNormals();
-                const on = d3ColSel && (c.a === d3ColSel || c.b === d3ColSel), m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: on ? 0xf59e0b : 0xef4444, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide })); m.renderOrder = 998; m.userData.colK = k; V3.col.add(m);
+                const on = (d3ColSel && (c.a === d3ColSel || c.b === d3ColSel)) || k === D3COL_HI, m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: on ? 0xf59e0b : 0xef4444, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide })); m.renderOrder = 998; m.userData.colK = k; V3.col.add(m);
                 const eg = new THREE.LineSegments(new THREE.EdgesGeometry(g, 20), new THREE.LineBasicMaterial({ color: 0xfef2f2, depthTest: false, transparent: true })); eg.renderOrder = 999; V3.col.add(eg); });
             render3D();
         }
-        function d3ColPick(k) { const c = d3Col[k]; if (!c) return; selectedShapes = [c.a, c.b]; if (is3DOpen()) { build3DScene(); render3D(); } else draw(); updatePropertiesPopup(); updateCommandMessageText('COLLISION ' + (k + 1) + ' : ' + d3ObjName(c.a) + ' × ' + d3ObjName(c.b) + ' — ' + nfr(c.v, 4) + ' m³ en commun. Déplace l\'un des deux, ou Y pour le régler.'); }
+        function d3ColPick(k) { const c = d3Col[k]; if (!c) return; D3COL_HI = k; if (is3DOpen()) { d3ColDraw(); d3ColFrame(c); render3D(); } else draw();   /* seule la zone commune s'allume (orange), les deux objets restent tels quels */ updateCommandMessageText('COLLISION ' + (k + 1) + ' : ' + d3ObjName(c.a) + ' × ' + d3ObjName(c.b) + ' — ' + nfr(c.v, 4) + ' m³ en commun. Déplace l\'un des deux, ou Y pour le régler.'); }
         /* masquer / réafficher les volumes rouges des collisions, sans perdre la liste (pour voir l'ouvrage dessous) */
         function d3ColToggle(b) { if (!V3 || !V3.col) return; V3.col.visible = !V3.col.visible; if (b) b.textContent = V3.col.visible ? 'Masquer les zones' : 'Afficher les zones'; render3D();
             updateCommandMessageText(V3.col.visible ? 'COLLISIONS : zones en conflit affichées en rouge.' : 'COLLISIONS : zones en conflit masquées (la liste reste là ; « Afficher les zones » pour les revoir).'); }
@@ -628,8 +635,8 @@
             ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), V3.camera); V3.col.updateMatrixWorld(true);
             const K = [...new Set(ray.intersectObjects(V3.col.children.filter(x => x.isMesh), false).map(h => h.object.userData.colK))].filter(k => d3Col[k]).sort((a, b) => a - b); if (!K.length) return false;
             const C = []; K.forEach(k => [d3Col[k].a, d3Col[k].b].forEach(o => { if (!C.includes(o)) C.push(o); })); const key = K.join(',');
-            d3ColCyc = { key, i: d3ColCyc.key === key ? (d3ColCyc.i + 1) % C.length : 0 }; d3ColSel = C[d3ColCyc.i]; selectedShapes = [d3ColSel];
-            const n = d3Col.filter(c => c.a === d3ColSel || c.b === d3ColSel).length; build3DScene(); d3ColDraw();
+            d3ColCyc = { key, i: d3ColCyc.key === key ? (d3ColCyc.i + 1) % C.length : 0 }; d3ColSel = C[d3ColCyc.i];   /* l'objet n'est pas sélectionné : seules ses zones passent en orange */
+            const n = d3Col.filter(c => c.a === d3ColSel || c.b === d3ColSel).length; d3ColDraw(); render3D();
             const t = 'Gardé entier : ' + d3ObjName(d3ColSel) + ' (' + (d3ColCyc.i + 1) + '/' + C.length + ') — il coupera ' + n + ' objet' + (n > 1 ? 's' : '') + '. Entrée pour valider, clic molette pour le suivant.';
             const el = document.getElementById('d3col-sel'); if (el) el.textContent = t; updateCommandMessageText('COLLISION : ' + t); return true; }
         // valider : l'objet choisi reste entier, chaque objet qui le touche perd le volume commun (découpe gardée sur lui, retirée par Y)
@@ -666,7 +673,7 @@
                 if (tS.length) { O.carve.push({ t: tS }); if (ok()) { done.add(O); return; } O.carve.pop(); }
                 if (!O.carve.length) delete O.carve; bad.add(O); });   /* découpe vérifiée, sinon on n'y touche pas */
             if (wallsCut) { try { wallOpRepair(); wallBordersRepair(); } catch (e) { console.error(e); } }   /* murs redessinés : bords et ouvertures remis en place */
-            const n = done.size, nb = [...bad].filter(o => !done.has(o)).length; d3ColSel = null; selectedShapes = [...done]; invalidateCache(); saveState(); if (is3DOpen()) build3DScene(); draw();
+            const n = done.size, nb = [...bad].filter(o => !done.has(o)).length; d3ColSel = null; D3COL_HI = -1; selectedShapes = []; invalidateCache(); saveState(); if (is3DOpen()) build3DScene(); draw();
             const nm = [...done].map(o => d3ObjName(o)).slice(0, 3).join(', ');
             updateCommandMessageText((n ? 'COLLISION supprimée : ' + nm + (n > 3 ? '…' : '') + ' découpé' + (n > 1 ? 's' : '') + ' par ' + d3ObjName(S) + (plan.size ? ' (contour redessiné en plan' + (plan.size < n ? ' pour ' + plan.size : '') + ')' : '') + (plan.size < n ? ' ; découpe 3D retirable par Y' : '') : 'COLLISION : rien n\'a pu être découpé')
                 + (nb ? ' ; ' + nb + ' objet' + (nb > 1 ? 's' : '') + ' trop complexe' + (nb > 1 ? 's' : '') + ' pour être coupé' + (nb > 1 ? 's' : '') + ' proprement, laissé' + (nb > 1 ? 's' : '') + ' tel' + (nb > 1 ? 's' : '') + ' quel' + (nb > 1 ? 's' : '') : '') + '. Nouveau contrôle…');

@@ -12,9 +12,9 @@
         // matières en relief : herbe (hauteur, densité) et terre (granulométrie, densité)
         const ST_GRAN = { sable: ['Sable', 0.002, 0.008], grav: ['Graviers', 0.008, 0.035], caill: ['Cailloux', 0.03, 0.09], blocs: ['Blocs', 0.1, 0.35] };
         const ST_DENS = { faible: ['Clair', 0.5], normale: ['Normal', 1], dense: ['Dense', 1.8] };
-        function studioNew() { return { fmt: '16:9', f: 35, res: 'fhd', q: 'standard', sh: true, grass: true, tree: true, fin: true, thirds: true, views: [], grassH: 12, grassN: 250, earth: true, granS: 38, earthP: 50, earthCol: null, riv: true, wave: true, realHD: true }; }
+        function studioNew() { return { fmt: '16:9', f: 35, res: 'fhd', q: 'standard', sh: true, grass: true, tree: true, fin: true, thirds: true, views: [], grassH: 12, grassN: 250, earth: true, granS: 38, earthP: 50, earthCol: null, riv: true, wave: true, realHD: true, bed: true, dof: false, haze: false }; }
         let studio = studioNew();
-        let stPano = { on: false, h: 1.6, d: 400, rot: 0 }; try { Object.assign(stPano, JSON.parse(localStorage.getItem('momocad-stpano') || '{}')); } catch (e) {}
+        let stPano = { on: false, h: 1.6, d: 400, rot: 0 }; try { Object.assign(stPano, JSON.parse(localStorage.getItem('momocad-stpano') || '{}')); } catch (e) {} stPano.on = false;   /* la photo d'horizon se règle dans Décor */
         function stPanoSave() { try { localStorage.setItem('momocad-stpano', JSON.stringify(stPano)); } catch (e) {} }
         const stOn = () => { const p = document.getElementById('t2-panel'); return !!(p && p.style.display !== 'none' && p.dataset.kind === 'studio' && is3DOpen()); };
         // cadre de la photo dans la vue 3D (px, repère de la vue) : la plus grande zone au format choisi, à gauche du volet
@@ -77,16 +77,15 @@
                 <div class="st-row"><span>Heure</span>${sl('st-hour', 0, 24, 0.25, v3Hour, 'v3SetHour(this.value);document.getElementById(\'st-hour-v\').textContent=stHourTxt(this.value)', stHourTxt(v3Hour))}</div>
                 <div class="st-mos">${tg('thirds', 'Grille des tiers')}</div>`)
                 + sec('vues', 'Vues enregistrées', `${vl || '<div class="mf-hint">Aucune vue : cadre la photo, puis enregistre-la.</div>'}<button type="button" class="vbtn" style="margin-top:6px" onclick="stViewAdd()">＋ Enregistrer cette vue</button>`)
-                + sec('pano', 'Photo 360°', `<div class="st-mos">${tile('pano', 'Photo panoramique', stPano.on, "stPanoSet('on', " + !stPano.on + ")")}</div>${pano}`)
                 + sec('herbe', 'Herbe', `<div class="st-mos">${live('grass', 'Herbe en brins')}</div>${studio.grass ? `<div class="st-row"><span>Hauteur</span>${sl('st-gh', 3, 40, 1, studio.grassH, "studio.grassH=+this.value;document.getElementById('st-gh-v').textContent=this.value+' cm';stPreview('grass')", studio.grassH + ' cm')}</div>
                     <div class="st-row"><span>Densité</span>${pc('st-gn', stGrassP(), "stGrassSet(this.value);stPreview('grass')", stDensTxt(stGrassP()))}</div>` : ''}`)
                 + sec('terre', 'Terre', `<div class="st-mos">${live('earth', 'Terre en grains')}</div>${studio.earth ? `<div class="st-row"><span>Grains</span>${pc('st-gr', studio.granS, "studio.granS=+this.value;document.getElementById('st-gr-v').textContent=stGranTxt(this.value);stPreview('earth')", stGranTxt(studio.granS))}</div>
                     <div class="st-row"><span>Densité</span>${pc('st-ed', studio.earthP, "studio.earthP=+this.value;document.getElementById('st-ed-v').textContent=stDensTxt(this.value);stPreview('earth')", stDensTxt(studio.earthP))}</div>` : ''}
                     <div class="st-lab">Couleur de la terre</div><div class="st-sw">${EC.map(([c, l]) => `<button type="button" class="${(studio.earthCol || null) === c ? 'on' : ''}" title="${l}" style="background:${c || stEarthNat()}" onclick="stEarthCol(${c ? `'${c}'` : 'null'})"></button>`).join('')}<label title="Autre couleur"><input type="color" value="${studio.earthCol || stEarthNat()}" onchange="stEarthCol(this.value)">＋</label></div>`)
-                + sec('eau', 'Eau et rives', `<div class="st-mos">${tg('wave', 'Vaguelettes')}${tg('riv', 'Rochers et roseaux')}</div>`)
+                + sec('eau', 'Eau et rives', `<div class="st-mos">${tg('wave', 'Vaguelettes')}${tg('riv', 'Rochers et roseaux')}${tg('bed', 'Fond : rochers, algues, poissons')}</div>`)
                 + sec('rendu', 'Rendu', `<div class="st-lab">Qualité</div><div class="st-mos st-mos5">${Object.keys(RD_Q).map(k => tile('q-' + k, RD_Q[k].n, studio.q === k, `stSet('q', '${k}')`)).join('')}</div>
                 <div class="st-lab">Taille</div>${vSeg(Object.keys(ST_RES).map(k => [k, ST_RES[k][1]]), studio.res, "stSet('res', '$')")}
-                <div class="st-mos" style="margin-top:8px">${tg('sh', 'Ombres portées')}${tg('tree', 'Arbres détaillés')}${realOn() ? tg('realHD', 'Relief réel HD') : ''}${tg('fin', 'Finition photo')}</div>
+                <div class="st-mos" style="margin-top:8px">${tg('sh', 'Ombres portées')}${tg('tree', 'Arbres détaillés')}${realOn() ? tg('realHD', 'Relief réel HD') : ''}${tg('fin', 'Finition photo')}${tg('dof', 'Profondeur de champ')}${tg('haze', 'Brume du lointain')}</div>
                 <div class="mf-hint">${Q.n} : ${Q.d} · ${Q.spp} passes · ${w} × ${h} px</div>`);
             v3PanelShow('studio', html); stPreview('grass'); stPreview('earth'); }
         const stGrassTxt = (v) => +v >= 700 ? 'moquette' : Math.round(+v) + ' /m²';
@@ -133,6 +132,20 @@
             else if (k === 'tree') { sky(); ground(54, '#4d7c2f'); x.fillStyle = 'rgba(0,0,0,.25)'; x.beginPath(); x.ellipse(66, 58, 22, 4, 0, 0, 7); x.fill(); x.fillStyle = '#5b3a1e'; x.fillRect(57, 34, 6, 24); [[60, 24, 18], [48, 30, 12], [72, 30, 12], [60, 14, 12]].forEach(([cx, cy, r]) => { x.fillStyle = `hsl(${100 + R() * 20},45%,${26 + R() * 12}%)`; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); }); }
             else if (k === 'realHD') { sky(); x.fillStyle = '#6b7f5a'; x.beginPath(); x.moveTo(0, 60); for (let i = 0; i <= 24; i++) x.lineTo(i * 5, 24 + Math.abs(Math.sin(i * .55)) * 18 + R() * 4); x.lineTo(W, H); x.lineTo(0, H); x.fill(); x.strokeStyle = 'rgba(255,255,255,.5)'; for (let i = 0; i < 40; i++) { const px = R() * W, py = 36 + R() * 30; x.beginPath(); x.moveTo(px, py); x.lineTo(px + 3, py + 1); x.stroke(); } }
             else if (k === 'fin') { sky('#f59e0b', '#fde68a'); ground(48, '#55702f'); const g = x.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, 72); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.6)'); x.fillStyle = g; x.fillRect(0, 0, W, H); }
+            else if (k === 'bed') { const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#5aa7c4'); g.addColorStop(1, '#1f4f63'); x.fillStyle = g; x.fillRect(0, 0, W, H); x.fillStyle = '#6b6a58'; x.fillRect(0, 58, W, 14);
+                for (let i = 0; i < 9; i++) { x.fillStyle = `hsl(40,8%,${32 + R() * 22}%)`; x.beginPath(); x.ellipse(6 + i * 14, 60, 5 + R() * 5, 3 + R() * 3, 0, 0, 7); x.fill(); }
+                x.strokeStyle = '#3f8f3a'; x.lineWidth = 2; for (let i = 0; i < 7; i++) { const bx = 10 + R() * 100; x.beginPath(); x.moveTo(bx, 60); x.bezierCurveTo(bx - 5, 48, bx + 5, 40, bx - 2, 28 + R() * 10); x.stroke(); }
+                [[40, 30, '#f59e0b'], [78, 22, '#e5e7eb'], [92, 40, '#fb923c']].forEach(([fx, fy, col]) => { x.fillStyle = col; x.beginPath(); x.ellipse(fx, fy, 7, 3, 0, 0, 7); x.fill(); x.beginPath(); x.moveTo(fx - 6, fy); x.lineTo(fx - 11, fy - 4); x.lineTo(fx - 11, fy + 4); x.fill(); }); }
+            else if (k === 'dof') { sky(); ground(44, '#4d7c2f'); x.filter = 'blur(2.5px)'; x.fillStyle = '#9a3412'; x.fillRect(6, 30, 26, 16); x.fillStyle = '#4d7c2f'; x.beginPath(); x.arc(104, 26, 12, 0, 7); x.fill(); x.filter = 'none'; x.fillStyle = '#e7e2d8'; x.fillRect(48, 26, 30, 22); x.fillStyle = '#9a3412'; x.beginPath(); x.moveTo(45, 27); x.lineTo(63, 15); x.lineTo(81, 27); x.fill(); }
+            else if (k === 'haze') { sky('#cbd5e1', '#e5e7eb'); for (let j = 0; j < 4; j++) { x.fillStyle = `rgba(${90 + j * 30},${110 + j * 28},${120 + j * 26},1)`; x.beginPath(); x.moveTo(0, 30 + j * 8); for (let i = 0; i <= 12; i++) x.lineTo(i * 10, 26 + j * 9 + Math.sin(i * 0.9 + j) * 5); x.lineTo(W, H); x.lineTo(0, H); x.fill(); } x.fillStyle = '#4d7c2f'; x.fillRect(0, 58, W, 14); }
+            else if (k.startsWith('m-')) { const t = k.slice(2); sky(); ground(40, t === 'nat' ? '#4d7c2f' : '#6b8e4e');
+                if (t === 'surf') { x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 1; for (let i = 0; i < 8; i++) { x.beginPath(); x.moveTo(i * 17, 40); x.lineTo(i * 17 + 30, H); x.moveTo(i * 17 + 30, 40); x.lineTo(i * 17, H); x.stroke(); } }
+                else if (t === 'tal') { x.fillStyle = '#c2a878'; x.beginPath(); x.moveTo(20, 50); x.lineTo(100, 50); x.lineTo(110, 66); x.lineTo(10, 66); x.fill(); x.fillStyle = '#8b7355'; x.beginPath(); x.moveTo(10, 66); x.lineTo(110, 66); x.lineTo(118, 72); x.lineTo(2, 72); x.fill(); }
+                else if (t === 'rp') { x.fillStyle = '#8b6a45'; x.fillRect(30, 46, 60, 26); x.fillStyle = '#b45309'; x.fillRect(18, 52, 12, 20); x.fillRect(90, 52, 12, 20); x.fillStyle = '#e7e2d8'; x.fillRect(42, 30, 36, 20); }
+                else if (t === 'bg') { x.fillStyle = '#5b6b3a'; x.fillRect(0, 40, W, 32); x.fillStyle = '#7a8a55'; for (let i = 0; i < 18; i++) x.fillRect(R() * W, 40 + R() * 30, 8 + R() * 14, 4 + R() * 6); x.fillStyle = '#d6d3d1'; x.fillRect(0, 56, W, 4); }
+                else if (t === 'lab') { x.fillStyle = '#fbbf24'; x.font = 'bold 10px Arial'; [[14, 54, '812,4'], [60, 62, '813,1'], [88, 48, '814,0']].forEach(([px, py, tt]) => { x.beginPath(); x.arc(px, py, 2.2, 0, 7); x.fill(); x.fillText(tt, px + 4, py - 3); }); }
+                else if (t === 'lines') { x.strokeStyle = '#f472b6'; x.lineWidth = 1.6; x.beginPath(); x.moveTo(6, 66); x.lineTo(50, 46); x.lineTo(114, 58); x.stroke(); x.strokeStyle = '#fb923c'; x.strokeRect(70, 44, 26, 14); }
+                else if (t === 'nat') { for (let i = 0; i < 260; i++) { x.strokeStyle = `hsl(${85 + R() * 30},50%,${24 + R() * 20}%)`; const gx = R() * W, gy = 42 + R() * 30; x.beginPath(); x.moveTo(gx, gy); x.lineTo(gx + (R() - .5) * 3, gy - 4 - R() * 5); x.stroke(); } x.fillStyle = '#8b7355'; x.fillRect(64, 50, 40, 10); } }
             else if (k.startsWith('q-')) { const lv = Object.keys(RD_Q).indexOf(k.slice(2)); sky(); ground(44, '#4d7c2f'); x.fillStyle = '#e7e2d8'; x.fillRect(42, 22, 36, 24); x.fillStyle = 'rgba(0,0,0,' + (0.1 + lv * 0.06) + ')'; x.beginPath(); x.moveTo(78, 46); x.lineTo(104, 52); x.lineTo(104, 40); x.lineTo(78, 22); x.fill();
                 const im = x.getImageData(0, 0, W, H), d = im.data, nz = [70, 40, 18, 8, 2][lv] || 0; for (let i = 0; i < d.length; i += 4) { const v = (R() - .5) * nz; d[i] += v; d[i + 1] += v; d[i + 2] += v; } x.putImageData(im, 0, 0); }
             return (ST_THUMB[k] = c.toDataURL('image/png')); }
@@ -150,11 +163,8 @@
         const v3Chk = (id) => !!(document.getElementById(id) || {}).checked;
         function v3SetChk(id, on) { const c = document.getElementById(id); if (!c || c.checked === !!on) return; const b = document.querySelector('#v3-band [data-for="' + id + '"]'); if (b) v3Tog(b); else { c.checked = !!on; c.dispatchEvent(new Event('change')); } v3PanelRefresh(); }
         function v3TabHTML(tab) { const sw = (id, l, t) => `<label class="st-ck" title="${t || ''}"><input type="checkbox" class="bm-switch" ${v3Chk(id) ? 'checked' : ''} onchange="v3SetChk('${id}', this.checked)"> ${l}</label>`;
-            if (tab === 'aff') { const ex = (document.getElementById('v3-exag') || {}).value || '1';
-                return `<div class="st-sec"><h4>Montrer</h4><div class="st-cks">${sw('v3-surf', 'Terrain', 'Surface du terrain triangulée entre les points cotés')}${sw('v3-tal', 'Plateformes et talus')}${sw('v3-rp', 'Remblai périphérique', 'Referme les talus de déblai jusqu\'au niveau fini')}${sw('v3-bg', 'Fonds de carte')}${sw('v3-lab', 'Points cotés')}${sw('v3-lines', 'Traits du plan')}</div></div>
-                    <div class="st-sec"><h4>Rendu</h4><div class="st-cks">${sw('v3-nat', 'Rendu naturel', 'Herbe, terre, grave ; sinon nivellement en couleurs (remblai bleu, déblai rouge)')}</div>
-                    <div class="st-lab">Aberration (exagération du relief)</div>${vSeg(['1', '2', '5', '10', '20', '50'].map(v => [v, '×' + v]), ex, "v3Exag('$')")}</div>
-                    <div class="st-sec"><h4>Coupe en perspective</h4><div class="mf-hint">La 3D tronquée au trait de coupe sélectionné (sinon le dernier), vue dans son sens.</div><div class="st-cks"><button type="button" class="vbtn${V3.cut ? ' pri' : ''}" onclick="v3CutToggle();v3PanelRefresh()">${V3.cut ? 'Retirer la coupe' : 'Couper'}</button>${V3.cut ? '<button type="button" class="vbtn" onclick="v3CutStyle();v3PanelRefresh()">Style plan / rendu</button>' : ''}</div></div>`; }
+            if (tab === 'aff') { const mt = (id, k, l, t) => `<button type="button" class="st-tile${v3Chk(id) ? ' on' : ''}" onclick="v3SetChk('${id}', ${!v3Chk(id)})" title="${t || l}"><img src="${stThumb(k)}" alt=""><span>${l}</span></button>`;   /* mosaïque d'aperçus à cocher, comme le studio */
+                return `<div class="st-sec"><h4>Montrer</h4><div class="st-mos">${mt('v3-surf', 'm-surf', 'Terrain', 'Surface du terrain triangulée entre les points cotés')}${mt('v3-tal', 'm-tal', 'Plateformes et talus')}${mt('v3-rp', 'm-rp', 'Remblai périphérique', 'Referme les talus de déblai jusqu\'au niveau fini')}${mt('v3-bg', 'm-bg', 'Fonds de carte')}${mt('v3-lab', 'm-lab', 'Points cotés')}${mt('v3-lines', 'm-lines', 'Traits du plan')}${mt('v3-nat', 'm-nat', 'Rendu naturel', 'Herbe, terre, grave ; sinon nivellement en couleurs (remblai bleu, déblai rouge)')}</div></div>`; }
             if (tab === 'outils') { const tb = (ic, l, js, t, on) => `<button type="button" class="v3v-card${on ? ' on' : ''}" onclick="${js}" title="${t}"><span style="font-size:20px">${ic}</span><b>${l}</b></button>`;
                 return `<div class="st-sec"><h4>Outils de la vue 3D</h4><div class="v3v-cards">${tb('📏', 'Mesurer', "v3PanelClose();setMode(mode === 'measure' ? 'select-box' : 'measure')", 'Mesurer en 3D : deux points accrochés sur les objets', mode === 'measure')}${tb('⚠', 'Collisions', 'v3PanelClose();d3Collisions()', 'Contrôle des collisions : les volumes qui se traversent, volume commun en rouge')}${tb('🖌', 'Peindre', "v3PanelClose();paintMode('trait')", 'Pinceau et textures dans la vue 3D')}</div></div>`; }
             if (tab === 'ciel') { const card = (k, n, ic, sub) => `<button type="button" class="v3v-card${v3HzKind === k ? ' on' : ''}" onclick="v3HzType('${k}');v3PanelRefresh()">${ic}<b>${n}</b>${sub ? '<small>' + sub + '</small>' : ''}</button>`;
@@ -204,7 +214,7 @@
             const cam = V3.camera, rc = cam.clone(); rc.clearViewOffset(); rc.fov = stVFov(studio.f, aw / ah) * 180 / Math.PI; rc.aspect = W / H; rc.near = cam.near; rc.far = cam.far; rc.updateProjectionMatrix(); rc.updateMatrixWorld(true);
             let R = null, out = null;
             try {
-                V3.hq = { tree: studio.tree ? Q.tree : 1, terr: Q.terr, grass: studio.grass ? Q.grass : 0, earth: !!studio.earth, riv: !!studio.riv, wave: !!studio.wave, realHD: !!studio.realHD, rc };
+                V3.hq = { tree: studio.tree ? Q.tree : 1, terr: Q.terr, grass: studio.grass ? Q.grass : 0, earth: !!studio.earth, riv: !!studio.riv, wave: !!studio.wave, bed: !!studio.bed, realHD: !!studio.realHD, rc };
                 try { build3DScene(); } finally { V3.hq = null; }
                 rdStep('Préparation de la lumière…', 0); await rdWait();
                 R = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true }); R.setPixelRatio(1); R.setSize(W, H, false); R.setClearColor(V3.renderer.getClearColor(new THREE.Color()), 1); if ('outputColorSpace' in R) R.outputColorSpace = V3.renderer.outputColorSpace; else R.outputEncoding = V3.renderer.outputEncoding; R.clippingPlanes = v3CutPlanes();
@@ -226,8 +236,14 @@
                 const hal = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
                 const perp = (d) => { const a = Math.abs(d.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0), u = new THREE.Vector3().crossVectors(d, a).normalize(), v = new THREE.Vector3().crossVectors(d, u); return [u, v]; };
                 const [su, sv] = perp(S0); let lastPrev = 0; RD.tS = performance.now();
+                /* profondeur de champ : l'objectif se déplace un peu à chaque passe autour de sa place, toujours tourné vers le point visé (net), le reste se floute doucement ;
+                   brume du lointain : le décor se fond dans la couleur du ciel avec la distance */
+                const P0 = rc.position.clone(), F0 = V3.fps ? null : V3.target.clone(), dF = F0 ? P0.distanceTo(F0) : 0, ap = studio.dof && F0 ? Math.max(0.01, dF * 0.018 * 35 / Math.max(18, studio.f || 35)) : 0, cr = new THREE.Vector3(), cu = new THREE.Vector3();
+                if (ap) { rc.updateMatrixWorld(true); cr.setFromMatrixColumn(rc.matrixWorld, 0).normalize(); cu.setFromMatrixColumn(rc.matrixWorld, 1).normalize(); }
+                const fog0 = V3.scene.fog; if (studio.haze) { const fc = R.getClearColor(new THREE.Color()), d0 = Math.max(20, (V3.fps ? 40 : V3.dist) * 1.1); V3.scene.fog = new THREE.Fog(fc, d0, Math.max(d0 * 6, d0 + Math.min(rc.far * 0.6, Math.max(400, V3.R * 4)))); RD.fog0 = fog0; RD.fogSet = true; }
                 for (let s = 0; s < N && !RD.stop; s++) {
                     rc.setViewOffset(W, H, hal(s + 1, 2) - 0.5, hal(s + 1, 3) - 0.5, W, H);
+                    if (ap) { const a = hal(s + 1, 5) * Math.PI * 2, r = Math.sqrt(hal(s + 1, 7)) * ap; rc.position.copy(P0).addScaledVector(cr, Math.cos(a) * r).addScaledVector(cu, Math.sin(a) * r); rc.lookAt(F0); rc.updateMatrixWorld(true); }
                     if (sh) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * Q.soft * 3, d = S0.clone().addScaledVector(su, Math.cos(a) * r).addScaledVector(sv, Math.sin(a) * r).normalize(); rdLightAt(V3.sun, C, d, rr); }
                     if (sky) { const u = Math.random(), a = Math.random() * Math.PI * 2, z = Math.sqrt(u), q = Math.sqrt(1 - u); rdLightAt(sky, C, new THREE.Vector3(Math.cos(a) * q, Math.sin(a) * q, Math.max(0.08, z)), rr); }
                     if (RD.refl) rdReflUpdate(R, RD.refl, rc); v3EnvPlace(rc); R.render(V3.scene, rc); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, buf);
@@ -239,7 +255,7 @@
                 V3.amb.intensity = amb0; V3.sun.intensity = sun0; V3.sun.position.copy(S0);
             } catch (e) { console.error(e); updateCommandMessageText('RENDU : interrompu (' + (e && e.message || e) + ').'); }
             finally {
-                try { rdShadowsOff(); } catch (e) {} if (RD && RD.crt) RD.crt.dispose(); if (RD && RD.refl) RD.refl.rt.dispose(); if (R) { try { R.dispose(); R.forceContextLoss(); } catch (e) {} }
+                try { rdShadowsOff(); } catch (e) {} if (RD && RD.fogSet) V3.scene.fog = RD.fog0 || null; if (RD && RD.crt) RD.crt.dispose(); if (RD && RD.refl) RD.refl.rt.dispose(); if (R) { try { R.dispose(); R.forceContextLoss(); } catch (e) {} }
                 const n = RD ? RD.n : 0; RD = null; V3.hq = null; try { build3DScene(); v3Sky(); render3D(); } catch (e) { console.error(e); }
                 if (out) { const v = studio.views.find(x => x.az === V3.az && x.dist === V3.dist), d = new Date(); RD_LAST = { cv: out, n, name: 'rendu' + (v ? '-' + v.n.replace(/[^\w-]+/g, '_') : '') + '-' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + '.png' };
                     rdUI('done'); rdStep(n + ' passe(s) · ' + out.width + ' × ' + out.height + ' px', 1); updateCommandMessageText('RENDU : terminé (' + n + ' passes). 💾 pour l\'enregistrer en PNG.'); }
@@ -355,6 +371,33 @@
             const cl = R.clippingPlanes; R.clippingPlanes = (cl || []).concat([new THREE.Plane(new THREE.Vector3(0, 0, 1), -z + 0.005)]); P.W.forEach(o => { o.visible = false; }); P.U.reflOn.value = 0;
             v3EnvPlace(mc); R.setRenderTarget(P.rt); R.clear(); R.render(V3.scene, mc); R.setRenderTarget(null); P.W.forEach(o => { o.visible = true; }); R.clippingPlanes = cl; P.U.reflTex.value = P.rt.texture; P.U.reflOn.value = 1; }
         // E : bords de l'eau (listes de [x, y, z] de la scène) ; w : largeur de la rivière (m)
+        /* fond de l'eau (rendu studio, « Fond : rochers, algues, poissons ») : des galets et blocs posés sur le fond, des algues qui montent sans crever la surface,
+           quelques poissons entre deux eaux ; seulement là où l'eau a au moins 15 cm. pts = contour (plan), wz(x, y) = niveau de l'eau (mm) */
+        function v3WaterBed(root, pts, wz, P, Zm) { if (!pts || pts.length < 3) return; const xs = pts.map(q => q.x), ys = pts.map(q => q.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), st = mmToWorld(700), rnd = Math.random;
+            if ((x1 - x0) / st * (y1 - y0) / st > 400000) return; const rocks = [], algae = [], fish = [];
+            for (let x = x0 + st / 2; x < x1; x += st) for (let y = y0 + st / 2; y < y1; y += st) { const px = x + (rnd() - 0.5) * st, py = y + (rnd() - 0.5) * st; if (!pointInPolygon(px, py, pts)) continue;
+                const gz = groundZAt(px, py, false), w = wz(px, py); if (!hasZ(gz) || !isFinite(w)) continue; const dep = w - gz; if (dep < 150) continue; const p = P(px, py), zb = Zm(gz), zw = Zm(w), zs = (zw - zb) / dep;   /* m de scène par mm */
+                if (rnd() < 0.3) rocks.push([p.x, p.y, zb, (0.06 + Math.pow(rnd(), 2) * 0.32), zs]);
+                if (rnd() < 0.35) algae.push([p.x, p.y, zb, Math.min(dep * 0.8, 300 + rnd() * 1100) * zs]);
+                if (dep > 400 && rnd() < 0.025) fish.push([p.x, p.y, zb + (0.25 + rnd() * 0.5) * (zw - zb), Math.min((zw - zb) * 0.3, 0.12 + rnd() * 0.25)]); }
+            if (rocks.length > 6000) rocks.length = 6000; if (algae.length > 8000) algae.length = 8000; if (fish.length > 300) fish.length = 300;
+            const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), eu = new THREE.Euler(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), cc = new THREE.Color();
+            if (rocks.length) { const g = new THREE.IcosahedronGeometry(1, 1), pa = g.attributes.position; for (let i = 0; i < pa.count; i++) { const f = 0.78 + ((Math.sin(pa.getX(i) * 12.9 + pa.getY(i) * 78.2 + pa.getZ(i) * 37.7) * 43758.5) % 1 + 1) % 1 * 0.4; pa.setXYZ(i, pa.getX(i) * f, pa.getY(i) * f, pa.getZ(i) * f * 0.6); } g.computeVertexNormals();
+                const im = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ flatShading: true }), rocks.length), c0 = new THREE.Color(0x7a7b6c), c1 = new THREE.Color(0x4f5a48);
+                rocks.forEach(([x, y, z, r], i) => { ps.set(x, y, z + r * 0.15); eu.set((rnd() - 0.5) * 0.5, (rnd() - 0.5) * 0.5, rnd() * 6.283); q.setFromEuler(eu); sc.set(r * (0.8 + rnd() * 0.7), r * (0.8 + rnd() * 0.5), r); m4.compose(ps, q, sc); im.setMatrixAt(i, m4); cc.copy(c0).lerp(c1, rnd()); if (im.setColorAt) im.setColorAt(i, cc); });
+                im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.frustumCulled = false; im.userData.bed = true; root.add(im); }
+            if (algae.length) { const bp = [];   /* une algue : ruban ondulé de 6 tronçons, de hauteur 1 (mise à l'échelle par instance) */
+                for (let k = 0; k < 6; k++) { const f0 = k / 6, f1 = (k + 1) / 6, o0 = Math.sin(f0 * 7) * 0.08 * f0, o1 = Math.sin(f1 * 7) * 0.08 * f1, w0 = 0.035 * (1 - f0 * 0.7), w1 = 0.035 * (1 - f1 * 0.7);
+                    bp.push(o0 - w0, 0, f0, o0 + w0, 0, f0, o1 + w1, 0, f1, o0 - w0, 0, f0, o1 + w1, 0, f1, o1 - w1, 0, f1); }
+                const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); g.computeVertexNormals();
+                const im = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), algae.length), c0 = new THREE.Color(0x2f6b2a), c1 = new THREE.Color(0x6b8f2a);
+                algae.forEach(([x, y, z, h], i) => { ps.set(x, y, z); eu.set((rnd() - 0.5) * 0.25, (rnd() - 0.5) * 0.25, rnd() * 6.283); q.setFromEuler(eu); const s2 = 0.6 + rnd() * 0.9; sc.set(s2, s2, h); m4.compose(ps, q, sc); im.setMatrixAt(i, m4); cc.copy(c0).lerp(c1, rnd()); if (im.setColorAt) im.setColorAt(i, cc); });
+                im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.frustumCulled = false; im.userData.bed = true; root.add(im); }
+            if (fish.length) { const body = new THREE.SphereGeometry(1, 10, 6); body.scale(1, 0.32, 0.42); const bp = Array.from(body.toNonIndexed().attributes.position.array); bp.push(-0.85, 0, 0, -1.5, 0, 0.45, -1.5, 0, -0.45, -0.85, 0, 0, -1.5, 0, -0.45, -1.5, 0, 0.45);   /* corps + queue */
+                const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); g.computeVertexNormals();
+                const im = new THREE.InstancedMesh(g, new THREE.MeshPhongMaterial({ shininess: 60, side: THREE.DoubleSide }), fish.length), C = [0xc0c7cf, 0xd97706, 0x9ca3af, 0x8a9a5b, 0xf59e0b];
+                fish.forEach(([x, y, z, L], i) => { ps.set(x, y, z); eu.set((rnd() - 0.5) * 0.2, 0, rnd() * 6.283); q.setFromEuler(eu); sc.set(L, L, L); m4.compose(ps, q, sc); im.setMatrixAt(i, m4); cc.set(C[Math.floor(rnd() * C.length)]); if (im.setColorAt) im.setColorAt(i, cc); });
+                im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.frustumCulled = false; im.userData.bed = true; im.userData.fish = true; root.add(im); } }
         function v3RiverBanks(root, E, w) { const k = Math.max(0.6, Math.min(3, Math.sqrt(w) / 2)), rocks = [], reeds = [], rnd = Math.random;
             E.forEach(L => { for (let i = 0; i + 1 < L.length; i++) { const a = L[i], b = L[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); if (l < 1e-6) continue; const nx = -dy / l, ny = dx / l;
                     const nR = Math.round(l * 1.4 * (0.5 + rnd())); for (let m = 0; m < nR; m++) { const f = rnd(), o = (rnd() - 0.45) * 1.2 * k; rocks.push([a[0] + dx * f + nx * o, a[1] + dy * f + ny * o, a[2] + (b[2] - a[2]) * f, (0.12 + Math.pow(rnd(), 2.2) * 0.5) * k]); }
@@ -382,7 +425,8 @@
             const G = new THREE.BufferGeometry(); G.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); G.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); G.setAttribute('color', new THREE.Float32BufferAttribute(Cl, 3)); G.scale(0.85, 0.85, 0.85); return G; }
         async function open3D() { const ownL = !mcLoad.on; if (ownL) await mcLoad.open('Vue 3D', ['Vue 3D']); else mcLoad.ready();
             try { await open3D_(); } finally { if (ownL) mcLoad.close(); } }
-        async function open3D_() { mcLoad.set(mcLoad.names.length - 1, null, 'Ouverture de la vue 3D…');
+        async function open3D_() { { const ex = document.getElementById('v3-exag'); if (ex && ex.value !== '1') ex.value = '1'; }   /* relief à ses vraies proportions (l'exagération n'est plus proposée) */
+ mcLoad.set(mcLoad.names.length - 1, null, 'Ouverture de la vue 3D…');
             try { await loadPolyClip(); } catch (e) {}   // emprise des parois (voiles épais, angles)
             if (layoutOn) toggleLayout(false);
             const el = document.getElementById('view3d'), r3 = document.getElementById('v3-rose');
