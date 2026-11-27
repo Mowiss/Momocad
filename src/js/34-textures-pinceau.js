@@ -505,6 +505,9 @@
             if (!out.length) return null; const G = new THREE.BufferGeometry(); G.setAttribute('position', new THREE.Float32BufferAttribute(out, 3)); G.setAttribute('normal', new THREE.Float32BufferAttribute(nr, 3)); return G;
         }
         // couches de peinture : un jeu par coup de pinceau (repérées par lui), reconstruit seulement pour le coup qu'on est en train de peindre
+        /* zone peinte au sol (pavés, gravier…) : elle habille le sol, les plateformes et les dalles ; ce qui est posé dessus (voiture, meuble, arbre, mur, menuiserie, toit) garde sa propre matière */
+        function brushZoneOn(o) { let q = o; while (q && q !== V3.root) { const u = q.userData || {}; if (u.blk || u.opening || u.leaf || u.door || u.shutter || u.paroiOf || u.gcKeep) return false;
+                if (u.shape) { const s = u.shape; return !(s.wallMat || s.roofDef || s.roofPart || s.stair2 || s.ctop || (s.solid && s.solid.kind !== 'box') || s.sweep || s.type === 'mesh'); } q = q.parent; } return true; }
         function v3BrushBuild(only) {
             if (!V3 || !V3.root) return; const old = []; V3.root.traverse(o => { if (o.userData.brushOv && (!only || o.userData.brushOv === only)) old.push(o); }); old.forEach(o => { if (o.parent) o.parent.remove(o); if (o.material) o.material.dispose(); if (o.geometry) o.geometry.dispose(); });
             if (V3.flat) return;
@@ -515,7 +518,7 @@
                 if (b.poly) { if (P.length < 3) { if (P.length) { const one2 = P.map((p2, i) => ({ a: p2, b: P[Math.min(i + 1, P.length - 1)], r: 0.08, h: 0.9, top: true, tol: 1e5, n: [0, 0, 1] })); const mat = brushMat(b.tex, one2.slice(0, BR_N)); if (mat) V3.brT.T.forEach(({ o, bb: ob }) => { const bb = new THREE.Box3(); P.forEach(q => bb.expandByPoint(q)); bb.expandByScalar(0.2); bb.min.z = -1e5; bb.max.z = 1e5; if (!ob.intersectsBox(bb) || !o.parent) return; const G = brushSubGeom(o, bb); if (!G) return; const ov = new THREE.Mesh(G, mat); ov.userData.brushOv = s; ov.raycast = () => {}; ov.renderOrder = (o.renderOrder || 0) + 3; o.add(ov); }); } return; }
                     const fade = Math.max(0.01, r * (1 - Math.min(0.99, b.h))), bb = new THREE.Box3(); P.forEach(q => bb.expandByPoint(q)); bb.min.x -= fade; bb.min.y -= fade; bb.max.x += fade; bb.max.y += fade; bb.min.z = -1e5; bb.max.z = 1e5;
                     const mat = brushPolyMat(b.tex, P, fade); if (!mat) return;
-                    V3.brT.T.forEach(({ o, bb: ob }) => { if (!ob.intersectsBox(bb) || !o.parent) return; const G = brushSubGeom(o, bb); if (!G) return; const ov = new THREE.Mesh(G, mat); ov.userData.brushOv = s; ov.raycast = () => {}; ov.renderOrder = (o.renderOrder || 0) + 3; o.add(ov); }); return; }
+                    V3.brT.T.forEach(({ o, bb: ob }) => { if (!ob.intersectsBox(bb) || !o.parent || !brushZoneOn(o)) return; const G = brushSubGeom(o, bb); if (!G) return; const ov = new THREE.Mesh(G, mat); ov.userData.brushOv = s; ov.raycast = () => {}; ov.renderOrder = (o.renderOrder || 0) + 3; o.add(ov); }); return; }
                 const one = (a, c) => segs.push({ a, b: c, r, h: b.h, top: !!b.top, tol: Math.max(1.2 * ex, r), n: b.n || [0, 0, 1] });
                 if (P.length === 1) one(P[0], P[0]); else for (let i = 0; i + 1 < P.length; i++) one(P[i], P[i + 1]);
                 for (let k = 0; k < segs.length; k += BR_N) { const ch = segs.slice(k, k + BR_N), bb = new THREE.Box3(); ch.forEach(g => { bb.expandByPoint(g.a); bb.expandByPoint(g.b); }); const tM = Math.max(...ch.map(g => g.top ? g.tol : g.r)); bb.min.x -= r; bb.min.y -= r; bb.max.x += r; bb.max.y += r; bb.min.z -= tM; bb.max.z += tM;

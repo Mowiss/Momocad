@@ -250,7 +250,7 @@
             else if (M.k === 'conif') { const H = 2.0 * D; trunk(0.2 * H, 0.04 * D); [[0.5, 0.1], [0.38, 0.36], [0.25, 0.58]].forEach(([r, z0]) => out.push([at(up(new THREE.ConeGeometry(r * D, 0.42 * H, 10)), cx, cy, z0 * H + 0.21 * H), M.c])); }
             else if (M.k === 'car') carParts(out, M.c);
             else if (M.k === 'mdl') mdlParts(b.mdl).forEach(q => out.push(q));
-            return { parts: out, c: [cx * 1000, cy * 1000], veg: M.k !== 'f' && M.k !== 'car' && M.k !== 'mdl', flat: M.k === 'car' || M.k === 'mdl', mdl: M.k === 'mdl' };
+            return { parts: out, c: [cx * 1000, cy * 1000], veg: M.k !== 'f' && M.k !== 'car' && M.k !== 'mdl', flat: M.k === 'car' || M.k === 'mdl', mdl: M.k === 'mdl', car: M.k === 'car', paintCol: M.k === 'car' ? M.c : undefined, paint0: M.k === 'car' ? { c: '#' + M.c.toString(16).padStart(6, '0'), m: 0 } : undefined };
         }
         /* citadine en facettes (m, avant vers +x, posée à z = 0) : caisse et vitrage en profils de côté extrudés sur la largeur, montants, pare-chocs, feux, rétroviseurs, roues à 12 pans */
         function carParts(out, body) { const L2 = 1.725, W = 1.63, glass = 0x1e293b, dark = 0x374151, tyre = 0x1f2937;
@@ -290,7 +290,8 @@
                 let z = ground(cw.x, cw.y);
                 if (!G.veg) { let best = null; slabs.forEach(d => { if (!pointInPolygon(cw.x, cw.y, d.points)) return; const t = solidBaseZ(d) + (d.solid.H || 0); if ((!hasZ(z) || t < z + 3000) && (best === null || t > best)) best = t; }); if (best !== null) z = best; }
                 const Mx = new THREE.Matrix4().makeRotationZ(th).premultiply(new THREE.Matrix4().makeScale(s, s, s)).premultiply(new THREE.Matrix4().makeTranslation(tx / 1000, ty / 1000, hasZ(z) ? Zm(z) : 0));
-                G.parts.forEach(([g, col]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const tid = sh.btex && sh.btex[col], TX = tid && TEX_LIB.find(t => t.id === tid), tm = TX ? texMaterial(tid) : null;   /* pièce peinte au pinceau : sa texture */
+                G.parts.forEach(([g, col, pnt]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const tid = sh.btex && sh.btex[col], TX = tid && TEX_LIB.find(t => t.id === tid), tm = TX ? texMaterial(tid) : null;
+                    if (!tm && (pnt || (G.paintCol !== undefined && col === G.paintCol))) { const P0 = sh.bpaint || G.paint0 || { c: col, m: 1 }, me = new THREE.Mesh(g, carPaintMat(new THREE.Color(P0.c), P0.m, G.car || G.mdl)); if (G.mdl) me.material.side = THREE.DoubleSide; me.userData.blk = sh; me.userData.blkCol = col; root.add(me); return; }   /* carrosserie : laque (unie ou métallisée), teinte choisie au Y */   /* pièce peinte au pinceau : sa texture */
                     const me = tm ? new THREE.Mesh(texGeometry(g, TX.tile), tm) : new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: col, flatShading: G.veg || G.flat, side: G.mdl ? THREE.DoubleSide : THREE.FrontSide })); me.userData.blk = sh; me.userData.blkCol = col; root.add(me); });
             }
         }
