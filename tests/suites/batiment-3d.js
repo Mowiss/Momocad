@@ -294,6 +294,25 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         blkTab = 'veget'; renderBlockMenu(); const badge = /2D\/3D/.test(document.getElementById('blk-grid').innerHTML);
         shapes = keepS; invalidateCache(); saveState(); return { parts, tree: h > 5 && h < 9, base: Math.abs(T.min.z - V3.root.position.z - zg) < 0.05, turned: w > d && Math.abs(w - 2) < 0.05, moved: Math.round((L2.min.x - L.min.x) * 10) / 10, badge }; });
     t.eq('blocs en 3D : table avec ses chaises, haie en touffes, arbre au sol à sa taille, meuble tourné et déplacé avec son dessin, vignettes 2D/3D', bk, { parts: { table: true, haie: true }, tree: true, base: true, turned: true, moved: 3, badge: true });
+    // bloc posé avant que le catalogue redessine son contour (canapé aux coins arrondis) : toujours en 3D, à sa place
+    const old = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000);
+        startStamp('canape'); currentX = 5 * m; currentY = -5 * m; placeStamp(); setMode('select-box'); const G = shapes.filter(x => x.block === 'Canapé 3 pl.');
+        const box = () => { build3DScene(); const bb = new THREE.Box3(); V3.root.updateMatrixWorld(true); V3.root.traverse(o => { if (o.isMesh && o.userData.blk && o.userData.blk.block === 'Canapé 3 pl.') bb.expandByObject(o); }); return bb; };
+        saveState(); if (!V3) init3D(); const b0 = box();
+        const P = G[0].points, xs = P.map(q => q.x), ys = P.map(q => q.y); G[0].points = [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)], [Math.min(...xs), Math.max(...ys)]].map(([x, y]) => ({ x, y }));   // ancien contour : 4 coins
+        saveState(); if (!V3) init3D(); build3DScene(); const bb = new THREE.Box3(); let n = 0; V3.root.updateMatrixWorld(true); V3.root.traverse(o => { if (o.isMesh && o.userData.blk && o.userData.blk.block === 'Canapé 3 pl.') { n++; bb.expandByObject(o); } });
+        const c = bb.getCenter(new THREE.Vector3()).sub(V3.root.position), w = Math.round((bb.max.x - bb.min.x) * 100) / 100, r = { n: n >= 4, w, at: bb.min.distanceTo(b0.min) < 0.01 && bb.max.distanceTo(b0.max) < 0.01 };
+        shapes = keepS; invalidateCache(); saveState(); return r; });
+    t.eq('bloc posé avant un redessin du catalogue (canapé) : toujours en 3D, à sa place et à sa taille', old, { n: true, w: 2.1, at: true });
+    // groupe dont les traits ne sont plus dans l'ordre du bloc (bureau : la chaise en premier) : le bureau garde sa taille ; meuble d'un étage : posé sur le plancher de cet étage
+    const ord = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
+        const C = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [12, 0], [12, -10], [0, -10]].map(([x, y]) => ({ x: x * m, y: y * m })) }; shapes.push(C); const Z = bldMake(C, 'Test', 0, 3000); Z.bld.lvls.push({ id: 'l1', z: 3000, h: 3000 });
+        const put = (x, lv) => { startStamp('bureau'); currentX = x * m; currentY = -5 * m; placeStamp(); setMode('select-box'); const g = shapes[shapes.length - 1].groupId, G = shapes.filter(s => s.groupId === g); G.forEach(s => { s.bid = Z.bld.id; s.lvl = lv; }); return g; };
+        const g1 = put(3, 'rdc'), g2 = put(8, 'l1'); const G2 = shapes.filter(s => s.groupId === g2); shapes = shapes.filter(s => s.groupId !== g2).concat(G2.slice().reverse());   // ordre inversé : la chaise d'abord
+        saveState(); if (!V3) init3D(); build3DScene(); const bb = {}; V3.root.updateMatrixWorld(true); V3.root.traverse(o => { if (o.isMesh && o.userData.blk && o.userData.blk.block === 'Bureau') { const k = o.userData.blk.groupId; (bb[k] = bb[k] || new THREE.Box3()).expandByObject(o); } });
+        const s1 = bb[g1].getSize(new THREE.Vector3()), s2 = bb[g2].getSize(new THREE.Vector3()); r.size = s2.distanceTo(s1) < 0.01 && Math.abs(s1.x - 1.4) < 0.02; r.etage = Math.round((bb[g2].min.z - bb[g1].min.z) / V3.exag * 100) / 100;
+        shapes = keepS; invalidateCache(); saveState(); return r; });
+    t.eq('bloc aux traits dans le désordre : bon placement, bonne taille ; meuble d\'étage sur le plancher de son étage', ord, { size: true, etage: 3 });
     // Momo attrapé (clic maintenu + glisser) et posé sur le plan : vue à hauteur d'yeux, Z Q S D pour marcher, arrêt contre un mur, Échap = retour au plan
     const fp0 = await ev(async () => { await loadThree(); window.__keepFps = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m }));
         for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });

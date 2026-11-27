@@ -280,6 +280,24 @@
             if ((g[0] === 'C' || g[0] === 'A') && (sh.type === 'circle' || sh.type === 'arc')) return [[[g[1], g[2]], [g[1] + g[3], g[2]]], [[sh.x, sh.y], [sh.x + sh.r, sh.y]], true];
             return null;
         }
+        /* étage d'un bloc posé (s.lvl) dans son bâtiment : { z } du niveau, sinon null */
+        function blkLevel(sh) { if (!sh.lvl || sh.lvl === 'toit' || typeof bldOfObj !== 'function') return null; let LL = null; try { const Z = bldOfObj(sh); LL = Z ? (Z === bldCur() && lvls ? lvls : Z.bld.lvls) : lvls; } catch (e) { LL = lvls; }
+            const L = (LL || []).find(x => x.id === sh.lvl); return L && hasZ(L.z) ? L : null; }
+        /* repère d'un bloc posé : son premier trait ; si le catalogue a redessiné ce trait depuis la pose (coins arrondis…), le premier autre trait resté identique, à la même place dans le bloc */
+        function blkRefs1(g, sh) { const R = blkRefs(g, sh); if (!R || R[2]) return R; const [[a, b2], [A, B]] = R, d = Math.hypot(b2[0] - a[0], b2[1] - a[1]), D = worldToMm(Math.hypot(B[0] - A[0], B[1] - A[1])); return d > 1 && D > 1 ? R : null; }
+        /* les traits d'un groupe ne sont pas toujours dans l'ordre du bloc (tourné, copié, recoupé…) : on essaie chaque couple trait du bloc / trait du groupe de même nature,
+           et on garde le placement qui pose le mieux TOUS les traits du bloc sur ceux du groupe (sinon un bureau se calait sur sa chaise et sortait minuscule) */
+        function blkCtr(g) { if (g[0] === 'L') return [(g[1] + g[3]) / 2, (g[2] + g[4]) / 2]; if (g[0] === 'P') { const P = g[1]; return [P.reduce((a, q) => a + q[0], 0) / P.length, P.reduce((a, q) => a + q[1], 0) / P.length]; } return [g[1], g[2]]; }
+        function shCtr(x) { const m = (v) => worldToMm(v); if (x.type === 'line') return [m((x.x1 + x.x2) / 2), -m((x.y1 + x.y2) / 2)]; if (x.type === 'poly') { const P = x.points; return [m(P.reduce((a, q) => a + q.x, 0) / P.length), -m(P.reduce((a, q) => a + q.y, 0) / P.length)]; } return [m(x.x), -m(x.y)]; }
+        function blkFit(b, grp, R) { const [[La, Lb], [Wa, Wb]] = R, ra = [worldToMm(Wa[0]), -worldToMm(Wa[1])], rb = [worldToMm(Wb[0]), -worldToMm(Wb[1])], dL = [Lb[0] - La[0], Lb[1] - La[1]], dR = [rb[0] - ra[0], rb[1] - ra[1]], s = Math.hypot(dR[0], dR[1]) / (Math.hypot(dL[0], dL[1]) || 1);
+            const th = R[2] ? 0 : Math.atan2(dR[1], dR[0]) - Math.atan2(dL[1], dL[0]), c = Math.cos(th), sn = Math.sin(th), T = ([x, y]) => [s * (c * (x - La[0]) - sn * (y - La[1])) + ra[0], s * (sn * (x - La[0]) + c * (y - La[1])) + ra[1]];
+            const C = grp.map(shCtr), bb = blockBBox(b), D = Math.max(1, Math.hypot(bb.x1 - bb.x0, bb.y1 - bb.y0) * s); let e = 0; b.el.forEach(g => { const p = T(blkCtr(g)); let m = Infinity; C.forEach(q => { const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < m) m = d; }); e += m / D; }); return e / b.el.length; }
+        function blkRefsAny(b, sh, grp) { const R0 = blkRefs1(b.el[0], sh); if (R0 && (grp.length < 2 || grp.length > 60 || blkFit(b, grp, R0) < 0.01)) return R0;
+            if (grp.length > 60) return R0 || null; let best = R0, be = R0 ? blkFit(b, grp, R0) : Infinity;
+            const tryR = (R) => { if (!R) return; const e = blkFit(b, grp, R); if (e < be - 1e-9) { be = e; best = R; } };
+            b.el.forEach(g => grp.forEach(x => { if (be < 0.002) return; tryR(blkRefs1(g, x));
+                if (g[0] === 'P' && x.type === 'poly' && x.points.length === g[1].length && x.points.length <= 12) for (let o = 1; o < x.points.length; o++) tryR(blkRefs1(g, Object.assign({}, x, { points: x.points.slice(o).concat(x.points.slice(0, o)) }))); }));   // contour repris d'un autre sommet
+            return best; }
         // modèle du bloc dans son repère (m), posé à z = 0
         function blkGeom3D(b, M) {
             const bb = blockBBox(b), cx = (bb.x0 + bb.x1) / 2000, cy = (bb.y0 + bb.y1) / 2000, D = Math.max(bb.x1 - bb.x0, bb.y1 - bb.y0) / 1000, out = [];
@@ -328,16 +346,18 @@
             const seen = new Set(), tin = getTIN(); let FM = null; try { FM = finishedModel(); } catch (e) {}
             const ground = (wx, wy) => { const tn = tin ? tinZ(wx, wy, tin) : null; const r = FM ? FM.at(wx, wy, hasZ(tn) ? tn : undefined) : null; return r && hasZ(r.z) ? r.z : hasZ(tn) ? tn : null; };
             const slabs = vis.filter(x => x.solid && x.solid.kind === 'box' && x.type === 'poly' && hasZ(solidBaseZ(x)));
+            const GRP = new Map(); vis.forEach(x => { if (x.block && x.groupId) { const L = GRP.get(x.groupId); if (L) L.push(x); else GRP.set(x.groupId, [x]); } });
             for (const sh of vis) {
                 if (!sh.block || !sh.groupId || seen.has(sh.groupId)) continue; seen.add(sh.groupId);
                 const b = blkByName(sh.block); if (!blkHas3D(b)) continue;
-                const R = blkRefs(b.el[0], sh); if (!R) continue;
+                const R = blkRefsAny(b, sh, GRP.get(sh.groupId) || [sh]); if (!R) continue;
                 const [[La, Lb], [Wa, Wb]] = R, ra = [worldToMm(Wa[0]), -worldToMm(Wa[1])], rb = [worldToMm(Wb[0]), -worldToMm(Wb[1])];
                 const dL = [Lb[0] - La[0], Lb[1] - La[1]], dR = [rb[0] - ra[0], rb[1] - ra[1]], s = Math.hypot(dR[0], dR[1]) / Math.hypot(dL[0], dL[1]); if (!(s > 1e-6)) continue;
                 const th = R[2] ? 0 : Math.atan2(dR[1], dR[0]) - Math.atan2(dL[1], dL[0]), c = Math.cos(th), sn = Math.sin(th), tx = ra[0] - s * (c * La[0] - sn * La[1]), ty = ra[1] - s * (sn * La[0] + c * La[1]);
                 const G = blkGeom3D(b, b.mdl ? { k: 'mdl' } : BLK3[b.id]), cr = [s * (c * G.c[0] - sn * G.c[1]) + tx, s * (sn * G.c[0] + c * G.c[1]) + ty], cw = { x: mmToWorld(cr[0]), y: -mmToWorld(cr[1]) };
-                let z = ground(cw.x, cw.y);
-                if (!G.veg) { let best = null; slabs.forEach(d => { if (!pointInPolygon(cw.x, cw.y, d.points)) return; const t = solidBaseZ(d) + (d.solid.H || 0); if ((!hasZ(z) || t < z + 3000) && (best === null || t > best)) best = t; }); if (best !== null) z = best; }
+                let z = ground(cw.x, cw.y); const Lv = blkLevel(sh);
+                if (Lv && !G.veg) { let best = null; slabs.forEach(d => { if (!pointInPolygon(cw.x, cw.y, d.points)) return; const t = solidBaseZ(d) + (d.solid.H || 0); if (Math.abs(t - Lv.z) < 450 && (best === null || Math.abs(t - Lv.z) < Math.abs(best - Lv.z))) best = t; }); z = best !== null ? best : Lv.z; }   /* meuble d'un étage : sur le plancher de son étage */
+                else if (!G.veg) { let best = null; slabs.forEach(d => { if (!pointInPolygon(cw.x, cw.y, d.points)) return; const t = solidBaseZ(d) + (d.solid.H || 0); if ((!hasZ(z) || t < z + 3000) && (best === null || t > best)) best = t; }); if (best !== null) z = best; }
                 const Mx = new THREE.Matrix4().makeRotationZ(th).premultiply(new THREE.Matrix4().makeScale(s, s, s)).premultiply(new THREE.Matrix4().makeTranslation(tx / 1000, ty / 1000, hasZ(z) ? Zm(z) : 0));
                 G.parts.forEach(([g, col, pnt, gls]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const tid = sh.btex && sh.btex[col], TX = tid && TEX_LIB.find(t => t.id === tid), tm = TX ? texMaterial(tid) : null;
                     if (!tm && gls) { const me = new THREE.Mesh(g, carPaintMat(new THREE.Color(col), 0, true)); me.material.side = THREE.DoubleSide; me.userData.blk = sh; me.userData.blkCol = col; root.add(me); return; }   /* vitrage : noir verni, il reflète le ciel */
