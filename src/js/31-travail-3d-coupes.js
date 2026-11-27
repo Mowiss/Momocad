@@ -576,9 +576,11 @@
         let d3Col = [];
         function d3ObjName(s) { const L = (layers.find(l => l.id === (s.layerId || 'layer-0')) || {}).name || '';
             const n = s.name || (s.solid ? SOLID_NAMES[s.solid.kind] || 'Volume' : s.sweep ? 'Balayage' : s.wallMat ? 'Mur' : 'Volume'); return n + (L ? ' (' + L + ')' : ''); }
+        /* morceau de paroi : couche d'un mur (béton, isolant, placo, ossature), paroi complexe ou trait de mur ; deux morceaux de paroi qui se croisent sont des jonctions, pas des collisions */
+        function colWallPart(o) { return !!(o && (o.wallMat || o.wallCx || o.stud || (typeof isWallHatch === 'function' && isWallHatch(o)) || (o.type === 'line' && o.wz))); }
         async function d3Collisions() {
             if (!window.THREE) { await loadThree(); }
-            const vis = shapes.filter(x => { const l = layers.find(y => y.id === (x.layerId || 'layer-0')); return (!l || l.visible !== false) && is3DObj(x) && !x.gen; });
+            const vis = shapes.filter(x => { const l = layers.find(y => y.id === (x.layerId || 'layer-0')); return (!l || l.visible !== false) && is3DObj(x) && !x.gen && !x.stud; });   /* l'ossature d'une paroi (rails, montants) est dans le mur : jamais une collision */
             if (vis.length < 2) { updateCommandMessageText('COLLISIONS : il faut au moins deux volumes visibles.'); return; }
             updateCommandMessageText('COLLISIONS : contrôle de ' + vis.length + ' volumes…');
             await new Promise(r => setTimeout(r, 30));
@@ -588,7 +590,7 @@
             for (let i = 0; i < T.length; i++) for (let j = i + 1; j < T.length; j++) {
                 const A = T[i], B = T[j]; if (!A || !B) continue;
                 if (A.o.groupId && A.o.groupId === B.o.groupId) continue;   // morceaux d'un même ouvrage (mur et ses pièces)
-                if (A.o.wallMat && B.o.wallMat) continue;   /* murs entre eux (couches d'une même paroi, angles, jonctions en T) : la structure du mur n'est pas une collision */
+                if (colWallPart(A.o) && colWallPart(B.o)) continue;   /* murs entre eux (couches d'une même paroi, angles, jonctions en T) : la structure du mur n'est pas une collision */
                 const e = 1; if (A.b[3] <= B.b[0] + e || B.b[3] <= A.b[0] + e || A.b[4] <= B.b[1] + e || B.b[4] <= A.b[1] + e || A.b[5] <= B.b[2] + e || B.b[5] <= A.b[2] + e) continue;
                 if (A.t.length + B.t.length > 9 * 60000) { skipped++; continue; }
                 tested++; let r; try { r = csgTris(A.t, B.t, 'inter'); } catch (er) { continue; }
