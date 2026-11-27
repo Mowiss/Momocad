@@ -96,7 +96,7 @@
                      // réglages d'affichage et d'impression du plan
                      settings: { unit: printSettings.unit, decimals: printSettings.decimals, dimText: dimTextAligned ? 'aligned' : 'horizontal', dimStyle: Object.assign({}, dimStyle),
                                  paper: printSettings.paper, output: printSettings.output, cartouche: !!printSettings.cartouche, orientation: printOrientation },
-                     talus: { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, pluvio: pluvioNote ? Object.assign({}, pluvioNote, { S: undefined }) : undefined, sol: solNote || undefined, maill: mailNote || undefined, levels: bldActId ? lvlsGlobal : lvls, layout: Object.assign({}, layoutData, { paperShapes: paperList || lpPaperShapes() }),
+                     talus: { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, pluvio: pluvioNote ? Object.assign({}, pluvioNote, { S: undefined }) : undefined, pin3d: v3PinSave(), sol: solNote || undefined, maill: mailNote || undefined, levels: bldActId ? lvlsGlobal : lvls, layout: Object.assign({}, layoutData, { paperShapes: paperList || lpPaperShapes() }),
                      layouts: lpSync().map(L => L === layoutData ? { $cur: 1 } : L), layoutIdx, studio: studio.views.length || studio.fmt !== '16:9' || studio.f !== 35 ? studio : undefined };
         }
         function fileBytes(name) {
@@ -106,8 +106,8 @@
         // la mise en page compte aussi : fenêtres, feuille, textes de la feuille
         function lpSig() { try { const L = layoutData || {}; return JSON.stringify([(typeof layouts !== 'undefined' ? layouts : []).map(Q => [Q.name, Q.paper, Q.orient, Q.cartouche, Q.cartType, Q.margin, Q.folds, (Q.vps || []).length, JSON.stringify(Q.cart || {})]), L.paper, L.orient, L.cartouche, L.margin, L.folds, (L.vps || []).map(v => [v.x, v.y, v.w, v.h, v.scale, v.cx, v.cy, v.cz, v.a, v.e, v.title, v.plat, v.locked, v.noFrame, v.round, v.kind, v.v3 ? [v.v3.az, v.v3.el, v.v3.dist, v.v3.tx, v.v3.ty] : 0, v.src ? v.src.length : 0]), (lpPaperShapes() || []).length, lpSpace === 'paper' ? historyStep : (lpPaperHist ? lpPaperHist.step : 0), JSON.stringify(cartoucheData).length]); } catch (e) { return ''; } }
         let savedLp = '';
-        function isDirty() { return shapesHistory[historyStep] !== savedRef || lpSig() !== savedLp; }
-        function markSaved() { savedRef = shapesHistory[historyStep]; savedLp = lpSig(); updateTitle(); if (window.__asReady) asClean(); }
+        function isDirty() { return shapesHistory[historyStep] !== savedRef || lpSig() !== savedLp || JSON.stringify(v3PinSave()) !== savedPin; }   /* drapeau 3D déplacé : à enregistrer aussi */
+        let savedPin = 'null'; function markSaved() { savedRef = shapesHistory[historyStep]; savedLp = lpSig(); savedPin = JSON.stringify(v3PinSave()); updateTitle(); if (window.__asReady) asClean(); }
         // =====================================================================
         // ENREGISTREMENT AUTOMATIQUE : toutes les 2 minutes (et quand l'onglet passe en arrière-plan) si le plan a changé,
         // le plan complet part dans le navigateur (IndexedDB) ; on garde les 10 dernières sauvegardes.
@@ -387,7 +387,7 @@
             geoOrigin = (data.geoOrigin && isFinite(data.geoOrigin.x)) ? data.geoOrigin : { x: 0, y: 0 };
             lvls = Array.isArray(data.levels) && data.levels.length ? data.levels : null; lvlsGlobal = null; bldActId = null; lvlAct = 'rdc'; if (lvlOn) lvlToggle(false);
             if (data.talus) { cubState.talus = data.talus.on !== false; cubState.kR = data.talus.kR || '3/2'; cubState.kD = data.talus.kD || '1/1'; }
-            pluvioNote = data.pluvio || null; solNote = data.sol || null; solStop(true); mailNote = data.maill || null;
+            pluvioNote = data.pluvio || null; solNote = data.sol || null; PIN3D = data.pin3d && isFinite(data.pin3d.x) && isFinite(data.pin3d.y) && isFinite(data.pin3d.z) ? { x: +data.pin3d.x, y: +data.pin3d.y, z: +data.pin3d.z } : null; if (typeof V3 !== 'undefined' && V3) { V3.pin = null; V3.pinRoot = null; } solStop(true); mailNote = data.maill || null;
             shapes = data.shapes; wallFteMigrate(shapes); lvlMarkAll(); if (lvls) lvlChain(); markZKnown(); lightenTalusLimits(shapes); MMC_LOAD_FIX.walls = wallBordersRepair(); MMC_LOAD_FIX.bm = bmLayerRepair(); MMC_LOAD_FIX.ops = wallOpRepair(); MMC_LOAD_FIX.bld = bldRepair(); if (shapes.some(x => x.stair2)) try { loadPolyClip().then(() => { invalidateCache(); draw(); }, () => {}); } catch (e) {} MMC_LOAD_FIX.bsol = bldSolidRepair(); MMC_LOAD_FIX.wz = wallWzRepair(); wallBidRepair(); selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI();
             if (data.view && data.view.zoom > 0) {

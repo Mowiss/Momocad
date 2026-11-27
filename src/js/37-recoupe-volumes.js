@@ -50,12 +50,19 @@
         // curseur « drapeau en main » : la pointe du mât est le point visé
         const PIN_CUR = 'url("data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M5 30V3" stroke="#000" stroke-width="4" stroke-linecap="round"/><path d="M5 30V3" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M6 3.5L24 9.5L6 16Z" fill="#bef264" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/><ellipse cx="5" cy="30" rx="4" ry="1.5" fill="none" stroke="#000" stroke-width="1.2"/></svg>') + '") 5 30, crosshair';
         function v3PinCursor() { if (!V3 || !V3.renderer) return; V3.renderer.domElement.style.cursor = V3.pinPick ? PIN_CUR : ''; }
-        function v3PinToggle() { if (!V3) return; if (V3.pin) { V3.pin = null; V3.pinRoot = null; V3.pinWarn = 0; v3PinMark(); updateCommandMessageText('VUE 3D : drapeau retiré.'); }
+        function v3PinToggle() { if (!V3) return; if (V3.pin) { V3.pin = null; V3.pinRoot = null; V3.pinWarn = 0; PIN3D = null; try { updateTitle(); } catch (e) {} v3PinMark(); updateCommandMessageText('VUE 3D : drapeau retiré.'); }
             else { V3.pinPick = !V3.pinPick; updateCommandMessageText(V3.pinPick ? 'VUE 3D : drapeau en main — cliquez un point de la maquette (sol, mur, toit…) pour le planter. Échap : annuler.' : 'VUE 3D : drapeau reposé.'); }
             v3PinCursor(); render3D(); }
+        /* le drapeau est gardé dans le fichier, en coordonnées réelles (m, altitude sans exagération) : on le retrouve à la réouverture de la 3D et du plan */
+        let PIN3D = null;
+        function v3PinReal() { if (!V3 || !V3.pin) return null; const c = V3.center || { x: 0, y: 0 }, ex = V3.exag || 1, z0 = V3.zmin || 0, P = V3.pin.clone(); if (V3.root && V3.pinRoot) P.add(V3.root.position.clone().sub(V3.pinRoot));
+            return { x: Math.round((P.x + c.x) * 1000) / 1000, y: Math.round((P.y + c.y) * 1000) / 1000, z: Math.round((P.z / ex + z0) * 1000) / 1000 }; }
+        function v3PinSave() { if (typeof V3 !== 'undefined' && V3 && V3.pin) PIN3D = v3PinReal(); return PIN3D; }
+        function v3PinRestore() { if (!V3 || V3.pin || !PIN3D) { v3PinMark(); return; } const c = V3.center || { x: 0, y: 0 }, ex = V3.exag || 1, z0 = V3.zmin || 0;
+            V3.pin = new THREE.Vector3(PIN3D.x - c.x, PIN3D.y - c.y, (PIN3D.z - z0) * ex); V3.pinRoot = V3.root ? V3.root.position.clone() : null; V3.target.copy(V3.pin); v3PinMark(); }
         function v3PinAt(e) { const cv = V3.renderer.domElement, r = cv.getBoundingClientRect(), ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), V3.camera);
             const h = ray.intersectObjects(V3.root.children, true).find(x => x.object.visible !== false && !(x.object.userData && x.object.userData.pinMark)); if (!h) { updateCommandMessageText('VUE 3D : rien sous le curseur — cliquez sur la maquette.'); return; }
-            V3.pinPick = false; v3PinCursor(); const d = V3.camera.position.distanceTo(h.point); V3.pin = h.point.clone(); V3.pinRoot = V3.root.position.clone(); V3.target.copy(V3.pin); V3.dist = Math.max(V3.R * 0.01, Math.min(d, V3.R * 50)); V3.pinWarn = 0;
+            V3.pinPick = false; v3PinCursor(); const d = V3.camera.position.distanceTo(h.point); V3.pin = h.point.clone(); V3.pinRoot = V3.root.position.clone(); V3.target.copy(V3.pin); V3.dist = Math.max(V3.R * 0.01, Math.min(d, V3.R * 50)); V3.pinWarn = 0; PIN3D = v3PinReal(); try { updateTitle(); } catch (e) {}
             updateCommandMessageText('VUE 3D : drapeau planté — glisser tourne autour, la molette zoome sur lui. Drapeau de la rosace pour le retirer.'); render3D(); }
         // repère du drapeau dans la scène (mât + fanion), à taille constante à l'écran
         function v3PinMark() { if (!V3 || !V3.scene) return; let M = V3.pinMesh; if (!V3.pin) { if (M) M.visible = false; return; }

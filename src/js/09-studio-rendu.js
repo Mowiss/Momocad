@@ -392,7 +392,7 @@
             catch (err) { document.getElementById('v3-info').textContent = 'Impossible d\'ouvrir la vue 3D : ' + err.message; return; }
             if (!V3) init3D();
             mcLoad.say(mcLoad.funT ? mcLoad.txt : 'Construction de la scène 3D…'); await mcLoad.ready();
-            V3.keepCenter = false; place3D(); build3DScene(); v3Sky(); fit3D(); render3D(); V3.keepCenter = true;
+            V3.keepCenter = false; place3D(); build3DScene(); v3Sky(); fit3D(); v3PinRestore(); render3D(); V3.keepCenter = true;
             if (realOn() && !REAL && realSite()) realLoad();
             updateCommandMessageText('VUE 3D : Espace ou ☰ en haut à gauche = volet de la vue 3D (affichage, outils : mesurer, collisions, peindre ; décor, studio photo) · glisser = tourner · clic droit = déplacer · molette = zoom · Échap = retour au plan.');
             if (brushTool && brushTool.view !== '3d') { brushTool.view = '3d'; brushPanel(); brushMsg(); }
