@@ -422,7 +422,7 @@
                 const W = Math.round(Math.max(256, Math.min(3000, hw * 2 * 110))), H = Math.round(Math.max(64, Math.min(3000, W * hh / hw)));
                 const cam = new THREE.OrthographicCamera(-hw, hw, hh, -hh, 0.02, depth), px = (D.ax + D.rx * cu) / 1000 + rp.x, py = (D.ay + D.ry * cu) / 1000 + rp.y, pz = (cz / 1000 - (V3.zmin || 0)) * ex + rp.z;
                 cam.up.set(0, 0, 1); cam.position.set(px - vx * 0.01, py - vy * 0.01, pz); cam.lookAt(px + vx, py + vy, pz); cam.updateProjectionMatrix();
-                V3.scene.background = null; V3.scene.fog = null; R.clippingPlanes = []; R.setPixelRatio(1); R.setSize(W, H, false); R.setClearColor(0xff00ff, 1); R.render(V3.scene, cam);
+                if (V3.pinMesh && V3.pinMesh.visible) { V3.pinMesh.visible = false; hid.push(V3.pinMesh); } V3.scene.background = null; V3.scene.fog = null; R.clippingPlanes = []; R.setPixelRatio(1); R.setSize(W, H, false); R.setClearColor(0xff00ff, 1); R.render(V3.scene, cam);
                 const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d'); c.drawImage(R.domElement, 0, 0, W, H); const im = c.getImageData(0, 0, W, H), d = im.data; let any = 0;
                 for (let k = 0; k < d.length; k += 4) { const m = Math.min(d[k], d[k + 2]) - d[k + 1]; if (m > 200) d[k + 3] = 0; else { if (m > 60) { d[k + 3] = Math.round(255 * (1 - (m - 60) / 140)); d[k] = d[k + 2] = d[k + 1]; } any++; } }   // fond (magenta) transparent, bords adoucis
                 if (any < W * H * 0.002) return null; c.putImageData(im, 0, 0); let url = cv.toDataURL('image/webp', 0.9); if (!/^data:image\/webp/.test(url)) url = cv.toDataURL('image/png'); return url;

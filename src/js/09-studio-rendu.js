@@ -207,6 +207,7 @@
             let [W, H] = stResWH(); const mx = Math.min(8192, V3.renderer.capabilities.maxTextureSize || 4096); if (W > mx || H > mx) { const k = mx / Math.max(W, H); W = Math.round(W * k); H = Math.round(H * k); }
             if (V3.rdSize) { W = V3.rdSize[0]; H = V3.rdSize[1]; }   // (tests) petite image
             const N = V3.rdSpp || Q.spp; RD = { stop: false, t0: performance.now(), n: 0, N, W, H }; RD.prev = document.createElement('canvas'); RD.prev.width = Math.min(W, 960); RD.prev.height = Math.round(RD.prev.width * H / W);
+            V3.noPin = true; if (V3.pinMesh) V3.pinMesh.visible = false;   /* le drapeau est un repère de travail : jamais dans l'image (ni pendant sa préparation) */
             rdUI('run'); rdStep('Affinage de la scène…', 0); await rdWait(); await rdWait();
             if (studio.realHD && realOn() && REAL) {   /* relief réel HD : téléchargé une fois (puis gardé), avancement affiché, 2 min au plus ; « Arrêter » pendant ce temps : rendu avec le relief normal */
                 let last = 'Relief réel en haute définition (téléchargé une seule fois)…', lf = 0; rdStep(last, 0); const tick = setInterval(() => rdStep(last, lf), 1000);
@@ -257,7 +258,7 @@
                 V3.amb.intensity = amb0; V3.sun.intensity = sun0; V3.sun.position.copy(S0);
             } catch (e) { console.error(e); updateCommandMessageText('RENDU : interrompu (' + (e && e.message || e) + ').'); }
             finally {
-                try { rdShadowsOff(); } catch (e) {} if (RD && RD.fogSet) V3.scene.fog = RD.fog0 || null; if (RD && RD.crt) RD.crt.dispose(); if (RD && RD.refl) RD.refl.rt.dispose(); if (R) { try { R.dispose(); R.forceContextLoss(); } catch (e) {} }
+                V3.noPin = false; try { v3PinMark(); } catch (e) {} try { rdShadowsOff(); } catch (e) {} if (RD && RD.fogSet) V3.scene.fog = RD.fog0 || null; if (RD && RD.crt) RD.crt.dispose(); if (RD && RD.refl) RD.refl.rt.dispose(); if (R) { try { R.dispose(); R.forceContextLoss(); } catch (e) {} }
                 const n = RD ? RD.n : 0; RD = null; V3.hq = null; try { build3DScene(); v3Sky(); render3D(); } catch (e) { console.error(e); }
                 if (out) { const v = studio.views.find(x => x.az === V3.az && x.dist === V3.dist), d = new Date(); RD_LAST = { cv: out, n, name: 'rendu' + (v ? '-' + v.n.replace(/[^\w-]+/g, '_') : '') + '-' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + '.png' };
                     rdUI('done'); rdStep(n + ' passe(s) · ' + out.width + ' × ' + out.height + ' px', 1); updateCommandMessageText('RENDU : terminé (' + n + ' passes). 💾 pour l\'enregistrer en PNG.'); }
@@ -464,7 +465,7 @@
             // souris : gauche = orbite, droit / molette enfoncée = déplacer, molette = zoom
             const cv = renderer.domElement; let drag = null;
             cv.addEventListener('contextmenu', e => e.preventDefault());
-            cv.addEventListener('pointerdown', e => { if (V3.fps) { if (e.button === 2) { if (texPaint) { fpsPaintStop(); return; } fpsPause(e); return; } if (V3.fps.paused) { if (texPaint && e.button === 0) drag = { b: 'fpaint', x0: e.clientX, y0: e.clientY }; return; } if (document.pointerLockElement === cv) { fpsDoor(); return; } drag = { b: 'fps', x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY }; try { cv.requestPointerLock(); } catch (er) {} return; } const br = brushTool && e.button === 0 && !e.shiftKey && !e.altKey; drag = { b: br ? 'brush' : e.button, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY }; try { cv.setPointerCapture(e.pointerId); } catch (er) {} V3.anim = null; if (br) brushDown(e); });
+            cv.addEventListener('pointerdown', e => { if (V3.fps) { if (e.button === 2) { if (texPaint) { fpsPaintStop(); return; } fpsPause(e); return; } if (V3.fps.paused) { if (texPaint && e.button === 0) drag = { b: 'fpaint', x0: e.clientX, y0: e.clientY }; return; } if (document.pointerLockElement === cv) { fpsDoor(); return; } drag = { b: 'fps', x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY }; try { { const pl = cv.requestPointerLock(); if (pl && pl.catch) pl.catch(() => {}); } } catch (er) {} return; } const br = brushTool && e.button === 0 && !e.shiftKey && !e.altKey; drag = { b: br ? 'brush' : e.button, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY }; try { cv.setPointerCapture(e.pointerId); } catch (er) {} V3.anim = null; if (br) brushDown(e); });
             cv.addEventListener('pointermove', e => {
                 if (V3.fps) { if (document.pointerLockElement === cv) fpsLook(e.movementX || 0, e.movementY || 0); else if (drag) { fpsLook(e.clientX - drag.x, e.clientY - drag.y); drag.x = e.clientX; drag.y = e.clientY; } return; }
                 if (brushTool && (!drag || drag.b === 'brush')) { const dn = !!drag; V3.brEv = { clientX: e.clientX, clientY: e.clientY }; if (!V3.brRaf) V3.brRaf = requestAnimationFrame(() => { V3.brRaf = 0; const ev = V3.brEv; if (!brushTool || !ev) return; if (dn) brushMove(ev); else v3BrushCursor(v3BrushHit(ev)); }); return; }

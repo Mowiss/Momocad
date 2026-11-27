@@ -65,7 +65,7 @@
             V3.pinPick = false; v3PinCursor(); const d = V3.camera.position.distanceTo(h.point); V3.pin = h.point.clone(); V3.pinRoot = V3.root.position.clone(); V3.target.copy(V3.pin); V3.dist = Math.max(V3.R * 0.01, Math.min(d, V3.R * 50)); V3.pinWarn = 0; PIN3D = v3PinReal(); try { updateTitle(); } catch (e) {}
             updateCommandMessageText('VUE 3D : drapeau planté — glisser tourne autour, la molette zoome sur lui. Drapeau de la rosace pour le retirer.'); render3D(); }
         // repère du drapeau dans la scène (mât + fanion), à taille constante à l'écran
-        function v3PinMark() { if (!V3 || !V3.scene) return; let M = V3.pinMesh; if (!V3.pin) { if (M) M.visible = false; return; }
+        function v3PinMark() { if (!V3 || !V3.scene) return; let M = V3.pinMesh; if (!V3.pin || V3.noPin || (typeof lp3D !== 'undefined' && lp3D.live)) { if (M) M.visible = false; return; }   /* noPin : rendu, fenêtre de présentation, façade texturée — le drapeau n'est jamais dans une image */
             if (!M) { M = new THREE.Group(); const mat = new THREE.MeshLambertMaterial({ color: 0xfbbf24 }), pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1, 6), mat); pole.rotation.x = Math.PI / 2; pole.position.z = 0.5;
                 const fl = new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 1, 0.55, 0, 0.82, 0, 0, 0.64], 3)), new THREE.MeshLambertMaterial({ color: 0xf59e0b, side: THREE.DoubleSide }));
                 [pole, fl].forEach(x => { x.userData.pinMark = 1; M.add(x); }); M.userData.pinMark = 1; V3.scene.add(M); V3.pinMesh = M; }

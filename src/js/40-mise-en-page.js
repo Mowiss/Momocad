@@ -584,7 +584,7 @@
             try { const H = Math.max(120, Math.round(W * v.h / Math.max(1, v.w))), R = V3.renderer, cam = V3.camera, keep = { a: cam.aspect, pr: R.getPixelRatio() }, P = v.v3;
                 R.setPixelRatio(1); R.setSize(W, H, false); cam.aspect = W / H; R.setClearColor(0xffffff);
                 const ce = Math.cos(P.el), t = new THREE.Vector3(P.tx, P.ty, P.tz); cam.position.set(t.x + P.dist * ce * Math.sin(P.az), t.y + P.dist * ce * Math.cos(P.az), t.z + P.dist * Math.sin(P.el)); cam.near = P.dist / 1000; cam.far = P.dist * 100 + V3.R * 10; cam.updateProjectionMatrix(); cam.lookAt(t);
-                const kc = V3.cut; V3.cut = P.cut || null; v3CutCaps(); R.clippingPlanes = v3CutPlanes(); R.render(V3.scene, cam); V3.cut = kc; v3CutCaps(); R.clippingPlanes = v3CutPlanes(); P.img = R.domElement.toDataURL(W > 1000 ? 'image/jpeg' : 'image/png', 0.9); R.setClearColor(0x111827); R.setPixelRatio(keep.pr); cam.aspect = keep.a; cam.updateProjectionMatrix();
+                const kc = V3.cut, pv = V3.pinMesh ? V3.pinMesh.visible : null; V3.noPin = true; if (V3.pinMesh) V3.pinMesh.visible = false; V3.cut = P.cut || null; v3CutCaps(); R.clippingPlanes = v3CutPlanes(); R.render(V3.scene, cam); V3.noPin = false; if (V3.pinMesh && pv !== null) V3.pinMesh.visible = pv; V3.cut = kc; v3CutCaps(); R.clippingPlanes = v3CutPlanes(); P.img = R.domElement.toDataURL(W > 1000 ? 'image/jpeg' : 'image/png', 0.9); R.setClearColor(0x111827); R.setPixelRatio(keep.pr); cam.aspect = keep.a; cam.updateProjectionMatrix();
             } finally { el.style.display = was || 'none'; el.style.visibility = ''; } }
         async function lp3DSnap(v, fromView) {
             updateCommandMessageText('FENÊTRE 3D : calcul de la vue…');
