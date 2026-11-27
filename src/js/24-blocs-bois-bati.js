@@ -2,13 +2,16 @@
         // CATALOGUE DE BLOCS (tampons) : définitions en mm, Y vers le haut, origine = point d'insertion
         // éléments : ['L',x1,y1,x2,y2] droite · ['P',[[x,y]…],fermé] polyligne · ['C',x,y,r] cercle · ['A',x,y,r,a0,a1] arc (degrés, sens trigo)
         // =====================================================================
-        const BLK_TABS = [{ id: 'sanit', ico: '🛁', name: 'Sanitaires' }, { id: 'mobil', ico: '🛋️', name: 'Mobilier' }, { id: 'veget', ico: '🌳', name: 'Végétation' }];
+        const BLK_TABS = [{ id: 'sanit', ico: '🛁', name: 'Sanitaires' }, { id: 'mobil', ico: '🛋️', name: 'Mobilier' }, { id: 'veget', ico: '🌳', name: 'Végétation' }, { id: 'vehic', ico: '🚗', name: 'Véhicules' }];
         let blkParois = false;   // le tiroir des blocs montre les parois (bouton Paroi de la palette Bâtiment)
         const bkEll = (cx, cy, rx, ry, n) => Array.from({ length: n || 40 }, (_, i) => { const a = 2 * Math.PI * i / (n || 40); return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)]; });
         const bkRect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
         const bkRRect = (x0, y0, x1, y1, r) => { const p = [], q = (cx, cy, a) => { for (let k = 0; k <= 6; k++) { const t = (a + k * 15) * Math.PI / 180; p.push([cx + r * Math.cos(t), cy + r * Math.sin(t)]); } }; q(x1 - r, y0 + r, -90); q(x1 - r, y1 - r, 0); q(x0 + r, y1 - r, 90); q(x0 + r, y0 + r, 180); return p; };
         const bkScallop = (r, n, amp) => Array.from({ length: n * 8 }, (_, i) => { const a = 2 * Math.PI * i / (n * 8), rr = r * (1 - amp + amp * Math.abs(Math.sin(a * n / 2))); return [rr * Math.cos(a), rr * Math.sin(a)]; });
         const BLOCKS_BUILTIN = [
+            /* petite citadine monocorps (dessin original, 3,45 × 1,63 m), avant vers +x : contour, capot, pare-brise, toit, lunette, rétroviseurs ; en 3D, maquette en facettes (low poly) */
+            { id: 'citadine', tab: 'vehic', name: 'Citadine', el: [['P', bkRRect(-1725, -815, 1725, 815, 260), 1], ['L', 950, -760, 950, 760], ['P', [[950, -740], [950, 740], [120, 680], [120, -680]], 1], ['P', [[120, -680], [120, 680], [-1430, 690], [-1430, -690]], 1], ['P', [[-1430, -690], [-1430, 690], [-1660, 640], [-1660, -640]], 1],
+                ['P', bkRect(780, 815, 900, 930), 1], ['P', bkRect(780, -930, 900, -815), 1], ['L', -350, 815, -350, 690], ['L', -350, -815, -350, -690], ['P', bkRect(1080, -815, 1360, -770), 1], ['P', bkRect(1080, 770, 1360, 815), 1], ['P', bkRect(-1300, -815, -1020, -770), 1], ['P', bkRect(-1300, 770, -1020, 815), 1]] },
             { id: 'wc', tab: 'sanit', name: 'WC', el: [['P', bkRRect(-210, -190, 210, 0, 30), 1], ['P', bkEll(0, -430, 185, 245), 1], ['P', bkEll(0, -440, 125, 175), 1], ['C', 0, -95, 25]] },
             { id: 'lavabo', tab: 'sanit', name: 'Lavabo', el: [['P', bkRRect(-300, -460, 300, 0, 40), 1], ['P', bkEll(0, -260, 220, 150), 1], ['C', 0, -60, 22], ['C', 0, -260, 18]] },
             { id: 'douche', tab: 'sanit', name: 'Bac à douche', el: [['P', bkRect(0, -900, 900, 0), 1], ['P', bkRect(40, -860, 860, -40), 1], ['L', 40, -40, 860, -860], ['L', 860, -40, 40, -860], ['C', 450, -450, 45]] },
@@ -178,6 +181,7 @@
         // modèles : 'f' = meuble construit pièce par pièce (plateau, pieds, assise, dossier…), sinon végétation
         const BLK3 = { wc: { k: 'f' }, lavabo: { k: 'f' }, douche: { k: 'f' }, baignoire: { k: 'f' }, evier: { k: 'f' }, vasque: { k: 'f' }, table6: { k: 'f' }, tabler: { k: 'f' }, chaise: { k: 'f' },
             lit2: { k: 'f' }, lit1: { k: 'f' }, canape: { k: 'f' }, bureau: { k: 'f' }, armoire: { k: 'f' }, poele: { k: 'f' }, frigo: { k: 'f' }, frigous: { k: 'f' }, ilot: { k: 'f' },
+            citadine: { k: 'car', c: 0x3a6ea5 },
             arbre: { k: 'tree', c: 0x4d7c2f }, 'arbre-taille': { k: 'ball', c: 0x5b8a32 }, 'arbre-aiguilles': { k: 'conif', c: 0x2f5d3a }, haie: { k: 'hedge', c: 0x3f6b2a } };
         // pièces de mobilier (repère du bloc, mm ; z vers le haut)
         const BK_COL = { feu: 0xf97316, bois: 0xb08968, boisF: 0x7c5a3c, blanc: 0xf5f5f4, gris: 0x9ca3af, tissu: 0x6b7280, drap: 0xe7e5e4, inox: 0xc0c4c8, eau: 0xdbeafe, noir: 0x374151 };
@@ -244,8 +248,32 @@
                 [[0, 0, 0.06, 1], [0.2, 0.05, 0, 0.78], [-0.17, 0.12, -0.04, 0.74], [0.04, -0.2, -0.02, 0.76], [-0.08, -0.08, 0.14, 0.7]].forEach(([dx, dy, dz, k]) => out.push([at(new THREE.IcosahedronGeometry(R * k, 1), cx + dx * D, cy + dy * D, z + dz * D), M.c])); }
             else if (M.k === 'ball') { const H = 1.0 * D, R = 0.42 * D; trunk(H - 1.6 * R, 0.035 * D); out.push([at(new THREE.IcosahedronGeometry(R, 2), cx, cy, H - R), M.c]); }
             else if (M.k === 'conif') { const H = 2.0 * D; trunk(0.2 * H, 0.04 * D); [[0.5, 0.1], [0.38, 0.36], [0.25, 0.58]].forEach(([r, z0]) => out.push([at(up(new THREE.ConeGeometry(r * D, 0.42 * H, 10)), cx, cy, z0 * H + 0.21 * H), M.c])); }
-            return { parts: out, c: [cx * 1000, cy * 1000], veg: M.k !== 'f' };
+            else if (M.k === 'car') carParts(out, M.c);
+            return { parts: out, c: [cx * 1000, cy * 1000], veg: M.k !== 'f' && M.k !== 'car', flat: M.k === 'car' };
         }
+        /* citadine en facettes (m, avant vers +x, posée à z = 0) : caisse et vitrage en profils de côté extrudés sur la largeur, montants, pare-chocs, feux, rétroviseurs, roues à 12 pans */
+        function carParts(out, body) { const L2 = 1.725, W = 1.63, glass = 0x1e293b, dark = 0x374151, tyre = 0x1f2937;
+            const prof = (pts, w, y0, col) => { const sh = new THREE.Shape(); pts.forEach(([x, z], i) => i ? sh.lineTo(x, z) : sh.moveTo(x, z)); const g = new THREE.ExtrudeGeometry(sh, { depth: w, bevelEnabled: false }); g.rotateX(Math.PI / 2); g.translate(0, y0 + w, 0); out.push([g, col]); };
+            const box = (x0, x1, y0, y1, z0, z1, col) => { const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0); g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); out.push([g, col]); };
+            // caisse : bas de caisse, capot plongeant, ceinture de caisse, hayon
+            const arch = (xc) => Array.from({ length: 7 }, (_, i) => { const a = Math.PI - i * Math.PI / 6; return [xc + 0.36 * Math.cos(a), 0.29 + 0.36 * Math.sin(a) * 0.95]; });   // passage de roue en 6 pans
+            prof([[-1.70, 0.20], ...arch(-1.18), ...arch(1.12), [1.60, 0.20], [L2, 0.34], [1.72, 0.62], [1.56, 0.80], [0.95, 0.93], [-1.66, 0.96], [-L2, 0.82], [-L2, 0.32]], W, -W / 2, body);
+            // vitrage (pare-brise très incliné, toit long, lunette presque verticale), un peu en retrait de la caisse
+            prof([[0.95, 0.93], [0.12, 1.37], [-1.46, 1.39], [-1.68, 0.96]], W - 0.12, -(W - 0.12) / 2, glass);
+            // pavillon et montants dans la couleur de la caisse
+            prof([[0.16, 1.35], [0.12, 1.41], [-1.47, 1.43], [-1.50, 1.36]], W - 0.14, -(W - 0.14) / 2, body);
+            [-1, 1].forEach(sd => { const y = sd * (W - 0.12) / 2, t = 0.035, y0 = sd > 0 ? y - 0.001 : y - t + 0.001;
+                prof([[0.95, 0.93], [0.12, 1.37], [0.05, 1.37], [0.86, 0.93]], t, y0, body);   // montant de pare-brise
+                prof([[-0.30, 0.95], [-0.30, 1.38], [-0.40, 1.38], [-0.40, 0.95]], t, y0, body);   // montant central
+                prof([[-1.60, 0.96], [-1.44, 1.39], [-1.52, 1.39], [-1.68, 0.96]], t, y0, body); });   // montant arrière
+            // pare-chocs, calandre, feux
+            box(1.62, 1.77, -W / 2 + 0.02, W / 2 - 0.02, 0.20, 0.42, dark); box(-1.77, -1.66, -W / 2 + 0.02, W / 2 - 0.02, 0.20, 0.42, dark); box(1.69, 1.74, -0.35, 0.35, 0.46, 0.56, dark);
+            [-1, 1].forEach(sd => { box(1.66, 1.74, sd * 0.62 - 0.14, sd * 0.62 + 0.14, 0.58, 0.68, 0xfef3c7); box(-1.75, -1.70, sd * 0.66 - 0.08, sd * 0.66 + 0.08, 0.62, 0.86, 0xdc2626);
+                box(0.80, 0.90, sd * (W / 2) - (sd > 0 ? 0 : 0.12), sd * (W / 2) + (sd > 0 ? 0.12 : 0), 0.96, 1.08, body); });   // rétroviseurs
+            // roues : pneu à 12 pans, enjoliveur
+            [[1.12, 1], [1.12, -1], [-1.18, 1], [-1.18, -1]].forEach(([x, sd]) => { const g = new THREE.CylinderGeometry(0.29, 0.29, 0.19, 12); g.translate(x, sd * (W / 2 - 0.1), 0.29); out.push([g, tyre]);
+                const h = new THREE.CylinderGeometry(0.17, 0.17, 0.02, 12); h.translate(x, sd * (W / 2 - 0.004), 0.29); out.push([h, 0xc0c4c8]);
+                }); box(-1.0, 0.80, -W / 2 + 0.25, W / 2 - 0.25, 0.20, 0.32, 0x111827); }   // plancher entre les roues
         function blk3DBuild(root, vis, Zm) {
             const seen = new Set(), tin = getTIN(); let FM = null; try { FM = finishedModel(); } catch (e) {}
             const ground = (wx, wy) => { const tn = tin ? tinZ(wx, wy, tin) : null; const r = FM ? FM.at(wx, wy, hasZ(tn) ? tn : undefined) : null; return r && hasZ(r.z) ? r.z : hasZ(tn) ? tn : null; };
@@ -262,7 +290,7 @@
                 if (!G.veg) { let best = null; slabs.forEach(d => { if (!pointInPolygon(cw.x, cw.y, d.points)) return; const t = solidBaseZ(d) + (d.solid.H || 0); if ((!hasZ(z) || t < z + 3000) && (best === null || t > best)) best = t; }); if (best !== null) z = best; }
                 const Mx = new THREE.Matrix4().makeRotationZ(th).premultiply(new THREE.Matrix4().makeScale(s, s, s)).premultiply(new THREE.Matrix4().makeTranslation(tx / 1000, ty / 1000, hasZ(z) ? Zm(z) : 0));
                 G.parts.forEach(([g, col]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const tid = sh.btex && sh.btex[col], TX = tid && TEX_LIB.find(t => t.id === tid), tm = TX ? texMaterial(tid) : null;   /* pièce peinte au pinceau : sa texture */
-                    const me = tm ? new THREE.Mesh(texGeometry(g, TX.tile), tm) : new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: col, flatShading: G.veg })); me.userData.blk = sh; me.userData.blkCol = col; root.add(me); });
+                    const me = tm ? new THREE.Mesh(texGeometry(g, TX.tile), tm) : new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: col, flatShading: G.veg || G.flat })); me.userData.blk = sh; me.userData.blkCol = col; root.add(me); });
             }
         }
         function blockThumb(b) {
@@ -349,7 +377,7 @@
             ctx.restore();
         }
         // calque affilié au dossier du catalogue : « Blocs sanitaires », « Blocs mobilier », « Blocs végétation »…
-        const BLK_COLORS = { sanit: '#38bdf8', mobil: '#f59e0b', veget: '#4ade80' };
+        const BLK_COLORS = { sanit: '#38bdf8', mobil: '#f59e0b', veget: '#4ade80', vehic: '#93c5fd' };
         function blockLayerId(b) { const t = BLK_TABS.find(x => x.id === b.tab) || { name: 'Divers' }; return ensureLayer('Blocs ' + t.name.toLowerCase(), BLK_COLORS[b.tab] || '#e5e7eb'); }
         function placeStamp() {
             if (!stamp) return; const gid = 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 100000);

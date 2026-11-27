@@ -284,6 +284,16 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     // moteur 3D à jour (r159) réglé comme avant : pas de gestion des couleurs, sortie linéaire, lumières à l'ancienne ; même image qu'en r128
     const t3 = await ev(async () => { if (!is3DOpen()) await open3D(); const R = V3.renderer; return { rev: THREE.REVISION, cm: !THREE.ColorManagement.enabled, out: R.outputColorSpace === THREE.LinearSRGBColorSpace, legacy: R.useLegacyLights === true, lambert: !!THREE.ShaderChunk.map_fragment }; });
     t.eq('moteur 3D r159, réglé pour garder le rendu d\'avant', t3, { rev: '159', cm: true, out: true, legacy: true, lambert: true });
+    // bloc Citadine (onglet Véhicules) : dessin en plan, maquette 3D en facettes posée au sol, à la taille et dans le sens du dessin
+    const car = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
+        for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 3 * m, y: j * 3 * m, z: 100000, zk: 1 });
+        const B = BLOCKS_BUILTIN.find(x => x.id === 'citadine'); r.cat = !!B && B.tab === 'vehic' && BLK_TABS.some(t => t.id === 'vehic') && blkHas3D(B);
+        startStamp('citadine'); currentX = 0; currentY = 0; stamp.rot = Math.PI / 2; placeStamp(); setMode('select-box'); saveState(); r.layer = /véhicules/i.test((layers.find(l => l.id === shapes.find(x => x.block).layerId) || {}).name || '');
+        await open3D(); V3.root.updateMatrixWorld(true); const box = new THREE.Box3(); let n = 0, flat = true; V3.root.traverse(o => { if (o.isMesh && o.userData.blk) { box.expandByObject(o); n++; if (!o.material.flatShading) flat = false; } });
+        const sz = box.getSize(new THREE.Vector3()), z0 = (100 - V3.zmin) * V3.exag + V3.root.position.z;
+        r.parts = n >= 20 && flat; r.size = Math.abs(sz.y - 3.54) < 0.12 && Math.abs(sz.x - 1.87) < 0.15 && sz.z > 1.35 && sz.z < 1.5;   /* tournée de 90° : la longueur suit le dessin (y) */ r.ground = Math.abs(box.min.z - z0) < 0.02;
+        close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('bloc Citadine (Véhicules) : plan et 3D en facettes, au sol, à la taille et dans le sens du dessin', car, { cat: true, layer: true, parts: true, size: true, ground: true });
     // pinceau de la vue Momo : la vue se fige, un clic peint la surface (volume ou meuble), P / Échap / clic droit : la balade reprend ; textures textiles au catalogue
     const fpaint = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
         const D = { type: 'poly', layerId: activeLayerId, points: [[-3, -3], [6, -3], [6, 6], [-3, 6]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'box', H: 200 }, zk: 1 }; shapes.push(D);
