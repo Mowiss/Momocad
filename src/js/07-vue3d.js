@@ -79,8 +79,21 @@
         const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js';
         /* moteur 3D r159 réglé comme avant (r128) : pas de gestion des couleurs, sortie linéaire, lumières à l'ancienne intensité ; même rendu, moteur à jour */
         function threeCompat(T) { if (!T || T.__mc) return T; T.__mc = true; if (T.ColorManagement) T.ColorManagement.enabled = false;
+            mcGrainPatch(T);
             const RW = T.WebGLRenderer; if ('outputColorSpace' in RW.prototype || +T.REVISION >= 152) { const W = function (o) { const r = new RW(o); if ('outputColorSpace' in r) r.outputColorSpace = T.LinearSRGBColorSpace; if ('useLegacyLights' in r) { const w0 = console.warn; console.warn = () => {}; try { r.useLegacyLights = true; } finally { console.warn = w0; } } return r; }; W.prototype = RW.prototype; T.WebGLRenderer = W; }
             return T; }
+        /* GRAIN de toutes les matières éclairées (textures, couleurs unies, peintures) : un bruit fixé à l'objet en vraie grandeur (grains de 6 mm, 2,5 cm et 10 cm),
+           qui s'efface de lui-même quand il devient plus fin qu'un pixel (pas de scintillement au loin) */
+        function mcGrainPatch(T) { const C = T.ShaderChunk; if (!C || C.__grain) return; C.__grain = true;
+            C.common = C.common + '\nvarying vec3 vGrW;\n';
+            C.begin_vertex = C.begin_vertex + '\n{ vec4 gw = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\n gw = instanceMatrix * gw;\n#endif\n vGrW = (modelMatrix * gw).xyz; }\n';
+            C.lights_pars_begin = `float mcH(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float mcN(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(mcH(i), mcH(i + vec3(1, 0, 0)), f.x), mix(mcH(i + vec3(0, 1, 0)), mcH(i + vec3(1, 1, 0)), f.x), f.y), mix(mix(mcH(i + vec3(0, 0, 1)), mcH(i + vec3(1, 0, 1)), f.x), mix(mcH(i + vec3(0, 1, 1)), mcH(i + vec3(1, 1, 1)), f.x), f.y), f.z); }
+float mcGrain(vec3 p) { p = mod(p, 512.0); float w = length(fwidth(p));
+  return 1.0 + (mcN(p * 160.0) - 0.5) * 0.18 * (1.0 - smoothstep(0.002, 0.008, w)) + (mcN(p * 40.0) - 0.5) * 0.13 * (1.0 - smoothstep(0.008, 0.03, w)) + (mcN(p * 10.0) - 0.5) * 0.08 * (1.0 - smoothstep(0.03, 0.12, w)); }
+` + C.lights_pars_begin;
+            const g = '\nmaterial.diffuseColor *= mcGrain(vGrW);\n'; C.lights_lambert_fragment += g; C.lights_physical_fragment += g; }
         let threePromise = null, V3 = null;
         function loadThree() {
             if (window.THREE) return Promise.resolve(threeCompat(window.THREE));

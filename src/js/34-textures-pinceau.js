@@ -219,14 +219,20 @@
             m.customProgramCacheKey = () => 'pom' + depth.toFixed(4); m.userData.pom = true; }
         const texThumbCache = {};
         function texThumb(id) { if (texThumbCache[id]) return texThumbCache[id]; const src = texCanvas(id); if (!src) return ''; const cv = document.createElement('canvas'); cv.width = cv.height = 56; cv.getContext('2d').drawImage(src, 0, 0, 256, 256, 0, 0, 56, 56); return (texThumbCache[id] = cv.toDataURL('image/jpeg', 0.85)); }
-        // coordonnées de texture : projection sur le plan le plus proche de chaque face (mètres / taille du motif)
+        /* coordonnées de texture (mètres / taille du motif) : sol à plat et murs droits projetés sur le plan le plus proche ;
+           toute face EN PENTE (toit, rampant, talus…) reçoit un repère dans son propre plan : V suit la ligne de plus grande pente, U la ligne de niveau —
+           les tuiles s'alignent sur l'égout, les nervures du bac acier et les lames descendent la pente */
+        function texSlopeUV(nx, ny, nz) { const L = Math.hypot(nx, ny, nz) || 1, cz = Math.abs(nz) / L; if (cz < 0.06 || cz > 0.995) return null;
+            let hx = -ny, hy = nx; const hl = Math.hypot(hx, hy); hx /= hl; hy /= hl;   // ligne de niveau (horizontale, dans le plan)
+            let dx = ny * 0 - nz * hy, dy = nz * hx - nx * 0, dz = nx * hy - ny * hx; const dl = Math.hypot(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl; if (dz < 0) { dx = -dx; dy = -dy; dz = -dz; hx = -hx; hy = -hy; }   // pente, vers le haut
+            return [hx, hy, dx, dy, dz]; }
         function texGeometry(g, tile) {
             const G = g.index ? g.toNonIndexed() : g, p = G.attributes.position.array, n = p.length / 3, uv = new Float32Array(n * 2), k = 1 / (tile || 1);
             for (let t = 0; t + 2 < n; t += 3) {
                 const a = t * 3, ux = p[a + 3] - p[a], uy = p[a + 4] - p[a + 1], uz = p[a + 5] - p[a + 2], vx = p[a + 6] - p[a], vy = p[a + 7] - p[a + 1], vz = p[a + 8] - p[a + 2];
-                const nx = Math.abs(uy * vz - uz * vy), ny = Math.abs(uz * vx - ux * vz), nz = Math.abs(ux * vy - uy * vx);
+                const sx = uy * vz - uz * vy, sy = uz * vx - ux * vz, sz = ux * vy - uy * vx, nx = Math.abs(sx), ny = Math.abs(sy), nz = Math.abs(sz), F = texSlopeUV(sx, sy, sz);
                 for (let v = 0; v < 3; v++) { const i = (t + v) * 3, x = p[i], y = p[i + 1], z = p[i + 2];
-                    let U, V; if (nz >= nx && nz >= ny) { U = x; V = y; } else if (nx >= ny) { U = y; V = z; } else { U = x; V = z; }
+                    let U, V; if (F) { U = x * F[0] + y * F[1]; V = x * F[2] + y * F[3] + z * F[4]; } else if (nz >= nx && nz >= ny) { U = x; V = y; } else if (nx >= ny) { U = y; V = z; } else { U = x; V = z; }
                     uv[(t + v) * 2] = U * k; uv[(t + v) * 2 + 1] = V * k; }
             }
             G.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); G.computeVertexNormals(); return G;

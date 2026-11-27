@@ -159,25 +159,71 @@
             const X = bmPixels(b); if (!X) return null; const W = b.type === 'basemap' ? 2 * b.r : b.w, H = b.type === 'basemap' ? 2 * b.r : b.h, R = [], G = [], B = [];
             for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) { if (i * i + j * j > 5) continue; const L = bgLocal(b, x + i * r * 0.3, y + j * r * 0.3), px = Math.floor((L.x / W + 0.5) * X.w), py = Math.floor((L.y / H + 0.5) * X.h); if (px < 0 || py < 0 || px >= X.w || py >= X.h) continue; const k = (py * X.w + px) * 4; if (X.d[k + 3] < 128) continue; R.push(X.d[k]); G.push(X.d[k + 1]); B.push(X.d[k + 2]); }
             if (R.length < 3) return null; const med = (a) => { a.sort((u, v) => u - v); return a[a.length >> 1] / 255; }; const c = new THREE.Color(med(R), med(G), med(B)), h = {}; c.getHSL(h); c.setHSL(h.h, Math.min(1, h.s * 1.1), Math.min(0.8, h.l * 1.15 + 0.02)); return c; }
+        /* réglages d'un bâtiment (Y) : s.cb = { t: 'croupe' | '2pans' | '1pan' | 'plat', h: hauteur des murs (m), db: débord du toit (m), toit: '#rrggbb' (sinon couleur lue sur la photo), mur: '#rrggbb' } */
+        const CB_T = { croupe: ['Croupes (4 pans)', 0.35], '2pans': ['2 pans + pignons', 0.35], '1pan': ['1 pan (monopente)', 0.25], plat: ['Toit plat', 0] };
+        const CB_TOITS = [['', 'Photo du fond'], ['#3a3f45', 'Ardoise'], ['#2f3338', 'Bac anthracite'], ['#a8432c', 'Tuile rouge'], ['#8a5a44', 'Tuile brune'], ['#b9774f', 'Tuile claire'], ['#6b7280', 'Zinc gris'], ['#4d6b4a', 'Toit vert']];
+        const CB_MURS = [['#d6cfc4', 'Enduit clair'], ['#ece6d8', 'Blanc cassé'], ['#d9c3a0', 'Sable'], ['#c99a63', 'Ocre'], ['#a9a39a', 'Gris béton'], ['#bfae96', 'Pierre'], ['#8b6a4a', 'Bardage bois'], ['#4b4f55', 'Anthracite']];
+        const cbOf = (s) => { const c = s.cb || {}, t = CB_T[c.t] ? c.t : 'croupe'; return { t, h: c.h > 0 ? c.h : CAD_BATI_H / 1000, db: c.db >= 0 ? c.db : (t === 'plat' ? 0 : 0.4), toit: c.toit || '', mur: c.mur || '#d6cfc4', P: CB_T[t][1] }; };
         function cadBati3D(root, vis, P, Zm, exag) {
             const B = vis.filter(isCadBati); if (!B.length) return; const tin = getTIN();
-            const wallM = new THREE.MeshLambertMaterial({ color: 0xd6cfc4, side: THREE.DoubleSide }), roofM = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, flatShading: true }), defC = new THREE.Color(0x8a5a44), bgs = vis.filter(x => isBg(x) && x.type === 'basemap');
-            const wp = [], rp = [], rc = [];
+            const wallM = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), roofM = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, flatShading: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), defC = new THREE.Color(0x8a5a44), bgs = vis.filter(x => isBg(x) && x.type === 'basemap');
+            const wp = [], wc = [], rp = [], rc = [];
             B.forEach(s => { let Q = s.points.map(q => ({ x: q.x, y: q.y })); const n0 = Q.length; if (Math.hypot(Q[0].x - Q[n0 - 1].x, Q[0].y - Q[n0 - 1].y) < 1e-9) Q.pop();
                 Q = Q.filter((q, i) => { const r = Q[(i + 1) % Q.length]; return Math.hypot(r.x - q.x, r.y - q.y) > mmToWorld(5); }); const n = Q.length; if (n < 3) return;
-                const z0 = cadBatiBase(s, tin), zb = hasZ(z0) ? z0 : null, ze = hasZ(zb) ? zb + CAD_BATI_H : CAD_BATI_H;
-                const Zb = hasZ(zb) ? Zm(zb - 300) : 0, Ze = hasZ(zb) ? Zm(ze) : CAD_BATI_H / 1000 * exag, L = Q.map(q => P(q.x, q.y)), C = roofColorFromMap(Q, bgs) || defC, r0 = rp.length;
-                for (let i = 0; i < n; i++) { const a = L[i], b = L[(i + 1) % n]; wp.push(a.x, a.y, Zb, b.x, b.y, Zb, b.x, b.y, Ze, a.x, a.y, Zb, b.x, b.y, Ze, a.x, a.y, Ze); }   // murs (un peu enterrés : pas de jour sous le bâtiment en pente)
-                // toit : squelette (une croupe par côté) ; z = égout + pente × distance au côté
-                let S = null; try { S = roofSkeleton(Q, Q.map(() => true)); } catch (e) {}
-                const flat = () => { const tr = THREE.ShapeUtils.triangulateShape(L.map(q => new THREE.Vector2(q.x, q.y)), []); tr.forEach(t => t.forEach(k => rp.push(L[k].x, L[k].y, Ze))); };
-                const paint = () => { for (let k = r0; k < rp.length; k += 3) rc.push(C.r, C.g, C.b); };
-                if (!S || !S.faces || S.faces.some(F => !F || F.length < 3)) { flat(); paint(); return; }
-                S.faces.forEach((F, i) => { const a = Q[i], b = Q[(i + 1) % n], Lw = Math.hypot(b.x - a.x, b.y - a.y) || 1, dz = (q) => mOf(Math.abs((q.x - a.x) * (b.y - a.y) - (q.y - a.y) * (b.x - a.x)) / Lw) * CAD_BATI_P * exag;
-                    const F2 = F.map(q => P(q.x, q.y)); let tr = []; try { tr = THREE.ShapeUtils.triangulateShape(F2.map(q => new THREE.Vector2(q.x, q.y)), []); } catch (e) {}
-                    tr.forEach(t => t.forEach(k => rp.push(F2[k].x, F2[k].y, Ze + dz(F[k])))); }); paint(); });
-            const mk = (arr, m) => { if (!arr.length) return; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); if (m === roofM) g.setAttribute('color', new THREE.Float32BufferAttribute(rc, 3)); g.computeVertexNormals(); const me = new THREE.Mesh(g, m); me.userData.cadBati = m === roofM ? 'toit' : 'murs'; root.add(me); };
-            mk(wp, wallM); mk(rp, roofM); }
+                const O = cbOf(s), z0 = cadBatiBase(s, tin), zb = hasZ(z0) ? z0 : null, ze = hasZ(zb) ? zb + O.h * 1000 : O.h * 1000;
+                const Zb = hasZ(zb) ? Zm(zb - 300) : 0, Ze = hasZ(zb) ? Zm(ze) : O.h * exag, C = O.toit ? new THREE.Color(O.toit) : (roofColorFromMap(Q, bgs) || defC), CW = new THREE.Color(O.mur);
+                const kz = O.P * exag, Wd = mmToWorld(O.db * 1000), dzW = (d) => mOf(d) * kz;   // hauteur gagnée sur une distance (plan) à la pente du toit
+                const ar = Q.reduce((a, q, i) => { const r = Q[(i + 1) % n]; return a + q.x * r.y - r.x * q.y; }, 0), sg = ar > 0 ? 1 : -1;
+                const nOut = (i) => { const a = Q[i], b = Q[(i + 1) % n], L = Math.hypot(b.x - a.x, b.y - a.y) || 1; return { x: (b.y - a.y) / L * sg, y: -(b.x - a.x) / L * sg }; };
+                const offset = (d) => Q.map((q, i) => { const m0 = nOut((i - 1 + n) % n), m1 = nOut(i), bx = m0.x + m1.x, by = m0.y + m1.y, c = 1 + m0.x * m1.x + m0.y * m1.y; if (c < 0.3) return { x: q.x + m1.x * d, y: q.y + m1.y * d }; return { x: q.x + bx * d / c, y: q.y + by * d / c }; });
+                const tri3 = (A, out, col, colArr) => { let tr = []; try { tr = THREE.ShapeUtils.triangulateShape(A.map(q => new THREE.Vector2(q.u, q.v)), []); } catch (e) {} tr.forEach(t => t.forEach(k => { out.push(A[k].x, A[k].y, A[k].z); colArr.push(col.r, col.g, col.b); })); };
+                const L = Q.map(q => P(q.x, q.y)), ew = 0.06 * exag, wall = (i, za, zb2) => { za -= ew; zb2 -= ew; const a = L[i], b = L[(i + 1) % n]; wp.push(a.x, a.y, Zb, b.x, b.y, Zb, b.x, b.y, zb2, a.x, a.y, Zb, b.x, b.y, zb2, a.x, a.y, za); for (let k = 0; k < 6; k++) wc.push(CW.r, CW.g, CW.b); };
+                const planeRoof = (Qr, zf) => { const A = Qr.map(q => { const p = P(q.x, q.y); return { x: p.x, y: p.y, z: zf(q), u: p.x, v: p.y }; }); tri3(A, rp, C, rc); };
+                const dLine = (q, a, b) => { const Lw = Math.hypot(b.x - a.x, b.y - a.y) || 1; return ((q.x - a.x) * (b.y - a.y) - (q.y - a.y) * (b.x - a.x)) / Lw; };
+                if (O.t === 'plat') { for (let i = 0; i < n; i++) wall(i, Ze, Ze); planeRoof(Wd > 0 ? offset(Wd) : Q, () => Ze); return; }
+                if (O.t === '1pan') {   // monopente : égout sur le plus long côté, le toit monte vers l'opposé ; murs jusque sous le toit
+                    let i0 = 0, lm = -1; for (let i = 0; i < n; i++) { const a = Q[i], b = Q[(i + 1) % n], l = Math.hypot(b.x - a.x, b.y - a.y); if (l > lm) { lm = l; i0 = i; } }
+                    const a = Q[i0], b = Q[(i0 + 1) % n], sgn = -sg, zf = (q) => Ze + dzW(dLine(q, a, b) * sgn); for (let i = 0; i < n; i++) wall(i, zf(Q[i]), zf(Q[(i + 1) % n])); planeRoof(Wd > 0 ? offset(Wd) : Q, zf); return; }
+                // toits à pans (croupes, ou 2 pans + pignons) : squelette du contour élargi du débord, l'égout est abaissé d'autant (le toit passe juste au-dessus des murs)
+                let W = Q.map(() => true);
+                if (O.t === '2pans') {   /* pignon = bout d'aile : côté plus court que ses deux voisins, entre deux angles saillants d'à peu près 90° (chaque aile d'un L, d'un T… garde son faîtage dans sa longueur) */
+                    const E = Q.map((a, i) => { const b = Q[(i + 1) % n], l = Math.hypot(b.x - a.x, b.y - a.y) || 1; return { l, ux: (b.x - a.x) / l, uy: (b.y - a.y) / l }; });
+                    const turn = (i) => { const A = E[(i - 1 + n) % n], Bq = E[i], cr = (A.ux * Bq.uy - A.uy * Bq.ux) * sg, dt = A.ux * Bq.ux + A.uy * Bq.uy; return cr > 0 && Math.abs(dt) < 0.72; };   // angle saillant proche de l'équerre
+                    let i0 = 0; E.forEach((e, i) => { if (e.l > E[i0].l) i0 = i; });
+                    W = E.map((e, i) => { const p = E[(i - 1 + n) % n], q = E[(i + 1) % n]; if (!(turn(i) && turn((i + 1) % n))) return true; if (e.l < Math.min(p.l, q.l) * 0.97) return false;
+                        return !(e.l <= Math.min(p.l, q.l) * 1.03 && Math.abs(e.ux * E[i0].ux + e.uy * E[i0].uy) < 0.5); });   // carré : pignons perpendiculaires au plus long côté
+                    if (W.every(Boolean)) W = E.map(e => Math.abs(e.ux * E[i0].ux + e.uy * E[i0].uy) > 0.5); }
+                const Qo = Wd > 0 ? offset(Wd) : Q, Ze0 = Ze - dzW(Wd); let S = null; try { S = roofSkeleton(Qo, W); } catch (e) {}
+                const okS = (S) => S && S.faces && S.faces.every((F, i) => (W[i] ? F && F.length >= 3 : true));
+                if (!okS(S) && O.t === '2pans') { W = Q.map(() => true); try { S = roofSkeleton(Qo, W); } catch (e) { S = null; } }
+                if (!okS(S)) { for (let i = 0; i < n; i++) wall(i, Ze, Ze); planeRoof(Q, () => Ze); return; }
+                const zOn = (F, i, q) => Ze0 + dzW(Math.abs(dLine(q, Qo[i], Qo[(i + 1) % n])));
+                S.faces.forEach((F, i) => { if (!F) return; const A = F.map(q => { const p = P(q.x, q.y); return { x: p.x, y: p.y, z: zOn(F, i, q), u: p.x, v: p.y }; }); tri3(A, rp, C, rc); });
+                // murs : à l'égout sur les côtés à pans ; pignons (2 pans) montés jusque sous le toit, suivant le profil des pans
+                const zAt = (q) => { let z = -Infinity; S.faces.forEach((F, i) => { if (F && pointInPolygon(q.x, q.y, F)) z = Math.max(z, zOn(F, i, q)); }); return z; };
+                for (let i = 0; i < n; i++) { if (W[i]) { wall(i, Ze, Ze); continue; }
+                    const a = Q[i], b = Q[(i + 1) % n], Lw = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / Lw, uy = (b.y - a.y) / Lw, T = [0, 1];
+                    S.faces.forEach(F => F && F.forEach(q => { if (Math.abs(dLine(q, a, b)) <= Wd * 1.02 + mmToWorld(5)) { const t = ((q.x - a.x) * ux + (q.y - a.y) * uy) / Lw; if (t > 0.001 && t < 0.999) T.push(t); } }));
+                    T.sort((x, y) => x - y); const prof = T.map(t => { const q = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, qi = { x: q.x - nOut(i).x * mmToWorld(2), y: q.y - nOut(i).y * mmToWorld(2) }; let z = zAt(qi); if (!isFinite(z)) z = Ze; return { q, z: Math.max(Ze, z), t }; });
+                    wall(i, Ze, Ze); const pa = L[i], pb = L[(i + 1) % n], G = [{ x: pa.x, y: pa.y, z: Ze - ew, u: 0, v: Ze }].concat(prof.slice(1, -1).map(o => { const p = P(o.q.x, o.q.y); return { x: p.x, y: p.y, z: o.z - ew, u: o.t, v: o.z }; })).concat([{ x: pb.x, y: pb.y, z: Ze - ew, u: 1, v: Ze }]);
+                    if (G.length > 2) tri3(G.map(g => Object.assign(g, { u: g.u * 100 })), wp, CW, wc); } });
+            const mk = (arr, cols, m, tag) => { if (!arr.length) return; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); g.computeVertexNormals(); const me = new THREE.Mesh(g, m); me.userData.cadBati = tag; root.add(me); };
+            mk(wp, wc, wallM, 'murs'); mk(rp, rc, roofM, 'toit'); }
+        // Y d'un bâtiment généré : type de toit, hauteur, débord, couleurs
+        function cbSet(k, v) { const S = selectedShapes.filter(isCadBati); if (!S.length) return;
+            if (k === 'dbcm') { k = 'db'; const x = parseFloat(String(v).replace(',', '.')); v = String(v).trim() === '' ? '' : isFinite(x) ? String(x / 100) : 'x'; }
+            S.forEach(s => { const c = s.cb || (s.cb = {});
+                if (k === 't') { if (!CB_T[v]) return; c.t = v; if (v === 'plat') delete c.db; }
+                else if (k === 'h' || k === 'db') { const x = parseFloat(String(v).replace(',', '.')); if (String(v).trim() === '' ) delete c[k]; else if (isFinite(x) && x >= (k === 'h' ? 1 : 0)) c[k] = Math.min(k === 'h' ? 80 : 3, x); else return; }
+                else if (k === 'toit' || k === 'mur') { if (v) c[k] = v; else delete c[k]; } });
+            saveState(); draw(); if (is3DOpen()) { build3DScene(); render3D(); } try { openSelectionParamModal(); } catch (e) {} }
+        function cbSwatches(k, list, cur) { return `<div class="cb-sw">` + list.map(([c, nm]) => { const on = (cur || '') === c; return `<button type="button" class="cb-s${on ? ' on' : ''}" onclick="cbSet('${k}','${c}')" title="${nm}"><span style="background:${c || 'linear-gradient(135deg,#6b8f5a,#a08060 50%,#8aa0b8)'}"></span>${nm}</button>`; }).join('') + `<label class="cb-s cb-free" title="Autre teinte"><input type="color" value="${cur || (k === 'toit' ? '#8a5a44' : '#d6cfc4')}" onchange="cbSet('${k}',this.value)">Autre…</label></div>`; }
+        function cbYHTML(s) { const O = cbOf(s), N = selectedShapes.filter(isCadBati).length;
+            return MF.row('Toiture', MF.sel('sp-cbt', Object.keys(CB_T).map(k => [k, CB_T[k][0]]), O.t, 'onchange="cbSet(\'t\',this.value)"'), '')
+                + MF.row('Hauteur des murs', MF.num('sp-cbh', nfr(O.h, 1), nfr(CAD_BATI_H / 1000, 0), 'onchange="cbSet(\'h\',this.value)"'), 'm')
+                + (O.t === 'plat' ? '' : MF.row('Débord du toit', MF.num('sp-cbdb', nfr(O.db * 100, 0), '40', 'onchange="cbSet(\'dbcm\',this.value)"'), 'cm'))
+                + MF.sub('Couleur du toit') + cbSwatches('toit', CB_TOITS, O.toit) + MF.sub('Couleur des murs') + cbSwatches('mur', CB_MURS, s.cb && s.cb.mur)
+                + MF.hint((N > 1 ? 'Les réglages valent pour les ' + N + ' bâtiments sélectionnés. ' : '') + 'Pente ' + Math.round(CB_T[O.t][1] * 100) + ' % · le toit dépasse des murs du débord, tout autour.'); }
         // ---- BLOCS EN 3D : chaque bloc du catalogue qui a un modèle (végétation, mobilier, sanitaires) est posé en volume dans la vue 3D,
         //      au sol fini (plateforme, terrain) ou sur la dalle qui le porte. Le bloc posé reste un dessin 2D du plan : position, rotation et échelle
         //      sont relues sur son premier trait à chaque construction de la scène (on peut le déplacer, le tourner, l'agrandir).

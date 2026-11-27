@@ -349,7 +349,7 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     // zone boisée : densité réglable au Y (plants au m²), le nombre d'arbres suit, la taille des houppiers reste ; case vide = automatique
     const bd = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
         const Z = { type: 'poly', layerId: 'layer-0', points: [[0, 0], [50, 0], [50, 40], [0, 40]].map(([x, y]) => ({ x: x * m, y: -y * m })), bois: { h: 12 }, name: 'Zone boisée' }; shapes.push(Z); saveState(); selectedShapes = [Z];
-        const n0 = boisTrees(Z, 30000).length, r0 = boisTrees(Z, 30000)[0].r; openSelectionParamModal(); const inp = document.getElementById('sp-boisd'); r.ui = !!inp;
+        const n0 = boisTrees(Z, 30000).length, r0 = boisTrees(Z, 30000)[0].r; openSelectionParamModal(); const inp = document.getElementById('sp-boisd'); r.ui = !!inp && /arbres au m²/.test(inp.closest('.mf-row').textContent);
         boisSetD('0,05'); const n1 = boisTrees(Z, 30000).length; r.dens = Math.abs(n1 - 2000 * 0.05) <= 15 && Z.bois.d === 0.05; r.crown = Math.abs(boisTrees(Z, 30000)[0].r - r0) < 1e-9 || true;
         boisSetD('0,2'); r.more = boisTrees(Z, 30000).length > n1 * 3; boisSetD(''); r.auto = !Z.bois.d && boisTrees(Z, 30000).length === n0;
         closeSelectionParamModal(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });

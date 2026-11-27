@@ -1,5 +1,5 @@
         // ---- TOITURE complète : 1 ou 2 pans à partir d'un contour, hauteurs d'égout et de faîtage, pignons comblés ----
-        let roofLast = { pans: 2, rel: 2.5, rise: 2.5, e: 0.2, ge: 0.2, fill: true, dir: 'long', db: 0.3, tex: '', texu: '' };
+        let roofLast = { pans: 2, rel: 2.5, rise: 2.5, e: 0.2, ge: 0.2, fill: true, dir: 'long', db: 0.4, tex: '', texu: '' };
         try { Object.assign(roofLast, JSON.parse(localStorage.getItem('momocad-roof') || '{}')); } catch (e) {}
         function roofDialog(base, fresh, edit) {
             const R0 = edit ? Object.assign({}, roofLast, edit.o, edit.o.pans === 0 ? { trel: edit.o.he - (hasZ(base.points[0].z) ? base.points[0].z : 0) / 1000 } : { rel: edit.o.he - (hasZ(base.points[0].z) ? base.points[0].z : 0) / 1000, rise: edit.o.hf - edit.o.he }) : roofLast;

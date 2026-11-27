@@ -336,8 +336,24 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         const B = new THREE.Box3(), Rf = new THREE.Box3(); let n = 0; V3.root.updateMatrixWorld(true); V3.root.traverse(o => { if (o.userData.cadBati) { n++; (o.userData.cadBati === 'toit' ? Rf : B).expandByObject(o); } });
         const z = (v) => Math.round(((v - V3.root.position.z) / V3.exag + V3.zmin) * 100) / 100;
         let roof = null; V3.root.traverse(o => { if (o.userData.cadBati === 'toit') roof = o; }); const ca = roof.geometry.attributes.color, col = new THREE.Color(ca.getX(0), ca.getY(0), ca.getZ(0)), hsl = {}; col.getHSL(hsl);
-        const r = { n, base: z(B.min.z), eaves: z(B.max.z), ridge: z(Rf.max.z), w: Math.round((B.max.x - B.min.x) * 10) / 10, grisBleu: hsl.h > 0.5 && hsl.h < 0.65 && hsl.s < 0.3 }; shapes = keepS; invalidateCache(); saveState(); return r; });
-    t.eq('bâti du cadastre en volume : posé au point bas, murs à TN + 6 m, toit à croupes 35 %, de la couleur du toit sur la photo', cb, { n: 2, base: 100.7, eaves: 107, ridge: 108.4, w: 12, grisBleu: true });
+        const r = { n, base: z(B.min.z), eaves: Math.round(z(B.max.z) * 10) / 10, ridge: z(Rf.max.z), w: Math.round((B.max.x - B.min.x) * 10) / 10, deb: Math.round((Rf.max.x - Rf.min.x) * 10) / 10, grisBleu: hsl.h > 0.5 && hsl.h < 0.65 && hsl.s < 0.3 };
+        // Y du bâtiment : toiture (croupes, 2 pans + pignons, 1 pan, plat), hauteur, débord, couleurs du toit et des murs
+        const S0 = shapes.find(isCadBati), geo = () => { build3DScene(); const o = {}; V3.root.updateMatrixWorld(true); V3.root.traverse(x => { if (x.userData.cadBati) o[x.userData.cadBati] = x; }); const bw = new THREE.Box3().setFromObject(o.murs), br = new THREE.Box3().setFromObject(o.toit), c = o.toit.geometry.attributes.color, cw = o.murs.geometry.attributes.color;
+            return { wTop: z(bw.max.z), rTop: z(br.max.z), rLow: z(br.min.z), rw: Math.round((br.max.x - br.min.x) * 10) / 10, toit: new THREE.Color(c.getX(0), c.getY(0), c.getZ(0)).getHexString(), mur: new THREE.Color(cw.getX(0), cw.getY(0), cw.getZ(0)).getHexString() }; };
+        selectedShapes = [S0]; openSelectionParamModal(); r.ui = ['sp-cbt', 'sp-cbh', 'sp-cbdb'].every(id => !!document.getElementById(id)) && document.querySelectorAll('.cb-s').length >= 14;
+        cbSet('t', '2pans'); const g2 = geo(); r.pignons = g2.wTop > 108 && Math.abs(g2.rTop - 108.4) < 0.05;
+        cbSet('t', '1pan'); const g1 = geo(); r.monopente = g1.rTop - g1.rLow > 2 && g1.rTop - g1.rLow < 2.4;
+        cbSet('t', 'plat'); cbSet('h', '9'); cbSet('toit', '#a8432c'); cbSet('mur', '#00ff00'); const gp = geo(); r.plat = Math.abs(gp.rTop - 110) < 0.05 && Math.abs(gp.rTop - gp.rLow) < 0.01 && gp.rw === 12; r.couleurs = gp.toit === 'a8432c' && gp.mur === '00ff00';
+        r.actif = !!document.querySelector('.cb-s.on'); cbSet('t', 'croupe'); cbSet('dbcm', '80'); r.debord = Math.abs(geo().rw - 13.6) < 0.05; cbSet('dbcm', ''); r.defaut = S0.cb.db === undefined && geo().rw === 12.8;
+        closeSelectionParamModal(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); return r; });
+    t.eq('bâti du cadastre en volume : posé au point bas, murs à TN + 6 m, toit à croupes 35 % débordant de 40 cm, de la couleur du toit sur la photo ; Y : toiture, hauteur, débord, couleurs', cb, { n: 2, base: 100.7, eaves: 106.9, ridge: 108.4, w: 12, deb: 12.8, grisBleu: true, ui: true, pignons: true, monopente: true, plat: true, couleurs: true, actif: true, debord: true, defaut: true });
+    // textures : sur une face en pente, le motif suit la ligne de plus grande pente (V) et la ligne de niveau (U) ; grain sur toutes les matières éclairées
+    const txp = await ev(async () => { await loadThree(); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1, 1, 0, 0, 2, 2, 1, 1, 0, 1, 3, 2, 0, 2, 2], 3)); const G = texGeometry(g, 1), uv = G.attributes.uv.array;
+        // plan en pente : A=(0,0,0) et B=(1,1,0) au même niveau, C=(0,2,2) plus haut
+        const dU = [uv[2] - uv[0], uv[3] - uv[1]], dC = [uv[4] - uv[0], uv[5] - uv[1]];
+        return { niveau: Math.abs(dU[1]) < 1e-6 && Math.abs(Math.abs(dU[0]) - Math.SQRT2) < 1e-6, pente: Math.abs(dC[1] - Math.sqrt(6)) < 1e-6,   // C est à √6 m de la ligne de niveau AB, en montant
+            grain: /mcGrain/.test(THREE.ShaderChunk.lights_lambert_fragment) && /mcGrain/.test(THREE.ShaderChunk.lights_physical_fragment) }; });
+    t.eq('textures dans le sens de la pente (lignes de niveau horizontales dans le motif) ; rendu granuleux de toutes les matières', txp, { niveau: true, pente: true, grain: true });
     // zone boisée en 3D : un houppier par arbre posé sur le sol ; couleur prise sur la photo du fond (switch : photo / verts)
     const zb = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000);
         for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 5 * m, y: -j * 5 * m, z: 100000, zk: 1 });

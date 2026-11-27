@@ -46,6 +46,11 @@
         .mf-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 2px; background: #111827; border: 1px solid #4b5563; border-radius: 7px; }
         .mf-seg label { display: flex; align-items: center; justify-content: center; padding: 5px 6px; border-radius: 5px; cursor: pointer; font-size: 12.5px; color: #d1d5db; }
         .mf-seg input { display: none; }
+        .cb-sw { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 6px; }
+        .cb-s { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 70px; padding: 5px 3px; border-radius: 8px; background: #1f2937; border: 1px solid #374151; color: #e5e7eb; font-size: 11px; cursor: pointer; text-align: center; line-height: 1.15; }
+        .cb-s span { width: 40px; height: 20px; border-radius: 5px; border: 1px solid #0008; }
+        .cb-s.on { background: #bef264; color: #1a2e05; border: 3px solid #1a2e05; font-weight: 700; }
+        .cb-free input { width: 40px; height: 22px; padding: 0; border: 1px solid #0008; border-radius: 5px; background: none; cursor: pointer; }
         .mf-seg label:has(input:checked) { background: #2563eb; color: #fff; }
         .mf-vz { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; max-height: 10rem; overflow-y: auto; padding-right: 4px; }
         .mf-vz label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #9ca3af; }
