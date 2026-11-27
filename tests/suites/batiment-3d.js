@@ -1006,6 +1006,20 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         r.short = W2.loops[0].length === 4 && (W2.carve || []).length === 1;
         d3ColClear(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('collisions : mur traversé par un poteau découpé en plan (deux morceaux, bords, fenêtre gardée) ; poteau plus court : découpe 3D', colW, { n: 1, pieces: 2, notCarved: true, gap: true, win: true, borders: true, after: 0, short: true });
+    /* menuiseries texturées : porte de garage et porte d'entrée en bois (Y › Couleurs › Texture), et au pinceau de la vue 3D d'un clic sur la porte ; le vitrage n'en prend jamais */
+    const opTx = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), M = mmToWorld, r = {};
+        startWall('w-beton20'); wallStart = { x: 0, y: 0 }; wallAddTo(10 * m, 0); setMode('select-box'); await new Promise(q => setTimeout(q, 200)); const host = shapes.filter(isWallHatch).pop();
+        openA = { x: 2 * m, y: 0 }; openWall = host; openDir = { x: 0, y: -1 }; openLast.kind = 'garage'; openLast.top = 'droit'; openingFinish({ x: 4.5 * m, y: 0 });
+        const sel = document.getElementById('op-tex'); r.ui = !!sel && [...sel.options].some(o => o.value === 'bardage-noir'); if (sel) sel.value = 'bardage-noir'; [...document.querySelectorAll('#tm-actions button')].find(b => /Valider/.test(b.textContent)).click();
+        const og = host.openings[host.openings.length - 1]; r.saved = og.tex === 'bardage-noir';
+        await open3D(); let tx = 0; V3.root.traverse(x => { if (x.isMesh && x.userData.opening === og && x.material && x.material.map) tx++; }); r.tex3d = tx >= 5;
+        // pinceau : clic sur le tablier, il prend la texture choisie
+        startPaint('paint', true); texPaint.tex = 'pierre-brute'; V3.root.updateMatrixWorld(true); let leaf = null; V3.root.traverse(x => { if (!leaf && x.isMesh && x.userData.leaf === og) leaf = x; });
+        const cv = V3.renderer.domElement, rc = cv.getBoundingClientRect(), bb = new THREE.Box3().setFromObject(leaf), c = bb.getCenter(new THREE.Vector3()); V3.target.copy(c); V3.dist = 6; render3D();
+        const v = c.clone().project(V3.camera); pick3D({ clientX: rc.left + (v.x + 1) / 2 * rc.width, clientY: rc.top + (1 - v.y) / 2 * rc.height, shiftKey: false }); r.painted = og.tex === 'pierre-brute';
+        let glassTex = false; V3.root.traverse(x => { if (x.isMesh && x.userData.opening && x.material && x.material.transparent && x.material.map) glassTex = true; }); r.noGlass = !glassTex;
+        try { texStop(); } catch (e) {} close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('menuiseries texturées : texture au Y (porte de garage), en 3D, et au pinceau d\'un clic sur la porte ; vitrage jamais texturé', opTx, { ui: true, saved: true, tex3d: true, painted: true, noGlass: true });
     /* découpe 3D (volet 3D › Outils) : clic sur la partie à enlever, clic sur un plan qui coupe ; plan incliné gardé sur l'objet (suit ses déplacements, enregistré), plan vertical = recoupe en plan aussi */
     const cut3T = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {}, R = (x0, y0, x1, y1, z) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m, z }));
         const A = { type: 'poly', layerId: 'layer-0', points: R(0, 0, 10, 4, 100000), solid: { kind: 'box', H: 3000 }, zk: 1, name: 'Poutre' }, B = { type: 'poly', layerId: 'layer-0', points: R(6, -2, 6.5, 6, 100000), solid: { kind: 'box', H: 4000 }, zk: 1, name: 'Voile' };

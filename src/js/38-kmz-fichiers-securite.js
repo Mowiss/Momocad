@@ -96,7 +96,7 @@
                      // réglages d'affichage et d'impression du plan
                      settings: { unit: printSettings.unit, decimals: printSettings.decimals, dimText: dimTextAligned ? 'aligned' : 'horizontal', dimStyle: Object.assign({}, dimStyle),
                                  paper: printSettings.paper, output: printSettings.output, cartouche: !!printSettings.cartouche, orientation: printOrientation },
-                     talus: { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, pluvio: pluvioNote ? Object.assign({}, pluvioNote, { S: undefined }) : undefined, pin3d: v3PinSave(), sol: solNote || undefined, maill: mailNote || undefined, levels: bldActId ? lvlsGlobal : lvls, layout: Object.assign({}, layoutData, { paperShapes: paperList || lpPaperShapes() }),
+                     talus: { on: cubState.talus, kR: cubState.kR, kD: cubState.kD }, pluvio: pluvioNote ? Object.assign({}, pluvioNote, { S: undefined }) : undefined, pin3d: v3PinSave(), mdls: mdlUsed(shapes), sol: solNote || undefined, maill: mailNote || undefined, levels: bldActId ? lvlsGlobal : lvls, layout: Object.assign({}, layoutData, { paperShapes: paperList || lpPaperShapes() }),
                      layouts: lpSync().map(L => L === layoutData ? { $cur: 1 } : L), layoutIdx, studio: studio.views.length || studio.fmt !== '16:9' || studio.f !== 35 ? studio : undefined };
         }
         function fileBytes(name) {
@@ -274,12 +274,12 @@
                 if (/\.dwg$/i.test(nm)) { alert('Le format DWG est fermé : MomoCAD ne sait pas le lire directement. Enregistre-le en DXF depuis ton logiciel (ou un convertisseur DWG → DXF gratuit), puis dépose le DXF ici.'); return; }
                 if (/\.(kmz|kml)$/i.test(nm)) { kmzOpen(f); return; }
                 if (/\.dxf$/i.test(nm) && shapes.some(x => !isBg(x))) { dxfOverlayAsk(f, nm, false); return; }
-                if (/\.stl$/i.test(nm)) { updateCommandMessageText('Les fichiers STL ne sont plus pris en charge.'); return; }
+                if (/\.stl$/i.test(nm)) { mdlImport(f); return; }   /* modèle 3D : il devient un bloc 2D/3D */
                 if (/\.(mmc|momocad|json|dxf|gbt)$/i.test(nm)) {
                     if (!/\.gbt$/i.test(nm) && isDirty() && shapes.length && !confirm('Le plan en cours a des modifications non enregistrées. Ouvrir « ' + nm + ' » quand même ?')) return;
                     const ok = await loadFileObject(f, nm); if (ok && !/\.gbt$/i.test(nm)) fileHandle = null; return;
                 }
-                updateCommandMessageText('Fichier non reconnu : ' + nm + ' (images, PDF, .mmc, .dxf, .gbt, .kmz, .kml).');
+                updateCommandMessageText('Fichier non reconnu : ' + nm + ' (images, PDF, .mmc, .dxf, .gbt, .kmz, .kml, .stl).');
             });
         })();
         function openProjectFromInput(event) {
@@ -388,6 +388,7 @@
             lvls = Array.isArray(data.levels) && data.levels.length ? data.levels : null; lvlsGlobal = null; bldActId = null; lvlAct = 'rdc'; if (lvlOn) lvlToggle(false);
             if (data.talus) { cubState.talus = data.talus.on !== false; cubState.kR = data.talus.kR || '3/2'; cubState.kD = data.talus.kD || '1/1'; }
             pluvioNote = data.pluvio || null; solNote = data.sol || null; PIN3D = data.pin3d && isFinite(data.pin3d.x) && isFinite(data.pin3d.y) && isFinite(data.pin3d.z) ? { x: +data.pin3d.x, y: +data.pin3d.y, z: +data.pin3d.z } : null; if (typeof V3 !== 'undefined' && V3) { V3.pin = null; V3.pinRoot = null; setTimeout(() => { try { if (is3DOpen() && V3 && !V3.pin && PIN3D) { v3PinRestore(); render3D(); } } catch (e) {} }, 250); }   /* plan ouvert pendant la vue 3D : son drapeau revient aussi */ solStop(true); mailNote = data.maill || null;
+            try { mdlRestore(data.mdls); } catch (e) { console.error(e); }   /* modèles 3D importés utilisés par le plan */
             shapes = data.shapes; wallFteMigrate(shapes); lvlMarkAll(); if (lvls) lvlChain(); markZKnown(); lightenTalusLimits(shapes); MMC_LOAD_FIX.walls = wallBordersRepair(); MMC_LOAD_FIX.bm = bmLayerRepair(); MMC_LOAD_FIX.ops = wallOpRepair(); MMC_LOAD_FIX.bld = bldRepair(); if (shapes.some(x => x.stair2)) try { loadPolyClip().then(() => { invalidateCache(); draw(); }, () => {}); } catch (e) {} MMC_LOAD_FIX.bsol = bldSolidRepair(); MMC_LOAD_FIX.wz = wallWzRepair(); wallBidRepair(); lvlStartRdc(); selectedShapes = []; shapesHistory = []; historyStep = -1;
             invalidateCache(); saveState(); updateLayerUI();
             if (data.view && data.view.zoom > 0) {

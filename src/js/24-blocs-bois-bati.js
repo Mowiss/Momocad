@@ -2,7 +2,7 @@
         // CATALOGUE DE BLOCS (tampons) : définitions en mm, Y vers le haut, origine = point d'insertion
         // éléments : ['L',x1,y1,x2,y2] droite · ['P',[[x,y]…],fermé] polyligne · ['C',x,y,r] cercle · ['A',x,y,r,a0,a1] arc (degrés, sens trigo)
         // =====================================================================
-        const BLK_TABS = [{ id: 'sanit', ico: '🛁', name: 'Sanitaires' }, { id: 'mobil', ico: '🛋️', name: 'Mobilier' }, { id: 'veget', ico: '🌳', name: 'Végétation' }, { id: 'vehic', ico: '🚗', name: 'Véhicules' }];
+        const BLK_TABS = [{ id: 'sanit', ico: '🛁', name: 'Sanitaires' }, { id: 'mobil', ico: '🛋️', name: 'Mobilier' }, { id: 'veget', ico: '🌳', name: 'Végétation' }];
         let blkParois = false;   // le tiroir des blocs montre les parois (bouton Paroi de la palette Bâtiment)
         const bkEll = (cx, cy, rx, ry, n) => Array.from({ length: n || 40 }, (_, i) => { const a = 2 * Math.PI * i / (n || 40); return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)]; });
         const bkRect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
@@ -10,7 +10,7 @@
         const bkScallop = (r, n, amp) => Array.from({ length: n * 8 }, (_, i) => { const a = 2 * Math.PI * i / (n * 8), rr = r * (1 - amp + amp * Math.abs(Math.sin(a * n / 2))); return [rr * Math.cos(a), rr * Math.sin(a)]; });
         const BLOCKS_BUILTIN = [
             /* petite citadine monocorps (dessin original, 3,45 × 1,63 m), avant vers +x : contour, capot, pare-brise, toit, lunette, rétroviseurs ; en 3D, maquette en facettes (low poly) */
-            { id: 'citadine', tab: 'vehic', name: 'Citadine', el: [['P', bkRRect(-1725, -815, 1725, 815, 260), 1], ['L', 950, -760, 950, 760], ['P', [[950, -740], [950, 740], [120, 680], [120, -680]], 1], ['P', [[120, -680], [120, 680], [-1430, 690], [-1430, -690]], 1], ['P', [[-1430, -690], [-1430, 690], [-1660, 640], [-1660, -640]], 1],
+            { id: 'citadine', tab: 'mobil', name: 'Citadine', el: [['P', bkRRect(-1725, -815, 1725, 815, 260), 1], ['L', 950, -760, 950, 760], ['P', [[950, -740], [950, 740], [120, 680], [120, -680]], 1], ['P', [[120, -680], [120, 680], [-1430, 690], [-1430, -690]], 1], ['P', [[-1430, -690], [-1430, 690], [-1660, 640], [-1660, -640]], 1],
                 ['P', bkRect(780, 815, 900, 930), 1], ['P', bkRect(780, -930, 900, -815), 1], ['L', -350, 815, -350, 690], ['L', -350, -815, -350, -690], ['P', bkRect(1080, -815, 1360, -770), 1], ['P', bkRect(1080, 770, 1360, 815), 1], ['P', bkRect(-1300, -815, -1020, -770), 1], ['P', bkRect(-1300, 770, -1020, 815), 1]] },
             { id: 'wc', tab: 'sanit', name: 'WC', el: [['P', bkRRect(-210, -190, 210, 0, 30), 1], ['P', bkEll(0, -430, 185, 245), 1], ['P', bkEll(0, -440, 125, 175), 1], ['C', 0, -95, 25]] },
             { id: 'lavabo', tab: 'sanit', name: 'Lavabo', el: [['P', bkRRect(-300, -460, 300, 0, 40), 1], ['P', bkEll(0, -260, 220, 150), 1], ['C', 0, -60, 22], ['C', 0, -260, 18]] },
@@ -223,7 +223,7 @@
             }
             return P;
         }
-        const blkHas3D = (b) => !!(b && !b.user && BLK3[b.id]);
+        const blkHas3D = (b) => !!(b && (b.mdl ? MDL_STORE[b.mdl] : !b.user && BLK3[b.id]));   /* modèle 3D (acheté, importé) : son maillage */
         // deux points repères du 1er élément du bloc, dans le repère du bloc (mm, y nord) et sur le dessin posé → similitude (position, rotation, échelle)
         function blkRefs(g, sh) {
             if (g[0] === 'L' && sh.type === 'line') return [[[g[1], g[2]], [g[3], g[4]]], [[sh.x1, sh.y1], [sh.x2, sh.y2]]];
@@ -249,7 +249,8 @@
             else if (M.k === 'ball') { const H = 1.0 * D, R = 0.42 * D; trunk(H - 1.6 * R, 0.035 * D); out.push([at(new THREE.IcosahedronGeometry(R, 2), cx, cy, H - R), M.c]); }
             else if (M.k === 'conif') { const H = 2.0 * D; trunk(0.2 * H, 0.04 * D); [[0.5, 0.1], [0.38, 0.36], [0.25, 0.58]].forEach(([r, z0]) => out.push([at(up(new THREE.ConeGeometry(r * D, 0.42 * H, 10)), cx, cy, z0 * H + 0.21 * H), M.c])); }
             else if (M.k === 'car') carParts(out, M.c);
-            return { parts: out, c: [cx * 1000, cy * 1000], veg: M.k !== 'f' && M.k !== 'car', flat: M.k === 'car' };
+            else if (M.k === 'mdl') mdlParts(b.mdl).forEach(q => out.push(q));
+            return { parts: out, c: [cx * 1000, cy * 1000], veg: M.k !== 'f' && M.k !== 'car' && M.k !== 'mdl', flat: M.k === 'car' || M.k === 'mdl', mdl: M.k === 'mdl' };
         }
         /* citadine en facettes (m, avant vers +x, posée à z = 0) : caisse et vitrage en profils de côté extrudés sur la largeur, montants, pare-chocs, feux, rétroviseurs, roues à 12 pans */
         function carParts(out, body) { const L2 = 1.725, W = 1.63, glass = 0x1e293b, dark = 0x374151, tyre = 0x1f2937;
@@ -280,17 +281,17 @@
             const slabs = vis.filter(x => x.solid && x.solid.kind === 'box' && x.type === 'poly' && hasZ(solidBaseZ(x)));
             for (const sh of vis) {
                 if (!sh.block || !sh.groupId || seen.has(sh.groupId)) continue; seen.add(sh.groupId);
-                const b = BLOCKS_BUILTIN.find(x => x.name === sh.block); if (!blkHas3D(b)) continue;
+                const b = allBlocks().find(x => x.name === sh.block); if (!blkHas3D(b)) continue;
                 const R = blkRefs(b.el[0], sh); if (!R) continue;
                 const [[La, Lb], [Wa, Wb]] = R, ra = [worldToMm(Wa[0]), -worldToMm(Wa[1])], rb = [worldToMm(Wb[0]), -worldToMm(Wb[1])];
                 const dL = [Lb[0] - La[0], Lb[1] - La[1]], dR = [rb[0] - ra[0], rb[1] - ra[1]], s = Math.hypot(dR[0], dR[1]) / Math.hypot(dL[0], dL[1]); if (!(s > 1e-6)) continue;
                 const th = R[2] ? 0 : Math.atan2(dR[1], dR[0]) - Math.atan2(dL[1], dL[0]), c = Math.cos(th), sn = Math.sin(th), tx = ra[0] - s * (c * La[0] - sn * La[1]), ty = ra[1] - s * (sn * La[0] + c * La[1]);
-                const G = blkGeom3D(b, BLK3[b.id]), cr = [s * (c * G.c[0] - sn * G.c[1]) + tx, s * (sn * G.c[0] + c * G.c[1]) + ty], cw = { x: mmToWorld(cr[0]), y: -mmToWorld(cr[1]) };
+                const G = blkGeom3D(b, b.mdl ? { k: 'mdl' } : BLK3[b.id]), cr = [s * (c * G.c[0] - sn * G.c[1]) + tx, s * (sn * G.c[0] + c * G.c[1]) + ty], cw = { x: mmToWorld(cr[0]), y: -mmToWorld(cr[1]) };
                 let z = ground(cw.x, cw.y);
                 if (!G.veg) { let best = null; slabs.forEach(d => { if (!pointInPolygon(cw.x, cw.y, d.points)) return; const t = solidBaseZ(d) + (d.solid.H || 0); if ((!hasZ(z) || t < z + 3000) && (best === null || t > best)) best = t; }); if (best !== null) z = best; }
                 const Mx = new THREE.Matrix4().makeRotationZ(th).premultiply(new THREE.Matrix4().makeScale(s, s, s)).premultiply(new THREE.Matrix4().makeTranslation(tx / 1000, ty / 1000, hasZ(z) ? Zm(z) : 0));
                 G.parts.forEach(([g, col]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const tid = sh.btex && sh.btex[col], TX = tid && TEX_LIB.find(t => t.id === tid), tm = TX ? texMaterial(tid) : null;   /* pièce peinte au pinceau : sa texture */
-                    const me = tm ? new THREE.Mesh(texGeometry(g, TX.tile), tm) : new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: col, flatShading: G.veg || G.flat })); me.userData.blk = sh; me.userData.blkCol = col; root.add(me); });
+                    const me = tm ? new THREE.Mesh(texGeometry(g, TX.tile), tm) : new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: col, flatShading: G.veg || G.flat, side: G.mdl ? THREE.DoubleSide : THREE.FrontSide })); me.userData.blk = sh; me.userData.blkCol = col; root.add(me); });
             }
         }
         function blockThumb(b) {
@@ -377,7 +378,7 @@
             ctx.restore();
         }
         // calque affilié au dossier du catalogue : « Blocs sanitaires », « Blocs mobilier », « Blocs végétation »…
-        const BLK_COLORS = { sanit: '#38bdf8', mobil: '#f59e0b', veget: '#4ade80', vehic: '#93c5fd' };
+        const BLK_COLORS = { sanit: '#38bdf8', mobil: '#f59e0b', veget: '#4ade80' };
         function blockLayerId(b) { const t = BLK_TABS.find(x => x.id === b.tab) || { name: 'Divers' }; return ensureLayer('Blocs ' + t.name.toLowerCase(), BLK_COLORS[b.tab] || '#e5e7eb'); }
         function placeStamp() {
             if (!stamp) return; const gid = 'grp-' + Date.now() + '-' + Math.floor(Math.random() * 100000);

@@ -487,6 +487,10 @@
             const hits = ray.intersectObjects(V3.root.children, true), hit = hits.find(h => h.object.userData && (h.object.userData.shape || h.object.userData.opening));
             const op = hit && hit.object.userData.opening ? hit.object.userData.opening : null, opHost = op ? shapes.find(x => (x.openings || []).includes(op)) : null;
             const s = op ? opHost : hit ? hit.object.userData.shape : null; V3.pickOp = op && opHost ? { host: opHost, o: op } : null;
+            const hm = hits.find(h => h.object.isMesh);   /* la première surface touchée (pas les traits d'arêtes) */
+            if (texPaint && hm && hm.object.userData && hm.object.userData.opening && !(hm.object.material && hm.object.material.transparent)) { const O = hm.object.userData.opening;   /* menuiserie (porte, porte de garage, fenêtre) : elle prend la texture, le vitrage reste */
+                if (texPaint.kind === 'texpick') { if (O.tex) { texLast = O.tex; try { localStorage.setItem('momocad-tex', O.tex); } catch (er) {} startPaint('paint', true); } return; }
+                if (texPaint.kind === 'texclear') delete O.tex; else O.tex = texPaint.tex; saveState(); build3DScene(); render3D(); return; }
             if (texPaint) { const hb = hits[0] && hits[0].object.userData && hits[0].object.userData.blk ? hits[0] : null;   /* bloc (meuble, sanitaire…) : la pièce touchée et toutes celles de la même couleur */
                 if (hb) { const B = hb.object.userData.blk, col = hb.object.userData.blkCol; if (texPaint.kind === 'texpick') { const t = B.btex && B.btex[col]; if (t) { texLast = t; try { localStorage.setItem('momocad-tex', t); } catch (er) {} startPaint('paint', true); } return; }
                     if (texPaint.kind === 'texclear') { if (B.btex) delete B.btex[col]; } else B.btex = Object.assign({}, B.btex || {}, { [col]: texPaint.tex }); saveState(); build3DScene(); render3D(); return; }

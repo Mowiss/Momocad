@@ -53,6 +53,8 @@
                         <span>Clic = poser · Maj+molette = taille · Ctrl+molette = rotation</span>
                         <button class="ps-btn !text-xs whitespace-nowrap" onclick="document.getElementById('blk-input').click()">+ Bloc DXF</button>
                         <input type="file" id="blk-input" class="hidden" accept=".dxf" onchange="addUserBlock(this)">
+                        <button class="ps-btn !text-xs whitespace-nowrap" onclick="document.getElementById('mdl-input').click()" title="Un modèle 3D (STL, acheté ou téléchargé) devient un bloc 2D/3D">+ Modèle 3D</button>
+                        <input type="file" id="mdl-input" class="hidden" accept=".stl" onchange="mdlImport(this.files[0]);this.value=''">
                     </div>
                 </div>
             </div>
