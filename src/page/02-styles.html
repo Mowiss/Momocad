@@ -228,8 +228,11 @@ body.v3fps, body.v3fps *, body.momo-drag, body.momo-drag *, .v3-band, .v3-band *
 .ps-seg button:hover { background:#374151; }
 .ps-seg button.on { background:#2563eb; color:#fff; }
 #v3-band { display:none !important; }
-#v3-menu-btn { position:absolute; top:10px; left:10px; z-index:7; display:flex; align-items:center; gap:6px; background:#111827e6; color:#e5e7eb; border:1px solid #4b5563; border-radius:8px; padding:5px 10px; font:600 12.5px Arial,sans-serif; cursor:pointer; }
-#v3-menu-btn:hover { background:#1f2937; color:#fff; } #v3-menu-btn kbd { font:600 10.5px monospace; border:1px solid #6b7280; border-radius:3px; padding:0 4px; color:#9ca3af; }
+/* volet 3D : onglet vertical qui dépasse du bord droit, au milieu ; volet ouvert, il suit le bord du volet */
+#v3-menu-btn { position:fixed; top:50%; right:0; left:auto; transform:translateY(-50%); z-index:76; display:flex; align-items:center; gap:8px; writing-mode:vertical-rl; background:#111827f0; color:#e5e7eb; border:1px solid #4b5563; border-right:0; border-radius:10px 0 0 10px; padding:14px 7px; font:600 12.5px Arial,sans-serif; letter-spacing:.3px; cursor:pointer; box-shadow:-6px 0 18px rgba(0,0,0,.35); transition:right .26s cubic-bezier(.2,.8,.2,1), background .15s; }
+body:not(.v3on) #v3-menu-btn { display:none; }
+body.v3pan #v3-menu-btn { right:min(480px, 94vw); background:#1f2937; border-color:#6b7280; }
+#v3-menu-btn:hover { background:#1f2937; color:#fff; } #v3-menu-btn kbd { font:600 10.5px monospace; border:1px solid #6b7280; border-radius:3px; padding:4px 0; color:#9ca3af; }
 body.v3fps #v3-menu-btn, #view3d.v3-lp #v3-menu-btn { display:none; }
 #t2-panel.v3v-p { --dw: 480px; }
 .v3v { display:flex; gap:10px; min-height:100%; } .v3v-c { flex:1; min-width:0; }

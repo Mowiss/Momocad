@@ -150,13 +150,13 @@
                 document.body.appendChild(p);
                 p.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); const b = p.querySelector('button[data-primary]'); if (b) b.click(); } else if (ev.key === 'Escape') { ev.preventDefault(); if (p.dataset.kind === 'studio') studioClose(); else if (texPaint) texStop(); else { setMode('select-box'); draw(); } } });
             }
-            const sc = p.querySelector('.vb'), keep = sc && p.dataset.title === title ? sc.scrollTop : 0; p.dataset.title = title; p.dataset.kind = '';
+            const sc = p.querySelector('.vb'), keep = sc && p.dataset.title === title ? sc.scrollTop : 0; p.dataset.title = title; p.dataset.kind = ''; if (!/^Vue 3D/.test(title)) document.body.classList.remove('v3pan');   /* le volet 3D redessiné garde son onglet en place (sinon l'onglet repartait à chaque image) */
             p.innerHTML = `<div class="vh"><h3>${title}</h3><button type="button" class="vx" onclick="${closeJs || "setMode('select-box');draw()"}" title="Fermer (Échap)">×</button></div>`
                 + `<div class="vb">${html}</div>`
                 + (actions && actions.length ? `<div class="vf">` + actions.map(([l, js, prim]) => `<button type="button" class="vbtn${prim ? ' pri' : ''}" ${prim ? 'data-primary="1"' : ''} onclick="${js}">${l}</button>`).join('') + `</div>` : '');
             p.style.display = 'flex'; p.querySelector('.vb').scrollTop = keep;   // un rafraîchissement du volet garde la position de lecture
         }
-        function t2PanelClose() { const p = document.getElementById('t2-panel'); if (p) { if (p.contains(document.activeElement)) document.activeElement.blur(); p.style.display = 'none'; } }
+        function t2PanelClose() { const p = document.getElementById('t2-panel'); if (p) { document.body.classList.remove('v3pan'); if (p.contains(document.activeElement)) document.activeElement.blur(); p.style.display = 'none'; } }
         const t2Inp = (id, v, w, fn) => `<input id="${id}" type="text" inputmode="decimal" value="${t2Fr(v)}" oninput="${fn}" style="width:${w || 74}px;background:#374151;color:#fff;border:1px solid #4b5563;border-radius:6px;padding:4px 8px;text-align:right;outline:none">`;
         const t2Row = (lab, h) => `<label style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${lab}</span><span style="display:flex;align-items:center;gap:6px">${h}</span></label>`;
         const t2Chk = (id, on, lab, fn) => `<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input id="${id}" type="checkbox" ${on ? 'checked' : ''} onchange="${fn}"><span>${lab}</span></label>`;

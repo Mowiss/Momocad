@@ -127,7 +127,7 @@
             if (mode === 'pen' && e.button === 0) { const w = screenToWorld(sx, sy); penDown(w.x, w.y); updateCommandMessage(); draw(); return; }
             if (mode === 'recoupe' && e.button === 0) { const w = screenToWorld(sx, sy); rcpClick(w.x, w.y); return; }
             if (mode === 'mirror' && e.button === 0) { const w = screenToWorld(sx, sy); mirrorClick(w.x, w.y, e.shiftKey); return; }
-            if (mode === 'select-box' && e.button === 0 && !isDrawing && !layoutOn && !gripDrag) { const sb = secBadgeAt(sx, sy); if (sb) { secForce(sb.id); return; } const bb = bldBadgeAt(sx, sy); if (bb) { bldOpen(bb.id); return; } }   /* la pastille d'un bâtiment passe avant les poignées et les objets dessous */
+            if (mode === 'select-box' && e.button === 0 && !isDrawing && !layoutOn && !gripDrag) { const sb = secBadgeAt(sx, sy); if (sb) { secOpenY(sb.id); return; } const bb = bldBadgeAt(sx, sy); if (bb) { bldOpen(bb.id); return; } }   /* la pastille d'un bâtiment passe avant les poignées et les objets dessous */
             if (e.button === 0 && t2MouseDown(sx, sy, e)) return;
             if (mode === 'wall' && e.button === 0 && wallTool) {
                 const w = screenToWorld(sx, sy), sn = findSnap(w.x, w.y); let px = sn ? sn.x : w.x, py = sn ? sn.y : w.y;
@@ -292,7 +292,7 @@
             }
 
             if (mode === 'select-box' && e.button === 0 && gripDrag) { endGrip(false); return; }
-            if (mode === 'select-box' && e.button === 0 && !isDrawing) { const sb = secBadgeAt(sx, sy); if (sb) { secForce(sb.id); return; } const bb = bldBadgeAt(sx, sy); if (bb) { bldOpen(bb.id); return; } }   // pastille d'un contour de bâtiment : ses étages
+            if (mode === 'select-box' && e.button === 0 && !isDrawing) { const sb = secBadgeAt(sx, sy); if (sb) { secOpenY(sb.id); return; } const bb = bldBadgeAt(sx, sy); if (bb) { bldOpen(bb.id); return; } }   // pastille d'un contour de bâtiment : ses étages
             if (mode === 'select-box' && e.button === 0 && !e.shiftKey && !isDrawing) { const g = gripAt(sx, sy); if (g) { startGrip(g); gripDrag.downAt = Date.now(); draw(); return; } }
             if (mode === 'select-box' && !isDrawing && e.button === 0 && !e.shiftKey) { const hv = trLabelAt(wp) || trVertexAt(wp); if (hv) { trVertexDialog(hv.s, hv.i); return; } }
             if (mode === 'select-box') { t2SelDown(wp, e); return; }

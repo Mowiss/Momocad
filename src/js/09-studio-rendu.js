@@ -12,6 +12,8 @@
         // matières en relief : herbe (hauteur, densité) et terre (granulométrie, densité)
         const ST_GRAN = { sable: ['Sable', 0.002, 0.008], grav: ['Graviers', 0.008, 0.035], caill: ['Cailloux', 0.03, 0.09], blocs: ['Blocs', 0.1, 0.35] };
         const ST_DENS = { faible: ['Clair', 0.5], normale: ['Normal', 1], dense: ['Dense', 1.8] };
+        /* profondeur de champ : ouverture discrète (quelques cm) ; le point visé reste net, le lointain et le tout-près s'adoucissent sans dédoubler l'image */
+        function dofAperture(dF, f) { return Math.min(0.12, Math.max(0.005, dF * 0.0035 * 35 / Math.max(18, f || 35))); }
         function studioNew() { return { fmt: '16:9', f: 35, res: 'fhd', q: 'standard', sh: true, grass: true, tree: true, fin: true, thirds: true, views: [], grassH: 12, grassN: 250, earth: true, granS: 38, earthP: 50, earthCol: null, riv: true, wave: true, realHD: true, bed: true, dof: false, haze: false }; }
         let studio = studioNew();
         let stPano = { on: false, h: 1.6, d: 400, rot: 0 }; try { Object.assign(stPano, JSON.parse(localStorage.getItem('momocad-stpano') || '{}')); } catch (e) {} stPano.on = false;   /* la photo d'horizon se règle dans Décor */
@@ -159,7 +161,7 @@
         function v3PanelClose() { const p = document.getElementById('t2-panel'); if (p && (p.dataset.kind === 'v3' || p.dataset.kind === 'studio')) t2PanelClose(); if (V3) { v3Sky(); render3D(); } }
         function v3PanelShow(tab, html) { const rail = `<div class="v3v-rail">` + V3_TABS.map(([k, ic, l]) => `<button type="button" class="${k === tab ? 'on' : ''}" onclick="v3Panel('${k}')"><span>${ic}</span>${l}</button>`).join('') + `</div>`;
             t2Panel('Vue 3D — ' + V3_TABS.find(t => t[0] === tab)[2], `<div class="v3v">${rail}<div class="v3v-c">${html}</div></div>`, tab === 'studio' ? [['Fermer', 'v3PanelClose()'], ['📸 Lancer le rendu', 'studioRender()', true]] : [['Fermer', 'v3PanelClose()']], 'v3PanelClose()');
-            const p = document.getElementById('t2-panel'); p.dataset.kind = tab === 'studio' ? 'studio' : 'v3'; p.classList.add('v3v-p'); if (V3) { v3Sky(); render3D(); } }
+            const p = document.getElementById('t2-panel'); p.dataset.kind = tab === 'studio' ? 'studio' : 'v3'; p.classList.add('v3v-p'); document.body.classList.add('v3pan'); if (V3) { v3Sky(); render3D(); } }
         const v3Chk = (id) => !!(document.getElementById(id) || {}).checked;
         function v3SetChk(id, on) { const c = document.getElementById(id); if (!c || c.checked === !!on) return; const b = document.querySelector('#v3-band [data-for="' + id + '"]'); if (b) v3Tog(b); else { c.checked = !!on; c.dispatchEvent(new Event('change')); } v3PanelRefresh(); }
         function v3TabHTML(tab) { const sw = (id, l, t) => `<label class="st-ck" title="${t || ''}"><input type="checkbox" class="bm-switch" ${v3Chk(id) ? 'checked' : ''} onchange="v3SetChk('${id}', this.checked)"> ${l}</label>`;
@@ -238,7 +240,7 @@
                 const [su, sv] = perp(S0); let lastPrev = 0; RD.tS = performance.now();
                 /* profondeur de champ : l'objectif se déplace un peu à chaque passe autour de sa place, toujours tourné vers le point visé (net), le reste se floute doucement ;
                    brume du lointain : le décor se fond dans la couleur du ciel avec la distance */
-                const P0 = rc.position.clone(), F0 = V3.fps ? null : V3.target.clone(), dF = F0 ? P0.distanceTo(F0) : 0, ap = studio.dof && F0 ? Math.max(0.01, dF * 0.018 * 35 / Math.max(18, studio.f || 35)) : 0, cr = new THREE.Vector3(), cu = new THREE.Vector3();
+                const P0 = rc.position.clone(), F0 = V3.fps ? null : V3.target.clone(), dF = F0 ? P0.distanceTo(F0) : 0, ap = studio.dof && F0 ? dofAperture(dF, studio.f) : 0, cr = new THREE.Vector3(), cu = new THREE.Vector3();
                 if (ap) { rc.updateMatrixWorld(true); cr.setFromMatrixColumn(rc.matrixWorld, 0).normalize(); cu.setFromMatrixColumn(rc.matrixWorld, 1).normalize(); }
                 const fog0 = V3.scene.fog; if (studio.haze) { const fc = R.getClearColor(new THREE.Color()), d0 = Math.max(20, (V3.fps ? 40 : V3.dist) * 1.1); V3.scene.fog = new THREE.Fog(fc, d0, Math.max(d0 * 6, d0 + Math.min(rc.far * 0.6, Math.max(400, V3.R * 4)))); RD.fog0 = fog0; RD.fogSet = true; }
                 for (let s = 0; s < N && !RD.stop; s++) {
@@ -438,7 +440,7 @@
             mcLoad.say(mcLoad.funT ? mcLoad.txt : 'Construction de la scène 3D…'); await mcLoad.ready();
             V3.keepCenter = false; place3D(); build3DScene(); v3Sky(); fit3D(); v3PinRestore(); render3D(); V3.keepCenter = true;
             if (realOn() && !REAL && realSite()) realLoad();
-            updateCommandMessageText('VUE 3D : Espace ou ☰ en haut à gauche = volet de la vue 3D (affichage, outils : mesurer, collisions, peindre ; décor, studio photo) · glisser = tourner · clic droit = déplacer · molette = zoom · Échap = retour au plan.');
+            updateCommandMessageText('VUE 3D : Espace ou l\'onglet « Volet 3D » au bord droit = volet de la vue 3D (affichage, outils : mesurer, collisions, peindre ; décor, studio photo) · glisser = tourner · clic droit = déplacer · molette = zoom · Échap = retour au plan.');
             if (brushTool && brushTool.view !== '3d') { brushTool.view = '3d'; brushPanel(); brushMsg(); }
         }
         // Y dans la vue 3D : réglages de l'objet cliqué (altitudes, épaisseurs…) ; une menuiserie cliquée ouvre la fenêtre Ouverture

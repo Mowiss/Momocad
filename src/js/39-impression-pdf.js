@@ -396,7 +396,7 @@
                 else { targetCtx.fillStyle = '#d1d5db'; targetCtx.fillRect(-s.w / 2, -s.h / 2, s.w, s.h); }
                 targetCtx.globalAlpha = 1; targetCtx.setLineDash(sel ? [6 / lineScale, 4 / lineScale] : []);
                 targetCtx.strokeStyle = sel ? '#ec4899' : '#6b7280'; targetCtx.lineWidth = (sel ? 2 : 1) / lineScale;
-                if (sel || !isPrinting) targetCtx.strokeRect(-s.w / 2, -s.h / 2, s.w, s.h);
+                if (sel || (!isPrinting && !s.facTex)) targetCtx.strokeRect(-s.w / 2, -s.h / 2, s.w, s.h);
                 targetCtx.restore();
             }
             else if (s.type === 'basemap') {
