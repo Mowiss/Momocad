@@ -313,7 +313,7 @@
         const MMC_FORMAT = 2, MMC_LOAD_FIX = { walls: 0, bld: 0, wz: 0 };
         const MMC_MIGR = { 1: (d) => d };   // format 1 (fichiers sans numéro) → 2 : même contenu, le numéro apparaît
         const MMC_NEED = { line: ['x1', 'y1', 'x2', 'y2'], dim: ['x1', 'y1', 'x2', 'y2'], circle: ['x', 'y', 'r'], arc: ['x', 'y', 'r'], text: ['x', 'y'], point: ['x', 'y'], basemap: ['x', 'y', 'r'], mesh: ['x', 'y'] };
-        const MMC_OBJ = ['solid', 'wz', 'roofDef', 'bois', 'brush', 'sweep', 'cutDef', 'sonde', 'trench', 'talus', 'bld', 'vr', 'shut', 'tf'], MMC_ARR = ['openings', 'fte', 'cuts', 'carve', 'loops'];
+        const MMC_OBJ = ['solid', 'wz', 'roofDef', 'bois', 'brush', 'sweep', 'cutDef', 'sonde', 'trench', 'talus', 'bld', 'vr', 'shut', 'tf'], MMC_ARR = ['openings', 'fte', 'cuts', 'carve', 'cut3', 'loops'];
         function mmcPrepare(d) { const rep = { dropped: 0, fixed: 0, newer: false, from: +d.format || 1 }; if (rep.from > MMC_FORMAT) rep.newer = true;
             for (let f = rep.from; f < MMC_FORMAT; f++) if (MMC_MIGR[f]) d = MMC_MIGR[f](d) || d; d.format = MMC_FORMAT;
             const num = (v) => typeof v === 'number' && isFinite(v), XY = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'r', 'w', 'h'];

@@ -327,7 +327,7 @@
                 const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3)); return out;
             } catch (e) { return eg; }
         }
-        function objGeom3D(so, P, Zm, exag, ext) { return carveGeom3D(rcpGeom3D(objGeom3D0(so, P, Zm, exag, ext), so, P), so, P, Zm); }
+        function objGeom3D(so, P, Zm, exag, ext) { return carveGeom3D(cut3Geom3D(rcpGeom3D(objGeom3D0(so, P, Zm, exag, ext), so, P), so, P, Zm), so, P, Zm); }
         /* découpes de collision (so.carve) : volumes communs retirés à cet objet quand un autre a été gardé entier (contrôle de collisions › « Couper les autres ») ;
            chaque découpe = triangles en coordonnées réelles (mm), le volume commun exact */
         function carveGeom3D(g, so, P, Zm) { if (!g || !so.carve || !so.carve.length) return g; try {

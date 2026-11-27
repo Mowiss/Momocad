@@ -34,7 +34,7 @@
         }
         function holesOf(s) { return (s.solid && s.solid.holes) || []; }
         // points qui suivent l'objet quand on le déplace, tourne, met à l'échelle ou en miroir : trous, et ouvertures (portes, fenêtres) portées par un mur
-        function xPtsOf(s) { const out = holesOf(s).slice(); (s.cuts || []).forEach(c => out.push([c.a, c.b, c.k])); if (s.wp && s.wp.P) out.push(s.wp.P); (s.fte || []).forEach(e => out.push([e.a, e.b])); (s.openings || []).forEach(o => { if (o.pts) out.push(o.pts); const ab = [o.a, o.b].filter(Boolean); if (ab.length) out.push(ab); }); return out; }
+        function xPtsOf(s) { const out = holesOf(s).slice(); (s.cuts || []).forEach(c => out.push([c.a, c.b, c.k])); (s.cut3 || []).forEach(c => out.push([c.a, c.k])); if (s.wp && s.wp.P) out.push(s.wp.P); (s.fte || []).forEach(e => out.push([e.a, e.b])); (s.openings || []).forEach(o => { if (o.pts) out.push(o.pts); const ab = [o.a, o.b].filter(Boolean); if (ab.length) out.push(ab); }); return out; }
         function solidBaseZ(s) { return s.type === 'circle' ? s.z : s.points[0].z; }
         function setMode(newMode) {
             { const tp = document.getElementById('t2-panel'); if (tp && tp.dataset.kind === 'veg' && tp.style.display !== 'none' && newMode !== 'poly') t2PanelClose(); }

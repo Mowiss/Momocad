@@ -483,7 +483,7 @@
           why: `La touche finale : une couverture en tuiles, à l'échelle.`,
           do: ol('Outil <b>Peindre</b>, choisissez <b>Tuiles</b>.', 'Cliquez les deux pans du toit.'), wait: () => { const L = roofPans(); return !!L && L.every(r => r.tex === 'tuile'); } },
         { title: 'Admirez', target: () => G.is3D() ? '#v3-rose .rose-eye' : '#rose-svg .rose-eye', tip: () => G.is3D() ? 'Refermer la vue 3D<br><small>œil ou Échap</small>' : 'Vue 3D<br><small>ou VU + Espace</small>', in3D: true, why: `Le moment de vérité : murs percés, porte, fenêtre, panne, toit et pignons… et l'équerre à côté.`, do: `Ouvrez la <b>vue 3D</b> et faites le tour de la cabane (pour une belle image : <b>📷 Studio photo</b> dans le bandeau, puis 📸 Lancer le rendu), puis <b>refermez-la</b> (bulle œil ou ${K('Échap')}) pour revenir au plan.`, tick: (c) => { if (G.is3D()) c.seen = true; }, wait: (c) => c.seen && !G.is3D() },
-        { title: 'Seigneur du bâtiment !', why: `Bravo, tu es seigneur du bâtiment ! Une cabane complète : dalle, murs avec leur matériau, fenêtre, porte, panne faîtière, toit deux pans avec ses pignons, et ses tuiles.`, more: `Dernier tuto : <b>Construire juste — une pergola</b> (niveau Dieu) : traits de construction, coupe, mesures et collisions.`, last: true },
+        { title: 'Seigneur du bâtiment !', why: `Bravo, tu es seigneur du bâtiment ! Une cabane complète : dalle, murs avec leur matériau, fenêtre, porte, panne faîtière, toit deux pans avec ses pignons, et ses tuiles.`, more: `Dernier tuto : <b>Construire juste — une pergola</b> (niveau Dieu) : traits de construction, coupe, mesures et découpe 3D.`, last: true },
     ];
 
     // ===================================================================== 6. DIEU : une pergola
@@ -498,7 +498,7 @@
     const cutDone = () => G.shapes().some(s => s.cutName);
 
     const BUILD = [
-        { title: 'Construire juste : une pergola', why: `Niveau <b>dieu</b>, le dernier ! On construit une pergola de 4 × 3 m : une dalle, quatre poteaux placés au centimètre grâce aux <b>traits de construction</b>, deux poutres. Puis on la contrôle comme un pro : une <b>coupe</b>, des <b>mesures en 3D</b> et le <b>contrôle des collisions</b>.`,
+        { title: 'Construire juste : une pergola', why: `Niveau <b>dieu</b>, le dernier ! On construit une pergola de 4 × 3 m : une dalle, quatre poteaux placés au centimètre grâce aux <b>traits de construction</b>, deux poutres. Puis on la contrôle comme un pro : une <b>coupe</b>, des <b>mesures en 3D</b> et la <b>découpe 3D</b>.`,
           do: `Comme d'habitude : le modèle en pointillés, et je coche chaque ligne quand c'est juste. Déplie la palette <b>Bâtiment</b> si besoin.` },
         PS({ title: 'La dalle de la pergola', ghost: () => [gp(PERG, true, { label: () => U(4) + ' × ' + U(3), lp: W(4, 3), snap: PERG.map(c => W(...c)) })],
           why: `D'abord le sol : une dalle de 4 × 3 m. Tu connais le geste depuis la cabane.`,
@@ -542,12 +542,13 @@
           items: [['Clique sur le bouton <b>Mesurer</b> (la règle), en haut de la vue 3D.', '#v3-mes-btn', 'Mesurer', () => G.mode() === 'measure'],
                   ['Clique sur le dessus de la dalle, puis sous une poutre : lis la distance et le ΔZ en bas.', null, '', () => (window.d3Measured || 0) > P.m0]],
           init: () => { P.m0 = window.d3Measured || 0; } }),
-        PS({ title: 'Les collisions', in3D: true,
-          why: `Dernier contrôle, le plus précieux avant de commander : les <b>collisions</b>. Nos poteaux partent du sol, donc ils traversent la dalle ; et leur tête rentre dans les poutres. MomoCAD va les trouver.`,
-          items: [['Clique sur le bouton <b>Collisions</b> (le point d\'exclamation), en haut de la vue 3D.', '#v3-col-btn', 'Collisions', () => (gv(() => d3Col.length) || 0) > 0],
-                  ['Regarde les zones rouges, et clique une ligne du tiroir : sa zone passe en orange et la vue se cadre dessus.', '#t2-panel', '', () => (gv(() => D3COL_HI) ?? -1) >= 0]],
-          more: `Pour corriger : <b>✂ Découper</b> sous la collision (la dalle est redessinée autour du poteau), ou poser les poteaux sur la dalle (${K('Y')} : altitude 0,20) et les arrêter sous les poutres, puis <b>Recontrôler</b>.` }),
-        { title: 'Dieu de MomoCAD !', why: `Bravo, tu es le dieu de MomoCAD ! Une pergola placée au centimètre avec les traits de construction, coupée, mesurée et contrôlée : tu sais construire juste, du terrain au bâtiment.`, more: `Il n'y a pas de niveau au-dessus… pour l'instant !`, last: true },
+        PS({ title: 'La découpe 3D', in3D: true,
+          why: `Dernier geste de pro : <b>couper juste</b>. Une poutre qui dépasse trop, un poteau trop long : en 3D, on clique le bout à enlever, puis le plan qui le coupe (la face d'un poteau, d'une poutre, de la dalle…), et le bout disparaît.`,
+          items: [[`Ouvre le volet de la vue 3D (onglet <b>Volet 3D</b> au bord droit, ou ${K('Espace')}) › <b>Outils</b> › <b>✂ Découpe 3D</b>.`, '#v3-menu-btn', 'Volet 3D', () => !!gv(() => V3.cut3)],
+                  ['Clique le bout d\'une poutre qui dépasse, puis la face d\'un poteau qui la coupe : le bout disparaît.', null, '', () => (gv(() => shapes.filter(x => (x.cuts || []).length || (x.cut3 || []).length).length) || 0) > P.c0]],
+          init: () => { P.c0 = gv(() => shapes.filter(x => (x.cuts || []).length || (x.cut3 || []).length).length) || 0; },
+          more: `La découpe se garde sur l'objet : ${K('Y')} dessus pour la retirer. Un plan vertical recoupe aussi le dessin en plan ; un plan incliné (pan de toit) coupe en 3D, en coupe et dans les quantités.` }),
+        { title: 'Dieu de MomoCAD !', why: `Bravo, tu es le dieu de MomoCAD ! Une pergola placée au centimètre avec les traits de construction, coupée, mesurée et ajustée : tu sais construire juste, du terrain au bâtiment.`, more: `Il n'y a pas de niveau au-dessus… pour l'instant !`, last: true },
     ];
 
     // ---------- la voix de Momo : ce qu'il dit à chaque étape (prioritaire sur les textes des étapes) ----------
@@ -928,7 +929,7 @@
         { id: 'param', level: 'Expert', title: 'Le paramétrage', desc: 'Paramètres ⛯ expliqués réglage par réglage : précision et grille, impression, cartouche et indices, fond de plan, planches, Momo IA, catalogue de prix ; calques avancés (ligne -T-, hachures, points topo) et gabarit d\'entreprise', minutes: 25, steps: PARAM },
         { id: 'cub', level: 'Maître', title: 'Les cubatures — le terrassement du parking', desc: 'Exercice : caler le parking sur un terrain en pente. Point topo, vue 3D, courbes de niveau, plateforme à 102,00, talus, structure de chaussée, cubatures et rapport PDF, profil en long, tranchée d\'eaux pluviales, métré chiffré', minutes: 30, steps: CUB, setup: () => setupExercise(-2, 42, -2, 42, 380) },
         { id: 'model', level: 'Seigneur', title: 'Le bâtiment — une cabane', desc: 'Exercice : une cabane de 5 × 4 m. Dalle, parois, hauteur des murs, fenêtre, porte, panne faîtière, toit deux pans avec pignons, tuiles, tour en 3D', minutes: 25, steps: MODEL, setup: () => setupExercise(6.2, 12.8, -0.8, 4.8, 380) },
-        { id: 'build', level: 'Dieu', title: 'Construire juste — une pergola', desc: 'Exercice : une pergola de 4 × 3 m. Dalle, traits de construction parallèles, poteaux aux croisements, poutres, trait de coupe, mesure et contrôle des collisions dans la vue 3D', minutes: 25, steps: BUILD, setup: () => setupExercise(-1.2, 5.2, -1.5, 4.5, 380) },
+        { id: 'build', level: 'Dieu', title: 'Construire juste — une pergola', desc: 'Exercice : une pergola de 4 × 3 m. Dalle, traits de construction parallèles, poteaux aux croisements, poutres, trait de coupe, mesure et découpe dans la vue 3D', minutes: 25, steps: BUILD, setup: () => setupExercise(-1.2, 5.2, -1.5, 4.5, 380) },
     ];
     let STEPS = null, done = [];   // STEPS null : Momo est actif, sans tuto en cours (menu)
     let view = 'home', menuMsg = '', pinned = false, cele = [], last3D = false, lastH = 0, root, bubble, ring, tip, momo, idx = 0, ctx = {}, timer = null;

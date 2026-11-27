@@ -1006,6 +1006,21 @@ module.exports = { name: 'batiment-3d', run: async (H, t) => {
         r.short = W2.loops[0].length === 4 && (W2.carve || []).length === 1;
         d3ColClear(); close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('collisions : mur traversé par un poteau découpé en plan (deux morceaux, bords, fenêtre gardée) ; poteau plus court : découpe 3D', colW, { n: 1, pieces: 2, notCarved: true, gap: true, win: true, borders: true, after: 0, short: true });
+    /* découpe 3D (volet 3D › Outils) : clic sur la partie à enlever, clic sur un plan qui coupe ; plan incliné gardé sur l'objet (suit ses déplacements, enregistré), plan vertical = recoupe en plan aussi */
+    const cut3T = await ev(async () => { await loadThree(); const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {}, R = (x0, y0, x1, y1, z) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: x * m, y: -y * m, z }));
+        const A = { type: 'poly', layerId: 'layer-0', points: R(0, 0, 10, 4, 100000), solid: { kind: 'box', H: 3000 }, zk: 1, name: 'Poutre' }, B = { type: 'poly', layerId: 'layer-0', points: R(6, -2, 6.5, 6, 100000), solid: { kind: 'box', H: 4000 }, zk: 1, name: 'Voile' };
+        shapes.push(A, B); saveState(); const vol = (o) => Math.round(signedVol(objTrisMM(o)) / 1e9 * 1000) / 1000;
+        const s2 = Math.SQRT1_2; r.incl = cut3Apply(A, [5000, 2000, 101500], [s2, 0, s2], [9000, 2000, 102900]) && vol(A) === 60 && (A.cut3 || []).length === 1 && !A.cuts;
+        const txt = JSON.stringify(projectData()); loadProjectText(txt, 'c3.mmc'); await new Promise(q => setTimeout(q, 300)); let A2 = shapes.find(x => x.name === 'Poutre'); r.saved = vol(A2) === 60; translateShape(A2, 3 * m, 0); r.follows = Math.abs(vol(A2) - 60) < 0.01;
+        r.miss = !cut3Apply(A2, [0, 0, 200000], [0, 0, 1], [1000, 1000, 201000]) && (A2.cut3 || []).length === 1;   // un plan qui ne coupe pas : rien ne change
+        selectedShapes = [A2]; carveClear(); r.clear = !A2.cut3 && vol(A2) === 120; translateShape(A2, -3 * m, 0); selectedShapes = []; saveState();
+        await open3D(); await new Promise(q => setTimeout(q, 500)); A2 = shapes.find(x => x.name === 'Poutre');
+        const cv = V3.renderer.domElement, rc = cv.getBoundingClientRect(), rp = V3.root.position, sc = (x, y, z) => { const v = new THREE.Vector3(x / 1000 + rp.x, y / 1000 + rp.y, (z / 1000 - V3.zmin) * V3.exag + rp.z).project(V3.camera); return { clientX: rc.left + (v.x + 1) / 2 * rc.width, clientY: rc.top + (1 - v.y) / 2 * rc.height }; };
+        v3Panel('outils'); const card = [...document.querySelectorAll('#t2-panel .v3v-card')].find(x => /Découpe 3D/.test(x.textContent)); r.card = !!card && ![...document.querySelectorAll('#t2-panel .v3v-card')].some(x => /Collisions/.test(x.textContent)); card && card.click();
+        cut3Click(sc(2000, 2000, 103000)); r.picked = !!V3.cut3 && V3.cut3.s === A2; cut3Click(sc(6000, 5500, 101000)); r.vert = (A2.cuts || []).length === 1 && vol(A2) === 48 && !V3.cut3;
+        cut3Start(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); r.esc = !V3.cut3;
+        close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('découpe 3D : clic sur le bout à enlever puis sur un plan ; plan incliné gardé (fichier, déplacement), plan qui ne coupe pas refusé, Y retire, plan vertical = recoupe ; plus d\'outil Collisions', cut3T, { incl: true, saved: true, follows: true, miss: true, clear: true, card: true, picked: true, vert: true, esc: true });
     /* collisions : les murs entre eux (couches, angles, jonctions) ne comptent pas ; clic sur une collision = seule sa zone s'allume (orange), les objets ne sont pas sélectionnés */
     const colM = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), R = (x0, y0, x1, y1, z) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => Object.assign({ x: x * m, y: -y * m }, z !== undefined ? { z } : {})), r = {};
         const wl = wallLayerId({ layers: [{ mat: 'parpaing', e: 200 }] }), wz = { b: 100000, t: 102700 };

@@ -704,7 +704,7 @@
                 + (nb ? ' ; ' + nb + ' objet' + (nb > 1 ? 's' : '') + ' trop complexe' + (nb > 1 ? 's' : '') + ' pour être coupé' + (nb > 1 ? 's' : '') + ' proprement, laissé' + (nb > 1 ? 's' : '') + ' tel' + (nb > 1 ? 's' : '') + ' quel' + (nb > 1 ? 's' : '') : '') + '. Nouveau contrôle…');
             setTimeout(() => d3Collisions(), 50); }
         function d3ColCutPair(k, cutB) { const c = d3Col[k]; if (!c) return; d3ColCut(cutB ? c.a : c.b, k); }
-        function carveClear(gid) { const S = shapes.filter(x => (gid && x.groupId === gid) || selectedShapes.includes(x)); S.forEach(x => { delete x.carve; }); invalidateCache(); saveState(); draw(); refresh3D(); if (selectedShapes.length) openSelectionParamModal(); }
+        function carveClear(gid) { const S = shapes.filter(x => (gid && x.groupId === gid) || selectedShapes.includes(x)); S.forEach(x => { delete x.carve; delete x.cut3; }); invalidateCache(); saveState(); draw(); refresh3D(); if (selectedShapes.length) openSelectionParamModal(); }
         window.addEventListener('keydown', e => { if (e.key !== 'Enter' || !d3ColSel || !d3Col.length || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) return; e.preventDefault(); e.stopImmediatePropagation(); d3ColCut(); }, true);
         function d3ColClear() { d3ColSel = null; d3Col = []; if (V3 && V3.col) { V3.col.clear(); render3D(); } t2PanelClose(); }
         function d3Finish(close) {
