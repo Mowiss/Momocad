@@ -114,10 +114,14 @@
         function wallGroupOf(w) { return w.groupId ? shapes.filter(x => x.groupId === w.groupId) : [w]; }
         // ouvertures qui traversent ce mur : même emprise en plan ET même hauteur (un mur d'étage au-dessus n'est pas percé par la fenêtre du RDC)
         function wallOpeningsFor(w) { const out = [], zr = (h) => h && h.wz && hasZ(h.wz.b) && hasZ(h.wz.t) ? h.wz : null, Wz = zr(w), W0 = w.loops[0]; let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity; for (const q of W0) { if (q.x < bx0) bx0 = q.x; if (q.x > bx1) bx1 = q.x; if (q.y < by0) by0 = q.y; if (q.y > by1) by1 = q.y; }
-            for (const x of shapes) { if (!x.openings || !x.openings.length) continue; (() => { const Hz = zr(x); if (Wz && Hz && !(Hz.b < Wz.t - 1 && Wz.b < Hz.t - 1)) return; x.openings.forEach(o => { if (!o.pts) return; let ox0 = Infinity, oy0 = Infinity, ox1 = -Infinity, oy1 = -Infinity; for (const q of o.pts) { if (q.x < ox0) ox0 = q.x; if (q.x > ox1) ox1 = q.x; if (q.y < oy0) oy0 = q.y; if (q.y > oy1) oy1 = q.y; }
+            for (const x of shapes) { if (!x.openings || !x.openings.length) continue; (() => { const Hz = zr(x); if (Wz && Hz && !(Hz.b < Wz.t - 1 && Wz.b < Hz.t - 1)) return; x.openings.forEach(o => { if (!o.pts) return; let ox0 = Infinity, oy0 = Infinity, ox1 = -Infinity, oy1 = -Infinity; for (const q of opCutPts(o)) { if (q.x < ox0) ox0 = q.x; if (q.x > ox1) ox1 = q.x; if (q.y < oy0) oy0 = q.y; if (q.y > oy1) oy1 = q.y; }
                 if (ox1 < bx0 || ox0 > bx1 || oy1 < by0 || oy0 > by1) return;   /* boîtes disjointes : rien à tester */
-                if (o.pts.some(q => pointInPolygon(q.x, q.y, W0)) || W0.some(q => pointInPolygon(q.x, q.y, o.pts)) || openSegHit(o, w)) out.push(o); }); })(); } return out; }
-        function openSegHit(o, w) { const L = w.loops[0]; for (let i = 0; i < 4; i++) { const a = o.pts[i], b = o.pts[(i + 1) % 4]; for (let j = 0; j < L.length; j++) { const c = L[j], d = L[(j + 1) % L.length]; if (segInter(a, b, c, d)) return true; } } return false; }
+                const OP = opCutPts(o); if (OP.some(q => pointInPolygon(q.x, q.y, W0)) || W0.some(q => pointInPolygon(q.x, q.y, OP)) || openSegHit(o, w)) out.push(o); }); })(); } return out; }
+        /* emprise de découpe d'une ouverture : son rectangle prolongé de 15 cm de part et d'autre dans l'épaisseur ; une paroi complexe (plaque, ossature, isolant, plaque) plus épaisse que la baie dessinée est percée de part en part, toutes couches comprises ; une profondeur réglée à la main (o.tt) reste telle quelle */
+        const OPX = new WeakMap();
+        function opCutPts(o) { const p = o.pts; if (!p || p.length !== 4 || o.tt) return p;   /* profondeur réglée à la main (poignées) : respectée */ const c = OPX.get(o); if (c && c.k === p) return c.v; const dx = p[3].x - p[0].x, dy = p[3].y - p[0].y, L = Math.hypot(dx, dy) || 1, e = mmToWorld(150), ux = dx / L * e, uy = dy / L * e;
+            const v = [{ x: p[0].x - ux, y: p[0].y - uy }, { x: p[1].x - ux, y: p[1].y - uy }, { x: p[2].x + ux, y: p[2].y + uy }, { x: p[3].x + ux, y: p[3].y + uy }]; OPX.set(o, { k: p, v }); return v; }
+        function openSegHit(o, w) { const L = w.loops[0], OP = opCutPts(o); for (let i = 0; i < 4; i++) { const a = OP[i], b = OP[(i + 1) % 4]; for (let j = 0; j < L.length; j++) { const c = L[j], d = L[(j + 1) % L.length]; if (segInter(a, b, c, d)) return true; } } return false; }
         function segInter(a, b, c, d) { const o = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x)); return o(a, b, c) !== o(a, b, d) && o(c, d, a) !== o(c, d, b); }
         // HAUT DE L'OUVERTURE : franc (droit), arche (rayon R ≥ demi-largeur ; plein cintre si R = demi-largeur) ou chapeau de gendarme
         //      (de chaque côté deux arcs de même rayon R, creux puis bombé, tangents à l'horizontale au jambage et à la clé : flèche f = 2R − √(4R² − d²), d = demi-largeur).
@@ -133,11 +137,11 @@
         function openingGeom(o, P, Zm, exag, w) {
             if (!w || !w.wz) return null; const zb = w.wz.b + (o.sill || 0), H = Math.max(10, o.h || 1000);
             if (o.top && o.top !== 'droit') {   // haut cintré : le contour vu de face, poussé à travers l'épaisseur
-                const A0 = P(o.pts[0].x, o.pts[0].y), A1 = P(o.pts[1].x, o.pts[1].y), A3 = P(o.pts[3].x, o.pts[3].y), Wm = Math.hypot(A1.x - A0.x, A1.y - A0.y), Tm = Math.hypot(A3.x - A0.x, A3.y - A0.y); if (Wm < 1e-6 || Tm < 1e-6) return null;
+                const OP = opCutPts(o), A0 = P(OP[0].x, OP[0].y), A1 = P(OP[1].x, OP[1].y), A3 = P(OP[3].x, OP[3].y), Wm = Math.hypot(A1.x - A0.x, A1.y - A0.y), Tm = Math.hypot(A3.x - A0.x, A3.y - A0.y); if (Wm < 1e-6 || Tm < 1e-6) return null;
                 const pr = opProfile(o, Wm * 1000), shp = new THREE.Shape(pr.pts.map(([x, z]) => new THREE.Vector2(x / 1000, z / 1000))), g = new THREE.ExtrudeGeometry(shp, { depth: Tm, bevelEnabled: false, curveSegments: 4 });
                 const eu = new THREE.Vector3((A1.x - A0.x) / Wm, (A1.y - A0.y) / Wm, 0), en = new THREE.Vector3((A3.x - A0.x) / Tm, (A3.y - A0.y) / Tm, 0), M = new THREE.Matrix4().makeBasis(eu, new THREE.Vector3(0, 0, exag), en).setPosition(A0.x, A0.y, Zm(zb));
                 g.applyMatrix4(M); g.computeVertexNormals(); return g; }
-            const shp = new THREE.Shape(o.pts.map(q => { const r = P(q.x, q.y); return new THREE.Vector2(r.x, r.y); }));
+            const shp = new THREE.Shape(opCutPts(o).map(q => { const r = P(q.x, q.y); return new THREE.Vector2(r.x, r.y); }));
             const g = new THREE.ExtrudeGeometry(shp, { depth: H / 1000 * exag, bevelEnabled: false }); g.translate(0, 0, Zm(zb)); return g;
         }
         let openA = null, openWall = null;

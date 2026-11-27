@@ -182,7 +182,7 @@
             const pos = [], col = [], c3 = new THREE.Color();
             const seg = (a, za, b, zb, color) => { pos.push(a.x, a.y, za, b.x, b.y, zb); c3.set(color); col.push(c3.r, c3.g, c3.b, c3.r, c3.g, c3.b); ext(a); ext(b); };
             const ptsTopo = [];
-            const blk3N = new Set(allBlocks().filter(blkHas3D).map(b => b.name));   // blocs modélisés : leur dessin de plan ne traîne pas au sol en 3D, c'est le volume qui les montre
+            const blk3N = new Set(allBlocks().filter(blkHas3D).flatMap(b => [b.name].concat(b.aliases || [])));   // blocs modélisés : leur dessin de plan ne traîne pas au sol en 3D, c'est le volume qui les montre
             let drapeZ = null;
             for (const s of vis) {
                 if (s.block && s.groupId && blk3N.has(s.block)) continue;

@@ -257,7 +257,10 @@
                         cuts = keep.filter(([u, v]) => v - u > 1e-3); });
                     cuts.forEach(([u, v]) => { const p = a.clone().lerp(b, u), q = a.clone().lerp(b, v); out.push(p.x, p.y, p.z, q.x, q.y, q.z); });
                 }
-                ops.forEach(x => { const e = new THREE.EdgesGeometry(x.g, 30).attributes.position.array; for (let i = 0; i < e.length; i++) out.push(e[i]); });
+                /* tour de l'ouverture : les arêtes de sa découpe, gardées dans l'épaisseur de ce mur seulement (la découpe dépasse de part et d'autre) */
+                const inW = (x, y) => { if (pointInPolygon(x, y, pts)) return true; for (let j = 0; j < pts.length; j++) { const A0 = pts[j], B0 = pts[(j + 1) % pts.length], dx = B0.x - A0.x, dy = B0.y - A0.y, l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - A0.x) * dx + (y - A0.y) * dy) / l2)); if (Math.hypot(A0.x + dx * t - x, A0.y + dy * t - y) < 2e-3) return true; } return false; };
+                ops.forEach(x => { const e = new THREE.EdgesGeometry(x.g, 30).attributes.position.array; for (let i = 0; i < e.length; i += 6) { const a = new THREE.Vector3(e[i], e[i + 1], e[i + 2]), b = new THREE.Vector3(e[i + 3], e[i + 4], e[i + 5]), n = 32; let cur = null;
+                    for (let k = 0; k <= n; k++) { const t = k / n, q = a.clone().lerp(b, t), ins = inW(q.x, q.y); if (ins && cur === null) cur = t; if ((!ins || k === n) && cur !== null) { const t1 = ins ? t : (k - 1) / n; if (t1 - cur > 1e-3 || a.distanceTo(b) < 0.05) { const p0 = a.clone().lerp(b, cur), p1 = a.clone().lerp(b, t1); out.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z); } cur = null; } } } });
                 const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(out, 3)); return g;
             } catch (e) { return null; }
         }

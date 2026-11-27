@@ -13,7 +13,14 @@
             return { Z, lo, hi }; }
         // altitudes du bas et du haut, toujours lues sur les étages (ils peuvent avoir changé depuis le tracé)
         function st2Z(s) { const S = s.stair2, Z = S.bid ? bldById(S.bid) : null, LL = Z ? Z.bld.lvls : lvls, lo = LL && LL.find(L => L.id === S.lo), hi = LL && LL.find(L => L.id === S.hi);
-            if (lo && hi && hasZ(lo.z) && hasZ(hi.z) && hi.z > lo.z) { S.z0 = lo.z; S.z1 = hi.z; } return { z0: S.z0, z1: S.z1 }; }
+            if (lo && hi && hasZ(lo.z) && hasZ(hi.z) && hi.z > lo.z) { S.z0 = lo.z; S.z1 = hi.z; } return { z0: S.z0, z1: st2Arrive(s, S.z1) }; }
+        /* arrivée : le dessus du plancher d'en haut. Une dalle posée SUR le niveau (son dessous à la cote du niveau) relève l'arrivée de son épaisseur ; l'escalier monte jusqu'au sol fini et perce sa trémie */
+        const ST2_ARR = new WeakMap();
+        function st2Arrive(s, z1) { if (!hasZ(z1) || !s.points || s.points.length < 2) return z1; const k = renderEpoch + '|' + z1 + '|' + shapes.length, c = ST2_ARR.get(s); if (c && c.k === k) return c.z;
+            const e = s.points[s.points.length - 1], bid = s.stair2.bid || s.bid; let z = z1;
+            shapes.forEach(d => { if (d === s || !d.solid || d.solid.kind !== 'box' || d.type !== 'poly' || d.stair2 || !d.points || d.points.length < 3) return; if (bid && d.bid && d.bid !== bid) return; const zb = d.points[0].z; if (!hasZ(zb) || Math.abs(zb - z1) > 50) return;
+                const H = d.solid.H || 0; if (H > 0 && H < 600 && pointInPolygon(e.x, e.y, d.points)) z = Math.max(z, zb + H); });
+            ST2_ARR.set(s, { k, z }); return z; }
         // bande occupée par l'escalier autour du tracé (décalages vers la gauche du sens de montée)
         function st2Band(S) { const w = mmToWorld(S.w); return S.just === 'gauche' ? [-w, 0] : S.just === 'droite' ? [0, w] : [-w / 2, w / 2]; }
         // polygone coupé par un demi-plan (côté où dot(p - O, u) * sg >= 0)

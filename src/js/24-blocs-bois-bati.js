@@ -10,7 +10,7 @@
         const bkScallop = (r, n, amp) => Array.from({ length: n * 8 }, (_, i) => { const a = 2 * Math.PI * i / (n * 8), rr = r * (1 - amp + amp * Math.abs(Math.sin(a * n / 2))); return [rr * Math.cos(a), rr * Math.sin(a)]; });
         const BLOCKS_BUILTIN = [
             /* petite citadine monocorps (dessin original, 3,45 × 1,63 m), avant vers +x : contour, capot, pare-brise, toit, lunette, rétroviseurs ; en 3D, maquette en facettes (low poly) */
-            { id: 'citadine', tab: 'mobil', name: 'Citadine', el: [['P', bkRRect(-1725, -815, 1725, 815, 260), 1], ['L', 950, -760, 950, 760], ['P', [[950, -740], [950, 740], [120, 680], [120, -680]], 1], ['P', [[120, -680], [120, 680], [-1430, 690], [-1430, -690]], 1], ['P', [[-1430, -690], [-1430, 690], [-1660, 640], [-1660, -640]], 1],
+            { id: 'voiture', tab: 'mobil', name: 'Voiture simple', el: [['P', bkRRect(-1725, -815, 1725, 815, 260), 1], ['L', 950, -760, 950, 760], ['P', [[950, -740], [950, 740], [120, 680], [120, -680]], 1], ['P', [[120, -680], [120, 680], [-1430, 690], [-1430, -690]], 1], ['P', [[-1430, -690], [-1430, 690], [-1660, 640], [-1660, -640]], 1],
                 ['P', bkRect(780, 815, 900, 930), 1], ['P', bkRect(780, -930, 900, -815), 1], ['L', -350, 815, -350, 690], ['L', -350, -815, -350, -690], ['P', bkRect(1080, -815, 1360, -770), 1], ['P', bkRect(1080, 770, 1360, 815), 1], ['P', bkRect(-1300, -815, -1020, -770), 1], ['P', bkRect(-1300, 770, -1020, 815), 1]] },
             { id: 'wc', tab: 'sanit', name: 'WC', el: [['P', bkRRect(-210, -190, 210, 0, 30), 1], ['P', bkEll(0, -430, 185, 245), 1], ['P', bkEll(0, -440, 125, 175), 1], ['C', 0, -95, 25]] },
             { id: 'lavabo', tab: 'sanit', name: 'Lavabo', el: [['P', bkRRect(-300, -460, 300, 0, 40), 1], ['P', bkEll(0, -260, 220, 150), 1], ['C', 0, -60, 22], ['C', 0, -260, 18]] },
@@ -181,7 +181,7 @@
         // modèles : 'f' = meuble construit pièce par pièce (plateau, pieds, assise, dossier…), sinon végétation
         const BLK3 = { wc: { k: 'f' }, lavabo: { k: 'f' }, douche: { k: 'f' }, baignoire: { k: 'f' }, evier: { k: 'f' }, vasque: { k: 'f' }, table6: { k: 'f' }, tabler: { k: 'f' }, chaise: { k: 'f' },
             lit2: { k: 'f' }, lit1: { k: 'f' }, canape: { k: 'f' }, bureau: { k: 'f' }, armoire: { k: 'f' }, poele: { k: 'f' }, frigo: { k: 'f' }, frigous: { k: 'f' }, ilot: { k: 'f' },
-            citadine: { k: 'car', c: 0x3a6ea5 },
+            voiture: { k: 'car', c: 0x3a6ea5 },
             arbre: { k: 'tree', c: 0x4d7c2f }, 'arbre-taille': { k: 'ball', c: 0x5b8a32 }, 'arbre-aiguilles': { k: 'conif', c: 0x2f5d3a }, haie: { k: 'hedge', c: 0x3f6b2a } };
         // pièces de mobilier (repère du bloc, mm ; z vers le haut)
         const BK_COL = { feu: 0xf97316, bois: 0xb08968, boisF: 0x7c5a3c, blanc: 0xf5f5f4, gris: 0x9ca3af, tissu: 0x6b7280, drap: 0xe7e5e4, inox: 0xc0c4c8, eau: 0xdbeafe, noir: 0x374151 };
@@ -281,7 +281,7 @@
             const slabs = vis.filter(x => x.solid && x.solid.kind === 'box' && x.type === 'poly' && hasZ(solidBaseZ(x)));
             for (const sh of vis) {
                 if (!sh.block || !sh.groupId || seen.has(sh.groupId)) continue; seen.add(sh.groupId);
-                const b = allBlocks().find(x => x.name === sh.block); if (!blkHas3D(b)) continue;
+                const b = blkByName(sh.block); if (!blkHas3D(b)) continue;
                 const R = blkRefs(b.el[0], sh); if (!R) continue;
                 const [[La, Lb], [Wa, Wb]] = R, ra = [worldToMm(Wa[0]), -worldToMm(Wa[1])], rb = [worldToMm(Wb[0]), -worldToMm(Wb[1])];
                 const dL = [Lb[0] - La[0], Lb[1] - La[1]], dR = [rb[0] - ra[0], rb[1] - ra[1]], s = Math.hypot(dR[0], dR[1]) / Math.hypot(dL[0], dL[1]); if (!(s > 1e-6)) continue;
@@ -290,7 +290,8 @@
                 let z = ground(cw.x, cw.y);
                 if (!G.veg) { let best = null; slabs.forEach(d => { if (!pointInPolygon(cw.x, cw.y, d.points)) return; const t = solidBaseZ(d) + (d.solid.H || 0); if ((!hasZ(z) || t < z + 3000) && (best === null || t > best)) best = t; }); if (best !== null) z = best; }
                 const Mx = new THREE.Matrix4().makeRotationZ(th).premultiply(new THREE.Matrix4().makeScale(s, s, s)).premultiply(new THREE.Matrix4().makeTranslation(tx / 1000, ty / 1000, hasZ(z) ? Zm(z) : 0));
-                G.parts.forEach(([g, col, pnt]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const tid = sh.btex && sh.btex[col], TX = tid && TEX_LIB.find(t => t.id === tid), tm = TX ? texMaterial(tid) : null;
+                G.parts.forEach(([g, col, pnt, gls]) => { g.applyMatrix4(Mx); g.computeVertexNormals(); const tid = sh.btex && sh.btex[col], TX = tid && TEX_LIB.find(t => t.id === tid), tm = TX ? texMaterial(tid) : null;
+                    if (!tm && gls) { const me = new THREE.Mesh(g, carPaintMat(new THREE.Color(col), 0, true)); me.material.side = THREE.DoubleSide; me.userData.blk = sh; me.userData.blkCol = col; root.add(me); return; }   /* vitrage : noir verni, il reflète le ciel */
                     if (!tm && (pnt || (G.paintCol !== undefined && col === G.paintCol))) { const P0 = sh.bpaint || G.paint0 || { c: col, m: 1 }, me = new THREE.Mesh(g, carPaintMat(new THREE.Color(P0.c), P0.m, G.car || G.mdl)); if (G.mdl) me.material.side = THREE.DoubleSide; me.userData.blk = sh; me.userData.blkCol = col; root.add(me); return; }   /* carrosserie : laque (unie ou métallisée), teinte choisie au Y */   /* pièce peinte au pinceau : sa texture */
                     const me = tm ? new THREE.Mesh(texGeometry(g, TX.tile), tm) : new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: col, flatShading: G.veg || G.flat, side: G.mdl ? THREE.DoubleSide : THREE.FrontSide })); me.userData.blk = sh; me.userData.blkCol = col; root.add(me); });
             }
