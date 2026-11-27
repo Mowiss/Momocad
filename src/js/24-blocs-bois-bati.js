@@ -10,7 +10,7 @@
         const bkScallop = (r, n, amp) => Array.from({ length: n * 8 }, (_, i) => { const a = 2 * Math.PI * i / (n * 8), rr = r * (1 - amp + amp * Math.abs(Math.sin(a * n / 2))); return [rr * Math.cos(a), rr * Math.sin(a)]; });
         const BLOCKS_BUILTIN = [
             /* petite citadine monocorps (dessin original, 3,45 × 1,63 m), avant vers +x : contour, capot, pare-brise, toit, lunette, rétroviseurs ; en 3D, maquette en facettes (low poly) */
-            { id: 'voiture', tab: 'mobil', name: 'Voiture simple', el: [['P', bkRRect(-1725, -815, 1725, 815, 260), 1], ['L', 950, -760, 950, 760], ['P', [[950, -740], [950, 740], [120, 680], [120, -680]], 1], ['P', [[120, -680], [120, 680], [-1430, 690], [-1430, -690]], 1], ['P', [[-1430, -690], [-1430, 690], [-1660, 640], [-1660, -640]], 1],
+            { id: 'voiture', tab: 'mobil', name: 'Citadine', aliases: ['Voiture simple', 'Twingo 1'], el: [['P', bkRRect(-1725, -815, 1725, 815, 260), 1], ['L', 950, -760, 950, 760], ['P', [[950, -740], [950, 740], [120, 680], [120, -680]], 1], ['P', [[120, -680], [120, 680], [-1430, 690], [-1430, -690]], 1], ['P', [[-1430, -690], [-1430, 690], [-1660, 640], [-1660, -640]], 1],
                 ['P', bkRect(780, 815, 900, 930), 1], ['P', bkRect(780, -930, 900, -815), 1], ['L', -350, 815, -350, 690], ['L', -350, -815, -350, -690], ['P', bkRect(1080, -815, 1360, -770), 1], ['P', bkRect(1080, 770, 1360, 815), 1], ['P', bkRect(-1300, -815, -1020, -770), 1], ['P', bkRect(-1300, 770, -1020, 815), 1]] },
             { id: 'wc', tab: 'sanit', name: 'WC', el: [['P', bkRRect(-210, -190, 210, 0, 30), 1], ['P', bkEll(0, -430, 185, 245), 1], ['P', bkEll(0, -440, 125, 175), 1], ['C', 0, -95, 25]] },
             { id: 'lavabo', tab: 'sanit', name: 'Lavabo', el: [['P', bkRRect(-300, -460, 300, 0, 40), 1], ['P', bkEll(0, -260, 220, 150), 1], ['C', 0, -60, 22], ['C', 0, -260, 18]] },
@@ -105,7 +105,7 @@
                 if (K === 'buisson') { vr = h / 2; r = Math.max(r, vr * 1.1); zc = vr * 0.85; } else if (K === 'brous') { vr = h / 2; r = r * (0.75 + 0.5 * boisHash(t.i, t.j, 8)); zc = vr * 0.7; }   // buisson : boule posée au sol ; broussailles : touffes basses, irrégulières
                 q.setFromAxisAngle(new THREE.Vector3(0, 0, 1), boisHash(t.i, t.j, 5) * Math.PI * 2); sc.set(r, r * (K === 'brous' ? 0.7 + 0.5 * boisHash(t.i, t.j, 9) : 1), vr * exag); ps.set(a.x, a.y, Zm(base + zc * 1000)); m4.compose(ps, q, sc); im.setMatrixAt(k, m4);
                 const pc = ph && K === 'arbre' ? bmColorDisc(t.x, t.y, t.r, bgs) : null; if (pc) cc.copy(pc); else if (K === 'buisson') cc.copy(bu0).lerp(bu1, boisHash(t.i, t.j, 6)); else if (K === 'brous') cc.copy(br0).lerp(br1, boisHash(t.i, t.j, 6)).lerp(c1, 0.25 * boisHash(t.i, t.j, 10)); else cc.copy(c0).lerp(c1, boisHash(t.i, t.j, 6)); if (im.setColorAt) im.setColorAt(k, cc); });   // couleur prise sur la photo du fond (houppier par houppier), sinon verts
-            im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.userData.bois = true; root.add(im);
+            im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.userData.bois = true; im.userData.kinds = all.map(o => o.K); root.add(im);
             // troncs : un fût brun sous chaque houppier, du sol jusque dans la couronne
             const tg = new THREE.CylinderGeometry(0.7, 1, 1, V3.hq ? 12 : 7, 1, true); tg.translate(0, 0.5, 0); tg.rotateX(Math.PI / 2);
             const trees = all.filter(o => o.K === 'arbre'); if (!trees.length) return;

@@ -14,7 +14,7 @@
         const ST_DENS = { faible: ['Clair', 0.5], normale: ['Normal', 1], dense: ['Dense', 1.8] };
         /* profondeur de champ : ouverture discrète (quelques cm) ; le point visé reste net, le lointain et le tout-près s'adoucissent sans dédoubler l'image */
         function dofAperture(dF, f) { return Math.min(0.12, Math.max(0.005, dF * 0.0035 * 35 / Math.max(18, f || 35))); }
-        function studioNew() { return { fmt: '16:9', f: 35, res: 'fhd', q: 'standard', sh: true, grass: true, tree: true, fin: true, thirds: true, views: [], grassH: 12, grassN: 250, earth: true, granS: 38, earthP: 50, earthCol: null, riv: true, wave: true, realHD: true, bed: true, dof: false, haze: false }; }
+        function studioNew() { return { fmt: '16:9', f: 35, res: 'fhd', q: 'standard', sh: true, grass: true, tree: true, fin: true, thirds: true, views: [], grassH: 12, grassN: 250, earth: true, granS: 38, earthP: 50, earthCol: null, riv: true, wave: true, realHD: true, bed: true, dof: false, haze: false, leaf: true }; }
         let studio = studioNew();
         let stPano = { on: false, h: 1.6, d: 400, rot: 0 }; try { Object.assign(stPano, JSON.parse(localStorage.getItem('momocad-stpano') || '{}')); } catch (e) {} stPano.on = false;   /* la photo d'horizon se règle dans Décor */
         function stPanoSave() { try { localStorage.setItem('momocad-stpano', JSON.stringify(stPano)); } catch (e) {} }
@@ -87,7 +87,7 @@
                 + sec('eau', 'Eau et rives', `<div class="st-mos">${tg('wave', 'Vaguelettes')}${tg('riv', 'Rochers et roseaux')}${tg('bed', 'Fond : rochers, algues, poissons')}</div>`)
                 + sec('rendu', 'Rendu', `<div class="st-lab">Qualité</div><div class="st-mos st-mos5">${Object.keys(RD_Q).map(k => tile('q-' + k, RD_Q[k].n, studio.q === k, `stSet('q', '${k}')`)).join('')}</div>
                 <div class="st-lab">Taille</div>${vSeg(Object.keys(ST_RES).map(k => [k, ST_RES[k][1]]), studio.res, "stSet('res', '$')")}
-                <div class="st-mos" style="margin-top:8px">${tg('sh', 'Ombres portées')}${tg('tree', 'Arbres détaillés')}${realOn() ? tg('realHD', 'Relief réel HD') : ''}${tg('fin', 'Finition photo')}${tg('dof', 'Profondeur de champ')}${tg('haze', 'Brume du lointain')}</div>
+                <div class="st-mos" style="margin-top:8px">${tg('sh', 'Ombres portées')}${tg('tree', 'Arbres détaillés')}${tg('leaf', 'Arbres HD (feuilles)')}${realOn() ? tg('realHD', 'Relief réel HD') : ''}${tg('fin', 'Finition photo')}${tg('dof', 'Profondeur de champ')}${tg('haze', 'Brume du lointain')}</div>
                 <div class="mf-hint">${Q.n} : ${Q.d} · ${Q.spp} passes · ${w} × ${h} px</div>`);
             v3PanelShow('studio', html); stPreview('grass'); stPreview('earth'); }
         const stGrassTxt = (v) => +v >= 700 ? 'moquette' : Math.round(+v) + ' /m²';
@@ -131,6 +131,7 @@
             else if (k === 'wave') { const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1e3a5f'); g.addColorStop(1, '#2f6f8f'); x.fillStyle = g; x.fillRect(0, 0, W, H); x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 1.2; for (let j = 0; j < 9; j++) { x.beginPath(); for (let i = 0; i <= W; i += 4) { const y = 6 + j * 8 + Math.sin(i / 7 + j) * 2; i ? x.lineTo(i, y) : x.moveTo(i, y); } x.stroke(); } }
             else if (k === 'riv') { x.fillStyle = '#2f6f8f'; x.fillRect(0, 0, W, H); x.fillStyle = '#4d7c2f'; x.fillRect(0, 50, W, 22); for (let i = 0; i < 9; i++) { x.fillStyle = `hsl(30,6%,${40 + R() * 25}%)`; x.beginPath(); x.ellipse(8 + i * 13, 50, 6 + R() * 4, 4 + R() * 3, 0, 0, 7); x.fill(); } x.strokeStyle = '#a3a35a'; x.lineWidth = 1.2; for (let i = 0; i < 26; i++) { const rx = 70 + R() * 48; x.beginPath(); x.moveTo(rx, 60); x.lineTo(rx + (R() - .5) * 6, 26 + R() * 16); x.stroke(); } }
             else if (k === 'sh') { ground(0, '#9ca86e'); x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.moveTo(50, 50); x.lineTo(98, 58); x.lineTo(112, 44); x.lineTo(70, 38); x.fill(); x.fillStyle = '#e5e1d8'; x.fillRect(30, 22, 34, 28); x.fillStyle = '#b8b2a6'; x.fillRect(64, 22, 10, 28); }
+            else if (k === 'leaf') { sky(); ground(54, '#4d7c2f'); x.fillStyle = '#5b3a1e'; x.fillRect(57, 36, 6, 22); for (let i = 0; i < 140; i++) { const a = R() * 6.283, d = Math.sqrt(R()), cx = 60 + Math.cos(a) * d * 26, cy = 24 + Math.sin(a) * d * 18; x.save(); x.translate(cx, cy); x.rotate(R() * 6.283); x.fillStyle = `hsl(${95 + R() * 25},${40 + R() * 15}%,${22 + R() * 20}%)`; x.beginPath(); x.ellipse(0, 0, 3.2, 1.6, 0, 0, 7); x.fill(); x.restore(); } }
             else if (k === 'tree') { sky(); ground(54, '#4d7c2f'); x.fillStyle = 'rgba(0,0,0,.25)'; x.beginPath(); x.ellipse(66, 58, 22, 4, 0, 0, 7); x.fill(); x.fillStyle = '#5b3a1e'; x.fillRect(57, 34, 6, 24); [[60, 24, 18], [48, 30, 12], [72, 30, 12], [60, 14, 12]].forEach(([cx, cy, r]) => { x.fillStyle = `hsl(${100 + R() * 20},45%,${26 + R() * 12}%)`; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); }); }
             else if (k === 'realHD') { sky(); x.fillStyle = '#6b7f5a'; x.beginPath(); x.moveTo(0, 60); for (let i = 0; i <= 24; i++) x.lineTo(i * 5, 24 + Math.abs(Math.sin(i * .55)) * 18 + R() * 4); x.lineTo(W, H); x.lineTo(0, H); x.fill(); x.strokeStyle = 'rgba(255,255,255,.5)'; for (let i = 0; i < 40; i++) { const px = R() * W, py = 36 + R() * 30; x.beginPath(); x.moveTo(px, py); x.lineTo(px + 3, py + 1); x.stroke(); } }
             else if (k === 'fin') { sky('#f59e0b', '#fde68a'); ground(48, '#55702f'); const g = x.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, 72); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.6)'); x.fillStyle = g; x.fillRect(0, 0, W, H); }
@@ -217,7 +218,8 @@
             const cam = V3.camera, rc = cam.clone(); rc.clearViewOffset(); rc.fov = stVFov(studio.f, aw / ah) * 180 / Math.PI; rc.aspect = W / H; rc.near = cam.near; rc.far = cam.far; rc.updateProjectionMatrix(); rc.updateMatrixWorld(true);
             let R = null, out = null;
             try {
-                V3.hq = { tree: studio.tree ? Q.tree : 1, terr: Q.terr, grass: studio.grass ? Q.grass : 0, earth: !!studio.earth, riv: !!studio.riv, wave: !!studio.wave, bed: !!studio.bed, realHD: !!studio.realHD, rc };
+                if (studio.leaf !== false) try { await leafLoad(); } catch (e) {}
+                V3.hq = { tree: studio.tree ? Q.tree : 1, terr: Q.terr, grass: studio.grass ? Q.grass : 0, earth: !!studio.earth, riv: !!studio.riv, wave: !!studio.wave, bed: !!studio.bed, realHD: !!studio.realHD, leaf: studio.leaf !== false, rc };
                 try { build3DScene(); } finally { V3.hq = null; }
                 rdStep('Préparation de la lumière…', 0); await rdWait();
                 R = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true }); R.setPixelRatio(1); R.setSize(W, H, false); R.setClearColor(V3.renderer.getClearColor(new THREE.Color()), 1); if ('outputColorSpace' in R) R.outputColorSpace = V3.renderer.outputColorSpace; else R.outputEncoding = V3.renderer.outputEncoding; R.clippingPlanes = v3CutPlanes();

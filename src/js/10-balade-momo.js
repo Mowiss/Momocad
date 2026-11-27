@@ -516,6 +516,7 @@
                 try { const G = talusGeom(Zo.s); if (G) (G.parts || []).forEach(pt => { for (let k = 1; k < pt.length; k++) { const a = P(pt[k - 1].x, pt[k - 1].y), b = P(pt[k].x, pt[k].y); L.push(a.x, a.y, Zm(pt[k - 1].z), b.x, b.y, Zm(pt[k].z)); } }); } catch (e) {}
                 const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(L, 3)); const ls = new THREE.LineSegments(g, new THREE.LineBasicMaterial()); ls.userData.edgeOf = Zo.s; root.add(ls); });
             if (v3Flat && !SEC_SCENE) planWire3D(root);
+            V3.leafN = 0; if (V3.hq && V3.hq.leaf) try { V3.leafN = leafCards(root); } catch (e) { console.error(e); }   /* arbres HD : touffes de feuilles sur les houppiers */
             V3.scene.add(root); V3.snaps = [...SN.values()].slice(0, 30000); if (V3.cut) v3CutCaps(); if (typeof EC !== 'undefined' && EC && EC.g3) { try { ecAttach3D(); } catch (e) { console.error(e); } }   // test d'écoulement : l'eau et la pluie suivent la scène
             try { v3BrushBuild(); } catch (e) { console.error(e); }
             if (V3.tmp) V3.tmp.position.copy(root.position);

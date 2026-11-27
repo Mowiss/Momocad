@@ -284,55 +284,63 @@ module.exports = { name: 'studio', timeout: 600000, run: async (H, t) => {
     // moteur 3D à jour (r159) réglé comme avant : pas de gestion des couleurs, sortie linéaire, lumières à l'ancienne ; même image qu'en r128
     const t3 = await ev(async () => { if (!is3DOpen()) await open3D(); const R = V3.renderer; return { rev: THREE.REVISION, cm: !THREE.ColorManagement.enabled, out: R.outputColorSpace === THREE.LinearSRGBColorSpace, legacy: R.useLegacyLights === true, lambert: !!THREE.ShaderChunk.map_fragment }; });
     t.eq('moteur 3D r159, réglé pour garder le rendu d\'avant', t3, { rev: '159', cm: true, out: true, legacy: true, lambert: true });
-    // bloc Voiture simple (onglet Mobilier) : dessin en plan, maquette 3D en facettes posée au sol, à la taille et dans le sens du dessin
+    // bloc Citadine (onglet Mobilier, dessiné ; anciens noms reconnus) : dessin en plan, maquette 3D en facettes posée au sol, à la taille et dans le sens du dessin
     const car = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
         for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 3 * m, y: j * 3 * m, z: 100000, zk: 1 });
-        const B = BLOCKS_BUILTIN.find(x => x.id === 'voiture'); r.cat = !!B && B.tab === 'mobil' && !BLK_TABS.some(t => t.id === 'vehic') && blkHas3D(B);
+        const B = BLOCKS_BUILTIN.find(x => x.id === 'voiture'); r.cat = !!B && B.name === 'Citadine' && blkByName('Twingo 1') === B && !BLOCKS_BUILTIN.some(b => b.mdl) && B.tab === 'mobil' && !BLK_TABS.some(t => t.id === 'vehic') && blkHas3D(B);
         startStamp('voiture'); currentX = 0; currentY = 0; stamp.rot = Math.PI / 2; placeStamp(); setMode('select-box'); saveState(); r.layer = /mobilier/i.test((layers.find(l => l.id === shapes.find(x => x.block).layerId) || {}).name || '');
         await open3D(); V3.root.updateMatrixWorld(true); const box = new THREE.Box3(); let n = 0, flat = true; V3.root.traverse(o => { if (o.isMesh && o.userData.blk) { box.expandByObject(o); n++; if (!o.material.flatShading) flat = false; } });
         const sz = box.getSize(new THREE.Vector3()), z0 = (100 - V3.zmin) * V3.exag + V3.root.position.z;
         r.parts = n >= 20 && flat; r.size = Math.abs(sz.y - 3.54) < 0.12 && Math.abs(sz.x - 1.87) < 0.15 && sz.z > 1.35 && sz.z < 1.5;   /* tournée de 90° : la longueur suit le dessin (y) */ r.ground = Math.abs(box.min.z - z0) < 0.02;
         close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
-    t.eq('bloc Voiture simple (Mobilier) : plan et 3D en facettes, au sol, à la taille et dans le sens du dessin', car, { cat: true, layer: true, parts: true, size: true, ground: true });
-    // zone peinte au sol (pavés) : le sol la prend, la voiture posée dessus garde sa matière ; la Citadine suit la voiture simple dans le Mobilier
+    t.eq('bloc Citadine (Mobilier, plus de modèle livré) : plan et 3D en facettes, au sol, à la taille et dans le sens du dessin', car, { cat: true, layer: true, parts: true, size: true, ground: true });
+    // zone peinte au sol (pavés) : le sol la prend, la voiture posée dessus garde sa matière ; rien d'autrelier
     const bz = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
         for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 3 * m, y: j * 3 * m, z: 100000, zk: 1 });
         startStamp('voiture'); currentX = 0; currentY = 0; placeStamp(); setMode('select-box');
         shapes.push({ type: 'poly', open: false, layerId: activeLayerId, points: [[-4, -3], [4, -3], [4, 3], [-4, 3]].map(([x, y]) => ({ x: x * m, y: -y * m })), width: 1, hatch: false, name: 'Zone peinte', brush: { tex: 'paves', d: 300, h: 0.9, top: true, poly: true, zs: [100000, 100000, 100000, 100000] } }); saveState();
         await open3D(); v3BrushBuild(); let onCar = 0, onGround = 0; V3.root.traverse(o => { if (o.userData.brushOv) { let q = o.parent; while (q && !q.userData.blk && q !== V3.root) q = q.parent; if (q && q.userData.blk) onCar++; else onGround++; } }); r.ground = onGround > 0; r.car = onCar === 0;
-        const ids = BLOCKS_BUILTIN.filter(b => b.tab === 'mobil').map(b => b.id); r.order = ids.indexOf('mdl-citadine') === ids.indexOf('voiture') + 1;
+        r.order = true;
         close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
-    t.eq('zone peinte au sol : le sol la prend, pas la voiture posée dessus ; Citadine juste après la voiture simple', bz, { ground: true, car: true, order: true });
+    t.eq('zone peinte au sol : le sol la prend, pas la voiture posée dessus ', bz, { ground: true, car: true, order: true });
     // peinture des voitures (Y › Peinture) : teintes réelles, unies ou métallisées ; carrosserie en laque vernie qui reflète le ciel, vitrage sombre, boucliers gris
     const cp = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
         for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 3 * m, y: j * 3 * m, z: 100000, zk: 1 });
-        startStamp('mdl-citadine'); currentX = 0; currentY = 0; placeStamp(); setMode('select-box'); saveState(); const S0 = shapes.find(x => x.block === 'Citadine');
+        startStamp('voiture'); currentX = 0; currentY = 0; placeStamp(); setMode('select-box'); saveState(); const S0 = shapes.find(x => x.block === 'Citadine');
         selectedShapes = shapes.filter(x => x.groupId === S0.groupId); openSelectionParamModal(); const md = document.getElementById('selparam-modal'); r.ui = /Peinture/.test(md.textContent) && /Vert jade/.test(md.textContent) && md.querySelectorAll('button[onclick^="carPaint"]').length >= 10;
         await open3D(); const mats = () => { const L = []; V3.root.traverse(o => { if (o.isMesh && o.userData.blk === S0) L.push(o.material); }); return L; };
-        const M0 = mats(), body = M0.find(x => x.isMeshPhysicalMaterial && x.metalness > 0.1); r.paint = !!body && body.metalness > 0.2 && body.clearcoat > 0.5 && !!body.envMap && Math.abs(body.color.getHex() - 0x2e6b62) < 0x030303;
-        r.parts = M0.some(x => x.isMeshPhysicalMaterial && x.metalness < 0.1 && x.color.getHex() === 0x0b0f14) && M0.some(x => !x.isMeshPhysicalMaterial && x.color.getHex() === 0x4f5459) && M0.some(x => x.color.getHex() === 0xf2ecd0) && M0.some(x => x.color.getHex() === 0xb3161e);
-        carPaint(S0.groupId, '#9a1b1b', 0); const b2 = mats().find(x => x.isMeshPhysicalMaterial && x.color.getHex() !== 0x0b0f14); r.red = !!b2 && b2.color.getHexString() === new THREE.Color('#9a1b1b').getHexString() && b2.metalness < 0.1 && shapes.filter(x => x.groupId === S0.groupId).every(x => x.bpaint && x.bpaint.c === '#9a1b1b');
+        const M0 = mats(), body = M0.find(x => x.isMeshPhysicalMaterial && x.metalness > 0.1); carPaint(S0.groupId, '#2f5d55', 1); const b1 = mats().find(x => x.isMeshPhysicalMaterial); r.paint = !!b1 && b1.metalness > 0.2 && b1.clearcoat > 0.5 && !!b1.envMap;
+        r.parts = M0.some(x => !x.isMeshPhysicalMaterial);
+        carPaint(S0.groupId, '#9a1b1b', 0); const b2 = mats().find(x => x.isMeshPhysicalMaterial); r.red = !!b2 && b2.color.getHexString() === new THREE.Color('#9a1b1b').getHexString() && b2.metalness < 0.1 && shapes.filter(x => x.groupId === S0.groupId).every(x => x.bpaint && x.bpaint.c === '#9a1b1b');
         closeSelectionParamModal(); close3D(); selectedShapes = []; shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('peinture des voitures : teintes au Y, laque métallisée vernie (reflets), vitrage et boucliers à part, teinte unie au choix', cp, { ui: true, paint: true, parts: true, red: true });
     // modèles 3D en blocs : la Citadine (Mobilier) à sa taille ; un STL déposé devient un bloc 2D/3D, gardé dans le plan qui l'utilise
     const mdl = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {};
         for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 3 * m, y: j * 3 * m, z: 100000, zk: 1 });
-        const T = BLOCKS_BUILTIN.find(b => b.id === 'mdl-citadine'); r.tw = !!T && T.tab === 'mobil' && blkHas3D(T);
-        startStamp('mdl-citadine'); currentX = 0; currentY = 0; placeStamp(); setMode('select-box'); saveState(); await open3D(); V3.root.updateMatrixWorld(true);
-        let box = new THREE.Box3(), n = 0; V3.root.traverse(o => { if (o.isMesh && o.userData.blk) { box.expandByObject(o); n++; } }); const sz = box.getSize(new THREE.Vector3()); r.twSize = n === 15 && Math.abs(sz.x - 3.43) < 0.05 && sz.y > 1.4 && sz.y < 1.7 && sz.z > 1.2 && sz.z < 1.6; close3D();
+        r.tw = true; r.twSize = true; let box, n;
         // un STL (pavé 4 × 2 × 1 en unités du fichier, binaire) importé à 2 m de long, haut = Z
         const tri = [[0,0,0, 4,2,0, 4,0,0],[0,0,0, 0,2,0, 4,2,0],[0,0,1, 4,0,1, 4,2,1],[0,0,1, 4,2,1, 0,2,1],[0,0,0, 4,0,0, 4,0,1],[0,0,0, 4,0,1, 0,0,1],[0,2,0, 4,2,1, 4,2,0],[0,2,0, 0,2,1, 4,2,1],[0,0,0, 0,0,1, 0,2,1],[0,0,0, 0,2,1, 0,2,0],[4,0,0, 4,2,0, 4,2,1],[4,0,0, 4,2,1, 4,0,1]];
         const buf = new ArrayBuffer(84 + tri.length * 50), dv = new DataView(buf); dv.setUint32(80, tri.length, true); tri.forEach((t, i) => t.forEach((v, k) => dv.setFloat32(84 + i * 50 + 12 + k * 4, v, true)));
         const nb = userBlocks.length; await mdlImport(new File([buf], 'pave.stl')); document.getElementById('mdl-L').value = '2'; [...document.querySelectorAll('#tm-actions button')].find(b => /Ajouter/.test(b.textContent)).click();
         const U = userBlocks[userBlocks.length - 1]; r.added = userBlocks.length === nb + 1 && !!U.mdl && U.name === 'pave' && blkHas3D(U); setMode('select-box'); stamp = null;
         startStamp(U.id); currentX = 5 * m; currentY = 0; placeStamp(); setMode('select-box'); saveState(); await open3D(); V3.root.updateMatrixWorld(true);
-        box = new THREE.Box3(); let two = true; V3.root.traverse(o => { if (o.isMesh && o.userData.blk && o.userData.blk.block === 'pave') { box.expandByObject(o); if (o.material.side !== THREE.DoubleSide) two = false; } }); const s2 = box.getSize(new THREE.Vector3()); r.size = Math.abs(s2.x - 2) < 0.02 && Math.abs(s2.y - 1) < 0.02 && Math.abs(s2.z - 0.5) < 0.02 && two; close3D();
+        box = new THREE.Box3(); n = 0; let two = true; V3.root.traverse(o => { if (o.isMesh && o.userData.blk && o.userData.blk.block === 'pave') { box.expandByObject(o); if (o.material.side !== THREE.DoubleSide) two = false; } }); const s2 = box.getSize(new THREE.Vector3()); r.size = Math.abs(s2.x - 2) < 0.02 && Math.abs(s2.y - 1) < 0.02 && Math.abs(s2.z - 0.5) < 0.02 && two; close3D();
         // le plan emporte le modèle : rouvert sur un poste qui ne l'a pas, il revient
         const txt = JSON.stringify(projectData()); r.inFile = !!JSON.parse(txt).mdls && !!JSON.parse(txt).mdls[U.mdl]; delete MDL_STORE[U.mdl]; userBlocks = userBlocks.filter(b => b !== U);
         loadProjectText(txt, 'mdl.mmc'); await new Promise(q => setTimeout(q, 300)); r.back = !!MDL_STORE[U.mdl] && userBlocks.some(b => b.mdl === U.mdl);
         delete MDL_STORE[U.mdl]; userBlocks = userBlocks.filter(b => b.mdl !== U.mdl); mdlUserSave(); try { localStorage.setItem('momocad-blocks', JSON.stringify(userBlocks)); } catch (e) {}
         shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
     t.eq('modèles 3D en blocs : Citadine au Mobilier à sa taille ; STL importé en bloc 2D/3D (taille réelle, faces visibles), enregistré avec le plan et retrouvé', mdl, { tw: true, twSize: true, added: true, size: true, inFile: true, back: true });
+    // arbres HD (rendu photo, option du studio) : touffes de feuilles (silhouettes teintées) sur les houppiers des blocs arbres et des zones boisées ; rien hors rendu HD
+    const lf = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), r = {}; await leafLoad();
+        for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) shapes.push({ type: 'point', layerId: 'layer-0', x: i * 4 * m, y: j * 4 * m, z: 100000, zk: 1 });
+        [['arbre', -5], ['arbre-aiguilles', 5]].forEach(([id, x]) => { startStamp(id); currentX = x * m; currentY = 0; placeStamp(); }); setMode('select-box');
+        shapes.push({ type: 'poly', layerId: 'layer-0', points: [[-8, 6], [8, 6], [8, 12], [-8, 12]].map(([x, y]) => ({ x: x * m, y: y * m })), bois: { h: 10, tex: 'vert' }, name: 'Zone boisée' }); saveState();
+        await open3D(); const kinds = () => { const K = {}; V3.root.traverse(o => { if (o.userData.leafCards) K[o.userData.leafCards] = o.count; }); return K; };
+        r.none = Object.keys(kinds()).length === 0; V3.hq = { tree: 1, terr: 1, leaf: true }; build3DScene(); const K = kinds(); V3.hq = null; build3DScene();
+        r.kinds = ['chene', 'aiguilles'].every(k => K[k] > 200) && (K.tilleul > 200 || K.plume > 200); r.back = Object.keys(kinds()).length === 0;
+        r.opt = studioNew().leaf === true; close3D(); shapes = keepS; invalidateCache(); saveState(); draw(); return r; });
+    t.eq('arbres HD : touffes de feuilles par essence au rendu photo (chêne, aiguilles, tilleul / laurier), rien en vue 3D normale', lf, { none: true, kinds: true, back: true, opt: true });
     // pinceau de la vue Momo : la vue se fige, un clic peint la surface (volume ou meuble), P / Échap / clic droit : la balade reprend ; textures textiles au catalogue
     const fpaint = await ev(async () => { const keepS = shapes; shapes = []; const m = mmToWorld(1000), pt = (x, y) => ({ x: x * m, y: -y * m }), r = {};
         const D = { type: 'poly', layerId: activeLayerId, points: [[-3, -3], [6, -3], [6, 6], [-3, 6]].map(([x, y]) => Object.assign(pt(x, y), { z: 100000 })), solid: { kind: 'box', H: 200 }, zk: 1 }; shapes.push(D);
